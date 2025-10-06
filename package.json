@@ -1,12 +1,16 @@
 {
-  "name": "randevuSistemi",
+  "name": "coklu-magaza-randevu-platform",
   "private": true,
   "scripts": {
     "build": "turbo run build",
-    "dev": "turbo run dev",
+    "dev": "turbo run dev --parallel",
+    "dev:web": "turbo run dev --filter=web",
+    "dev:admin": "turbo run dev --filter=admin",
+    "dev:project-admin": "turbo run dev --filter=project-admin",
     "lint": "turbo run lint",
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
-    "check-types": "turbo run check-types"
+    "check-types": "turbo run check-types",
+    "clean": "turbo run clean"
   },
   "devDependencies": {
     "prettier": "^3.6.2",
@@ -20,5 +24,8 @@
   "workspaces": [
     "apps/*",
     "packages/*"
-  ]
+  ],
+  "dependencies": {
+    "@prisma/client": "^6.16.2"
+  }
 }

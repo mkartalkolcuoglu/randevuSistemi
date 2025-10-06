@@ -1,0 +1,343 @@
+
+> dev
+> turbo run dev --parallel
+
+turbo 2.5.8
+
+• Packages in scope: @repo/config, @repo/eslint-config, @repo/typescript-config, @repo/ui, admin, project-admin, web
+• Running dev in 7 packages
+• Remote caching disabled
+project-admin:dev: cache bypass, force executing 35aa508d9ddbaa7f
+@repo/ui:dev: cache bypass, force executing af91cfc02540fd76
+admin:dev: cache bypass, force executing 74af18cdc5981cb9
+web:dev: cache bypass, force executing cc6e501e30a652e3
+project-admin:dev: 
+project-admin:dev: > project-admin@0.1.0 dev
+project-admin:dev: > next dev --turbopack --port 3002
+project-admin:dev: 
+@repo/ui:dev: 
+@repo/ui:dev: > @repo/ui@0.0.0 dev
+@repo/ui:dev: > tsc --watch
+@repo/ui:dev: 
+web:dev: 
+web:dev: > web@0.1.0 dev
+web:dev: > next dev --turbopack --port 3000
+web:dev: 
+@repo/ui:dev: [2J[3J[H12:21:54 PM - Starting compilation in watch mode...
+@repo/ui:dev: 
+admin:dev: 
+admin:dev: > admin@0.1.0 dev
+admin:dev: > next dev --turbopack --port 3001
+admin:dev: 
+project-admin:dev:  ⚠ Warning: Next.js inferred your workspace root, but it may not be correct.
+project-admin:dev:  We detected multiple lockfiles and selected the directory of /Users/kartal.kolcuoglu/package-lock.json as the root directory.
+project-admin:dev:  To silence this warning, set `turbopack.root` in your Next.js config, or consider removing one of the lockfiles if it's not needed.
+project-admin:dev:    See https://nextjs.org/docs/app/api-reference/config/next-config-js/turbopack#root-directory for more information.
+project-admin:dev:  Detected additional lockfiles: 
+project-admin:dev:    * /Users/kartal.kolcuoglu/Desktop/kartalApps/randevuSistemi/package-lock.json
+project-admin:dev: 
+web:dev:  ⚠ Warning: Next.js inferred your workspace root, but it may not be correct.
+web:dev:  We detected multiple lockfiles and selected the directory of /Users/kartal.kolcuoglu/package-lock.json as the root directory.
+web:dev:  To silence this warning, set `turbopack.root` in your Next.js config, or consider removing one of the lockfiles if it's not needed.
+web:dev:    See https://nextjs.org/docs/app/api-reference/config/next-config-js/turbopack#root-directory for more information.
+web:dev:  Detected additional lockfiles: 
+web:dev:    * /Users/kartal.kolcuoglu/Desktop/kartalApps/randevuSistemi/package-lock.json
+web:dev: 
+admin:dev:  ⚠ Warning: Next.js inferred your workspace root, but it may not be correct.
+admin:dev:  We detected multiple lockfiles and selected the directory of /Users/kartal.kolcuoglu/package-lock.json as the root directory.
+admin:dev:  To silence this warning, set `turbopack.root` in your Next.js config, or consider removing one of the lockfiles if it's not needed.
+admin:dev:    See https://nextjs.org/docs/app/api-reference/config/next-config-js/turbopack#root-directory for more information.
+admin:dev:  Detected additional lockfiles: 
+admin:dev:    * /Users/kartal.kolcuoglu/Desktop/kartalApps/randevuSistemi/package-lock.json
+admin:dev: 
+project-admin:dev:    ▲ Next.js 15.5.4 (Turbopack)
+project-admin:dev:    - Local:        http://localhost:3002
+project-admin:dev:    - Network:      http://192.168.1.123:3002
+project-admin:dev: 
+project-admin:dev:  ✓ Starting...
+web:dev:    ▲ Next.js 15.5.4 (Turbopack)
+web:dev:    - Local:        http://localhost:3000
+web:dev:    - Network:      http://192.168.1.123:3000
+web:dev: 
+web:dev:  ✓ Starting...
+admin:dev:    ▲ Next.js 15.5.4 (Turbopack)
+admin:dev:    - Local:        http://localhost:3001
+admin:dev:    - Network:      http://192.168.1.123:3001
+admin:dev: 
+admin:dev:  ✓ Starting...
+@repo/ui:dev: 
+@repo/ui:dev: 12:21:56 PM - Found 0 errors. Watching for file changes.
+web:dev:  ✓ Compiled middleware in 345ms
+admin:dev:  ✓ Compiled middleware in 345ms
+project-admin:dev:  ✓ Ready in 1437ms
+web:dev:  ✓ Ready in 1663ms
+admin:dev:  ✓ Ready in 1383ms
+admin:dev:  ○ Compiling /api/auth/login ...
+admin:dev:  ✓ Compiled /api/auth/login in 719ms
+admin:dev: ✅ Admin SQLite database initialized successfully
+admin:dev:  POST /api/auth/login 200 in 1059ms
+admin:dev:  ✓ Compiled /api/staff in 70ms
+admin:dev: prisma:info Starting a sqlite pool with 21 connections.
+admin:dev: prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`staff`.`id` FROM `main`.`staff` WHERE `main`.`staff`.`tenantId` = ? LIMIT ? OFFSET ?) AS `sub`
+admin:dev: prisma:query SELECT `main`.`staff`.`id`, `main`.`staff`.`tenantId`, `main`.`staff`.`firstName`, `main`.`staff`.`lastName`, `main`.`staff`.`email`, `main`.`staff`.`phone`, `main`.`staff`.`position`, `main`.`staff`.`status`, `main`.`staff`.`avatar`, `main`.`staff`.`salary`, `main`.`staff`.`hireDate`, `main`.`staff`.`specializations`, `main`.`staff`.`experience`, `main`.`staff`.`rating`, `main`.`staff`.`workingHours`, `main`.`staff`.`notes`, `main`.`staff`.`createdAt`, `main`.`staff`.`updatedAt` FROM `main`.`staff` WHERE `main`.`staff`.`tenantId` = ? ORDER BY `main`.`staff`.`createdAt` DESC LIMIT ? OFFSET ?
+admin:dev:  GET /api/staff?page=1&limit=20 200 in 796ms
+admin:dev: prisma:query INSERT INTO `main`.`staff` (`id`, `tenantId`, `firstName`, `lastName`, `email`, `phone`, `position`, `status`, `salary`, `hireDate`, `specializations`, `experience`, `rating`, `workingHours`, `notes`, `createdAt`, `updatedAt`) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) RETURNING `id` AS `id`, `tenantId` AS `tenantId`, `firstName` AS `firstName`, `lastName` AS `lastName`, `email` AS `email`, `phone` AS `phone`, `position` AS `position`, `status` AS `status`, `avatar` AS `avatar`, `salary` AS `salary`, `hireDate` AS `hireDate`, `specializations` AS `specializations`, `experience` AS `experience`, `rating` AS `rating`, `workingHours` AS `workingHours`, `notes` AS `notes`, `createdAt` AS `createdAt`, `updatedAt` AS `updatedAt`
+admin:dev:  POST /api/staff 200 in 254ms
+admin:dev: prisma:query SELECT 1
+admin:dev: prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`staff`.`id` FROM `main`.`staff` WHERE `main`.`staff`.`tenantId` = ? LIMIT ? OFFSET ?) AS `sub`
+admin:dev: prisma:query SELECT `main`.`staff`.`id`, `main`.`staff`.`tenantId`, `main`.`staff`.`firstName`, `main`.`staff`.`lastName`, `main`.`staff`.`email`, `main`.`staff`.`phone`, `main`.`staff`.`position`, `main`.`staff`.`status`, `main`.`staff`.`avatar`, `main`.`staff`.`salary`, `main`.`staff`.`hireDate`, `main`.`staff`.`specializations`, `main`.`staff`.`experience`, `main`.`staff`.`rating`, `main`.`staff`.`workingHours`, `main`.`staff`.`notes`, `main`.`staff`.`createdAt`, `main`.`staff`.`updatedAt` FROM `main`.`staff` WHERE `main`.`staff`.`tenantId` = ? ORDER BY `main`.`staff`.`createdAt` DESC LIMIT ? OFFSET ?
+admin:dev:  GET /api/staff?page=1&limit=20 200 in 250ms
+admin:dev:  ○ Compiling /admin/staff/new ...
+admin:dev:  ✓ Compiled /admin/staff/new in 2.1s
+admin:dev:  GET /admin/staff/new 200 in 2436ms
+admin:dev:  ✓ Compiled /favicon.ico in 89ms
+admin:dev:  GET /favicon.ico?favicon.0b3bf435.ico 200 in 345ms
+admin:dev: prisma:query SELECT 1
+admin:dev: prisma:query INSERT INTO `main`.`staff` (`id`, `tenantId`, `firstName`, `lastName`, `email`, `phone`, `position`, `status`, `salary`, `hireDate`, `specializations`, `experience`, `rating`, `workingHours`, `notes`, `createdAt`, `updatedAt`) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) RETURNING `id` AS `id`, `tenantId` AS `tenantId`, `firstName` AS `firstName`, `lastName` AS `lastName`, `email` AS `email`, `phone` AS `phone`, `position` AS `position`, `status` AS `status`, `avatar` AS `avatar`, `salary` AS `salary`, `hireDate` AS `hireDate`, `specializations` AS `specializations`, `experience` AS `experience`, `rating` AS `rating`, `workingHours` AS `workingHours`, `notes` AS `notes`, `createdAt` AS `createdAt`, `updatedAt` AS `updatedAt`
+admin:dev:  POST /api/staff 200 in 246ms
+admin:dev:  ✓ Compiled /admin/staff in 353ms
+admin:dev:  GET /admin/staff 200 in 401ms
+admin:dev: prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`staff`.`id` FROM `main`.`staff` WHERE `main`.`staff`.`tenantId` = ? LIMIT ? OFFSET ?) AS `sub`
+admin:dev: prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`staff`.`id` FROM `main`.`staff` WHERE `main`.`staff`.`tenantId` = ? LIMIT ? OFFSET ?) AS `sub`
+admin:dev: prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`staff`.`id` FROM `main`.`staff` WHERE `main`.`staff`.`tenantId` = ? LIMIT ? OFFSET ?) AS `sub`
+admin:dev: prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`staff`.`id` FROM `main`.`staff` WHERE `main`.`staff`.`tenantId` = ? LIMIT ? OFFSET ?) AS `sub`
+admin:dev: prisma:query SELECT `main`.`staff`.`id`, `main`.`staff`.`tenantId`, `main`.`staff`.`firstName`, `main`.`staff`.`lastName`, `main`.`staff`.`email`, `main`.`staff`.`phone`, `main`.`staff`.`position`, `main`.`staff`.`status`, `main`.`staff`.`avatar`, `main`.`staff`.`salary`, `main`.`staff`.`hireDate`, `main`.`staff`.`specializations`, `main`.`staff`.`experience`, `main`.`staff`.`rating`, `main`.`staff`.`workingHours`, `main`.`staff`.`notes`, `main`.`staff`.`createdAt`, `main`.`staff`.`updatedAt` FROM `main`.`staff` WHERE `main`.`staff`.`tenantId` = ? ORDER BY `main`.`staff`.`createdAt` DESC LIMIT ? OFFSET ?
+admin:dev: prisma:query SELECT `main`.`staff`.`id`, `main`.`staff`.`tenantId`, `main`.`staff`.`firstName`, `main`.`staff`.`lastName`, `main`.`staff`.`email`, `main`.`staff`.`phone`, `main`.`staff`.`position`, `main`.`staff`.`status`, `main`.`staff`.`avatar`, `main`.`staff`.`salary`, `main`.`staff`.`hireDate`, `main`.`staff`.`specializations`, `main`.`staff`.`experience`, `main`.`staff`.`rating`, `main`.`staff`.`workingHours`, `main`.`staff`.`notes`, `main`.`staff`.`createdAt`, `main`.`staff`.`updatedAt` FROM `main`.`staff` WHERE `main`.`staff`.`tenantId` = ? ORDER BY `main`.`staff`.`createdAt` DESC LIMIT ? OFFSET ?
+admin:dev: prisma:query SELECT `main`.`staff`.`id`, `main`.`staff`.`tenantId`, `main`.`staff`.`firstName`, `main`.`staff`.`lastName`, `main`.`staff`.`email`, `main`.`staff`.`phone`, `main`.`staff`.`position`, `main`.`staff`.`status`, `main`.`staff`.`avatar`, `main`.`staff`.`salary`, `main`.`staff`.`hireDate`, `main`.`staff`.`specializations`, `main`.`staff`.`experience`, `main`.`staff`.`rating`, `main`.`staff`.`workingHours`, `main`.`staff`.`notes`, `main`.`staff`.`createdAt`, `main`.`staff`.`updatedAt` FROM `main`.`staff` WHERE `main`.`staff`.`tenantId` = ? ORDER BY `main`.`staff`.`createdAt` DESC LIMIT ? OFFSET ?
+admin:dev:  GET /api/staff?page=1&limit=20&search=&status=all 200 in 340ms
+admin:dev:  GET /api/staff?page=1&limit=20&search=&status=all 200 in 319ms
+admin:dev:  GET /api/staff?page=1&limit=20&search=&status=all 200 in 300ms
+admin:dev:  GET /api/staff?page=1&limit=20&search=&status=all 200 in 294ms
+admin:dev: prisma:query SELECT `main`.`staff`.`id`, `main`.`staff`.`tenantId`, `main`.`staff`.`firstName`, `main`.`staff`.`lastName`, `main`.`staff`.`email`, `main`.`staff`.`phone`, `main`.`staff`.`position`, `main`.`staff`.`status`, `main`.`staff`.`avatar`, `main`.`staff`.`salary`, `main`.`staff`.`hireDate`, `main`.`staff`.`specializations`, `main`.`staff`.`experience`, `main`.`staff`.`rating`, `main`.`staff`.`workingHours`, `main`.`staff`.`notes`, `main`.`staff`.`createdAt`, `main`.`staff`.`updatedAt` FROM `main`.`staff` WHERE `main`.`staff`.`tenantId` = ? ORDER BY `main`.`staff`.`createdAt` DESC LIMIT ? OFFSET ?
+admin:dev:  GET /admin/staff/new 200 in 82ms
+admin:dev: prisma:query SELECT 1
+admin:dev: prisma:query INSERT INTO `main`.`staff` (`id`, `tenantId`, `firstName`, `lastName`, `email`, `phone`, `position`, `status`, `salary`, `hireDate`, `specializations`, `experience`, `rating`, `workingHours`, `notes`, `createdAt`, `updatedAt`) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) RETURNING `id` AS `id`, `tenantId` AS `tenantId`, `firstName` AS `firstName`, `lastName` AS `lastName`, `email` AS `email`, `phone` AS `phone`, `position` AS `position`, `status` AS `status`, `avatar` AS `avatar`, `salary` AS `salary`, `hireDate` AS `hireDate`, `specializations` AS `specializations`, `experience` AS `experience`, `rating` AS `rating`, `workingHours` AS `workingHours`, `notes` AS `notes`, `createdAt` AS `createdAt`, `updatedAt` AS `updatedAt`
+admin:dev:  POST /api/staff 200 in 249ms
+admin:dev:  GET /admin/staff 200 in 73ms
+admin:dev: prisma:query SELECT 1
+admin:dev: prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`staff`.`id` FROM `main`.`staff` WHERE `main`.`staff`.`tenantId` = ? LIMIT ? OFFSET ?) AS `sub`
+admin:dev: prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`staff`.`id` FROM `main`.`staff` WHERE `main`.`staff`.`tenantId` = ? LIMIT ? OFFSET ?) AS `sub`
+admin:dev: prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`staff`.`id` FROM `main`.`staff` WHERE `main`.`staff`.`tenantId` = ? LIMIT ? OFFSET ?) AS `sub`
+admin:dev: prisma:query SELECT `main`.`staff`.`id`, `main`.`staff`.`tenantId`, `main`.`staff`.`firstName`, `main`.`staff`.`lastName`, `main`.`staff`.`email`, `main`.`staff`.`phone`, `main`.`staff`.`position`, `main`.`staff`.`status`, `main`.`staff`.`avatar`, `main`.`staff`.`salary`, `main`.`staff`.`hireDate`, `main`.`staff`.`specializations`, `main`.`staff`.`experience`, `main`.`staff`.`rating`, `main`.`staff`.`workingHours`, `main`.`staff`.`notes`, `main`.`staff`.`createdAt`, `main`.`staff`.`updatedAt` FROM `main`.`staff` WHERE `main`.`staff`.`tenantId` = ? ORDER BY `main`.`staff`.`createdAt` DESC LIMIT ? OFFSET ?
+admin:dev: prisma:query SELECT `main`.`staff`.`id`, `main`.`staff`.`tenantId`, `main`.`staff`.`firstName`, `main`.`staff`.`lastName`, `main`.`staff`.`email`, `main`.`staff`.`phone`, `main`.`staff`.`position`, `main`.`staff`.`status`, `main`.`staff`.`avatar`, `main`.`staff`.`salary`, `main`.`staff`.`hireDate`, `main`.`staff`.`specializations`, `main`.`staff`.`experience`, `main`.`staff`.`rating`, `main`.`staff`.`workingHours`, `main`.`staff`.`notes`, `main`.`staff`.`createdAt`, `main`.`staff`.`updatedAt` FROM `main`.`staff` WHERE `main`.`staff`.`tenantId` = ? ORDER BY `main`.`staff`.`createdAt` DESC LIMIT ? OFFSET ?
+admin:dev:  GET /api/staff?page=1&limit=20&search=&status=all 200 in 351ms
+admin:dev:  GET /api/staff?page=1&limit=20&search=&status=all 200 in 341ms
+admin:dev:  GET /api/staff?page=1&limit=20&search=&status=all 200 in 344ms
+admin:dev: prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`staff`.`id` FROM `main`.`staff` WHERE `main`.`staff`.`tenantId` = ? LIMIT ? OFFSET ?) AS `sub`
+admin:dev: prisma:query SELECT `main`.`staff`.`id`, `main`.`staff`.`tenantId`, `main`.`staff`.`firstName`, `main`.`staff`.`lastName`, `main`.`staff`.`email`, `main`.`staff`.`phone`, `main`.`staff`.`position`, `main`.`staff`.`status`, `main`.`staff`.`avatar`, `main`.`staff`.`salary`, `main`.`staff`.`hireDate`, `main`.`staff`.`specializations`, `main`.`staff`.`experience`, `main`.`staff`.`rating`, `main`.`staff`.`workingHours`, `main`.`staff`.`notes`, `main`.`staff`.`createdAt`, `main`.`staff`.`updatedAt` FROM `main`.`staff` WHERE `main`.`staff`.`tenantId` = ? ORDER BY `main`.`staff`.`createdAt` DESC LIMIT ? OFFSET ?
+admin:dev: prisma:query SELECT `main`.`staff`.`id`, `main`.`staff`.`tenantId`, `main`.`staff`.`firstName`, `main`.`staff`.`lastName`, `main`.`staff`.`email`, `main`.`staff`.`phone`, `main`.`staff`.`position`, `main`.`staff`.`status`, `main`.`staff`.`avatar`, `main`.`staff`.`salary`, `main`.`staff`.`hireDate`, `main`.`staff`.`specializations`, `main`.`staff`.`experience`, `main`.`staff`.`rating`, `main`.`staff`.`workingHours`, `main`.`staff`.`notes`, `main`.`staff`.`createdAt`, `main`.`staff`.`updatedAt` FROM `main`.`staff` WHERE `main`.`staff`.`tenantId` = ? ORDER BY `main`.`staff`.`createdAt` DESC LIMIT ? OFFSET ?
+admin:dev:  GET /api/staff?page=1&limit=20&search=&status=all 200 in 353ms
+admin:dev:  ✓ Compiled /admin/staff/[id] in 321ms
+admin:dev:  GET /admin/staff/cmg0nuiez0002nzn2bhur4q19 200 in 1047ms
+admin:dev:  ✓ Compiled /api/staff/[id] in 93ms
+admin:dev: prisma:query SELECT 1
+admin:dev: prisma:query SELECT `main`.`staff`.`id`, `main`.`staff`.`tenantId`, `main`.`staff`.`firstName`, `main`.`staff`.`lastName`, `main`.`staff`.`email`, `main`.`staff`.`phone`, `main`.`staff`.`position`, `main`.`staff`.`status`, `main`.`staff`.`avatar`, `main`.`staff`.`salary`, `main`.`staff`.`hireDate`, `main`.`staff`.`specializations`, `main`.`staff`.`experience`, `main`.`staff`.`rating`, `main`.`staff`.`workingHours`, `main`.`staff`.`notes`, `main`.`staff`.`createdAt`, `main`.`staff`.`updatedAt` FROM `main`.`staff` WHERE (`main`.`staff`.`id` = ? AND 1=1) LIMIT ? OFFSET ?
+admin:dev:  GET /api/staff/cmg0nuiez0002nzn2bhur4q19 200 in 1076ms
+admin:dev: prisma:info Starting a sqlite pool with 21 connections.
+admin:dev: prisma:query SELECT `main`.`staff`.`id`, `main`.`staff`.`tenantId`, `main`.`staff`.`firstName`, `main`.`staff`.`lastName`, `main`.`staff`.`email`, `main`.`staff`.`phone`, `main`.`staff`.`position`, `main`.`staff`.`status`, `main`.`staff`.`avatar`, `main`.`staff`.`salary`, `main`.`staff`.`hireDate`, `main`.`staff`.`specializations`, `main`.`staff`.`experience`, `main`.`staff`.`rating`, `main`.`staff`.`workingHours`, `main`.`staff`.`notes`, `main`.`staff`.`createdAt`, `main`.`staff`.`updatedAt` FROM `main`.`staff` WHERE (`main`.`staff`.`id` = ? AND 1=1) LIMIT ? OFFSET ?
+admin:dev:  GET /api/staff/cmg0nuiez0002nzn2bhur4q19 200 in 285ms
+admin:dev: prisma:info Starting a sqlite pool with 21 connections.
+admin:dev:  GET /favicon.ico 200 in 295ms
+project-admin:dev:  ○ Compiling /project-admin/tenants ...
+project-admin:dev:  ✓ Compiled /project-admin/tenants in 2.6s
+project-admin:dev:  GET /project-admin/tenants 200 in 3003ms
+project-admin:dev:  ✓ Compiled /api/tenants in 156ms
+admin:dev:  GET /admin/staff 200 in 334ms
+project-admin:dev: CREATE TABLE IF NOT EXISTS tenants (
+project-admin:dev:       id TEXT PRIMARY KEY,
+project-admin:dev:       businessName TEXT NOT NULL,
+project-admin:dev:       slug TEXT UNIQUE NOT NULL,
+project-admin:dev:       domain TEXT UNIQUE NOT NULL,
+project-admin:dev:       username TEXT UNIQUE NOT NULL,
+project-admin:dev:       password TEXT NOT NULL,
+project-admin:dev:       ownerName TEXT NOT NULL,
+project-admin:dev:       ownerEmail TEXT NOT NULL,
+project-admin:dev:       phone TEXT,
+project-admin:dev:       plan TEXT DEFAULT 'Standard',
+project-admin:dev:       status TEXT DEFAULT 'active',
+project-admin:dev:       address TEXT,
+project-admin:dev:       businessType TEXT DEFAULT 'other',
+project-admin:dev:       businessDescription TEXT,
+project-admin:dev:       monthlyRevenue INTEGER DEFAULT 0,
+project-admin:dev:       appointmentCount INTEGER DEFAULT 0,
+project-admin:dev:       customerCount INTEGER DEFAULT 0,
+project-admin:dev:       createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+project-admin:dev:       lastLogin DATETIME,
+project-admin:dev:       workingHours TEXT,
+project-admin:dev:       theme TEXT
+project-admin:dev:     );
+project-admin:dev: ✅ SQLite database initialized successfully
+project-admin:dev: SELECT COUNT(*) as total FROM tenants 
+project-admin:dev: SELECT * FROM tenants  ORDER BY createdAt DESC LIMIT 50.0 OFFSET 0.0
+project-admin:dev:  GET /api/tenants?page=1&limit=50 200 in 771ms
+admin:dev:  GET /favicon.ico?favicon.0b3bf435.ico 200 in 321ms
+admin:dev: prisma:query SELECT 1
+admin:dev: prisma:query SELECT 1
+admin:dev: prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`staff`.`id` FROM `main`.`staff` WHERE `main`.`staff`.`tenantId` = ? LIMIT ? OFFSET ?) AS `sub`
+admin:dev: prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`staff`.`id` FROM `main`.`staff` WHERE `main`.`staff`.`tenantId` = ? LIMIT ? OFFSET ?) AS `sub`
+admin:dev: prisma:query SELECT `main`.`staff`.`id`, `main`.`staff`.`tenantId`, `main`.`staff`.`firstName`, `main`.`staff`.`lastName`, `main`.`staff`.`email`, `main`.`staff`.`phone`, `main`.`staff`.`position`, `main`.`staff`.`status`, `main`.`staff`.`avatar`, `main`.`staff`.`salary`, `main`.`staff`.`hireDate`, `main`.`staff`.`specializations`, `main`.`staff`.`experience`, `main`.`staff`.`rating`, `main`.`staff`.`workingHours`, `main`.`staff`.`notes`, `main`.`staff`.`createdAt`, `main`.`staff`.`updatedAt` FROM `main`.`staff` WHERE `main`.`staff`.`tenantId` = ? ORDER BY `main`.`staff`.`createdAt` DESC LIMIT ? OFFSET ?
+admin:dev: prisma:query SELECT `main`.`staff`.`id`, `main`.`staff`.`tenantId`, `main`.`staff`.`firstName`, `main`.`staff`.`lastName`, `main`.`staff`.`email`, `main`.`staff`.`phone`, `main`.`staff`.`position`, `main`.`staff`.`status`, `main`.`staff`.`avatar`, `main`.`staff`.`salary`, `main`.`staff`.`hireDate`, `main`.`staff`.`specializations`, `main`.`staff`.`experience`, `main`.`staff`.`rating`, `main`.`staff`.`workingHours`, `main`.`staff`.`notes`, `main`.`staff`.`createdAt`, `main`.`staff`.`updatedAt` FROM `main`.`staff` WHERE `main`.`staff`.`tenantId` = ? ORDER BY `main`.`staff`.`createdAt` DESC LIMIT ? OFFSET ?
+admin:dev:  GET /api/staff?page=1&limit=20&search=&status=all 200 in 286ms
+admin:dev:  GET /api/staff?page=1&limit=20&search=&status=all 200 in 287ms
+admin:dev:  ✓ Compiled in 174ms
+admin:dev:  ✓ Compiled in 133ms
+admin:dev:  ✓ Compiled in 76ms
+admin:dev:  POST /api/auth/login 200 in 262ms
+admin:dev: prisma:info Starting a sqlite pool with 21 connections.
+admin:dev: prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`staff`.`id` FROM `main`.`staff` WHERE `main`.`staff`.`tenantId` = ? LIMIT ? OFFSET ?) AS `sub`
+admin:dev: prisma:query SELECT `main`.`staff`.`id`, `main`.`staff`.`tenantId`, `main`.`staff`.`firstName`, `main`.`staff`.`lastName`, `main`.`staff`.`email`, `main`.`staff`.`phone`, `main`.`staff`.`position`, `main`.`staff`.`status`, `main`.`staff`.`avatar`, `main`.`staff`.`salary`, `main`.`staff`.`hireDate`, `main`.`staff`.`specializations`, `main`.`staff`.`experience`, `main`.`staff`.`rating`, `main`.`staff`.`workingHours`, `main`.`staff`.`notes`, `main`.`staff`.`createdAt`, `main`.`staff`.`updatedAt` FROM `main`.`staff` WHERE `main`.`staff`.`tenantId` = ? ORDER BY `main`.`staff`.`createdAt` DESC LIMIT ? OFFSET ?
+admin:dev: prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`appointments`.`id` FROM `main`.`appointments` WHERE (`main`.`appointments`.`staffId` = ? AND `main`.`appointments`.`createdAt` >= ? AND `main`.`appointments`.`createdAt` <= ?) LIMIT ? OFFSET ?) AS `sub`
+admin:dev: prisma:query SELECT `main`.`appointments`.`id`, `main`.`appointments`.`price` FROM `main`.`appointments` WHERE (`main`.`appointments`.`staffId` = ? AND `main`.`appointments`.`createdAt` >= ? AND `main`.`appointments`.`createdAt` <= ?) LIMIT ? OFFSET ?
+admin:dev: prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`appointments`.`id` FROM `main`.`appointments` WHERE (`main`.`appointments`.`staffId` = ? AND `main`.`appointments`.`createdAt` >= ? AND `main`.`appointments`.`createdAt` <= ?) LIMIT ? OFFSET ?) AS `sub`
+admin:dev: prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`appointments`.`id` FROM `main`.`appointments` WHERE (`main`.`appointments`.`staffId` = ? AND `main`.`appointments`.`createdAt` >= ? AND `main`.`appointments`.`createdAt` <= ?) LIMIT ? OFFSET ?) AS `sub`
+admin:dev: prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`appointments`.`id` FROM `main`.`appointments` WHERE (`main`.`appointments`.`staffId` = ? AND `main`.`appointments`.`createdAt` >= ? AND `main`.`appointments`.`createdAt` <= ?) LIMIT ? OFFSET ?) AS `sub`
+admin:dev: prisma:query SELECT `main`.`appointments`.`id`, `main`.`appointments`.`price` FROM `main`.`appointments` WHERE (`main`.`appointments`.`staffId` = ? AND `main`.`appointments`.`createdAt` >= ? AND `main`.`appointments`.`createdAt` <= ?) LIMIT ? OFFSET ?
+admin:dev: prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`appointments`.`id` FROM `main`.`appointments` WHERE (`main`.`appointments`.`staffId` = ? AND `main`.`appointments`.`createdAt` >= ? AND `main`.`appointments`.`createdAt` <= ?) LIMIT ? OFFSET ?) AS `sub`
+admin:dev: prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`appointments`.`id` FROM `main`.`appointments` WHERE (`main`.`appointments`.`staffId` = ? AND `main`.`appointments`.`createdAt` >= ? AND `main`.`appointments`.`createdAt` <= ?) LIMIT ? OFFSET ?) AS `sub`
+admin:dev: prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`appointments`.`id` FROM `main`.`appointments` WHERE (`main`.`appointments`.`staffId` = ? AND `main`.`appointments`.`createdAt` >= ? AND `main`.`appointments`.`createdAt` <= ?) LIMIT ? OFFSET ?) AS `sub`
+admin:dev: prisma:query SELECT `main`.`appointments`.`id`, `main`.`appointments`.`price` FROM `main`.`appointments` WHERE (`main`.`appointments`.`staffId` = ? AND `main`.`appointments`.`createdAt` >= ? AND `main`.`appointments`.`createdAt` <= ?) LIMIT ? OFFSET ?
+admin:dev: prisma:query SELECT `main`.`appointments`.`id`, `main`.`appointments`.`price` FROM `main`.`appointments` WHERE (`main`.`appointments`.`staffId` = ? AND `main`.`appointments`.`createdAt` >= ? AND `main`.`appointments`.`createdAt` <= ?) LIMIT ? OFFSET ?
+admin:dev: prisma:query SELECT `main`.`appointments`.`id`, `main`.`appointments`.`price` FROM `main`.`appointments` WHERE (`main`.`appointments`.`staffId` = ? AND `main`.`appointments`.`createdAt` >= ? AND `main`.`appointments`.`createdAt` <= ?) LIMIT ? OFFSET ?
+admin:dev: prisma:query SELECT `main`.`appointments`.`id`, `main`.`appointments`.`price` FROM `main`.`appointments` WHERE (`main`.`appointments`.`staffId` = ? AND `main`.`appointments`.`createdAt` >= ? AND `main`.`appointments`.`createdAt` <= ?) LIMIT ? OFFSET ?
+admin:dev: prisma:query SELECT `main`.`appointments`.`id`, `main`.`appointments`.`price` FROM `main`.`appointments` WHERE (`main`.`appointments`.`staffId` = ? AND `main`.`appointments`.`createdAt` >= ? AND `main`.`appointments`.`createdAt` <= ?) LIMIT ? OFFSET ?
+admin:dev:  GET /api/staff?page=1&limit=20 200 in 384ms
+admin:dev: prisma:query SELECT 1
+admin:dev: prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`staff`.`id` FROM `main`.`staff` WHERE `main`.`staff`.`tenantId` = ? LIMIT ? OFFSET ?) AS `sub`
+admin:dev: prisma:query SELECT `main`.`staff`.`id`, `main`.`staff`.`tenantId`, `main`.`staff`.`firstName`, `main`.`staff`.`lastName`, `main`.`staff`.`email`, `main`.`staff`.`phone`, `main`.`staff`.`position`, `main`.`staff`.`status`, `main`.`staff`.`avatar`, `main`.`staff`.`salary`, `main`.`staff`.`hireDate`, `main`.`staff`.`specializations`, `main`.`staff`.`experience`, `main`.`staff`.`rating`, `main`.`staff`.`workingHours`, `main`.`staff`.`notes`, `main`.`staff`.`createdAt`, `main`.`staff`.`updatedAt` FROM `main`.`staff` WHERE `main`.`staff`.`tenantId` = ? ORDER BY `main`.`staff`.`createdAt` DESC LIMIT ? OFFSET ?
+admin:dev: prisma:query SELECT 1
+admin:dev: prisma:query SELECT 1
+admin:dev: prisma:query SELECT 1
+admin:dev: prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`appointments`.`id` FROM `main`.`appointments` WHERE (`main`.`appointments`.`staffId` = ? AND `main`.`appointments`.`createdAt` >= ? AND `main`.`appointments`.`createdAt` <= ?) LIMIT ? OFFSET ?) AS `sub`
+admin:dev: prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`appointments`.`id` FROM `main`.`appointments` WHERE (`main`.`appointments`.`staffId` = ? AND `main`.`appointments`.`createdAt` >= ? AND `main`.`appointments`.`createdAt` <= ?) LIMIT ? OFFSET ?) AS `sub`
+admin:dev: prisma:query SELECT 1
+admin:dev: prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`appointments`.`id` FROM `main`.`appointments` WHERE (`main`.`appointments`.`staffId` = ? AND `main`.`appointments`.`createdAt` >= ? AND `main`.`appointments`.`createdAt` <= ?) LIMIT ? OFFSET ?) AS `sub`
+admin:dev: prisma:query SELECT 1
+admin:dev: prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`appointments`.`id` FROM `main`.`appointments` WHERE (`main`.`appointments`.`staffId` = ? AND `main`.`appointments`.`createdAt` >= ? AND `main`.`appointments`.`createdAt` <= ?) LIMIT ? OFFSET ?) AS `sub`
+admin:dev: prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`appointments`.`id` FROM `main`.`appointments` WHERE (`main`.`appointments`.`staffId` = ? AND `main`.`appointments`.`createdAt` >= ? AND `main`.`appointments`.`createdAt` <= ?) LIMIT ? OFFSET ?) AS `sub`
+admin:dev: prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`appointments`.`id` FROM `main`.`appointments` WHERE (`main`.`appointments`.`staffId` = ? AND `main`.`appointments`.`createdAt` >= ? AND `main`.`appointments`.`createdAt` <= ?) LIMIT ? OFFSET ?) AS `sub`
+admin:dev: prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`appointments`.`id` FROM `main`.`appointments` WHERE (`main`.`appointments`.`staffId` = ? AND `main`.`appointments`.`createdAt` >= ? AND `main`.`appointments`.`createdAt` <= ?) LIMIT ? OFFSET ?) AS `sub`
+admin:dev: prisma:query SELECT `main`.`appointments`.`id`, `main`.`appointments`.`price` FROM `main`.`appointments` WHERE (`main`.`appointments`.`staffId` = ? AND `main`.`appointments`.`createdAt` >= ? AND `main`.`appointments`.`createdAt` <= ?) LIMIT ? OFFSET ?
+admin:dev: prisma:query SELECT `main`.`appointments`.`id`, `main`.`appointments`.`price` FROM `main`.`appointments` WHERE (`main`.`appointments`.`staffId` = ? AND `main`.`appointments`.`createdAt` >= ? AND `main`.`appointments`.`createdAt` <= ?) LIMIT ? OFFSET ?
+admin:dev: prisma:query SELECT `main`.`appointments`.`id`, `main`.`appointments`.`price` FROM `main`.`appointments` WHERE (`main`.`appointments`.`staffId` = ? AND `main`.`appointments`.`createdAt` >= ? AND `main`.`appointments`.`createdAt` <= ?) LIMIT ? OFFSET ?
+admin:dev: prisma:query SELECT `main`.`appointments`.`id`, `main`.`appointments`.`price` FROM `main`.`appointments` WHERE (`main`.`appointments`.`staffId` = ? AND `main`.`appointments`.`createdAt` >= ? AND `main`.`appointments`.`createdAt` <= ?) LIMIT ? OFFSET ?
+admin:dev: prisma:query SELECT `main`.`appointments`.`id`, `main`.`appointments`.`price` FROM `main`.`appointments` WHERE (`main`.`appointments`.`staffId` = ? AND `main`.`appointments`.`createdAt` >= ? AND `main`.`appointments`.`createdAt` <= ?) LIMIT ? OFFSET ?
+admin:dev: prisma:query SELECT `main`.`appointments`.`id`, `main`.`appointments`.`price` FROM `main`.`appointments` WHERE (`main`.`appointments`.`staffId` = ? AND `main`.`appointments`.`createdAt` >= ? AND `main`.`appointments`.`createdAt` <= ?) LIMIT ? OFFSET ?
+admin:dev: prisma:query SELECT `main`.`appointments`.`id`, `main`.`appointments`.`price` FROM `main`.`appointments` WHERE (`main`.`appointments`.`staffId` = ? AND `main`.`appointments`.`createdAt` >= ? AND `main`.`appointments`.`createdAt` <= ?) LIMIT ? OFFSET ?
+admin:dev:  GET /api/staff?page=1&limit=20 200 in 333ms
+admin:dev: prisma:info Starting a sqlite pool with 21 connections.
+admin:dev: prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`staff`.`id` FROM `main`.`staff` WHERE `main`.`staff`.`tenantId` = ? LIMIT ? OFFSET ?) AS `sub`
+admin:dev: prisma:query SELECT `main`.`staff`.`id`, `main`.`staff`.`tenantId`, `main`.`staff`.`firstName`, `main`.`staff`.`lastName`, `main`.`staff`.`email`, `main`.`staff`.`phone`, `main`.`staff`.`position`, `main`.`staff`.`status`, `main`.`staff`.`avatar`, `main`.`staff`.`salary`, `main`.`staff`.`hireDate`, `main`.`staff`.`specializations`, `main`.`staff`.`experience`, `main`.`staff`.`rating`, `main`.`staff`.`workingHours`, `main`.`staff`.`notes`, `main`.`staff`.`createdAt`, `main`.`staff`.`updatedAt` FROM `main`.`staff` WHERE `main`.`staff`.`tenantId` = ? ORDER BY `main`.`staff`.`createdAt` DESC LIMIT ? OFFSET ?
+admin:dev: prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`appointments`.`id` FROM `main`.`appointments` WHERE `main`.`appointments`.`staffId` = ? LIMIT ? OFFSET ?) AS `sub`
+admin:dev: prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`appointments`.`id` FROM `main`.`appointments` WHERE `main`.`appointments`.`staffId` = ? LIMIT ? OFFSET ?) AS `sub`
+admin:dev: prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`appointments`.`id` FROM `main`.`appointments` WHERE `main`.`appointments`.`staffId` = ? LIMIT ? OFFSET ?) AS `sub`
+admin:dev: prisma:query SELECT `main`.`appointments`.`id`, `main`.`appointments`.`price` FROM `main`.`appointments` WHERE `main`.`appointments`.`staffId` = ? LIMIT ? OFFSET ?
+admin:dev: prisma:query SELECT `main`.`appointments`.`id`, `main`.`appointments`.`price` FROM `main`.`appointments` WHERE `main`.`appointments`.`staffId` = ? LIMIT ? OFFSET ?
+admin:dev: prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`appointments`.`id` FROM `main`.`appointments` WHERE `main`.`appointments`.`staffId` = ? LIMIT ? OFFSET ?) AS `sub`
+admin:dev: prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`appointments`.`id` FROM `main`.`appointments` WHERE `main`.`appointments`.`staffId` = ? LIMIT ? OFFSET ?) AS `sub`
+admin:dev: prisma:query SELECT `main`.`appointments`.`id`, `main`.`appointments`.`price` FROM `main`.`appointments` WHERE `main`.`appointments`.`staffId` = ? LIMIT ? OFFSET ?
+admin:dev: prisma:query SELECT `main`.`appointments`.`id`, `main`.`appointments`.`price` FROM `main`.`appointments` WHERE `main`.`appointments`.`staffId` = ? LIMIT ? OFFSET ?
+admin:dev: prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`appointments`.`id` FROM `main`.`appointments` WHERE `main`.`appointments`.`staffId` = ? LIMIT ? OFFSET ?) AS `sub`
+admin:dev: prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`appointments`.`id` FROM `main`.`appointments` WHERE `main`.`appointments`.`staffId` = ? LIMIT ? OFFSET ?) AS `sub`
+admin:dev: prisma:query SELECT `main`.`appointments`.`id`, `main`.`appointments`.`price` FROM `main`.`appointments` WHERE `main`.`appointments`.`staffId` = ? LIMIT ? OFFSET ?
+admin:dev: prisma:query SELECT `main`.`appointments`.`id`, `main`.`appointments`.`price` FROM `main`.`appointments` WHERE `main`.`appointments`.`staffId` = ? LIMIT ? OFFSET ?
+admin:dev: prisma:query SELECT `main`.`appointments`.`id`, `main`.`appointments`.`price` FROM `main`.`appointments` WHERE `main`.`appointments`.`staffId` = ? LIMIT ? OFFSET ?
+admin:dev:  GET /api/staff?page=1&limit=20 200 in 325ms
+admin:dev:  ✓ Compiled in 193ms
+admin:dev:  ✓ Compiled in 136ms
+admin:dev:  ✓ Compiled in 162ms
+admin:dev:  GET /admin/staff 200 in 352ms
+admin:dev:  GET /favicon.ico?favicon.0b3bf435.ico 200 in 283ms
+admin:dev: prisma:query SELECT 1
+admin:dev: prisma:query SELECT 1
+admin:dev: prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`staff`.`id` FROM `main`.`staff` WHERE `main`.`staff`.`tenantId` = ? LIMIT ? OFFSET ?) AS `sub`
+admin:dev: prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`staff`.`id` FROM `main`.`staff` WHERE `main`.`staff`.`tenantId` = ? LIMIT ? OFFSET ?) AS `sub`
+admin:dev: prisma:query SELECT `main`.`staff`.`id`, `main`.`staff`.`tenantId`, `main`.`staff`.`firstName`, `main`.`staff`.`lastName`, `main`.`staff`.`email`, `main`.`staff`.`phone`, `main`.`staff`.`position`, `main`.`staff`.`status`, `main`.`staff`.`avatar`, `main`.`staff`.`salary`, `main`.`staff`.`hireDate`, `main`.`staff`.`specializations`, `main`.`staff`.`experience`, `main`.`staff`.`rating`, `main`.`staff`.`workingHours`, `main`.`staff`.`notes`, `main`.`staff`.`createdAt`, `main`.`staff`.`updatedAt` FROM `main`.`staff` WHERE `main`.`staff`.`tenantId` = ? ORDER BY `main`.`staff`.`createdAt` DESC LIMIT ? OFFSET ?
+admin:dev: prisma:query SELECT `main`.`staff`.`id`, `main`.`staff`.`tenantId`, `main`.`staff`.`firstName`, `main`.`staff`.`lastName`, `main`.`staff`.`email`, `main`.`staff`.`phone`, `main`.`staff`.`position`, `main`.`staff`.`status`, `main`.`staff`.`avatar`, `main`.`staff`.`salary`, `main`.`staff`.`hireDate`, `main`.`staff`.`specializations`, `main`.`staff`.`experience`, `main`.`staff`.`rating`, `main`.`staff`.`workingHours`, `main`.`staff`.`notes`, `main`.`staff`.`createdAt`, `main`.`staff`.`updatedAt` FROM `main`.`staff` WHERE `main`.`staff`.`tenantId` = ? ORDER BY `main`.`staff`.`createdAt` DESC LIMIT ? OFFSET ?
+admin:dev: prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`appointments`.`id` FROM `main`.`appointments` WHERE `main`.`appointments`.`staffId` = ? LIMIT ? OFFSET ?) AS `sub`
+admin:dev: prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`appointments`.`id` FROM `main`.`appointments` WHERE `main`.`appointments`.`staffId` = ? LIMIT ? OFFSET ?) AS `sub`
+admin:dev: prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`appointments`.`id` FROM `main`.`appointments` WHERE `main`.`appointments`.`staffId` = ? LIMIT ? OFFSET ?) AS `sub`
+admin:dev: prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`appointments`.`id` FROM `main`.`appointments` WHERE `main`.`appointments`.`staffId` = ? LIMIT ? OFFSET ?) AS `sub`
+admin:dev: prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`appointments`.`id` FROM `main`.`appointments` WHERE `main`.`appointments`.`staffId` = ? LIMIT ? OFFSET ?) AS `sub`
+admin:dev: prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`appointments`.`id` FROM `main`.`appointments` WHERE `main`.`appointments`.`staffId` = ? LIMIT ? OFFSET ?) AS `sub`
+admin:dev: prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`appointments`.`id` FROM `main`.`appointments` WHERE `main`.`appointments`.`staffId` = ? LIMIT ? OFFSET ?) AS `sub`
+admin:dev: prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`appointments`.`id` FROM `main`.`appointments` WHERE `main`.`appointments`.`staffId` = ? LIMIT ? OFFSET ?) AS `sub`
+admin:dev: prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`appointments`.`id` FROM `main`.`appointments` WHERE `main`.`appointments`.`staffId` = ? LIMIT ? OFFSET ?) AS `sub`
+admin:dev: prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`appointments`.`id` FROM `main`.`appointments` WHERE `main`.`appointments`.`staffId` = ? LIMIT ? OFFSET ?) AS `sub`
+admin:dev: prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`appointments`.`id` FROM `main`.`appointments` WHERE `main`.`appointments`.`staffId` = ? LIMIT ? OFFSET ?) AS `sub`
+admin:dev: prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`appointments`.`id` FROM `main`.`appointments` WHERE `main`.`appointments`.`staffId` = ? LIMIT ? OFFSET ?) AS `sub`
+admin:dev: prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`appointments`.`id` FROM `main`.`appointments` WHERE `main`.`appointments`.`staffId` = ? LIMIT ? OFFSET ?) AS `sub`
+admin:dev: prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`appointments`.`id` FROM `main`.`appointments` WHERE `main`.`appointments`.`staffId` = ? LIMIT ? OFFSET ?) AS `sub`
+admin:dev: prisma:query SELECT `main`.`appointments`.`id`, `main`.`appointments`.`price` FROM `main`.`appointments` WHERE `main`.`appointments`.`staffId` = ? LIMIT ? OFFSET ?
+admin:dev: prisma:query SELECT `main`.`appointments`.`id`, `main`.`appointments`.`price` FROM `main`.`appointments` WHERE `main`.`appointments`.`staffId` = ? LIMIT ? OFFSET ?
+admin:dev: prisma:query SELECT `main`.`appointments`.`id`, `main`.`appointments`.`price` FROM `main`.`appointments` WHERE `main`.`appointments`.`staffId` = ? LIMIT ? OFFSET ?
+admin:dev: prisma:query SELECT `main`.`appointments`.`id`, `main`.`appointments`.`price` FROM `main`.`appointments` WHERE `main`.`appointments`.`staffId` = ? LIMIT ? OFFSET ?
+admin:dev: prisma:query SELECT `main`.`appointments`.`id`, `main`.`appointments`.`price` FROM `main`.`appointments` WHERE `main`.`appointments`.`staffId` = ? LIMIT ? OFFSET ?
+admin:dev: prisma:query SELECT `main`.`appointments`.`id`, `main`.`appointments`.`price` FROM `main`.`appointments` WHERE `main`.`appointments`.`staffId` = ? LIMIT ? OFFSET ?
+admin:dev: prisma:query SELECT `main`.`appointments`.`id`, `main`.`appointments`.`price` FROM `main`.`appointments` WHERE `main`.`appointments`.`staffId` = ? LIMIT ? OFFSET ?
+admin:dev: prisma:query SELECT `main`.`appointments`.`id`, `main`.`appointments`.`price` FROM `main`.`appointments` WHERE `main`.`appointments`.`staffId` = ? LIMIT ? OFFSET ?
+admin:dev: prisma:query SELECT `main`.`appointments`.`id`, `main`.`appointments`.`price` FROM `main`.`appointments` WHERE `main`.`appointments`.`staffId` = ? LIMIT ? OFFSET ?
+admin:dev: prisma:query SELECT `main`.`appointments`.`id`, `main`.`appointments`.`price` FROM `main`.`appointments` WHERE `main`.`appointments`.`staffId` = ? LIMIT ? OFFSET ?
+admin:dev: prisma:query SELECT `main`.`appointments`.`id`, `main`.`appointments`.`price` FROM `main`.`appointments` WHERE `main`.`appointments`.`staffId` = ? LIMIT ? OFFSET ?
+admin:dev: prisma:query SELECT `main`.`appointments`.`id`, `main`.`appointments`.`price` FROM `main`.`appointments` WHERE `main`.`appointments`.`staffId` = ? LIMIT ? OFFSET ?
+admin:dev: prisma:query SELECT `main`.`appointments`.`id`, `main`.`appointments`.`price` FROM `main`.`appointments` WHERE `main`.`appointments`.`staffId` = ? LIMIT ? OFFSET ?
+admin:dev: prisma:query SELECT `main`.`appointments`.`id`, `main`.`appointments`.`price` FROM `main`.`appointments` WHERE `main`.`appointments`.`staffId` = ? LIMIT ? OFFSET ?
+admin:dev:  GET /api/staff?page=1&limit=20&search=&status=all 200 in 281ms
+admin:dev:  GET /api/staff?page=1&limit=20&search=&status=all 200 in 278ms
+web:dev:  ○ Compiling /lobaaaa ...
+web:dev:  ✓ Compiled /lobaaaa in 2.7s
+web:dev:  ⚠ Unsupported metadata viewport is configured in metadata export in /lobaaaa. Please move it to viewport export instead.
+web:dev: Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
+web:dev:  GET /lobaaaa 200 in 3096ms
+web:dev:  ✓ Compiled /lobaaaa/randevu in 292ms
+web:dev:  ⚠ Unsupported metadata viewport is configured in metadata export in /lobaaaa/randevu. Please move it to viewport export instead.
+web:dev: Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
+web:dev:  GET /lobaaaa/randevu 200 in 346ms
+web:dev:  ⚠ Unsupported metadata viewport is configured in metadata export in /lobaaaa/randevu. Please move it to viewport export instead.
+web:dev: Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
+web:dev:  GET /lobaaaa/randevu 200 in 92ms
+web:dev:  ✓ Compiled /favicon.ico in 194ms
+web:dev:  GET /favicon.ico?favicon.0b3bf435.ico 200 in 461ms
+web:dev:  ✓ Compiled /api/services in 207ms
+web:dev:  GET /api/services?tenantSlug=lobaaaa 200 in 480ms
+web:dev:  ✓ Compiled /api/staff in 91ms
+web:dev:  GET /api/staff?tenantSlug=lobaaaa 200 in 332ms
+web:dev:  ⚠ Unsupported metadata viewport is configured in metadata export in /lobaaaa/randevu. Please move it to viewport export instead.
+web:dev: Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
+web:dev:  GET /lobaaaa/randevu 200 in 112ms
+web:dev:  ⚠ Unsupported metadata viewport is configured in metadata export in /lobaaaa/randevu. Please move it to viewport export instead.
+web:dev: Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
+web:dev:  GET /lobaaaa/randevu 200 in 116ms
+web:dev:  ⚠ Unsupported metadata viewport is configured in metadata export in /lobaaaa/randevu. Please move it to viewport export instead.
+web:dev: Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
+web:dev:  GET /lobaaaa/randevu 200 in 89ms
+web:dev:  ⚠ Unsupported metadata viewport is configured in metadata export in /lobaaaa/randevu. Please move it to viewport export instead.
+web:dev: Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
+web:dev:  GET /lobaaaa/randevu 200 in 100ms
+web:dev:  ⚠ Unsupported metadata viewport is configured in metadata export in /lobaaaa/randevu. Please move it to viewport export instead.
+web:dev: Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
+web:dev:  GET /lobaaaa/randevu 200 in 99ms
+web:dev:  ✓ Compiled middleware in 24ms
+web:dev:  ⚠ Unsupported metadata viewport is configured in metadata export in /lobaaaa/randevu. Please move it to viewport export instead.
+web:dev: Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
+web:dev:  GET /lobaaaa/randevu 200 in 206ms
+web:dev:  ⚠ Unsupported metadata viewport is configured in metadata export in /lobaaaa/randevu. Please move it to viewport export instead.
+web:dev: Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
+web:dev:  GET /lobaaaa/randevu 200 in 97ms
+web:dev:  ✓ Compiled /api/available-slots in 294ms
+web:dev:  GET /api/available-slots?serviceId=service_1&date=2025-09-26&staffId=staff_1 200 in 553ms
+web:dev:  GET /api/available-slots?serviceId=service_1&date=2025-09-26&staffId=staff_1 200 in 254ms
+web:dev:  ⚠ Unsupported metadata viewport is configured in metadata export in /lobaaaa/randevu. Please move it to viewport export instead.
+web:dev: Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
+web:dev:  GET /lobaaaa/randevu 200 in 308ms
+web:dev:  GET /favicon.ico?favicon.0b3bf435.ico 200 in 285ms
+web:dev:  ⚠ Unsupported metadata viewport is configured in metadata export in /lobaaaa/randevu. Please move it to viewport export instead.
+web:dev: Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
+web:dev:  GET /lobaaaa/randevu 200 in 81ms
+web:dev:  GET /favicon.ico?favicon.0b3bf435.ico 200 in 233ms
+web:dev:  ⚠ Unsupported metadata viewport is configured in metadata export in /lobaaaa/randevu. Please move it to viewport export instead.
+web:dev: Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
+web:dev:  GET /lobaaaa/randevu 200 in 76ms
+project-admin:dev: [?25h
+web:dev: [?25h
+admin:dev: [?25h
+ ERROR  run failed: command  exited (1)

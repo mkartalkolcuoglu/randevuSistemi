@@ -1,0 +1,120 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./admin.db"
+}
+
+model Staff {
+  id            String   @id @default(cuid())
+  tenantId      String
+  firstName     String
+  lastName      String
+  email         String   @unique
+  phone         String?
+  position      String
+  status        String   @default("active")
+  avatar        String?
+  salary        Float?
+  hireDate      String?
+  specializations String? // JSON string for array of specializations
+  experience    Int?     // years of experience
+  rating        Float?   @default(4.0)
+  workingHours  String?  // JSON string for working hours
+  notes         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  @@map("staff")
+}
+
+model Customer {
+  id          String   @id @default(cuid())
+  tenantId    String
+  firstName   String
+  lastName    String
+  email       String   @unique
+  phone       String?
+  birthDate   DateTime?
+  notes       String?
+  status      String   @default("active")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@map("customers")
+}
+
+model Service {
+  id          String   @id @default(cuid())
+  tenantId    String
+  name        String
+  description String?
+  price       Float
+  duration    Int      // in minutes
+  category    String?
+  status      String   @default("active")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@map("services")
+}
+
+model Appointment {
+  id           String   @id @default(cuid())
+  tenantId     String
+  customerId   String
+  customerName String
+  customerPhone String?
+  customerEmail String?
+  serviceId    String
+  serviceName  String
+  staffId      String
+  staffName    String
+  date         String
+  time         String
+  status       String   @default("scheduled")
+  notes        String?
+  price        Float?
+  duration     Int?     // in minutes
+  paymentType  String   @default("cash")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  
+  @@map("appointments")
+}
+
+model Task {
+  id          String   @id @default(cuid())
+  tenantId    String
+  title       String
+  description String?
+  assignedTo  String
+  priority    String   @default("medium")
+  status      String   @default("pending")
+  dueDate     DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@map("tasks")
+}
+
+model Settings {
+  id               String   @id @default(cuid())
+  tenantId         String   @unique
+  businessName     String
+  businessAddress  String?
+  businessPhone    String?
+  businessEmail    String?
+  workingHours     String?  // JSON string
+  notificationSettings String? // JSON string
+  paymentSettings  String?  // JSON string
+  themeSettings    String?  // JSON string for colors, fonts, etc.
+  updatedAt        DateTime @updatedAt
+  
+  @@map("settings")
+}
