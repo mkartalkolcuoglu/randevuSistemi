@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-const Database = require('better-sqlite3');
-const path = require('path');
+import { PrismaClient } from '@prisma/client';
+
+const prisma = new PrismaClient();
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -26,15 +27,20 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    // Admin veritabanına bağlan ve mevcut randevuları kontrol et
-    const dbPath = path.join(process.cwd(), '../admin/prisma/admin.db');
-    const db = new Database(dbPath);
-    
     // Bu staff için bu tarihte var olan randevuları getir
-    const existingAppointments = db.prepare(`
-      SELECT time, duration FROM appointments 
-      WHERE staffId = ? AND date = ? AND status != 'cancelled'
-    `).all(staffId, date);
+    const existingAppointments = await prisma.appointment.findMany({
+      where: {
+        staffId: staffId,
+        date: date,
+        status: {
+          not: 'cancelled'
+        }
+      },
+      select: {
+        time: true,
+        duration: true
+      }
+    });
     
     // Rezerve edilmiş saatleri hesapla
     const bookedTimes = new Set();
@@ -74,8 +80,6 @@ export async function GET(request: NextRequest) {
         });
       }
     }
-    
-    db.close();
 
     return NextResponse.json({
       success: true,
@@ -91,5 +95,7 @@ export async function GET(request: NextRequest) {
       { success: false, error: 'Failed to fetch available slots' },
       { status: 500, headers: corsHeaders }
     );
+  } finally {
+    await prisma.$disconnect();
   }
 }

@@ -23,14 +23,20 @@ export async function GET(request: NextRequest) {
     }
 
     // First find tenant by slug in admin DB
-    const Database = require('better-sqlite3');
-    const path = require('path');
-    const dbPath = path.join(process.cwd(), '../admin/prisma/admin.db');
-    const db = new Database(dbPath);
+    const { PrismaClient } = require('@prisma/client');
+    const prisma = new PrismaClient();
     
     try {
       // Get tenant by slug
-      const tenant = db.prepare('SELECT id FROM tenants WHERE slug = ? AND status = ?').get(tenantSlug, 'active');
+      const tenant = await prisma.tenant.findFirst({
+        where: {
+          slug: tenantSlug,
+          status: 'active'
+        },
+        select: {
+          id: true
+        }
+      });
       
       if (!tenant) {
         // Tenant bulunamadı, fallback template kullan
@@ -41,15 +47,29 @@ export async function GET(request: NextRequest) {
         }, { headers: corsHeaders });
       }
 
-      const tenantId = (tenant as any).id;
+      const tenantId = tenant.id;
 
       // Get services for this tenant
-      const services = db.prepare(`
-        SELECT id, name, description, price, duration, category, status, createdAt, updatedAt 
-        FROM services 
-        WHERE tenantId = ? AND status = 'active'
-        ORDER BY createdAt DESC
-      `).all(tenantId);
+      const services = await prisma.service.findMany({
+        where: {
+          tenantId: tenantId,
+          status: 'active'
+        },
+        select: {
+          id: true,
+          name: true,
+          description: true,
+          price: true,
+          duration: true,
+          category: true,
+          status: true,
+          createdAt: true,
+          updatedAt: true
+        },
+        orderBy: {
+          createdAt: 'desc'
+        }
+      });
       
       return NextResponse.json({
         success: true,
@@ -192,6 +212,8 @@ export async function GET(request: NextRequest) {
         success: true,
         data: services
       }, { headers: corsHeaders });
+    } finally {
+      await prisma.$disconnect();
     }
     
   } catch (error) {
