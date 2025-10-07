@@ -156,7 +156,7 @@ export default function TenantPage() {
             </p>
           )}
           
-          <div style={{ display: 'flex', justifyContent: 'center', gap: '20px', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', justifyContent: 'center' }}>
             <Link href={`/${slug}/randevu`}>
               <button style={{
                 backgroundColor: theme?.secondaryColor || '#1E40AF',
@@ -183,33 +183,6 @@ export default function TenantPage() {
                 e.currentTarget.style.boxShadow = '0 4px 6px rgba(0,0,0,0.1)';
               }}>
                 📅 Hemen Randevu Al
-              </button>
-            </Link>
-            <Link href={`/${slug}/hizmetler`}>
-              <button style={{
-                backgroundColor: 'transparent',
-                color: 'white',
-                border: '2px solid white',
-                padding: '15px 30px',
-                fontSize: '1.1rem',
-                borderRadius: '8px',
-                cursor: 'pointer',
-                fontWeight: 'bold',
-                textDecoration: 'none',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '10px',
-                transition: 'all 0.3s ease'
-              }}
-              onMouseOver={(e) => {
-                e.currentTarget.style.backgroundColor = 'white';
-                e.currentTarget.style.color = theme?.primaryColor || '#3B82F6';
-              }}
-              onMouseOut={(e) => {
-                e.currentTarget.style.backgroundColor = 'transparent';
-                e.currentTarget.style.color = 'white';
-              }}>
-                ✨ Hizmetlerimiz
               </button>
             </Link>
           </div>
@@ -465,6 +438,60 @@ export default function TenantPage() {
           </div>
         </div>
       </section>
+
+      {/* Map Section */}
+      {tenantSettings?.location && (tenantSettings.location.latitude && tenantSettings.location.longitude) && (
+        <section style={{ padding: '80px 20px', backgroundColor: '#f9fafb' }}>
+          <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
+            <div style={{ textAlign: 'center', marginBottom: '40px' }}>
+              <h2 style={{ fontSize: '2.5rem', fontWeight: 'bold', color: '#1f2937', marginBottom: '20px' }}>
+                Konumumuz
+              </h2>
+              <p style={{ fontSize: '1.1rem', color: '#6b7280' }}>
+                Bizi kolayca bulabilirsiniz
+              </p>
+            </div>
+            
+            <div style={{
+              backgroundColor: 'white',
+              borderRadius: '12px',
+              overflow: 'hidden',
+              boxShadow: '0 10px 25px rgba(0,0,0,0.1)',
+              height: '400px'
+            }}>
+              <iframe
+                src={`https://maps.google.com/maps?q=${tenantSettings.location.latitude},${tenantSettings.location.longitude}&t=&z=15&ie=UTF8&iwloc=&output=embed`}
+                width="100%"
+                height="100%"
+                style={{ border: 0 }}
+                allowFullScreen
+                loading="lazy"
+                referrerPolicy="no-referrer-when-downgrade"
+                title="İşletme Konumu"
+              />
+            </div>
+            
+            {tenant?.businessAddress && (
+              <div style={{ 
+                textAlign: 'center', 
+                marginTop: '20px',
+                padding: '15px',
+                backgroundColor: 'white',
+                borderRadius: '8px',
+                boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
+              }}>
+                <p style={{ 
+                  color: '#374151', 
+                  fontWeight: '500',
+                  margin: 0
+                }}>
+                  📍 {tenant.businessAddress}
+                </p>
+              </div>
+            )}
+          </div>
+        </section>
+      )}
 
       {/* Footer */}
       <footer style={{
