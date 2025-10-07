@@ -30,8 +30,8 @@ export default function NewTenantPage() {
       sunday: { start: '10:00', end: '16:00', closed: true },
     },
     theme: {
-      primaryColor: '#EC4899', // LOBAAAA TEMA RENGİ
-      secondaryColor: '#BE185D', // LOBAAAA TEMA RENGİ
+      primaryColor: '#3B82F6', // Default blue
+      secondaryColor: '#1E40AF', // Default dark blue
       logo: '',
       headerImage: '',
     },

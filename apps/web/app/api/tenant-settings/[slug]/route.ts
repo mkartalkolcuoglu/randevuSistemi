@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-const Database = require('better-sqlite3');
-const path = require('path');
+import { PrismaClient } from '@prisma/client';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -26,13 +25,29 @@ export async function GET(
       );
     }
 
-    // Admin veritabanına bağlan - absolute path kullan
-    const dbPath = '/Users/kartal.kolcuoglu/Desktop/kartalApps/randevuSistemi/apps/admin/prisma/admin.db';
-    const db = new Database(dbPath);
+    // Admin veritabanına bağlan
+    const prisma = new PrismaClient();
     
     try {
       // Tenant'ı slug ile bul - tüm gerekli alanları çek
-      const tenant = db.prepare('SELECT id, businessName, businessDescription, businessType, slug, address, phone, ownerEmail, workingHours, theme, location FROM tenants WHERE slug = ? AND status = ?').get(slug, 'active');
+      const tenant = await prisma.tenant.findFirst({
+        where: {
+          slug: slug,
+          status: 'active'
+        },
+        select: {
+          id: true,
+          businessName: true,
+          businessDescription: true,
+          businessType: true,
+          slug: true,
+          address: true,
+          phone: true,
+          ownerEmail: true,
+          workingHours: true,
+          theme: true
+        }
+      });
       
       if (!tenant) {
         // Tenant bulunamadı, default ayarlar döndür
@@ -43,22 +58,22 @@ export async function GET(
         }, { headers: corsHeaders });
       }
 
-      const tenantId = (tenant as any).id;
+      const tenantId = tenant.id;
 
       // Tenant'ın doğrudan theme ve workingHours bilgilerini kullan
       const parsedSettings = {
         tenant: {
-          id: (tenant as any).id,
-          name: (tenant as any).businessName,
-          slug: (tenant as any).slug,
-          businessName: (tenant as any).businessName,
-          businessDescription: (tenant as any).businessDescription || '',
-          businessType: (tenant as any).businessType || '',
-          businessAddress: (tenant as any).address || 'Adres bilgisi güncellenecek',
-          businessPhone: (tenant as any).phone || '+90 555 000 0000',
-          businessEmail: (tenant as any).ownerEmail || `info@${slug}.com`,
+          id: tenant.id,
+          name: tenant.businessName,
+          slug: tenant.slug,
+          businessName: tenant.businessName,
+          businessDescription: tenant.businessDescription || '',
+          businessType: tenant.businessType || '',
+          businessAddress: tenant.address || 'Adres bilgisi güncellenecek',
+          businessPhone: tenant.phone || '+90 555 000 0000',
+          businessEmail: tenant.ownerEmail || `info@${slug}.com`,
         },
-        workingHours: (tenant as any).workingHours ? JSON.parse((tenant as any).workingHours) : getDefaultWorkingHours(),
+        workingHours: tenant.workingHours ? JSON.parse(tenant.workingHours) : getDefaultWorkingHours(),
         notificationSettings: {
           emailNotifications: true,
           smsNotifications: true,
@@ -73,27 +88,39 @@ export async function GET(
         },
         theme: (() => {
           try {
-            return (tenant as any).theme ? JSON.parse((tenant as any).theme) : {
-              primaryColor: '#EC4899',
-              secondaryColor: '#BE185D',
+            const parsedTheme = tenant.theme ? JSON.parse(tenant.theme) : {
+              primaryColor: '#3B82F6',
+              secondaryColor: '#1E40AF',
               logo: '',
               headerImage: ''
             };
+            return parsedTheme;
           } catch (error) {
-            console.log('Theme parse error:', error, 'Raw theme:', (tenant as any).theme);
+            console.error('Theme parse error:', error);
             return {
-              primaryColor: '#EC4899',
-              secondaryColor: '#BE185D',
+              primaryColor: '#3B82F6',
+              secondaryColor: '#1E40AF',
               logo: '',
               headerImage: ''
             };
           }
         })(),
-        location: (tenant as any).location ? JSON.parse((tenant as any).location) : {
-          latitude: '',
-          longitude: '',
-          address: ''
-        },
+        location: (() => {
+          try {
+            const parsedTheme = tenant.theme ? JSON.parse(tenant.theme) : {};
+            return {
+              latitude: parsedTheme.location?.latitude || '',
+              longitude: parsedTheme.location?.longitude || '',
+              address: tenant.address || ''
+            };
+          } catch (error) {
+            return {
+              latitude: '',
+              longitude: '',
+              address: tenant.address || ''
+            };
+          }
+        })(),
         updatedAt: new Date().toISOString()
       };
       
@@ -112,13 +139,14 @@ export async function GET(
         data: defaultSettings
       }, { headers: corsHeaders });
     } finally {
-      db.close();
+      await prisma.$disconnect();
     }
     
   } catch (error) {
     console.error('Error fetching tenant settings:', error);
+    console.error('Error details:', error.message);
     return NextResponse.json(
-      { success: false, error: 'Failed to fetch tenant settings' },
+      { success: false, error: `Failed to fetch tenant settings: ${error.message}` },
       { status: 500, headers: corsHeaders }
     );
   }
@@ -133,7 +161,7 @@ function generateDefaultSettings(slug: string) {
 
   return {
     tenant: {
-      id: slug,
+      id: slug, // Fallback olarak slug kullan, gerçek ID bulunamadığında
       name: name,
       slug: slug,
       businessName: name,
@@ -155,8 +183,8 @@ function generateDefaultSettings(slug: string) {
       taxRate: 18
     },
         theme: {
-          primaryColor: '#EC4899',
-          secondaryColor: '#BE185D',
+          primaryColor: '#3B82F6',
+          secondaryColor: '#1E40AF',
           logo: '',
           headerImage: ''
         },

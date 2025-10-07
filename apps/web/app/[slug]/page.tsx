@@ -1,5 +1,9 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import { Button } from '@repo/ui';
+import { Button } from '@/components/ui';
 import {
   Calendar,
   MapPin,
@@ -7,25 +11,51 @@ import {
   Mail
 } from 'lucide-react';
 
-interface TenantPageProps {
-  params: Promise<{ slug: string }>;
-}
+export default function TenantPage() {
+  const params = useParams();
+  const slug = params.slug as string;
+  const [tenantSettings, setTenantSettings] = useState(null);
+  const [services, setServices] = useState([]);
+  const [staff, setStaff] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-export default async function TenantPage({ params }: TenantPageProps) {
-  const { slug } = await params;
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        // Tenant ayarlarını çek
+        const tenantResponse = await fetch(`/api/tenant-settings/${slug}`);
+        const tenantResult = await tenantResponse.json();
+        setTenantSettings(tenantResult.success ? tenantResult.data : null);
 
-  // Tenant ayarlarını API'den çek
-  let tenantSettings;
-  try {
-    const response = await fetch(`http://localhost:3000/api/tenant-settings/${slug}`, {
-      cache: 'no-store'
-    });
-    const result = await response.json();
-    tenantSettings = result.success ? result.data : null;
-  } catch (error) {
-    console.error('Error fetching tenant settings:', error);
-    tenantSettings = null;
+        // Hizmetleri çek
+        const servicesResponse = await fetch(`/api/services/${slug}`);
+        const servicesResult = await servicesResponse.json();
+        setServices(servicesResult.success ? servicesResult.data : []);
+
+        // Personeli çek
+        const staffResponse = await fetch(`/api/staff/${slug}`);
+        const staffResult = await staffResponse.json();
+        setStaff(staffResult.success ? staffResult.data : []);
+        
+      } catch (error) {
+        console.error('Error fetching data:', error);
+        setTenantSettings(null);
+        setServices([]);
+        setStaff([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (slug) {
+      fetchData();
+    }
+  }, [slug]);
+
+  if (loading) {
+    return <div className="flex justify-center items-center h-screen">Yükleniyor...</div>;
   }
+
 
   // Sadece gerçek ayarlar verilerini kullan
   const tenantData = tenantSettings ? {
@@ -47,6 +77,7 @@ export default async function TenantPage({ params }: TenantPageProps) {
       location: tenantSettings.location || null
     }
   } : null;
+
   
   if (!tenantData) {
     return <div>Salon bulunamadı</div>;
@@ -54,28 +85,52 @@ export default async function TenantPage({ params }: TenantPageProps) {
 
   const { tenant } = tenantData;
 
+  // Gün adlarını Türkçe'ye çeviren fonksiyon
+  const getDayName = (day: string) => {
+    const dayNames: { [key: string]: string } = {
+      monday: 'Pazartesi',
+      tuesday: 'Salı',
+      wednesday: 'Çarşamba',
+      thursday: 'Perşembe',
+      friday: 'Cuma',
+      saturday: 'Cumartesi',
+      sunday: 'Pazar'
+    };
+    return dayNames[day] || day;
+  };
+
   return (
     <div className="min-h-screen">
       {/* Hero Section */}
       <section 
-        className="relative bg-gradient-to-r from-gray-900 to-gray-700 text-white py-20"
+        className="relative py-20"
         style={{
           background: tenant.headerImage 
             ? `linear-gradient(135deg, ${tenant.primaryColor}CC, ${tenant.secondaryColor}CC), url('${tenant.headerImage}')`
-            : `linear-gradient(135deg, ${tenant.primaryColor}CC, ${tenant.secondaryColor}CC), url('/hero-bg.jpg')`,
+            : `linear-gradient(135deg, ${tenant.primaryColor}CC, ${tenant.secondaryColor}CC)`,
           backgroundSize: 'cover',
           backgroundPosition: 'center',
+          backgroundColor: tenant.primaryColor, // Fallback color
+          color: tenant.secondaryColor || '#ffffff'
         }}
       >
-        <div className="absolute inset-0 bg-black bg-opacity-40"></div>
+        <div className="absolute inset-0 bg-black bg-opacity-20"></div>
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center">
             {tenant.logo && (
-              <img 
-                src={tenant.logo} 
-                alt={tenant.businessName}
-                className="mx-auto mb-6 h-20 w-auto"
-              />
+              <div className="mx-auto mb-6 h-20 w-auto flex justify-center">
+                <img 
+                  src={tenant.logo} 
+                  alt={tenant.businessName}
+                  className="h-20 w-auto object-contain"
+                  onError={(e) => {
+                    console.error('Logo yüklenemedi:', tenant.logo);
+                    e.currentTarget.style.display = 'none';
+                  }}
+                  onLoad={() => console.log('Logo yüklendi:', tenant.logo)}
+                  referrerPolicy="no-referrer"
+                />
+              </div>
             )}
             <h1 className="text-5xl md:text-6xl font-bold mb-4">
               {tenant.businessName}
@@ -86,23 +141,117 @@ export default async function TenantPage({ params }: TenantPageProps) {
               </p>
             )}
             
-            <div className="flex justify-center mb-8">
-              {tenant.settings.allowOnlineBooking && (
-                <Link href={`/${slug}/randevu`}>
-                  <Button size="lg" className="bg-white text-gray-900 hover:bg-gray-100 px-8 py-3">
-                    <Calendar className="h-5 w-5 mr-2" />
-                    Hemen Randevu Al
-                  </Button>
-                </Link>
-              )}
-            </div>
+                   <div className="flex justify-center mb-8">
+                     {tenant.settings.allowOnlineBooking && (
+                       <Link href={`/${slug}/randevu`}>
+                         <Button 
+                           size="lg" 
+                           className="px-8 py-3"
+                           style={{
+                             backgroundColor: tenant.secondaryColor || '#ffffff',
+                             color: tenant.primaryColor || '#000000',
+                             border: `2px solid ${tenant.primaryColor || '#000000'}`
+                           }}
+                         >
+                           <Calendar className="h-5 w-5 mr-2" />
+                           Hemen Randevu Al
+                         </Button>
+                       </Link>
+                     )}
+                   </div>
 
           </div>
         </div>
       </section>
 
+      {/* Services Section */}
+      {services.length > 0 && (
+        <section className="py-16 bg-white">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center mb-12">
+              <h2 className="text-3xl font-bold text-gray-900 mb-4">Hizmetlerimiz</h2>
+              <p className="text-lg text-gray-600">Size özel hizmetlerimizi keşfedin</p>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {services.map((service) => (
+                <div key={service.id} className="bg-gray-50 rounded-lg p-6 hover:shadow-lg transition-shadow">
+                  <h3 className="text-xl font-semibold text-gray-900 mb-2">{service.name}</h3>
+                  {service.description && (
+                    <p className="text-gray-600 mb-4">{service.description}</p>
+                  )}
+                         <div className="flex justify-between items-center">
+                           <span 
+                             className="text-2xl font-bold" 
+                             style={{ color: tenant.primaryColor || '#EC4899' }}
+                           >
+                             ₺{service.price}
+                           </span>
+                           <span className="text-sm text-gray-500">
+                             {service.duration} dakika
+                           </span>
+                         </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
 
-
+      {/* Staff Section */}
+      {staff.length > 0 && (
+        <section className="py-16 bg-gray-50">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center mb-12">
+              <h2 className="text-3xl font-bold text-gray-900 mb-4">Ekibimiz</h2>
+              <p className="text-lg text-gray-600">Uzman kadromuzla tanışın</p>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {staff.map((member) => (
+                <div key={member.id} className="bg-white rounded-lg p-6 text-center shadow-sm hover:shadow-lg transition-shadow">
+                  {member.avatar && (
+                    <img 
+                      src={member.avatar} 
+                      alt={`${member.firstName} ${member.lastName}`}
+                      className="w-24 h-24 rounded-full mx-auto mb-4 object-cover"
+                    />
+                  )}
+                  <h3 className="text-xl font-semibold text-gray-900 mb-1">
+                    {member.firstName} {member.lastName}
+                  </h3>
+                  <p className="text-gray-600 mb-2">{member.position}</p>
+                  {member.specializations && (
+                    <div className="mb-4">
+                      {Array.isArray(member.specializations) ? (
+                        <div className="flex flex-wrap justify-center gap-2">
+                          {member.specializations.map((spec, index) => (
+                            <span 
+                              key={index}
+                              className="px-2 py-1 bg-gray-100 text-gray-700 text-sm rounded"
+                            >
+                              {spec}
+                            </span>
+                          ))}
+                        </div>
+                      ) : (
+                        <span className="px-2 py-1 bg-gray-100 text-gray-700 text-sm rounded">
+                          {member.specializations}
+                        </span>
+                      )}
+                    </div>
+                  )}
+                  {member.experience && (
+                    <p className="text-sm text-gray-500">
+                      {member.experience} yıl deneyim
+                    </p>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* Contact & Location Section */}
       <section className="py-16 bg-gray-50">
@@ -154,21 +303,29 @@ export default async function TenantPage({ params }: TenantPageProps) {
                   </div>
                 )}
 
-                {tenant.settings.workingHours && (
-                  <div className="mt-8">
-                    <h3 className="text-xl font-semibold mb-4">Çalışma Saatleri</h3>
-                    <div className="space-y-2">
-                      {Object.entries(tenant.settings.workingHours).map(([day, hours]) => (
-                        <div key={day} className="flex justify-between">
-                          <span className="capitalize">{getDayName(day)}</span>
-                          <span className={!hours.closed ? 'text-green-600' : 'text-red-600'}>
-                            {!hours.closed ? `${hours.start} - ${hours.end}` : 'Kapalı'}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
+                       {tenantSettings.workingHours && (
+                         <div className="mt-8">
+                           <h3 className="text-xl font-semibold mb-4">Çalışma Saatleri</h3>
+                           <div className="space-y-2">
+                             {Object.entries(tenantSettings.workingHours).map(([day, hours]: [string, any]) => {
+                               // Ensure hours is an object with the expected structure
+                               const workingHour = hours || {};
+                               const isClosed = workingHour.closed === true || workingHour.closed === 'true';
+                               const startTime = workingHour.start || '09:00';
+                               const endTime = workingHour.end || '18:00';
+                               
+                               return (
+                                 <div key={day} className="flex justify-between">
+                                   <span className="capitalize font-medium">{getDayName(day)}</span>
+                                   <span className={isClosed ? 'text-red-600' : 'text-green-600'}>
+                                     {isClosed ? 'Kapalı' : `${startTime} - ${endTime}`}
+                                   </span>
+                                 </div>
+                               );
+                             })}
+                           </div>
+                         </div>
+                       )}
               </div>
             </div>
 

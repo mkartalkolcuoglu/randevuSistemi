@@ -1,10 +1,18 @@
 {
-  "name": "randevu-web",
   "version": 2,
+  "name": "randevu-web",
   "builds": [
     {
       "src": "package.json",
       "use": "@vercel/next"
     }
-  ]
+  ],
+  "env": {
+    "DATABASE_URL": "@database_url"
+  },
+  "functions": {
+    "app/api/**/*.ts": {
+      "maxDuration": 30
+    }
+  }
 }

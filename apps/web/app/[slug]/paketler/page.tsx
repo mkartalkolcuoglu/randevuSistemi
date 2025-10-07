@@ -1,7 +1,7 @@
 'use client';
 
 import { useTenant } from '../../../lib/api-hooks';
-import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle, Badge } from '@repo/ui';
+import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle, Badge } from '@/components/ui';
 import { CheckCircle, Star, Calendar, Clock, DollarSign } from 'lucide-react';
 import Link from 'next/link';
 

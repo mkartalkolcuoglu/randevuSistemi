@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '../../../../lib/sqlite';
+import { prisma } from '../../../../lib/prisma';
 
 export async function GET(
   request: NextRequest,
@@ -8,7 +8,9 @@ export async function GET(
   try {
     const { id } = await params;
     
-    const tenant = db.prepare('SELECT * FROM tenants WHERE id = ?').get(id);
+    const tenant = await prisma.tenant.findUnique({
+      where: { id }
+    });
     
     if (!tenant) {
       return NextResponse.json(
@@ -18,20 +20,20 @@ export async function GET(
     }
 
     // Transform data to include parsed JSON fields
-    const responseData = {
+    const transformedTenant = {
       ...tenant,
-      workingHours: (tenant as any).workingHours ? JSON.parse((tenant as any).workingHours) : null,
-      theme: (tenant as any).theme ? JSON.parse((tenant as any).theme) : null
+      workingHours: tenant.workingHours ? JSON.parse(tenant.workingHours) : {},
+      theme: tenant.theme ? JSON.parse(tenant.theme) : {}
     };
 
     return NextResponse.json({
       success: true,
-      data: responseData
+      data: transformedTenant
     });
   } catch (error) {
     console.error('Error fetching tenant:', error);
     return NextResponse.json(
-      { success: false, error: 'Failed to fetch tenant' },
+      { error: 'Internal server error' },
       { status: 500 }
     );
   }
@@ -44,59 +46,58 @@ export async function PUT(
   try {
     const { id } = await params;
     const data = await request.json();
-    
-    const update = db.prepare(`
-      UPDATE tenants SET 
-        businessName = ?, slug = ?, ownerName = ?, ownerEmail = ?, 
-        phone = ?, status = ?, address = ?, businessType = ?, 
-        businessDescription = ?, workingHours = ?, theme = ?, username = ?, password = ?
-      WHERE id = ?
-    `);
 
-    const result = update.run(
-      data.businessName,
-      data.slug,
-      data.ownerName,
-      data.ownerEmail,
-      data.phone,
-      data.status,
-      data.address,
-      data.businessType,
-      data.businessDescription,
-      data.workingHours ? JSON.stringify(data.workingHours) : undefined,
-      data.theme ? JSON.stringify(data.theme) : undefined,
-      data.username,
-      data.password,
-      id
-    );
+    const updatedTenant = await prisma.tenant.update({
+      where: { id },
+      data: {
+        businessName: data.businessName,
+        slug: data.slug,
+        domain: data.domain || `${data.slug}.randevu.com`,
+        username: data.username,
+        password: data.password,
+        ownerName: data.ownerName,
+        ownerEmail: data.ownerEmail,
+        phone: data.phone || '',
+        address: data.address || '',
+        businessType: data.businessType || 'other',
+        businessDescription: data.businessDescription || '',
+        status: data.status || 'active',
+        workingHours: JSON.stringify(data.workingHours || {}),
+        theme: JSON.stringify(data.theme || {})
+      }
+    });
 
-    if (result.changes === 0) {
-      return NextResponse.json(
-        { success: false, error: 'Tenant not found' },
-        { status: 404 }
-      );
+    // Sync to admin panel
+    try {
+      const adminResponse = await fetch('http://localhost:3001/api/tenants/sync', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ...data,
+          id: updatedTenant.id,
+          domain: updatedTenant.domain
+        })
+      });
+
+      if (!adminResponse.ok) {
+        console.error('Failed to sync to admin panel:', await adminResponse.text());
+      }
+    } catch (syncError) {
+      console.error('Error syncing to admin panel:', syncError);
     }
-
-    // Get updated tenant
-    const updatedTenant = db.prepare('SELECT * FROM tenants WHERE id = ?').get(id);
-
-    // Transform response data
-    const responseData = {
-      ...updatedTenant,
-      workingHours: (updatedTenant as any).workingHours ? JSON.parse((updatedTenant as any).workingHours) : null,
-      theme: (updatedTenant as any).theme ? JSON.parse((updatedTenant as any).theme) : null
-    };
 
     return NextResponse.json({
       success: true,
-      message: 'Tenant updated successfully',
-      data: responseData
+      data: updatedTenant,
+      message: 'Tenant updated successfully'
     });
   } catch (error) {
     console.error('Error updating tenant:', error);
     return NextResponse.json(
-      { success: false, error: 'Failed to update tenant' },
-      { status: 400 }
+      { error: 'Internal server error' },
+      { status: 500 }
     );
   }
 }
@@ -107,16 +108,10 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params;
-    
-    const deleteStmt = db.prepare('DELETE FROM tenants WHERE id = ?');
-    const result = deleteStmt.run(id);
 
-    if (result.changes === 0) {
-      return NextResponse.json(
-        { success: false, error: 'Tenant not found' },
-        { status: 404 }
-      );
-    }
+    await prisma.tenant.delete({
+      where: { id }
+    });
 
     return NextResponse.json({
       success: true,
@@ -125,8 +120,8 @@ export async function DELETE(
   } catch (error) {
     console.error('Error deleting tenant:', error);
     return NextResponse.json(
-      { success: false, error: 'Failed to delete tenant' },
-      { status: 400 }
+      { error: 'Internal server error' },
+      { status: 500 }
     );
   }
 }

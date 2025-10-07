@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useTenant } from '../../../lib/api-hooks';
-import { Button, Input, Card, CardContent, CardDescription, CardHeader, CardTitle, Badge, Alert, AlertDescription } from '@repo/ui';
+import { Button, Input, Card, CardContent, CardDescription, CardHeader, CardTitle, Badge, Alert, AlertDescription } from '@/components/ui';
 import { Calendar, Clock, User, Phone, Mail, MapPin, Search, Filter, X } from 'lucide-react';
 import Link from 'next/link';
 

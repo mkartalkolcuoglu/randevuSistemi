@@ -1,23 +1,46 @@
 'use client';
 
-import { useState } from 'react';
-import { useTenant, useServices } from '../../../lib/api-hooks';
-import { Button, Input, Card, CardContent, CardDescription, CardHeader, CardTitle, Badge } from '@repo/ui';
+import { useState, useEffect } from 'react';
+import { useParams } from 'next/navigation';
+import { Button, Input, Card, CardContent, CardDescription, CardHeader, CardTitle, Badge } from '@/components/ui';
 import { Clock, DollarSign, Search, Calendar } from 'lucide-react';
 import Link from 'next/link';
 
-interface HizmetlerPageProps {
-  params: {
-    slug: string;
-  };
-}
-
-export default function HizmetlerPage({ params }: HizmetlerPageProps) {
+export default function HizmetlerPage() {
+  const params = useParams();
+  const slug = params.slug as string;
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
+  const [tenant, setTenant] = useState(null);
+  const [services, setServices] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const { data: tenant, isLoading: tenantLoading } = useTenant(params.slug);
-  const { data: services, isLoading: servicesLoading } = useServices(params.slug);
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        // Tenant ayarlarını çek
+        const tenantResponse = await fetch(`/api/tenant-settings/${slug}`);
+        const tenantResult = await tenantResponse.json();
+        setTenant(tenantResult.success ? tenantResult.data : null);
+
+        // Hizmetleri çek
+        const servicesResponse = await fetch(`/api/services/${slug}`);
+        const servicesResult = await servicesResponse.json();
+        setServices(servicesResult.success ? servicesResult.data : []);
+        
+      } catch (error) {
+        console.error('Error fetching data:', error);
+        setTenant(null);
+        setServices([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (slug) {
+      fetchData();
+    }
+  }, [slug]);
 
   const filteredServices = services?.filter(service => {
     const matchesSearch = service.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -28,7 +51,7 @@ export default function HizmetlerPage({ params }: HizmetlerPageProps) {
 
   const categories = ['all', ...Array.from(new Set(services?.map(s => s.category) || []))];
 
-  if (tenantLoading || servicesLoading) {
+  if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 flex items-center justify-center">
         <div className="text-center">

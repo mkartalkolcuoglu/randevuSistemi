@@ -75,21 +75,66 @@ export default function EditTenantPage({ params }: EditTenantPageProps) {
           address: data.data.address || '',
           businessType: data.data.businessType || 'salon',
           businessDescription: data.data.businessDescription || '',
-          workingHours: data.data.workingHours || {
-            monday: { start: '09:00', end: '18:00', closed: false },
-            tuesday: { start: '09:00', end: '18:00', closed: false },
-            wednesday: { start: '09:00', end: '18:00', closed: false },
-            thursday: { start: '09:00', end: '18:00', closed: false },
-            friday: { start: '09:00', end: '18:00', closed: false },
-            saturday: { start: '09:00', end: '17:00', closed: false },
-            sunday: { start: '10:00', end: '16:00', closed: true }
-          },
-          theme: data.data.theme || {
-            primaryColor: '#EC4899',
-            secondaryColor: '#f3f4f6',
-            logo: '',
-            headerImage: ''
-          }
+          workingHours: (() => {
+            try {
+              // If workingHours is a string, parse it
+              if (typeof data.data.workingHours === 'string') {
+                return JSON.parse(data.data.workingHours);
+              }
+              // If workingHours is already an object, use it
+              if (data.data.workingHours && typeof data.data.workingHours === 'object') {
+                return data.data.workingHours;
+              }
+              // Default working hours
+              return {
+                monday: { start: '09:00', end: '18:00', closed: false },
+                tuesday: { start: '09:00', end: '18:00', closed: false },
+                wednesday: { start: '09:00', end: '18:00', closed: false },
+                thursday: { start: '09:00', end: '18:00', closed: false },
+                friday: { start: '09:00', end: '18:00', closed: false },
+                saturday: { start: '09:00', end: '17:00', closed: false },
+                sunday: { start: '10:00', end: '16:00', closed: true }
+              };
+            } catch (error) {
+              console.error('Error parsing workingHours:', error);
+              return {
+                monday: { start: '09:00', end: '18:00', closed: false },
+                tuesday: { start: '09:00', end: '18:00', closed: false },
+                wednesday: { start: '09:00', end: '18:00', closed: false },
+                thursday: { start: '09:00', end: '18:00', closed: false },
+                friday: { start: '09:00', end: '18:00', closed: false },
+                saturday: { start: '09:00', end: '17:00', closed: false },
+                sunday: { start: '10:00', end: '16:00', closed: true }
+              };
+            }
+          })(),
+          theme: (() => {
+            try {
+              // If theme is a string, parse it
+              if (typeof data.data.theme === 'string') {
+                return JSON.parse(data.data.theme);
+              }
+              // If theme is already an object, use it
+              if (data.data.theme && typeof data.data.theme === 'object') {
+                return data.data.theme;
+              }
+              // Default theme
+              return {
+                primaryColor: '#EC4899',
+                secondaryColor: '#f3f4f6',
+                logo: '',
+                headerImage: ''
+              };
+            } catch (error) {
+              console.error('Error parsing theme:', error);
+              return {
+                primaryColor: '#EC4899',
+                secondaryColor: '#f3f4f6',
+                logo: '',
+                headerImage: ''
+              };
+            }
+          })()
         });
       } else {
         alert('Abone bulunamadı');
@@ -471,7 +516,7 @@ export default function EditTenantPage({ params }: EditTenantPageProps) {
                   <input
                     type="color"
                     name="primaryColor"
-                    value={formData.theme.primaryColor}
+                    value={formData.theme?.primaryColor || '#EC4899'}
                     onChange={(e) => setFormData(prev => ({
                       ...prev,
                       theme: { ...prev.theme, primaryColor: e.target.value }
@@ -487,7 +532,7 @@ export default function EditTenantPage({ params }: EditTenantPageProps) {
                   <input
                     type="color"
                     name="secondaryColor"
-                    value={formData.theme.secondaryColor}
+                    value={formData.theme?.secondaryColor || '#f3f4f6'}
                     onChange={(e) => setFormData(prev => ({
                       ...prev,
                       theme: { ...prev.theme, secondaryColor: e.target.value }
@@ -504,7 +549,7 @@ export default function EditTenantPage({ params }: EditTenantPageProps) {
                 <input
                   type="url"
                   name="logo"
-                  value={formData.theme.logo}
+                  value={formData.theme?.logo || ''}
                   onChange={(e) => setFormData(prev => ({
                     ...prev,
                     theme: { ...prev.theme, logo: e.target.value }
@@ -520,7 +565,7 @@ export default function EditTenantPage({ params }: EditTenantPageProps) {
                 <input
                   type="url"
                   name="headerImage"
-                  value={formData.theme.headerImage}
+                  value={formData.theme?.headerImage || ''}
                   onChange={(e) => setFormData(prev => ({
                     ...prev,
                     theme: { ...prev.theme, headerImage: e.target.value }

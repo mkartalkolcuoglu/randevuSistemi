@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '../../../lib/sqlite';
+import { prisma } from '../../../lib/prisma';
 import crypto from 'crypto';
 
 export async function GET(request: NextRequest) {
@@ -10,72 +10,42 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get('search') || '';
     const status = searchParams.get('status') || 'all';
 
-    // Build WHERE clause
-    let whereClause = '';
-    let params: any[] = [];
+    // Build where clause
+    const where: any = {};
     
-    if (search || status !== 'all') {
-      whereClause = 'WHERE ';
-      const conditions = [];
-      
-      if (search) {
-        conditions.push('(businessName LIKE ? OR ownerName LIKE ? OR ownerEmail LIKE ? OR slug LIKE ?)');
-        const searchParam = `%${search}%`;
-        params.push(searchParam, searchParam, searchParam, searchParam);
-      }
-      
-      if (status !== 'all') {
-        conditions.push('status = ?');
-        params.push(status);
-      }
-      
-      whereClause += conditions.join(' AND ');
+    if (search) {
+      where.OR = [
+        { businessName: { contains: search } },
+        { ownerName: { contains: search } },
+        { ownerEmail: { contains: search } },
+        { slug: { contains: search } }
+      ];
+    }
+    
+    if (status !== 'all') {
+      where.status = status;
     }
 
     // Get total count
-    const countQuery = `SELECT COUNT(*) as total FROM tenants ${whereClause}`;
-    const { total } = db.prepare(countQuery).get(params) as { total: number };
+    const total = await prisma.tenant.count({ where });
 
     // Get paginated data
-    const offset = (page - 1) * limit;
-    const query = `SELECT * FROM tenants ${whereClause} ORDER BY createdAt DESC LIMIT ? OFFSET ?`;
-    const tenants = db.prepare(query).all([...params, limit, offset]);
-
-    // Transform data to include parsed JSON fields and real counts
-    const transformedTenants = tenants.map((tenant: any) => {
-      // Get real appointment count for this tenant
-      const appointmentCount = db.prepare('SELECT COUNT(*) as count FROM appointments WHERE tenantId = ?').get(tenant.id)?.count || 0;
-      
-      // Get real customer count for this tenant
-      const customerCount = db.prepare('SELECT COUNT(*) as count FROM customers WHERE tenantId = ?').get(tenant.id)?.count || 0;
-      
-      // Calculate monthly revenue based on appointments this month
-      const currentDate = new Date();
-      const firstDayOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1).toISOString();
-      const monthlyRevenue = db.prepare(`
-        SELECT COALESCE(SUM(price), 0) as revenue 
-        FROM appointments 
-        WHERE tenantId = ? AND createdAt >= ? AND status != 'cancelled'
-      `).get(tenant.id, firstDayOfMonth)?.revenue || 0;
-
-      return {
-        ...tenant,
-        appointmentCount,
-        customerCount,
-        monthlyRevenue,
-        workingHours: tenant.workingHours ? JSON.parse(tenant.workingHours) : null,
-        theme: tenant.theme ? JSON.parse(tenant.theme) : null
-      };
+    const tenants = await prisma.tenant.findMany({
+      where,
+      skip: (page - 1) * limit,
+      take: limit,
+      orderBy: { createdAt: 'desc' }
     });
 
     return NextResponse.json({
       success: true,
-      data: transformedTenants,
+      data: tenants,
       total,
       page,
       limit,
       totalPages: Math.ceil(total / limit)
     });
+
   } catch (error) {
     console.error('Error fetching tenants:', error);
     return NextResponse.json(
@@ -88,8 +58,8 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const data = await request.json();
-    console.log('POST /api/tenants - Received data:', data);
-    
+
+    // Default values
     const defaultWorkingHours = {
       monday: { start: '09:00', end: '18:00', closed: false },
       tuesday: { start: '09:00', end: '18:00', closed: false },
@@ -101,64 +71,79 @@ export async function POST(request: NextRequest) {
     };
 
     const defaultTheme = {
-      primaryColor: '#EC4899', // LOBAAAA RENK TEMASI
-      secondaryColor: '#BE185D', // LOBAAAA RENK TEMASI
+      primaryColor: '#3B82F6',
+      secondaryColor: '#1E40AF',
       logo: '',
       headerImage: ''
     };
 
-    const id = crypto.randomBytes(12).toString('hex');
-    const workingHours = JSON.stringify(data.workingHours || defaultWorkingHours);
-    const theme = JSON.stringify(data.theme || defaultTheme);
-
-    const insert = db.prepare(`
-      INSERT INTO tenants (
-        id, businessName, slug, domain, username, password, ownerName, ownerEmail, phone, 
-        plan, status, address, businessType, businessDescription, 
-        workingHours, theme, createdAt
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `);
-
-    const result = insert.run(
-      id,
-      data.businessName,
-      data.slug,
-      `${data.slug}.randevu.com`,
-      data.username,
-      data.password,
-      data.ownerName,
-      data.ownerEmail,
-      data.phone,
-      data.plan || 'Standard',
-      data.status || 'active',
-      data.address || '',
-      data.businessType || 'other',
-      data.businessDescription || '',
-      workingHours,
-      theme,
-      new Date().toISOString()
-    );
-
-    // Get the created tenant
-    const newTenant = db.prepare('SELECT * FROM tenants WHERE id = ?').get(id);
-    
-    // Transform response data
-    const responseData = {
-      ...newTenant,
-      workingHours: JSON.parse((newTenant as any).workingHours || '{}'),
-      theme: JSON.parse((newTenant as any).theme || '{}')
+    // Merge theme data with defaults, ensuring non-empty values are used
+    const mergedTheme = {
+      primaryColor: (data.theme?.primaryColor && data.theme.primaryColor !== '') ? data.theme.primaryColor : defaultTheme.primaryColor,
+      secondaryColor: (data.theme?.secondaryColor && data.theme.secondaryColor !== '') ? data.theme.secondaryColor : defaultTheme.secondaryColor,
+      logo: (data.theme?.logo && data.theme.logo !== '') ? data.theme.logo : defaultTheme.logo,
+      headerImage: (data.theme?.headerImage && data.theme.headerImage !== '') ? data.theme.headerImage : defaultTheme.headerImage
     };
 
-    return NextResponse.json({
-      success: true,
-      message: 'Tenant created successfully',
-      data: responseData
-    });
+    // Merge working hours data with defaults, ensuring proper structure
+    const mergedWorkingHours = {
+      monday: data.workingHours?.monday || defaultWorkingHours.monday,
+      tuesday: data.workingHours?.tuesday || defaultWorkingHours.tuesday,
+      wednesday: data.workingHours?.wednesday || defaultWorkingHours.wednesday,
+      thursday: data.workingHours?.thursday || defaultWorkingHours.thursday,
+      friday: data.workingHours?.friday || defaultWorkingHours.friday,
+      saturday: data.workingHours?.saturday || defaultWorkingHours.saturday,
+      sunday: data.workingHours?.sunday || defaultWorkingHours.sunday
+    };
+
+
+
+    try {
+      // Create tenant using Prisma
+      const newTenant = await prisma.tenant.create({
+        data: {
+          businessName: data.businessName,
+          slug: data.slug,
+          domain: `${data.slug}.randevu.com`,
+          username: data.username,
+          password: data.password, // In production, this should be hashed
+          ownerName: data.ownerName,
+          ownerEmail: data.ownerEmail,
+          phone: data.phone || '',
+          plan: data.plan || 'Standard',
+          status: data.status || 'active',
+          address: data.address || '',
+          businessType: data.businessType || 'other',
+          businessDescription: data.businessDescription || '',
+          monthlyRevenue: 0,
+          appointmentCount: 0,
+          customerCount: 0,
+          workingHours: JSON.stringify(mergedWorkingHours),
+          theme: JSON.stringify(mergedTheme)
+        }
+      });
+
+      return NextResponse.json({
+        success: true,
+        data: newTenant,
+        message: 'Tenant created successfully'
+      });
+
+    } catch (error) {
+      console.error('Error creating tenant:', error);
+      console.error('Error details:', error.message);
+      console.error('Error stack:', error.stack);
+      return NextResponse.json(
+        { success: false, error: `Failed to create tenant: ${error.message}` },
+        { status: 400 }
+      );
+    }
   } catch (error) {
-    console.error('Error creating tenant:', error);
+    console.error('Error in POST /api/tenants:', error);
+    console.error('Error details:', error.message);
     return NextResponse.json(
-      { success: false, error: 'Failed to create tenant', details: (error as Error).message },
-      { status: 400 }
+      { success: false, error: `Internal server error: ${error.message}` },
+      { status: 500 }
     );
   }
 }
