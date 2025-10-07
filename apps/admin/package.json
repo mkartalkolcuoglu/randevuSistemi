@@ -18,13 +18,17 @@
     "@prisma/client": "^6.16.3",
     "@repo/ui": "*",
     "@types/pg": "^8.15.5",
+    "autoprefixer": "^10.4.16",
     "better-sqlite3": "^12.4.1",
     "next": "^15.5.0",
     "pg": "^8.16.3",
+    "postcss": "^8.4.31",
     "prisma": "^6.16.2",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "sqlite3": "^5.1.7",
+    "tailwindcss": "^3.3.5",
+    "tailwindcss-animate": "^1.0.7",
     "tsx": "^4.20.5"
   },
   "devDependencies": {
@@ -33,11 +37,7 @@
     "@types/node": "^22.15.3",
     "@types/react": "19.1.0",
     "@types/react-dom": "19.1.1",
-    "autoprefixer": "^10.4.16",
     "eslint": "^9.34.0",
-    "postcss": "^8.4.31",
-    "tailwindcss": "^3.3.5",
-    "tailwindcss-animate": "^1.0.7",
     "typescript": "5.9.2"
   }
 }
