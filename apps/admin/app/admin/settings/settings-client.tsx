@@ -105,7 +105,19 @@ export default function SettingsClient({ user }: SettingsClientProps) {
         body: JSON.stringify(settings),
       });
 
-      const result = await response.json();
+      // Response'un JSON olup olmadığını kontrol et
+      const contentType = response.headers.get('content-type');
+      let result;
+      
+      if (contentType && contentType.includes('application/json')) {
+        result = await response.json();
+      } else {
+        // JSON değilse, text olarak al
+        const textResponse = await response.text();
+        console.error('Non-JSON response:', textResponse);
+        throw new Error(`Server returned non-JSON response: ${response.status} ${response.statusText}`);
+      }
+
       console.log('API Response:', result);
 
       if (response.ok) {
@@ -117,6 +129,9 @@ export default function SettingsClient({ user }: SettingsClientProps) {
       } else {
         // Daha detaylı hata mesajı
         const errorMessage = `HTTP ${response.status}: ${result.error || 'Sunucu hatası'}`;
+        if (result.details) {
+          console.error('Error details:', result.details);
+        }
         throw new Error(errorMessage);
       }
     } catch (error) {

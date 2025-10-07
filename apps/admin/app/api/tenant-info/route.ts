@@ -218,8 +218,20 @@ export async function PUT(request: NextRequest) {
 
   } catch (error) {
     console.error('Error updating tenant info:', error);
+    
+    // Prisma disconnect
+    try {
+      await prisma.$disconnect();
+    } catch (disconnectError) {
+      console.error('Error disconnecting Prisma:', disconnectError);
+    }
+    
     return NextResponse.json(
-      { success: false, error: 'Internal server error' },
+      { 
+        success: false, 
+        error: error instanceof Error ? error.message : 'Internal server error',
+        details: error instanceof Error ? error.stack : 'Unknown error'
+      },
       { status: 500, headers: corsHeaders }
     );
   }
