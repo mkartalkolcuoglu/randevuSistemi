@@ -4,18 +4,26 @@ import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 
 export async function POST(request: NextRequest) {
+  console.log('🚀 Appointment API called');
+  
   try {
+    // Step 1: Parse request
+    console.log('📥 Step 1: Parsing request...');
     const appointmentData = await request.json();
-    console.log('🔍 Received appointment data:', appointmentData);
-    console.log('🔍 Looking for tenant with slug:', appointmentData.tenantSlug);
+    console.log('✅ Request parsed:', appointmentData);
     
-    // Tenant ID'sini bul
+    // Step 2: Test database connection
+    console.log('🔌 Step 2: Testing database connection...');
+    await prisma.$connect();
+    console.log('✅ Database connected');
+    
+    // Step 3: Find tenant
+    console.log('🔍 Step 3: Looking for tenant with slug:', appointmentData.tenantSlug);
     const tenant = await prisma.tenant.findUnique({
       where: { slug: appointmentData.tenantSlug },
       select: { id: true, businessName: true }
     });
-    
-    console.log('🔍 Found tenant:', tenant);
+    console.log('✅ Tenant query result:', tenant);
     
     if (!tenant) {
       console.log('❌ Tenant not found for slug:', appointmentData.tenantSlug);
