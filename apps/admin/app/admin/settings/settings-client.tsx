@@ -93,16 +93,89 @@ export default function SettingsClient({ user }: SettingsClientProps) {
     }
   };
 
+  // Image compression function
+  const compressImage = (base64String: string, maxSizeKB = 500): Promise<string> => {
+    return new Promise((resolve) => {
+      if (!base64String || !base64String.startsWith('data:image/')) {
+        resolve(base64String);
+        return;
+      }
+
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d')!;
+        
+        // Calculate new dimensions (max 800px width/height)
+        const maxDimension = 800;
+        let { width, height } = img;
+        
+        if (width > height) {
+          if (width > maxDimension) {
+            height = (height * maxDimension) / width;
+            width = maxDimension;
+          }
+        } else {
+          if (height > maxDimension) {
+            width = (width * maxDimension) / height;
+            height = maxDimension;
+          }
+        }
+        
+        canvas.width = width;
+        canvas.height = height;
+        
+        // Draw and compress
+        ctx.drawImage(img, 0, 0, width, height);
+        
+        // Try different quality levels
+        let quality = 0.8;
+        let compressedDataUrl = canvas.toDataURL('image/jpeg', quality);
+        
+        // Reduce quality until under size limit
+        while (compressedDataUrl.length > maxSizeKB * 1024 * 1.37 && quality > 0.1) {
+          quality -= 0.1;
+          compressedDataUrl = canvas.toDataURL('image/jpeg', quality);
+        }
+        
+        resolve(compressedDataUrl);
+      };
+      
+      img.src = base64String;
+    });
+  };
+
   const saveSettings = async () => {
     try {
       setSaving(true);
+      
+      // Compress images before sending
+      const compressedSettings = { ...settings };
+      
+      if (settings.themeSettings?.logo) {
+        console.log('Compressing logo...');
+        compressedSettings.themeSettings.logo = await compressImage(settings.themeSettings.logo);
+      }
+      
+      if (settings.themeSettings?.headerImage) {
+        console.log('Compressing header image...');
+        compressedSettings.themeSettings.headerImage = await compressImage(settings.themeSettings.headerImage);
+      }
+      
+      // Check total size
+      const dataSize = JSON.stringify(compressedSettings).length;
+      console.log(`Data size: ${(dataSize / 1024 / 1024).toFixed(2)} MB`);
+      
+      if (dataSize > 10 * 1024 * 1024) { // 10MB limit
+        throw new Error('Veriler çok büyük. Lütfen daha küçük resimler kullanın.');
+      }
       
       const response = await fetch('/api/tenant-info', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(settings),
+        body: JSON.stringify(compressedSettings),
       });
 
       // Response'un JSON olup olmadığını kontrol et
