@@ -25,9 +25,11 @@ export async function POST(request: NextRequest) {
       }, { status: 404 });
     }
     
-    // Service ID'sini bul (serviceName ile)
+    // Service ID'sini bul (serviceName ile - case insensitive)
     console.log('🔍 Looking for service:', appointmentData.serviceName, 'for tenant:', tenant.id);
-    const service = await prisma.service.findFirst({
+    
+    // Önce exact match dene
+    let service = await prisma.service.findFirst({
       where: {
         tenantId: tenant.id,
         name: appointmentData.serviceName
@@ -35,27 +37,70 @@ export async function POST(request: NextRequest) {
       select: { id: true, name: true, price: true, duration: true }
     });
     
+    // Exact match bulunamazsa, case-insensitive dene
+    if (!service) {
+      console.log('🔍 Trying case-insensitive search for service:', appointmentData.serviceName);
+      const allServices = await prisma.service.findMany({
+        where: { tenantId: tenant.id },
+        select: { id: true, name: true, price: true, duration: true }
+      });
+      
+      console.log('🔍 Available services:', allServices.map(s => s.name));
+      
+      service = allServices.find(s => 
+        s.name.toLowerCase().includes(appointmentData.serviceName.toLowerCase()) ||
+        appointmentData.serviceName.toLowerCase().includes(s.name.toLowerCase())
+      );
+    }
+    
     console.log('🔍 Found service:', service);
     
     if (!service) {
       console.log('❌ Service not found:', appointmentData.serviceName);
+      
+      // Mevcut servisleri listele
+      const availableServices = await prisma.service.findMany({
+        where: { tenantId: tenant.id },
+        select: { name: true }
+      });
+      
       return NextResponse.json({
         success: false,
-        error: `Hizmet bulunamadı: ${appointmentData.serviceName}`
+        error: `Hizmet bulunamadı: "${appointmentData.serviceName}". Mevcut hizmetler: ${availableServices.map(s => s.name).join(', ')}`
       }, { status: 404 });
     }
     
     // Staff bilgisini bul
+    console.log('🔍 Looking for staff with ID:', appointmentData.staffId);
     const staff = await prisma.staff.findUnique({
       where: { id: appointmentData.staffId },
-      select: { id: true, firstName: true, lastName: true }
+      select: { id: true, firstName: true, lastName: true, tenantId: true }
     });
     
+    console.log('🔍 Found staff:', staff);
+    
     if (!staff) {
+      console.log('❌ Staff not found with ID:', appointmentData.staffId);
+      
+      // Mevcut staff'ları listele
+      const availableStaff = await prisma.staff.findMany({
+        where: { tenantId: tenant.id },
+        select: { id: true, firstName: true, lastName: true }
+      });
+      
       return NextResponse.json({
         success: false,
-        error: 'Personel bulunamadı'
+        error: `Personel bulunamadı: ${appointmentData.staffId}. Mevcut personel: ${availableStaff.map(s => `${s.firstName} ${s.lastName} (${s.id})`).join(', ')}`
       }, { status: 404 });
+    }
+    
+    // Staff'ın tenant'a ait olduğunu kontrol et
+    if (staff.tenantId !== tenant.id) {
+      console.log('❌ Staff belongs to different tenant:', staff.tenantId, 'vs', tenant.id);
+      return NextResponse.json({
+        success: false,
+        error: 'Personel bu salona ait değil'
+      }, { status: 403 });
     }
     
     // Customer'ı bul veya oluştur
