@@ -64,6 +64,31 @@ export default function SettingsClient({ user }: SettingsClientProps) {
       if (tenantResponse.ok) {
         if (tenantData.success && tenantData.data) {
           const tenant = tenantData.data;
+          
+          // Debug: Check tenant.theme size
+          if (tenant.theme) {
+            const themeSize = JSON.stringify(tenant.theme).length;
+            console.log(`🔍 Database theme size: ${(themeSize / 1024).toFixed(2)} KB`);
+            
+            if (themeSize > 100000) { // 100KB
+              console.warn('⚠️ Theme data from database is HUGE!');
+              console.log('Theme keys:', Object.keys(tenant.theme));
+              
+              // Log each theme field size
+              Object.keys(tenant.theme).forEach(key => {
+                const fieldSize = JSON.stringify(tenant.theme[key]).length;
+                if (fieldSize > 1000) {
+                  console.log(`  ${key}: ${(fieldSize / 1024).toFixed(2)} KB`);
+                  
+                  // Show preview of large strings
+                  if (typeof tenant.theme[key] === 'string' && fieldSize > 10000) {
+                    console.log(`    Preview: "${tenant.theme[key].substring(0, 100)}..."`);
+                  }
+                }
+              });
+            }
+          }
+          
           setSettings(prev => ({
             ...prev,
             businessName: tenant.businessName || '',
@@ -150,7 +175,41 @@ export default function SettingsClient({ user }: SettingsClientProps) {
       setSaving(true);
       
       // Debug: Log what we're sending
-      console.log('Settings to save:', settings);
+      console.log('Settings keys:', Object.keys(settings));
+      console.log('ThemeSettings keys:', settings.themeSettings ? Object.keys(settings.themeSettings) : 'none');
+      
+      // Check for circular references
+      try {
+        JSON.stringify(settings);
+        console.log('No circular reference detected');
+      } catch (error) {
+        console.error('Circular reference detected!', error);
+        return;
+      }
+      
+      // Log individual field sizes
+      Object.keys(settings).forEach(key => {
+        try {
+          const size = JSON.stringify(settings[key]).length;
+          console.log(`${key}: ${(size / 1024).toFixed(2)} KB`);
+          
+          if (key === 'themeSettings' && settings[key]) {
+            Object.keys(settings[key]).forEach(themeKey => {
+              const themeSize = JSON.stringify(settings[key][themeKey]).length;
+              if (themeSize > 1000) {
+                console.log(`  └─ ${themeKey}: ${(themeSize / 1024).toFixed(2)} KB`);
+                
+                // If it's a string, show first 100 chars
+                if (typeof settings[key][themeKey] === 'string' && themeSize > 10000) {
+                  console.log(`     Preview: ${settings[key][themeKey].substring(0, 100)}...`);
+                }
+              }
+            });
+          }
+        } catch (err) {
+          console.error(`Error checking ${key}:`, err);
+        }
+      });
       
       // Check if images are URLs or base64
       const logoIsUrl = settings.themeSettings?.logo && 
