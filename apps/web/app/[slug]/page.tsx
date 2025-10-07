@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import { Button } from '@/components/ui';
+import { Button } from '../../components/ui';
 import {
   Calendar,
   MapPin,

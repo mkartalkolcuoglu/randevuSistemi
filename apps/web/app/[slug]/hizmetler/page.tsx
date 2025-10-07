@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
-import { Button, Input, Card, CardContent, CardDescription, CardHeader, CardTitle, Badge } from '@/components/ui';
+import { Button, Input, Card, CardContent, CardDescription, CardHeader, CardTitle, Badge } from '../../../components/ui';
 import { Clock, DollarSign, Search, Calendar } from 'lucide-react';
 import Link from 'next/link';
 

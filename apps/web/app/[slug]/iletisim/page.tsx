@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useTenant } from '../../../lib/api-hooks';
-import { Button, Input, Label, Textarea, Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui';
+import { Button, Input, Label, Textarea, Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../../components/ui';
 import { MapPin, Phone, Mail, Clock, Send, Calendar } from 'lucide-react';
 import Link from 'next/link';
 

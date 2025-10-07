@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Button, Card, CardContent, CardHeader, CardTitle } from "@/components/ui";
+import { Button, Card, CardContent, CardHeader, CardTitle } from "../components/ui";
 import { Calendar, Users, BarChart3, CheckCircle, ArrowRight, Star } from "lucide-react";
 
 export default function Home() {
