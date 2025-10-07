@@ -6,22 +6,27 @@ const prisma = new PrismaClient();
 export async function POST(request: NextRequest) {
   try {
     const appointmentData = await request.json();
-    console.log('Received appointment data:', appointmentData);
+    console.log('🔍 Received appointment data:', appointmentData);
+    console.log('🔍 Looking for tenant with slug:', appointmentData.tenantSlug);
     
     // Tenant ID'sini bul
     const tenant = await prisma.tenant.findUnique({
       where: { slug: appointmentData.tenantSlug },
-      select: { id: true }
+      select: { id: true, businessName: true }
     });
     
+    console.log('🔍 Found tenant:', tenant);
+    
     if (!tenant) {
+      console.log('❌ Tenant not found for slug:', appointmentData.tenantSlug);
       return NextResponse.json({
         success: false,
-        error: 'Tenant bulunamadı'
+        error: `Tenant bulunamadı: ${appointmentData.tenantSlug}`
       }, { status: 404 });
     }
     
     // Service ID'sini bul (serviceName ile)
+    console.log('🔍 Looking for service:', appointmentData.serviceName, 'for tenant:', tenant.id);
     const service = await prisma.service.findFirst({
       where: {
         tenantId: tenant.id,
@@ -30,10 +35,13 @@ export async function POST(request: NextRequest) {
       select: { id: true, name: true, price: true, duration: true }
     });
     
+    console.log('🔍 Found service:', service);
+    
     if (!service) {
+      console.log('❌ Service not found:', appointmentData.serviceName);
       return NextResponse.json({
         success: false,
-        error: 'Hizmet bulunamadı'
+        error: `Hizmet bulunamadı: ${appointmentData.serviceName}`
       }, { status: 404 });
     }
     
