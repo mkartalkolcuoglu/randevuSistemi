@@ -2,6 +2,7 @@
 export { cn } from './utils';
 
 // Re-export all components
+export * from './alert';
 export * from './button';
 export * from './card';
 export * from './input';
