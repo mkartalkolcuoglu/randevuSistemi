@@ -76,6 +76,23 @@ export default function SettingsClient({ user }: SettingsClientProps) {
       
       console.log('Load Settings Response:', tenantData);
       
+      // Debug: Web API'nin hangi field'ları döndürdüğünü kontrol et
+      if (tenantData.success && tenantData.data) {
+        console.log('🔍 Available fields in response:');
+        console.log('- Root level:', Object.keys(tenantData.data));
+        if (tenantData.data.tenant) {
+          console.log('- Tenant level:', Object.keys(tenantData.data.tenant));
+        }
+        
+        // Eksik field'ları kontrol et
+        const checkFields = ['ownerName', 'username', 'password'];
+        checkFields.forEach(field => {
+          const rootValue = tenantData.data[field];
+          const tenantValue = tenantData.data.tenant?.[field];
+          console.log(`- ${field}: root=${rootValue}, tenant=${tenantValue}`);
+        });
+      }
+      
       if (tenantResponse.ok) {
         if (tenantData.success && tenantData.data) {
           const tenant = tenantData.data;
@@ -111,21 +128,53 @@ export default function SettingsClient({ user }: SettingsClientProps) {
           console.log('Data structure detected:', isWebApiData ? 'Web API' : 'Admin API');
           console.log('Business data:', businessData);
           
+          // Eğer web API'den kritik field'lar eksikse, admin API'den tamamla
+          let finalData = { ...tenant };
+          
+          if (isWebApiData) {
+            const missingFields = ['ownerName', 'username'];
+            const hasMissingFields = missingFields.some(field => 
+              !businessData[field] && !tenant[field]
+            );
+            
+            if (hasMissingFields) {
+              console.log('🔄 Missing critical fields, fetching from admin API...');
+              try {
+                // Admin API'den eksik field'ları al
+                const adminResponse = await fetch('/api/tenant-info?admin-fields=true&t=' + Date.now());
+                const adminData = await adminResponse.json();
+                
+                if (adminData.success && adminData.data) {
+                  console.log('✅ Got admin data for missing fields');
+                  finalData = {
+                    ...tenant,
+                    // Admin API'den eksik field'ları ekle
+                    ownerName: adminData.data.ownerName || tenant.ownerName || '',
+                    username: adminData.data.username || tenant.username || '',
+                    // Diğer field'lar web API'den gelsin
+                  };
+                }
+              } catch (error) {
+                console.warn('⚠️ Could not fetch admin data:', error);
+              }
+            }
+          }
+          
           setSettings(prev => ({
             ...prev,
             // Business info mapping
-            businessName: businessData.businessName || tenant.businessName || '',
-            businessType: businessData.businessType || tenant.businessType || 'salon',
-            businessDescription: businessData.businessDescription || tenant.businessDescription || '',
-            businessAddress: businessData.businessAddress || businessData.address || tenant.address || '',
+            businessName: businessData.businessName || finalData.businessName || '',
+            businessType: businessData.businessType || finalData.businessType || 'salon',
+            businessDescription: businessData.businessDescription || finalData.businessDescription || '',
+            businessAddress: businessData.businessAddress || businessData.address || finalData.address || '',
             
-            // Owner info mapping  
-            ownerName: businessData.ownerName || tenant.ownerName || '',
-            ownerEmail: businessData.businessEmail || businessData.ownerEmail || tenant.ownerEmail || '',
-            phone: businessData.businessPhone || businessData.phone || tenant.phone || '',
+            // Owner info mapping - admin API'den tamamlanmış data kullan
+            ownerName: finalData.ownerName || businessData.ownerName || '',
+            ownerEmail: businessData.businessEmail || businessData.ownerEmail || finalData.ownerEmail || '',
+            phone: businessData.businessPhone || businessData.phone || finalData.phone || '',
             
-            // Login info mapping
-            username: businessData.username || tenant.username || '',
+            // Login info mapping - admin API'den tamamlanmış data kullan
+            username: finalData.username || businessData.username || '',
             password: '', // Güvenlik için şifreyi boş göster
             
             // Other data
