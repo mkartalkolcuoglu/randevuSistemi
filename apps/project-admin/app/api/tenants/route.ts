@@ -104,7 +104,7 @@ export async function POST(request: NextRequest) {
         data: {
           businessName: data.businessName,
           slug: data.slug,
-          domain: `${data.slug}.randevu.com`,
+          domain: process.env.WEB_APP_URL ? `${process.env.WEB_APP_URL}/${data.slug}` : `${data.slug}.randevu.com`,
           username: data.username,
           password: data.password, // In production, this should be hashed
           ownerName: data.ownerName,
