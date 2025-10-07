@@ -148,7 +148,12 @@ export async function PUT(request: NextRequest) {
         { status: 401, headers: corsHeaders }
       );
     }
-    const data = await request.json();
+    
+    // Debug: Log request size
+    const requestText = await request.text();
+    console.log(`Request size: ${(requestText.length / 1024).toFixed(2)} KB`);
+    
+    const data = JSON.parse(requestText);
 
     try {
       // Güncelleme verilerini hazırla

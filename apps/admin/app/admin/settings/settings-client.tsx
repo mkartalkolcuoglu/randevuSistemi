@@ -149,22 +149,42 @@ export default function SettingsClient({ user }: SettingsClientProps) {
     try {
       setSaving(true);
       
-      // Compress images before sending
+      // Debug: Log what we're sending
+      console.log('Settings to save:', settings);
+      
+      // Check if images are URLs or base64
+      const logoIsUrl = settings.themeSettings?.logo && 
+        (settings.themeSettings.logo.startsWith('http') || settings.themeSettings.logo.startsWith('https'));
+      const headerIsUrl = settings.themeSettings?.headerImage && 
+        (settings.themeSettings.headerImage.startsWith('http') || settings.themeSettings.headerImage.startsWith('https'));
+      
+      console.log('Logo is URL:', logoIsUrl);
+      console.log('Header is URL:', headerIsUrl);
+      
+      // Only compress if it's base64, not URL
       const compressedSettings = { ...settings };
       
-      if (settings.themeSettings?.logo) {
-        console.log('Compressing logo...');
+      if (settings.themeSettings?.logo && !logoIsUrl) {
+        console.log('Compressing logo (base64)...');
         compressedSettings.themeSettings.logo = await compressImage(settings.themeSettings.logo);
       }
       
-      if (settings.themeSettings?.headerImage) {
-        console.log('Compressing header image...');
+      if (settings.themeSettings?.headerImage && !headerIsUrl) {
+        console.log('Compressing header image (base64)...');
         compressedSettings.themeSettings.headerImage = await compressImage(settings.themeSettings.headerImage);
       }
       
       // Check total size
       const dataSize = JSON.stringify(compressedSettings).length;
-      console.log(`Data size: ${(dataSize / 1024 / 1024).toFixed(2)} MB`);
+      console.log(`Total data size: ${(dataSize / 1024).toFixed(2)} KB (${(dataSize / 1024 / 1024).toFixed(2)} MB)`);
+      
+      // Log each field size
+      Object.keys(compressedSettings).forEach(key => {
+        const fieldSize = JSON.stringify(compressedSettings[key]).length;
+        if (fieldSize > 1000) {
+          console.log(`${key}: ${(fieldSize / 1024).toFixed(2)} KB`);
+        }
+      });
       
       if (dataSize > 10 * 1024 * 1024) { // 10MB limit
         throw new Error('Veriler çok büyük. Lütfen daha küçük resimler kullanın.');
