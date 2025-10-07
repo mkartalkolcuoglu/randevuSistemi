@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
-const Database = require('better-sqlite3');
-const path = require('path');
+import { prisma } from '../../../lib/prisma';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -42,25 +41,37 @@ export async function GET() {
       );
     }
 
-    // Database bağlantısı
-    const dbPath = path.join(process.cwd(), 'prisma', 'admin.db');
-    const db = new Database(dbPath);
-
     try {
+      console.log('Prisma instance:', !!prisma);
+      console.log('Prisma product model:', !!prisma?.product);
+      
       // Bu tenant'ın ürünlerini getir
-      const products = db.prepare(`
-        SELECT * FROM products 
-        WHERE tenantId = ? 
-        ORDER BY name ASC
-      `).all(tenantId);
+      const products = await prisma.product.findMany({
+        where: {
+          tenantId: tenantId
+        },
+        orderBy: {
+          name: 'asc'
+        }
+      });
+
+      // API uyumluluğu için quantity alanını ekle
+      const productsWithQuantity = products.map(product => ({
+        ...product,
+        quantity: product.stock
+      }));
 
       return NextResponse.json({
         success: true,
-        data: products
+        data: productsWithQuantity
       }, { headers: corsHeaders });
 
-    } finally {
-      db.close();
+    } catch (error) {
+      console.error('Error fetching products:', error);
+      return NextResponse.json(
+        { success: false, error: 'Failed to fetch products' },
+        { status: 500, headers: corsHeaders }
+      );
     }
 
   } catch (error) {
@@ -104,53 +115,49 @@ export async function POST(request: NextRequest) {
     const data = await request.json();
 
     // Validation
-    if (!data.name || !data.quantity || !data.price) {
+    if (!data.name || (!data.stock && !data.quantity) || !data.price) {
       return NextResponse.json(
-        { success: false, error: 'Ürün adı, adet ve fiyat gereklidir' },
+        { success: false, error: 'Ürün adı, stok ve fiyat gereklidir' },
         { status: 400, headers: corsHeaders }
       );
     }
 
-    // Database bağlantısı
-    const dbPath = path.join(process.cwd(), 'prisma', 'admin.db');
-    const db = new Database(dbPath);
-
     try {
-      const productId = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+      const newProduct = await prisma.product.create({
+        data: {
+          tenantId: tenantId,
+          name: data.name,
+          description: data.description || '',
+          category: data.category || '',
+          price: parseFloat(data.price) || 0,
+          cost: parseFloat(data.cost) || 0,
+          stock: parseInt(data.stock || data.quantity) || 0,
+          minStock: parseInt(data.minStock) || 0,
+          barcode: data.barcode || '',
+          sku: data.sku || '',
+          supplier: data.supplier || '',
+          status: data.status || 'active'
+        }
+      });
 
-      const newProduct = {
-        id: productId,
-        tenantId: tenantId,
-        name: data.name,
-        quantity: parseInt(data.quantity),
-        price: parseFloat(data.price),
-        status: 'active',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
+      // API uyumluluğu için quantity alanını ekle
+      const productWithQuantity = {
+        ...newProduct,
+        quantity: newProduct.stock
       };
-
-      db.prepare(`
-        INSERT INTO products (id, tenantId, name, quantity, price, status, createdAt, updatedAt)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-      `).run(
-        newProduct.id,
-        newProduct.tenantId,
-        newProduct.name,
-        newProduct.quantity,
-        newProduct.price,
-        newProduct.status,
-        newProduct.createdAt,
-        newProduct.updatedAt
-      );
 
       return NextResponse.json({
         success: true,
         message: 'Ürün başarıyla eklendi',
-        data: newProduct
+        data: productWithQuantity
       }, { headers: corsHeaders });
 
-    } finally {
-      db.close();
+    } catch (error) {
+      console.error('Error creating product:', error);
+      return NextResponse.json(
+        { success: false, error: 'Failed to create product' },
+        { status: 500, headers: corsHeaders }
+      );
     }
 
   } catch (error) {

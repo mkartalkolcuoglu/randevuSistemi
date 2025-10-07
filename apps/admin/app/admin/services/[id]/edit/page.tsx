@@ -129,28 +129,18 @@ export default function EditServicePage() {
                   name="name"
                   value={formData.name}
                   onChange={handleInputChange}
-                  placeholder="Hizmet adını girin"
                   required
                 />
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="category">Kategori</Label>
-                <select
+                <Input
                   id="category"
                   name="category"
-                  value={formData.category || ''}
+                  value={formData.category}
                   onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="">Kategori seçin</option>
-                  <option value="Saç Bakımı">Saç Bakımı</option>
-                  <option value="Cilt Bakımı">Cilt Bakımı</option>
-                  <option value="Tırnak Bakımı">Tırnak Bakımı</option>
-                  <option value="Masaj">Masaj</option>
-                  <option value="Estetik">Estetik</option>
-                  <option value="Diğer">Diğer</option>
-                </select>
+                />
               </div>
 
               <div className="space-y-2">
@@ -161,7 +151,6 @@ export default function EditServicePage() {
                   type="number"
                   value={formData.price}
                   onChange={handleInputChange}
-                  placeholder="0.00"
                   min="0"
                   step="0.01"
                   required
@@ -176,7 +165,6 @@ export default function EditServicePage() {
                   type="number"
                   value={formData.duration}
                   onChange={handleInputChange}
-                  placeholder="60"
                   min="15"
                   max="480"
                   step="15"
@@ -192,7 +180,6 @@ export default function EditServicePage() {
                 name="description"
                 value={formData.description}
                 onChange={handleInputChange}
-                placeholder="Hizmet hakkında detaylı açıklama..."
                 rows={3}
               />
             </div>

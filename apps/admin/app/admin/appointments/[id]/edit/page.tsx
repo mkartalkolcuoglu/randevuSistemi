@@ -6,12 +6,6 @@ import { Button, Input, Label, Textarea, Card, CardContent, CardHeader, CardTitl
 import { ArrowLeft, Save } from 'lucide-react';
 import Link from 'next/link';
 
-// Window type extension for currentAppointment
-declare global {
-  interface Window {
-    currentAppointment?: any;
-  }
-}
 
 export default function EditAppointmentPage() {
   const router = useRouter();
@@ -45,11 +39,27 @@ export default function EditAppointmentPage() {
 
   useEffect(() => {
     if (params.id) {
-      fetchAppointment();
-      fetchServices();
-      fetchStaff();
+      // Önce hizmetler ve personel listesini yükle, sonra randevu verisini yükle
+      Promise.all([fetchServices(), fetchStaff()]).then(() => {
+        fetchAppointment();
+      });
     }
   }, [params.id]);
+
+  // Services ve appointment yüklendikten sonra serviceId eşleştirmesi yap
+  useEffect(() => {
+    if (services.length > 0 && formData.serviceId && !services.find(s => s.id === formData.serviceId)) {
+      // ServiceId eşleşmiyorsa, ilk hizmeti seç
+      const firstService = services[0];
+      if (firstService) {
+        setFormData(prev => ({
+          ...prev,
+          serviceId: firstService.id,
+          duration: firstService.duration
+        }));
+      }
+    }
+  }, [services, formData.serviceId]);
 
   const fetchAppointment = async () => {
     try {
@@ -59,10 +69,8 @@ export default function EditAppointmentPage() {
         const data = await response.json();
         const appointment = data.data;
         
-        // Appointment data'yı store edelim ki sonra service/staff matching yapabilelim
-        window.currentAppointment = appointment;
         
-        setFormData({
+        const newFormData = {
           customerName: appointment.customerName || '',
           customerPhone: appointment.customerPhone || '',
           customerEmail: appointment.customerEmail || '',
@@ -74,7 +82,8 @@ export default function EditAppointmentPage() {
           notes: appointment.notes || '',
           status: appointment.status || 'pending',
           paymentType: appointment.paymentType || 'cash'
-        });
+        };
+        setFormData(newFormData);
       } else {
         console.error('Appointment not found');
         router.push('/admin/appointments');
@@ -94,18 +103,6 @@ export default function EditAppointmentPage() {
         const data = await response.json();
         const servicesList = data.data || [];
         setServices(servicesList);
-        
-        // Appointment yüklendiyse, serviceName'e göre gerçek serviceId'yi bul
-        if (window.currentAppointment && window.currentAppointment.serviceName) {
-          const matchingService = servicesList.find(s => s.name === window.currentAppointment.serviceName);
-          if (matchingService) {
-            setFormData(prev => ({
-              ...prev,
-              serviceId: matchingService.id,
-              duration: matchingService.duration
-            }));
-          }
-        }
       }
     } catch (error) {
       console.error('Error fetching services:', error);
@@ -120,33 +117,6 @@ export default function EditAppointmentPage() {
         const staffList = data.data || [];
         setStaff(staffList);
         
-        // Appointment yüklendiyse, staffName'e göre gerçek staffId'yi bul
-        if (window.currentAppointment && window.currentAppointment.staffName) {
-          let matchingStaff = staffList.find(s => 
-            `${s.firstName} ${s.lastName}` === window.currentAppointment.staffName ||
-            s.firstName === window.currentAppointment.staffName.split(' ')[0]
-          );
-          
-          // Eğer tam eşleşme bulunamazsa (örn: "Web Randevu" gibi fake isimler için)
-          // ilk staff'ı seç
-          if (!matchingStaff && staffList.length > 0) {
-            matchingStaff = staffList[0];
-            console.log('Staff matching bulunamadı, ilk staff seçildi:', matchingStaff.firstName, matchingStaff.lastName);
-          }
-          
-          if (matchingStaff) {
-            setFormData(prev => ({
-              ...prev,
-              staffId: matchingStaff.id
-            }));
-          }
-        } else if (staffList.length > 0) {
-          // Hiç appointment staffName'i yoksa da ilk staff'ı seç
-          setFormData(prev => ({
-            ...prev,
-            staffId: staffList[0].id
-          }));
-        }
       }
     } catch (error) {
       console.error('Error fetching staff:', error);

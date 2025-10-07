@@ -161,11 +161,11 @@ export default function CustomerDetailPage() {
                 </div>
                 <div>
                   <label className="text-sm font-medium text-gray-600">Cinsiyet</label>
-                  <p>{customer.gender}</p>
+                  <p>{customer.gender || 'Belirtilmemiş'}</p>
                 </div>
                 <div>
                   <label className="text-sm font-medium text-gray-600">Doğum Tarihi</label>
-                  <p>{new Date(customer.dateOfBirth).toLocaleDateString('tr-TR')}</p>
+                  <p>{customer.birthDate ? new Date(customer.birthDate).toLocaleDateString('tr-TR') : 'Belirtilmemiş'}</p>
                 </div>
               </div>
               
@@ -182,7 +182,7 @@ export default function CustomerDetailPage() {
                   </div>
                   <div className="flex items-center">
                     <MapPin className="w-4 h-4 mr-2 text-gray-500" />
-                    <span>{customer.address}</span>
+                    <span>{customer.address || 'Belirtilmemiş'}</span>
                   </div>
                 </div>
               </div>

@@ -37,36 +37,46 @@ export async function GET(request: NextRequest) {
     const date = searchParams.get('date') || '';
     const tenantId = searchParams.get('tenantId') || sessionTenantId || '';
 
-    let query = 'SELECT * FROM appointments WHERE 1=1';
+    let query = `
+      SELECT 
+        a.*,
+        s.name as serviceName,
+        s.duration as serviceDuration,
+        st.firstName || ' ' || st.lastName as staffName
+      FROM appointments a
+      LEFT JOIN services s ON a.serviceId = s.id
+      LEFT JOIN staff st ON a.staffId = st.id
+      WHERE 1=1
+    `;
     const params: any[] = [];
 
     // Filter by tenant (from session or query param)
     if (tenantId) {
-      query += ' AND tenantId = ?';
+      query += ' AND a.tenantId = ?';
       params.push(tenantId);
     }
 
     if (search) {
-      query += ' AND (customerName LIKE ? OR serviceName LIKE ? OR staffName LIKE ?)';
+      query += ' AND (a.customerName LIKE ? OR s.name LIKE ? OR (st.firstName || \' \' || st.lastName) LIKE ?)';
       const searchTerm = `%${search}%`;
       params.push(searchTerm, searchTerm, searchTerm);
     }
 
     if (status !== 'all') {
-      query += ' AND status = ?';
+      query += ' AND a.status = ?';
       params.push(status);
     }
 
     if (date) {
-      query += ' AND date = ?';
+      query += ' AND a.date = ?';
       params.push(date);
     }
 
-    const countQuery = query.replace('SELECT *', 'SELECT COUNT(*) as count');
+    const countQuery = query.replace(/SELECT[\s\S]*?FROM/, 'SELECT COUNT(*) as count FROM');
     const totalResult = db.prepare(countQuery).get(...params) as { count: number };
     const total = totalResult.count;
 
-    query += ' ORDER BY date DESC, time DESC LIMIT ? OFFSET ?';
+    query += ' ORDER BY a.date DESC, a.time DESC LIMIT ? OFFSET ?';
     params.push(limit, (page - 1) * limit);
 
     const appointments = db.prepare(query).all(...params);

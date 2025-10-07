@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { Button, Input, Label, Textarea, Card, CardContent, CardHeader, CardTitle } from '@repo/ui';
+import { Button, Input, Label, Textarea, Card, CardContent, CardHeader, CardTitle, Switch } from '@repo/ui';
 import { ArrowLeft, Save, Plus, X } from 'lucide-react';
 import Link from 'next/link';
 
@@ -50,11 +50,50 @@ export default function EditStaffPage() {
       const response = await fetch(`/api/staff/${params.id}`);
       if (response.ok) {
         const data = await response.json();
+        const staffData = data.data;
+        
+        // Parse specializations if it's a string
+        let specializations = [];
+        if (typeof staffData.specializations === 'string') {
+          try {
+            specializations = JSON.parse(staffData.specializations);
+          } catch {
+            specializations = staffData.specializations ? [staffData.specializations] : [];
+          }
+        } else if (Array.isArray(staffData.specializations)) {
+          specializations = staffData.specializations;
+        }
+        
+        // Parse workingHours if it's a string
+        let workingHours = {
+          monday: { start: '09:00', end: '18:00', isOpen: true },
+          tuesday: { start: '09:00', end: '18:00', isOpen: true },
+          wednesday: { start: '09:00', end: '18:00', isOpen: true },
+          thursday: { start: '09:00', end: '18:00', isOpen: true },
+          friday: { start: '09:00', end: '18:00', isOpen: true },
+          saturday: { start: '09:00', end: '18:00', isOpen: false },
+          sunday: { start: '09:00', end: '18:00', isOpen: false }
+        };
+        
+        if (staffData.workingHours) {
+          if (typeof staffData.workingHours === 'string') {
+            try {
+              workingHours = { ...workingHours, ...JSON.parse(staffData.workingHours) };
+            } catch {
+              // Keep default workingHours if parsing fails
+            }
+          } else if (typeof staffData.workingHours === 'object') {
+            workingHours = { ...workingHours, ...staffData.workingHours };
+          }
+        }
+        
         setFormData({
-          ...data.data,
-          experience: data.data.experience?.toString() || '',
-          rating: data.data.rating?.toString() || '',
-          salary: data.data.salary?.toString() || ''
+          ...staffData,
+          specializations,
+          workingHours,
+          experience: staffData.experience?.toString() || '',
+          rating: staffData.rating?.toString() || '',
+          salary: staffData.salary?.toString() || ''
         });
       } else {
         console.error('Staff not found');
@@ -70,6 +109,29 @@ export default function EditStaffPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validation
+    if (!formData.firstName.trim()) {
+      alert('Ad alanı zorunludur!');
+      return;
+    }
+    if (!formData.lastName.trim()) {
+      alert('Soyad alanı zorunludur!');
+      return;
+    }
+    if (!formData.phone.trim()) {
+      alert('Telefon alanı zorunludur!');
+      return;
+    }
+    if (!formData.position.trim()) {
+      alert('Pozisyon alanı zorunludur!');
+      return;
+    }
+    if (!Array.isArray(formData.specializations) || formData.specializations.length === 0) {
+      alert('En az bir uzmanlık alanı eklemelisiniz!');
+      return;
+    }
+    
     setIsLoading(true);
 
     try {
@@ -112,10 +174,10 @@ export default function EditStaffPage() {
   };
 
   const addSpecialization = () => {
-    if (newSpecialization.trim() && !formData.specializations.includes(newSpecialization.trim())) {
+    if (newSpecialization.trim() && Array.isArray(formData.specializations) && !formData.specializations.includes(newSpecialization.trim())) {
       setFormData(prev => ({
         ...prev,
-        specializations: [...prev.specializations, newSpecialization.trim()]
+        specializations: [...(Array.isArray(prev.specializations) ? prev.specializations : []), newSpecialization.trim()]
       }));
       setNewSpecialization('');
     }
@@ -124,7 +186,7 @@ export default function EditStaffPage() {
   const removeSpecialization = (index: number) => {
     setFormData(prev => ({
       ...prev,
-      specializations: prev.specializations.filter((_, i) => i !== index)
+      specializations: Array.isArray(prev.specializations) ? prev.specializations.filter((_, i) => i !== index) : []
     }));
   };
 
@@ -139,6 +201,16 @@ export default function EditStaffPage() {
         }
       }
     }));
+  };
+
+  const dayNames = {
+    monday: 'Pazartesi',
+    tuesday: 'Salı',
+    wednesday: 'Çarşamba',
+    thursday: 'Perşembe',
+    friday: 'Cuma',
+    saturday: 'Cumartesi',
+    sunday: 'Pazar'
   };
 
   if (loading) {
@@ -176,7 +248,6 @@ export default function EditStaffPage() {
                   name="firstName"
                   value={formData.firstName}
                   onChange={handleInputChange}
-                  placeholder="Personel adı"
                   required
                 />
               </div>
@@ -188,21 +259,18 @@ export default function EditStaffPage() {
                   name="lastName"
                   value={formData.lastName}
                   onChange={handleInputChange}
-                  placeholder="Personel soyadı"
                   required
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="email">Email *</Label>
+                <Label htmlFor="email">Email</Label>
                 <Input
                   id="email"
                   name="email"
                   type="email"
                   value={formData.email}
                   onChange={handleInputChange}
-                  placeholder="ornek@email.com"
-                  required
                 />
               </div>
 
@@ -213,30 +281,20 @@ export default function EditStaffPage() {
                   name="phone"
                   value={formData.phone}
                   onChange={handleInputChange}
-                  placeholder="+90 555 123 45 67"
                   required
                 />
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="position">Pozisyon *</Label>
-                <select
+                <Input
                   id="position"
                   name="position"
+                  type="text"
                   value={formData.position}
                   onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   required
-                >
-                  <option value="">Pozisyon seçin</option>
-                  <option value="Kuaför">Kuaför</option>
-                  <option value="Berber">Berber</option>
-                  <option value="Estetisyen">Estetisyen</option>
-                  <option value="Masaj Terapisti">Masaj Terapisti</option>
-                  <option value="Nail Technician">Nail Technician</option>
-                  <option value="Resepsiyon">Resepsiyon</option>
-                  <option value="Temizlik">Temizlik</option>
-                </select>
+                />
               </div>
 
               <div className="space-y-2">
@@ -262,7 +320,6 @@ export default function EditStaffPage() {
                   type="number"
                   value={formData.experience}
                   onChange={handleInputChange}
-                  placeholder="5"
                   min="0"
                   max="50"
                 />
@@ -276,7 +333,6 @@ export default function EditStaffPage() {
                   type="number"
                   value={formData.rating}
                   onChange={handleInputChange}
-                  placeholder="4.5"
                   min="1"
                   max="5"
                   step="0.1"
@@ -302,7 +358,6 @@ export default function EditStaffPage() {
                   type="number"
                   value={formData.salary}
                   onChange={handleInputChange}
-                  placeholder="8000"
                   min="0"
                 />
               </div>
@@ -315,7 +370,6 @@ export default function EditStaffPage() {
                 <Input
                   value={newSpecialization}
                   onChange={(e) => setNewSpecialization(e.target.value)}
-                  placeholder="Yeni uzmanlık alanı ekleyin"
                   onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addSpecialization())}
                 />
                 <Button type="button" onClick={addSpecialization} variant="outline">
@@ -323,7 +377,7 @@ export default function EditStaffPage() {
                 </Button>
               </div>
               <div className="flex flex-wrap gap-2 mt-2">
-                {formData.specializations.map((spec, index) => (
+                {Array.isArray(formData.specializations) && formData.specializations.map((spec, index) => (
                   <span key={index} className="inline-flex items-center px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm">
                     {spec}
                     <button
@@ -339,13 +393,49 @@ export default function EditStaffPage() {
             </div>
 
             <div className="space-y-2">
+              <Label>Çalışma Saatleri</Label>
+              <div className="space-y-4">
+                {Object.entries(formData.workingHours).map(([day, hours]) => (
+                  <div key={day} className="flex items-center justify-between p-4 border rounded-lg">
+                    <div className="flex items-center space-x-4">
+                      <Switch
+                        checked={hours.isOpen}
+                        onChange={(e) => handleWorkingHoursChange(day, 'isOpen', e.target.checked)}
+                      />
+                      <span className="font-medium w-20">{dayNames[day]}</span>
+                    </div>
+                    
+                    {hours.isOpen ? (
+                      <div className="flex items-center space-x-2">
+                        <Input
+                          type="time"
+                          value={hours.start}
+                          onChange={(e) => handleWorkingHoursChange(day, 'start', e.target.value)}
+                          className="w-24"
+                        />
+                        <span>-</span>
+                        <Input
+                          type="time"
+                          value={hours.end}
+                          onChange={(e) => handleWorkingHoursChange(day, 'end', e.target.value)}
+                          className="w-24"
+                        />
+                      </div>
+                    ) : (
+                      <span className="text-gray-500">Kapalı</span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="space-y-2">
               <Label htmlFor="notes">Notlar</Label>
               <Textarea
                 id="notes"
                 name="notes"
                 value={formData.notes}
                 onChange={handleInputChange}
-                placeholder="Personel hakkında notlar..."
                 rows={3}
               />
             </div>

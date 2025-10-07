@@ -46,16 +46,6 @@ export default function NewStaffPage() {
     sunday: 'Pazar'
   };
 
-  const positionOptions = [
-    'Kuaför',
-    'Berber',
-    'Estetisyen',
-    'Nail Technician',
-    'Masöz',
-    'Güzellik Uzmanı',
-    'Cilt Bakım Uzmanı',
-    'Makyöz'
-  ];
 
   const handleInputChange = (field: string, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -93,6 +83,29 @@ export default function NewStaffPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validation
+    if (!formData.firstName.trim()) {
+      alert('Ad alanı zorunludur!');
+      return;
+    }
+    if (!formData.lastName.trim()) {
+      alert('Soyad alanı zorunludur!');
+      return;
+    }
+    if (!formData.phone.trim()) {
+      alert('Telefon alanı zorunludur!');
+      return;
+    }
+    if (!formData.position.trim()) {
+      alert('Pozisyon alanı zorunludur!');
+      return;
+    }
+    if (formData.specializations.length === 0) {
+      alert('En az bir uzmanlık alanı eklemelisiniz!');
+      return;
+    }
+    
     setIsLoading(true);
 
     try {
@@ -190,7 +203,6 @@ export default function NewStaffPage() {
                             type="email"
                             value={formData.email}
                             onChange={(e) => handleInputChange('email', e.target.value)}
-                            required
                           />
                         </div>
                         <div className="grid gap-3">
@@ -207,18 +219,13 @@ export default function NewStaffPage() {
 
                       <div className="grid gap-3">
                         <Label htmlFor="position">Pozisyon</Label>
-                        <select
+                        <Input
                           id="position"
+                          type="text"
                           value={formData.position}
                           onChange={(e) => handleInputChange('position', e.target.value)}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                           required
-                        >
-                          <option value="">Pozisyon seçin</option>
-                          {positionOptions.map(option => (
-                            <option key={option} value={option}>{option}</option>
-                          ))}
-                        </select>
+                        />
                       </div>
                     </div>
                   </CardContent>
@@ -232,7 +239,6 @@ export default function NewStaffPage() {
                     <div className="grid gap-4">
                       <div className="flex gap-2">
                         <Input
-                          placeholder="Uzmanlık alanı ekle..."
                           value={newSpecialization}
                           onChange={(e) => setNewSpecialization(e.target.value)}
                           onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addSpecialization())}
@@ -368,7 +374,6 @@ export default function NewStaffPage() {
                   </CardHeader>
                   <CardContent>
                     <Textarea
-                      placeholder="Personel hakkında notlar..."
                       value={formData.notes}
                       onChange={(e) => handleInputChange('notes', e.target.value)}
                       className="min-h-32"

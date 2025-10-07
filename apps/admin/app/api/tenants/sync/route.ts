@@ -1,75 +1,97 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '../../../../lib/sqlite';
+import { prisma } from '../../../../lib/prisma';
 
 export async function POST(request: NextRequest) {
   try {
     const tenantData = await request.json();
 
+    // Parse theme data if it's a string
+    let themeData = tenantData.theme;
+    if (typeof themeData === 'string') {
+      try {
+        themeData = JSON.parse(themeData);
+      } catch (error) {
+        console.error('Error parsing theme data:', error);
+        themeData = {};
+      }
+    }
+
+    // Parse working hours data if it's a string
+    let workingHoursData = tenantData.workingHours;
+    if (typeof workingHoursData === 'string') {
+      try {
+        workingHoursData = JSON.parse(workingHoursData);
+      } catch (error) {
+        console.error('Error parsing working hours data:', error);
+        workingHoursData = {};
+      }
+    }
+
+    // Ensure theme data is properly formatted
+    const processedTheme = themeData || {};
+    
+    // Ensure working hours data is properly formatted
+    const processedWorkingHours = workingHoursData || {};
+
     // Check if tenant already exists
-    const existingTenant = db.prepare('SELECT id FROM tenants WHERE id = ?').get(tenantData.id);
+    const existingTenant = await prisma.tenant.findUnique({
+      where: { id: tenantData.id }
+    });
 
     if (existingTenant) {
       // Update existing tenant
-      const updateStmt = db.prepare(`
-        UPDATE tenants SET 
-          businessName = ?, slug = ?, domain = ?, username = ?, password = ?, ownerName = ?, 
-          ownerEmail = ?, phone = ?, address = ?, businessType = ?, businessDescription = ?, 
-          status = ?, updatedAt = ?
-        WHERE id = ?
-      `);
-      
-      updateStmt.run(
-        tenantData.businessName,
-        tenantData.slug,
-        tenantData.domain || `${tenantData.slug}.randevu.com`,
-        tenantData.username,
-        tenantData.password,
-        tenantData.ownerName,
-        tenantData.ownerEmail,
-        tenantData.phone || '',
-        tenantData.address || '',
-        tenantData.businessType || 'other',
-        tenantData.businessDescription || '',
-        tenantData.status || 'active',
-        new Date().toISOString(),
-        tenantData.id
-      );
+      await prisma.tenant.update({
+        where: { id: tenantData.id },
+        data: {
+          businessName: tenantData.businessName,
+          slug: tenantData.slug,
+          domain: tenantData.domain || `${tenantData.slug}.randevu.com`,
+          username: tenantData.username,
+          password: tenantData.password,
+          ownerName: tenantData.ownerName,
+          ownerEmail: tenantData.ownerEmail,
+          phone: tenantData.phone || '',
+          address: tenantData.address || '',
+          businessType: tenantData.businessType || 'other',
+          businessDescription: tenantData.businessDescription || '',
+          status: tenantData.status || 'active',
+          workingHours: JSON.stringify(processedWorkingHours),
+          theme: JSON.stringify(processedTheme)
+        }
+      });
     } else {
       // Create new tenant
-      const insertStmt = db.prepare(`
-        INSERT INTO tenants (
-          id, businessName, slug, domain, username, password, ownerName, ownerEmail, 
-          phone, address, businessType, businessDescription, status, createdAt
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `);
-      
-      insertStmt.run(
-        tenantData.id,
-        tenantData.businessName,
-        tenantData.slug,
-        tenantData.domain || `${tenantData.slug}.randevu.com`,
-        tenantData.username,
-        tenantData.password,
-        tenantData.ownerName,
-        tenantData.ownerEmail,
-        tenantData.phone || '',
-        tenantData.address || '',
-        tenantData.businessType || 'other',
-        tenantData.businessDescription || '',
-        tenantData.status || 'active',
-        new Date().toISOString()
-      );
+      await prisma.tenant.create({
+        data: {
+          id: tenantData.id,
+          businessName: tenantData.businessName,
+          slug: tenantData.slug,
+          domain: tenantData.domain || `${tenantData.slug}.randevu.com`,
+          username: tenantData.username,
+          password: tenantData.password,
+          ownerName: tenantData.ownerName,
+          ownerEmail: tenantData.ownerEmail,
+          phone: tenantData.phone || '',
+          address: tenantData.address || '',
+          businessType: tenantData.businessType || 'other',
+          businessDescription: tenantData.businessDescription || '',
+          status: tenantData.status || 'active',
+          workingHours: JSON.stringify(processedWorkingHours),
+          theme: JSON.stringify(processedTheme)
+        }
+      });
     }
 
     return NextResponse.json({
       success: true,
       message: 'Tenant synced successfully'
     });
+
   } catch (error) {
     console.error('Error syncing tenant:', error);
-    return NextResponse.json({
-      success: false,
-      error: 'Failed to sync tenant'
-    }, { status: 500 });
+    return NextResponse.json(
+      { success: false, error: 'Failed to sync tenant' },
+      { status: 500 }
+    );
   }
 }

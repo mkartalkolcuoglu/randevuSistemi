@@ -97,7 +97,6 @@ export default function NewServicePage() {
                     required
                     value={formData.name}
                     onChange={handleChange}
-                    placeholder="Saç Kesimi"
                   />
                 </div>
 
@@ -109,7 +108,6 @@ export default function NewServicePage() {
                     type="text"
                     value={formData.category}
                     onChange={handleChange}
-                    placeholder="Saç Bakımı"
                   />
                 </div>
               </div>
@@ -121,7 +119,6 @@ export default function NewServicePage() {
                   name="description"
                   value={formData.description}
                   onChange={handleChange}
-                  placeholder="Hizmet açıklaması..."
                   rows={3}
                 />
               </div>
@@ -138,7 +135,6 @@ export default function NewServicePage() {
                     step="0.01"
                     value={formData.price}
                     onChange={handleChange}
-                    placeholder="150.00"
                   />
                 </div>
 
@@ -153,7 +149,6 @@ export default function NewServicePage() {
                     step="5"
                     value={formData.duration}
                     onChange={handleChange}
-                    placeholder="60"
                   />
                 </div>
               </div>

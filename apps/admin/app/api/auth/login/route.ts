@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '../../../../lib/sqlite';
+import { prisma } from '../../../../lib/prisma';
 import { cookies } from 'next/headers';
 
 export async function POST(request: NextRequest) {
@@ -7,11 +7,21 @@ export async function POST(request: NextRequest) {
     const { username, password } = await request.json();
 
     // Find tenant by username and password
-    const tenant = db.prepare(`
-      SELECT id, businessName, slug, username, COALESCE(ownerName, businessName) as ownerName, ownerEmail 
-      FROM tenants 
-      WHERE username = ? AND password = ? AND status = 'active'
-    `).get(username, password);
+    const tenant = await prisma.tenant.findFirst({
+      where: {
+        username: username,
+        password: password,
+        status: 'active'
+      },
+      select: {
+        id: true,
+        businessName: true,
+        slug: true,
+        username: true,
+        ownerName: true,
+        ownerEmail: true
+      }
+    });
 
     if (!tenant) {
       return NextResponse.json(
@@ -21,19 +31,18 @@ export async function POST(request: NextRequest) {
     }
 
     // Update last login
-    db.prepare(`
-      UPDATE tenants 
-      SET lastLogin = CURRENT_TIMESTAMP 
-      WHERE id = ?
-    `).run((tenant as any).id);
+    await prisma.tenant.update({
+      where: { id: tenant.id },
+      data: { lastLogin: new Date() }
+    });
 
     // Set session cookie
     const cookieStore = await cookies();
     cookieStore.set('tenant-session', JSON.stringify({
-      tenantId: (tenant as any).id,
-      businessName: (tenant as any).businessName,
-      slug: (tenant as any).slug,
-      ownerName: (tenant as any).ownerName
+      tenantId: tenant.id,
+      businessName: tenant.businessName,
+      slug: tenant.slug,
+      ownerName: tenant.ownerName || tenant.businessName
     }), {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
@@ -42,7 +51,7 @@ export async function POST(request: NextRequest) {
     });
 
     // Also set simple tenant ID cookie for API routes
-    cookieStore.set('tenant_session', (tenant as any).id, {
+    cookieStore.set('tenant_session', tenant.id, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
@@ -53,10 +62,10 @@ export async function POST(request: NextRequest) {
       success: true,
       message: 'Giriş başarılı',
       tenant: {
-        id: (tenant as any).id,
-        businessName: (tenant as any).businessName,
-        slug: (tenant as any).slug,
-        ownerName: (tenant as any).ownerName
+        id: tenant.id,
+        businessName: tenant.businessName,
+        slug: tenant.slug,
+        ownerName: tenant.ownerName || tenant.businessName
       }
     });
   } catch (error) {

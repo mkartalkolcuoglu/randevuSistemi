@@ -17,7 +17,7 @@ export default function EditCustomerPage() {
     lastName: '',
     email: '',
     phone: '',
-    dateOfBirth: '',
+    birthDate: '',
     gender: '',
     address: '',
     status: 'active',
@@ -36,7 +36,15 @@ export default function EditCustomerPage() {
       const response = await fetch(`/api/customers/${params.id}`);
       if (response.ok) {
         const data = await response.json();
-        setFormData(data.data);
+        const customer = data.data;
+        
+        // Tarih formatını düzelt
+        const formattedCustomer = {
+          ...customer,
+          birthDate: customer.birthDate ? new Date(customer.birthDate).toISOString().split('T')[0] : ''
+        };
+        
+        setFormData(formattedCustomer);
       } else {
         console.error('Customer not found');
         router.push('/admin/customers');
@@ -164,12 +172,12 @@ export default function EditCustomerPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="dateOfBirth">Doğum Tarihi</Label>
+                <Label htmlFor="birthDate">Doğum Tarihi</Label>
                 <Input
-                  id="dateOfBirth"
-                  name="dateOfBirth"
+                  id="birthDate"
+                  name="birthDate"
                   type="date"
-                  value={formData.dateOfBirth}
+                  value={formData.birthDate}
                   onChange={handleInputChange}
                 />
               </div>

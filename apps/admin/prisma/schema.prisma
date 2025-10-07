@@ -41,6 +41,8 @@ model Customer {
   email       String   @unique
   phone       String?
   birthDate   DateTime?
+  gender      String?
+  address     String?
   notes       String?
   status      String   @default("active")
   createdAt   DateTime @default(now())
@@ -117,4 +119,52 @@ model Settings {
   updatedAt        DateTime @updatedAt
   
   @@map("settings")
+}
+
+model Tenant {
+  id                  String   @id @default(cuid())
+  businessName        String
+  slug                String   @unique
+  domain              String   @unique
+  username            String   @unique
+  password            String
+  ownerName          String
+  ownerEmail         String
+  phone              String?
+  plan               String   @default("Standard")
+  status             String   @default("active")
+  address            String?
+  businessType       String   @default("other")
+  businessDescription String?
+  monthlyRevenue     Int      @default(0)
+  appointmentCount   Int      @default(0)
+  customerCount      Int      @default(0)
+  createdAt          DateTime @default(now())
+  lastLogin          DateTime?
+  
+  // JSON fields for complex data
+  workingHours       String?  // JSON string
+  theme              String?  // JSON string
+  
+  @@map("tenants")
+}
+
+model Product {
+  id          String   @id @default(cuid())
+  tenantId    String
+  name        String
+  description String?
+  category    String?
+  price       Float?
+  cost        Float?
+  stock       Int      @default(0)
+  minStock    Int      @default(0)
+  barcode     String?
+  sku         String?
+  supplier    String?
+  status      String   @default("active")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@map("products")
 }

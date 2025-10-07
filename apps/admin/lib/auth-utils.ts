@@ -1,5 +1,5 @@
 import { cookies } from 'next/headers';
-import { db } from './sqlite';
+import { PrismaClient } from '@prisma/client';
 
 export interface AuthenticatedUser {
   id: string;
@@ -25,23 +25,36 @@ export async function getAuthenticatedUser(): Promise<AuthenticatedUser | null> 
     }
 
     // Verify user still exists and is active
-    const tenant = db.prepare(`
-      SELECT id, businessName, slug, ownerName, ownerEmail 
-      FROM tenants 
-      WHERE id = ? AND status = 'active'
-    `).get(sessionData.tenantId) as any;
+    const prisma = new PrismaClient();
+    try {
+      const tenant = await prisma.tenant.findFirst({
+        where: {
+          id: sessionData.tenantId,
+          status: 'active'
+        },
+        select: {
+          id: true,
+          businessName: true,
+          slug: true,
+          ownerName: true,
+          ownerEmail: true
+        }
+      });
 
-    if (!tenant) {
-      return null;
+      if (!tenant) {
+        return null;
+      }
+
+      return {
+        id: tenant.id,
+        businessName: tenant.businessName,
+        slug: tenant.slug,
+        ownerName: tenant.ownerName,
+        ownerEmail: tenant.ownerEmail
+      };
+    } finally {
+      await prisma.$disconnect();
     }
-
-    return {
-      id: tenant.id,
-      businessName: tenant.businessName,
-      slug: tenant.slug,
-      ownerName: tenant.ownerName,
-      ownerEmail: tenant.ownerEmail
-    };
   } catch (error) {
     console.error('Error getting authenticated user:', error);
     return null;

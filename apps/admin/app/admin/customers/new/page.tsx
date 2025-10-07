@@ -16,7 +16,7 @@ export default function NewCustomerPage() {
     lastName: '',
     email: '',
     phone: '',
-    dateOfBirth: '',
+    birthDate: '',
     gender: '',
     address: '',
     notes: '',
@@ -143,12 +143,12 @@ export default function NewCustomerPage() {
 
                       <div className="grid grid-cols-2 gap-4">
                         <div className="grid gap-3">
-                          <Label htmlFor="dateOfBirth">Doğum Tarihi</Label>
+                          <Label htmlFor="birthDate">Doğum Tarihi</Label>
                           <Input
-                            id="dateOfBirth"
+                            id="birthDate"
                             type="date"
-                            value={formData.dateOfBirth}
-                            onChange={(e) => handleInputChange('dateOfBirth', e.target.value)}
+                            value={formData.birthDate}
+                            onChange={(e) => handleInputChange('birthDate', e.target.value)}
                           />
                         </div>
                         <div className="grid gap-3">
@@ -169,12 +169,12 @@ export default function NewCustomerPage() {
 
                       <div className="grid gap-3">
                         <Label htmlFor="address">Adres</Label>
-                        <Textarea
+                        <Input
                           id="address"
+                          type="text"
                           value={formData.address}
                           onChange={(e) => handleInputChange('address', e.target.value)}
-                          className="min-h-20"
-                          placeholder="Tam adres bilgisi..."
+                          placeholder="Tam adres"
                         />
                       </div>
                     </div>

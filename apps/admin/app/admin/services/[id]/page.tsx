@@ -66,14 +66,14 @@ export default function ServiceDetailPage() {
         },
         body: JSON.stringify({
           ...service,
-          isActive: !service.isActive
+          status: service.status === 'active' ? 'inactive' : 'active'
         }),
       });
 
       if (response.ok) {
         const data = await response.json();
         setService(data.data);
-        alert(`Hizmet ${!service.isActive ? 'aktif' : 'pasif'} edildi!`);
+        alert(`Hizmet ${service.status === 'active' ? 'pasif' : 'aktif'} edildi!`);
       } else {
         throw new Error('Durum güncellenirken hata oluştu');
       }
@@ -121,9 +121,9 @@ export default function ServiceDetailPage() {
           <Button
             variant="outline"
             onClick={toggleStatus}
-            className={service.isActive ? "text-orange-600 hover:text-orange-700" : "text-green-600 hover:text-green-700"}
+            className={service.status === 'active' ? "text-orange-600 hover:text-orange-700" : "text-green-600 hover:text-green-700"}
           >
-            {service.isActive ? 'Pasif Yap' : 'Aktif Yap'}
+            {service.status === 'active' ? 'Pasif Yap' : 'Aktif Yap'}
           </Button>
           <Link href={`/admin/services/${service.id}/edit`}>
             <Button className="bg-blue-600 hover:bg-blue-700">
@@ -161,8 +161,8 @@ export default function ServiceDetailPage() {
                 <div>
                   <label className="text-sm font-medium text-gray-600">Durum</label>
                   <div className="mt-1">
-                    <Badge className={service.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}>
-                      {service.isActive ? 'Aktif' : 'Pasif'}
+                    <Badge className={service.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}>
+                      {service.status === 'active' ? 'Aktif' : 'Pasif'}
                     </Badge>
                   </div>
                 </div>
@@ -265,7 +265,7 @@ export default function ServiceDetailPage() {
                 onClick={toggleStatus}
                 className="w-full"
               >
-                {service.isActive ? 'Hizmeti Pasif Yap' : 'Hizmeti Aktif Yap'}
+                {service.status === 'active' ? 'Hizmeti Pasif Yap' : 'Hizmeti Aktif Yap'}
               </Button>
             </CardContent>
           </Card>

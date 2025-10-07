@@ -18,6 +18,7 @@ async function main() {
     data: [
       {
         id: "1",
+        tenantId: "loba-salon-123",
         firstName: "Merve",
         lastName: "Kaya",
         email: "merve@salon.com",
@@ -27,6 +28,7 @@ async function main() {
       },
       {
         id: "2",
+        tenantId: "loba-salon-123",
         firstName: "Ayşe",
         lastName: "Demir",
         email: "ayse@salon.com",
@@ -36,6 +38,7 @@ async function main() {
       },
       {
         id: "3",
+        tenantId: "loba-salon-123",
         firstName: "Fatma",
         lastName: "Yılmaz",
         email: "fatma@salon.com",
@@ -51,6 +54,7 @@ async function main() {
     data: [
       {
         id: "1",
+        tenantId: "loba-salon-123",
         firstName: "Elif",
         lastName: "Özkan",
         email: "elif@email.com",
@@ -60,6 +64,7 @@ async function main() {
       },
       {
         id: "2",
+        tenantId: "loba-salon-123",
         firstName: "Zeynep",
         lastName: "Çelik",
         email: "zeynep@email.com",
@@ -69,6 +74,7 @@ async function main() {
       },
       {
         id: "3",
+        tenantId: "loba-salon-123",
         firstName: "Selin",
         lastName: "Kara",
         email: "selin@email.com",
@@ -84,6 +90,7 @@ async function main() {
     data: [
       {
         id: "1",
+        tenantId: "loba-salon-123",
         name: "Saç Kesimi",
         description: "Profesyonel saç kesimi ve şekillendirme",
         price: 150,
@@ -93,6 +100,7 @@ async function main() {
       },
       {
         id: "2",
+        tenantId: "loba-salon-123",
         name: "Manikür",
         description: "El bakımı ve oje uygulaması",
         price: 80,
@@ -102,6 +110,7 @@ async function main() {
       },
       {
         id: "3",
+        tenantId: "loba-salon-123",
         name: "Pedikür",
         description: "Ayak bakımı ve oje uygulaması",
         price: 100,
@@ -111,6 +120,7 @@ async function main() {
       },
       {
         id: "4",
+        tenantId: "loba-salon-123",
         name: "Cilt Bakımı",
         description: "Profesyonel cilt bakım uygulaması",
         price: 200,
@@ -130,6 +140,7 @@ async function main() {
     data: [
       {
         id: "1",
+        tenantId: "loba-salon-123",
         customerId: "1",
         customerName: "Elif Özkan",
         serviceId: "1",
@@ -144,6 +155,7 @@ async function main() {
       },
       {
         id: "2",
+        tenantId: "loba-salon-123",
         customerId: "2",
         customerName: "Zeynep Çelik",
         serviceId: "2",
@@ -158,6 +170,7 @@ async function main() {
       },
       {
         id: "3",
+        tenantId: "loba-salon-123",
         customerId: "3",
         customerName: "Selin Kara",
         serviceId: "4",
@@ -178,6 +191,7 @@ async function main() {
     data: [
       {
         id: "1",
+        tenantId: "loba-salon-123",
         title: "Müşteri geri bildirimlerini değerlendir",
         description: "Geçen haftaki müşteri yorumlarını incele ve iyileştirme önerilerini hazırla",
         assignedTo: "Merve Kaya",
@@ -187,6 +201,7 @@ async function main() {
       },
       {
         id: "2",
+        tenantId: "loba-salon-123",
         title: "Yeni ürün stoklarını kontrol et",
         description: "Saç bakım ürünleri ve kozmetik malzemelerinin stok durumunu kontrol et",
         assignedTo: "Ayşe Demir",
@@ -196,6 +211,7 @@ async function main() {
       },
       {
         id: "3",
+        tenantId: "loba-salon-123",
         title: "Sosyal medya paylaşımlarını planla",
         description: "Gelecek hafta için Instagram ve Facebook paylaşımlarını hazırla",
         assignedTo: "Fatma Yılmaz",
@@ -208,6 +224,7 @@ async function main() {
   // Create settings
   const settings = await prisma.settings.create({
     data: {
+      tenantId: "loba-salon-123",
       businessName: "Güzellik Merkezi",
       businessAddress: "Beşiktaş Mahallesi, Güzellik Sokak No:123, 34357 Beşiktaş/İstanbul",
       businessPhone: "+90 212 555 0123",

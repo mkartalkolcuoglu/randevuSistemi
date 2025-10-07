@@ -11,6 +11,10 @@ export default function StaffDetailPage() {
   const params = useParams();
   const [staff, setStaff] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState({
+    totalAppointments: 0,
+    totalRevenue: 0
+  });
 
   useEffect(() => {
     if (params.id) {
@@ -24,7 +28,32 @@ export default function StaffDetailPage() {
       const response = await fetch(`/api/staff/${params.id}`);
       if (response.ok) {
         const data = await response.json();
-        setStaff(data.data);
+        const staffData = data.data;
+        // Parse specializations if it's a string
+        if (typeof staffData.specializations === 'string') {
+          try {
+            staffData.specializations = JSON.parse(staffData.specializations);
+          } catch {
+            staffData.specializations = staffData.specializations ? [staffData.specializations] : [];
+          }
+        } else if (!Array.isArray(staffData.specializations)) {
+          staffData.specializations = [];
+        }
+        
+        // Parse workingHours if it's a string
+        if (staffData.workingHours) {
+          if (typeof staffData.workingHours === 'string') {
+            try {
+              staffData.workingHours = JSON.parse(staffData.workingHours);
+            } catch {
+              // Keep original if parsing fails
+            }
+          }
+        }
+        
+        setStaff(staffData);
+        // Fetch staff statistics
+        fetchStaffStats(params.id);
       } else {
         console.error('Staff not found');
         router.push('/admin/staff');
@@ -34,6 +63,28 @@ export default function StaffDetailPage() {
       router.push('/admin/staff');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchStaffStats = async (staffId) => {
+    try {
+      const response = await fetch(`/api/appointments?staffId=${staffId}`);
+      if (response.ok) {
+        const data = await response.json();
+        const appointments = data.data || [];
+        
+        const totalAppointments = appointments.length;
+        const totalRevenue = appointments.reduce((sum, appointment) => {
+          return sum + (parseFloat(appointment.price) || 0);
+        }, 0);
+        
+        setStats({
+          totalAppointments,
+          totalRevenue
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching staff stats:', error);
     }
   };
 
@@ -85,7 +136,7 @@ export default function StaffDetailPage() {
     }
   };
 
-  const getDayName = (day: string) => {
+  const getDayName = (day: string | number) => {
     const days = {
       monday: 'Pazartesi',
       tuesday: 'Salı',
@@ -93,9 +144,41 @@ export default function StaffDetailPage() {
       thursday: 'Perşembe',
       friday: 'Cuma',
       saturday: 'Cumartesi',
-      sunday: 'Pazar'
+      sunday: 'Pazar',
+      // Array index based days
+      0: 'Pazartesi',
+      1: 'Salı',
+      2: 'Çarşamba',
+      3: 'Perşembe',
+      4: 'Cuma',
+      5: 'Cumartesi',
+      6: 'Pazar'
     };
-    return days[day] || day;
+    return days[day] || `Gün ${day}`;
+  };
+
+  const getCurrentWeekDates = () => {
+    const today = new Date();
+    const currentDay = today.getDay(); // 0 = Sunday, 1 = Monday, etc.
+    const mondayOffset = currentDay === 0 ? -6 : 1 - currentDay; // Calculate offset to Monday
+    
+    const monday = new Date(today);
+    monday.setDate(today.getDate() + mondayOffset);
+    
+    const sunday = new Date(monday);
+    sunday.setDate(monday.getDate() + 6);
+    
+    return {
+      start: monday,
+      end: sunday
+    };
+  };
+
+  const formatDateRange = (startDate: Date, endDate: Date) => {
+    const options: Intl.DateTimeFormatOptions = { day: '2-digit', month: '2-digit', year: 'numeric' };
+    const start = startDate.toLocaleDateString('tr-TR', options);
+    const end = endDate.toLocaleDateString('tr-TR', options);
+    return `${start} - ${end}`;
   };
 
   if (loading) {
@@ -209,7 +292,7 @@ export default function StaffDetailPage() {
                 </div>
               </div>
 
-              {staff.specializations && staff.specializations.length > 0 && (
+              {staff.specializations && Array.isArray(staff.specializations) && staff.specializations.length > 0 && (
                 <div className="pt-4 border-t">
                   <h4 className="font-medium mb-2">Uzmanlık Alanları</h4>
                   <div className="flex flex-wrap gap-2">
@@ -229,31 +312,57 @@ export default function StaffDetailPage() {
             </CardContent>
           </Card>
 
-          {/* Working Hours */}
-          <Card className="mt-6">
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <Clock className="w-5 h-5 mr-2" />
-                Çalışma Saatleri
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {staff.workingHours && Object.entries(staff.workingHours).map(([day, hours]) => (
-                  <div key={day} className="flex justify-between items-center">
-                    <span className="font-medium">{getDayName(day)}</span>
-                    <span className={`px-2 py-1 rounded text-sm ${
-                      hours.isOpen 
-                        ? 'bg-green-100 text-green-800' 
-                        : 'bg-gray-100 text-gray-800'
-                    }`}>
-                      {hours.isOpen ? `${hours.start} - ${hours.end}` : 'Kapalı'}
-                    </span>
-                  </div>
-                ))}
+          {/* Working Hours - Weekly Calendar */}
+          <div className="pt-4 border-t">
+            <h4 className="font-medium mb-3 flex items-center">
+              <Clock className="w-4 h-4 mr-2" />
+              Çalışma Saatleri
+            </h4>
+            <div className="bg-gray-50 p-3 rounded-lg">
+              <div className="text-sm font-medium text-gray-700 mb-2 text-center">
+                {formatDateRange(getCurrentWeekDates().start, getCurrentWeekDates().end)}
               </div>
-            </CardContent>
-          </Card>
+              <div className="space-y-1">
+                {staff.workingHours ? (() => {
+                  let workingHoursData = staff.workingHours;
+                  
+                  // Ensure we have a valid object
+                  if (!workingHoursData || typeof workingHoursData !== 'object') {
+                    workingHoursData = {};
+                  }
+                  
+                  // Define default days order
+                  const dayOrder = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+                  
+                  return dayOrder.map((dayKey) => {
+                    const hours = workingHoursData[dayKey];
+                    
+                    // Check if the day is open
+                    const isOpen = hours && hours.isOpen === true;
+                    const startTime = hours?.start || '';
+                    const endTime = hours?.end || '';
+                    
+                    return (
+                      <div key={dayKey} className="flex justify-between items-center py-1">
+                        <span className="text-gray-700 font-medium min-w-[100px]">{getDayName(dayKey)}:</span>
+                        <span className={`text-sm px-2 py-1 rounded ${
+                          isOpen 
+                            ? 'bg-green-100 text-green-700 font-medium' 
+                            : 'bg-gray-200 text-gray-500'
+                        }`}>
+                          {isOpen ? `${startTime} - ${endTime}` : 'Kapalı'}
+                        </span>
+                      </div>
+                    );
+                  });
+                })() : (
+                  <div className="text-center text-gray-500 py-4">
+                    Çalışma saatleri belirtilmemiş
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* Statistics & Actions */}
@@ -267,13 +376,13 @@ export default function StaffDetailPage() {
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="text-center">
-                <div className="text-3xl font-bold text-blue-600">{staff.monthlyAppointments || 0}</div>
-                <div className="text-sm text-gray-600">Aylık Randevu</div>
+                <div className="text-3xl font-bold text-blue-600">{stats.totalAppointments}</div>
+                <div className="text-sm text-gray-600">Toplam Randevu</div>
               </div>
               
               <div className="text-center">
-                <div className="text-3xl font-bold text-green-600">₺{staff.monthlyRevenue || 0}</div>
-                <div className="text-sm text-gray-600">Aylık Gelir</div>
+                <div className="text-3xl font-bold text-green-600">₺{stats.totalRevenue.toFixed(2)}</div>
+                <div className="text-sm text-gray-600">Toplam Gelir</div>
               </div>
               
               <div className="text-center">
@@ -320,13 +429,6 @@ export default function StaffDetailPage() {
                   Bilgileri Düzenle
                 </Button>
               </Link>
-              <Button
-                variant="outline"
-                className="w-full text-orange-600 hover:text-orange-700"
-              >
-                <Clock className="w-4 h-4 mr-2" />
-                Çalışma Saatlerini Güncelle
-              </Button>
             </CardContent>
           </Card>
         </div>

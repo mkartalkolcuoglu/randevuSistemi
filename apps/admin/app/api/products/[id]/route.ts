@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
-const Database = require('better-sqlite3');
-const path = require('path');
+import { prisma } from '../../../../lib/prisma';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -45,13 +44,14 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
 
     const data = await request.json();
 
-    // Database bağlantısı
-    const dbPath = path.join(process.cwd(), 'prisma', 'admin.db');
-    const db = new Database(dbPath);
-
     try {
       // Ürünün bu tenant'a ait olduğunu kontrol et
-      const existingProduct = db.prepare('SELECT * FROM products WHERE id = ? AND tenantId = ?').get(id, tenantId);
+      const existingProduct = await prisma.product.findFirst({
+        where: {
+          id: id,
+          tenantId: tenantId
+        }
+      });
       
       if (!existingProduct) {
         return NextResponse.json(
@@ -60,37 +60,43 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
         );
       }
 
-      const updateResult = db.prepare(`
-        UPDATE products SET 
-          name = ?, quantity = ?, price = ?, updatedAt = ?
-        WHERE id = ? AND tenantId = ?
-      `).run(
-        data.name || existingProduct.name,
-        data.quantity !== undefined ? parseInt(data.quantity) : existingProduct.quantity,
-        data.price !== undefined ? parseFloat(data.price) : existingProduct.price,
-        new Date().toISOString(),
-        id,
-        tenantId
-      );
+      const updatedProduct = await prisma.product.update({
+        where: {
+          id: id
+        },
+        data: {
+          name: data.name || existingProduct.name,
+          description: data.description !== undefined ? data.description : existingProduct.description,
+          category: data.category !== undefined ? data.category : existingProduct.category,
+          price: data.price !== undefined ? parseFloat(data.price) : existingProduct.price,
+          cost: data.cost !== undefined ? parseFloat(data.cost) : existingProduct.cost,
+          stock: (data.stock !== undefined || data.quantity !== undefined) ? parseInt(data.stock || data.quantity) : existingProduct.stock,
+          minStock: data.minStock !== undefined ? parseInt(data.minStock) : existingProduct.minStock,
+          barcode: data.barcode !== undefined ? data.barcode : existingProduct.barcode,
+          sku: data.sku !== undefined ? data.sku : existingProduct.sku,
+          supplier: data.supplier !== undefined ? data.supplier : existingProduct.supplier,
+          status: data.status !== undefined ? data.status : existingProduct.status
+        }
+      });
 
-      if (updateResult.changes === 0) {
-        return NextResponse.json(
-          { success: false, error: 'Ürün güncellenemedi' },
-          { status: 400, headers: corsHeaders }
-        );
-      }
-
-      // Güncellenmiş ürünü getir
-      const updatedProduct = db.prepare('SELECT * FROM products WHERE id = ?').get(id);
+      // API uyumluluğu için quantity alanını ekle
+      const productWithQuantity = {
+        ...updatedProduct,
+        quantity: updatedProduct.stock
+      };
 
       return NextResponse.json({
         success: true,
         message: 'Ürün başarıyla güncellendi',
-        data: updatedProduct
+        data: productWithQuantity
       }, { headers: corsHeaders });
 
-    } finally {
-      db.close();
+    } catch (error) {
+      console.error('Error updating product:', error);
+      return NextResponse.json(
+        { success: false, error: 'Failed to update product' },
+        { status: 500, headers: corsHeaders }
+      );
     }
 
   } catch (error) {
@@ -132,13 +138,14 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
       );
     }
 
-    // Database bağlantısı
-    const dbPath = path.join(process.cwd(), 'prisma', 'admin.db');
-    const db = new Database(dbPath);
-
     try {
       // Ürünün bu tenant'a ait olduğunu kontrol et
-      const existingProduct = db.prepare('SELECT * FROM products WHERE id = ? AND tenantId = ?').get(id, tenantId);
+      const existingProduct = await prisma.product.findFirst({
+        where: {
+          id: id,
+          tenantId: tenantId
+        }
+      });
       
       if (!existingProduct) {
         return NextResponse.json(
@@ -147,22 +154,23 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
         );
       }
 
-      const deleteResult = db.prepare('DELETE FROM products WHERE id = ? AND tenantId = ?').run(id, tenantId);
-
-      if (deleteResult.changes === 0) {
-        return NextResponse.json(
-          { success: false, error: 'Ürün silinemedi' },
-          { status: 400, headers: corsHeaders }
-        );
-      }
+      await prisma.product.delete({
+        where: {
+          id: id
+        }
+      });
 
       return NextResponse.json({
         success: true,
         message: 'Ürün başarıyla silindi'
       }, { headers: corsHeaders });
 
-    } finally {
-      db.close();
+    } catch (error) {
+      console.error('Error deleting product:', error);
+      return NextResponse.json(
+        { success: false, error: 'Failed to delete product' },
+        { status: 500, headers: corsHeaders }
+      );
     }
 
   } catch (error) {

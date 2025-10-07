@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
-const Database = require('better-sqlite3');
-const path = require('path');
+import { prisma } from '../../../../lib/prisma';
 
 export async function GET(
   request: NextRequest,
@@ -19,17 +18,22 @@ export async function GET(
       );
     }
 
-    const sessionData = JSON.parse(tenantSession.value);
-    const tenantId = sessionData.tenantId;
+    let tenantId;
+    try {
+      const sessionData = JSON.parse(tenantSession.value);
+      tenantId = sessionData.tenantId;
+    } catch (error) {
+      tenantId = tenantSession.value;
+    }
+
     const { id } = await params;
     
-    // SQLite veritabanı bağlantısı
-    const dbPath = path.resolve(process.cwd(), 'prisma', 'admin.db');
-    const db = new Database(dbPath);
-    
-    const customer = db.prepare('SELECT * FROM customers WHERE id = ? AND tenantId = ?').get(id, tenantId);
-    
-    db.close();
+    const customer = await prisma.customer.findFirst({
+      where: {
+        id,
+        tenantId
+      }
+    });
     
     if (!customer) {
       return NextResponse.json(
@@ -67,60 +71,52 @@ export async function PUT(
       );
     }
 
-    const sessionData = JSON.parse(tenantSession.value);
-    const tenantId = sessionData.tenantId;
+    let tenantId;
+    try {
+      const sessionData = JSON.parse(tenantSession.value);
+      tenantId = sessionData.tenantId;
+    } catch (error) {
+      tenantId = tenantSession.value;
+    }
+
     const { id } = await params;
     const data = await request.json();
     
-    // SQLite veritabanı bağlantısı
-    const dbPath = path.resolve(process.cwd(), 'prisma', 'admin.db');
-    const db = new Database(dbPath);
-    
-    const update = db.prepare(`
-      UPDATE customers 
-      SET firstName = ?, lastName = ?, email = ?, phone = ?, dateOfBirth = ?, 
-          gender = ?, address = ?, notes = ?, status = ?, updatedAt = ?
-      WHERE id = ? AND tenantId = ?
-    `);
+    try {
+      const updatedCustomer = await prisma.customer.update({
+        where: {
+          id,
+          tenantId
+        },
+        data: {
+          firstName: data.firstName,
+          lastName: data.lastName,
+          email: data.email,
+          phone: data.phone,
+          birthDate: data.birthDate ? new Date(data.birthDate) : null,
+          gender: data.gender || null,
+          address: data.address || null,
+          notes: data.notes,
+          status: data.status
+        }
+      });
 
-    const result = update.run(
-      data.firstName || '',
-      data.lastName || '',
-      data.email || '',
-      data.phone || '',
-      data.dateOfBirth || null,
-      data.gender || null,
-      data.address || '',
-      data.notes || '',
-      data.status || 'active',
-      new Date().toISOString(),
-      id,
-      tenantId
-    );
-
-    if (result.changes === 0) {
-      db.close();
+      return NextResponse.json({
+        success: true,
+        data: updatedCustomer
+      });
+    } catch (error) {
+      console.error('Error updating customer:', error);
       return NextResponse.json(
-        { success: false, error: 'Customer not found' },
-        { status: 404 }
+        { success: false, error: 'Failed to update customer' },
+        { status: 400 }
       );
     }
-
-    // Güncellenmiş müşteriyi getir
-    const updatedCustomer = db.prepare('SELECT * FROM customers WHERE id = ? AND tenantId = ?').get(id, tenantId);
-    
-    db.close();
-
-    return NextResponse.json({
-      success: true,
-      message: 'Customer updated successfully',
-      data: updatedCustomer
-    });
   } catch (error) {
-    console.error('Error updating customer:', error);
+    console.error('Error in PUT /api/customers/[id]:', error);
     return NextResponse.json(
-      { success: false, error: 'Failed to update customer' },
-      { status: 400 }
+      { success: false, error: 'Internal server error' },
+      { status: 500 }
     );
   }
 }
@@ -141,35 +137,40 @@ export async function DELETE(
       );
     }
 
-    const sessionData = JSON.parse(tenantSession.value);
-    const tenantId = sessionData.tenantId;
-    const { id } = await params;
-    
-    // SQLite veritabanı bağlantısı
-    const dbPath = path.resolve(process.cwd(), 'prisma', 'admin.db');
-    const db = new Database(dbPath);
-    
-    const deleteStmt = db.prepare('DELETE FROM customers WHERE id = ? AND tenantId = ?');
-    const result = deleteStmt.run(id, tenantId);
-    
-    db.close();
-
-    if (result.changes === 0) {
-      return NextResponse.json(
-        { success: false, error: 'Customer not found' },
-        { status: 404 }
-      );
+    let tenantId;
+    try {
+      const sessionData = JSON.parse(tenantSession.value);
+      tenantId = sessionData.tenantId;
+    } catch (error) {
+      tenantId = tenantSession.value;
     }
 
-    return NextResponse.json({
-      success: true,
-      message: 'Customer deleted successfully'
-    });
+    const { id } = await params;
+    
+    try {
+      await prisma.customer.delete({
+        where: {
+          id,
+          tenantId
+        }
+      });
+
+      return NextResponse.json({
+        success: true,
+        message: 'Customer deleted successfully'
+      });
+    } catch (error) {
+      console.error('Error deleting customer:', error);
+      return NextResponse.json(
+        { success: false, error: 'Failed to delete customer' },
+        { status: 400 }
+      );
+    }
   } catch (error) {
-    console.error('Error deleting customer:', error);
+    console.error('Error in DELETE /api/customers/[id]:', error);
     return NextResponse.json(
-      { success: false, error: 'Failed to delete customer' },
-      { status: 400 }
+      { success: false, error: 'Internal server error' },
+      { status: 500 }
     );
   }
 }

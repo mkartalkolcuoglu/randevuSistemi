@@ -19,7 +19,17 @@ export async function GET(
   try {
     const { id } = await params;
     
-    const appointment = db.prepare('SELECT * FROM appointments WHERE id = ?').get(id);
+    const appointment = db.prepare(`
+      SELECT 
+        a.*,
+        s.name as serviceName,
+        s.duration as serviceDuration,
+        st.firstName || ' ' || st.lastName as staffName
+      FROM appointments a
+      LEFT JOIN services s ON a.serviceId = s.id
+      LEFT JOIN staff st ON a.staffId = st.id
+      WHERE a.id = ?
+    `).get(id);
     
     if (!appointment) {
       return NextResponse.json(

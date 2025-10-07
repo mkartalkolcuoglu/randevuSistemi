@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
-const Database = require('better-sqlite3');
-const path = require('path');
+import { prisma } from '../../../lib/prisma';
 
 export async function GET(request: NextRequest) {
   try {
@@ -37,36 +36,33 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get('search') || '';
     const status = searchParams.get('status') || 'all';
 
-
-    // Database bağlantısı
-    const dbPath = path.join(process.cwd(), 'prisma', 'admin.db');
-    const db = new Database(dbPath);
-
     try {
-      // Build SQL query
-      let whereClause = 'WHERE tenantId = ?';
-      let params = [tenantId];
+      // Build where clause
+      const where: any = { tenantId };
       
       if (search) {
-        whereClause += ' AND (firstName LIKE ? OR lastName LIKE ? OR email LIKE ? OR phone LIKE ?)';
-        const searchPattern = `%${search}%`;
-        params.push(searchPattern, searchPattern, searchPattern, searchPattern);
+        where.OR = [
+          { firstName: { contains: search } },
+          { lastName: { contains: search } },
+          { email: { contains: search } },
+          { phone: { contains: search } }
+        ];
       }
       
       if (status !== 'all') {
-        whereClause += ' AND status = ?';
-        params.push(status);
+        where.status = status;
       }
 
       // Get total count
-      const countQuery = `SELECT COUNT(*) as total FROM customers ${whereClause}`;
-      const totalResult = db.prepare(countQuery).get(...params);
-      const total = totalResult.total;
+      const total = await prisma.customer.count({ where });
 
       // Get paginated data
-      const offset = (page - 1) * limit;
-      const dataQuery = `SELECT * FROM customers ${whereClause} ORDER BY createdAt DESC LIMIT ? OFFSET ?`;
-      const customers = db.prepare(dataQuery).all(...params, limit, offset);
+      const customers = await prisma.customer.findMany({
+        where,
+        skip: (page - 1) * limit,
+        take: limit,
+        orderBy: { createdAt: 'desc' }
+      });
 
       return NextResponse.json({
         success: true,
@@ -77,8 +73,12 @@ export async function GET(request: NextRequest) {
         totalPages: Math.ceil(total / limit)
       });
 
-    } finally {
-      db.close();
+    } catch (error) {
+      console.error('Database error:', error);
+      return NextResponse.json(
+        { success: false, error: 'Database error' },
+        { status: 500 }
+      );
     }
   } catch (error) {
     console.error('Error fetching customers:', error);
@@ -102,65 +102,50 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const sessionData = JSON.parse(tenantSession.value);
-    const tenantId = sessionData.tenantId;
+    let tenantId;
+    try {
+      const sessionData = JSON.parse(tenantSession.value);
+      tenantId = sessionData.tenantId;
+    } catch (error) {
+      tenantId = tenantSession.value;
+    }
 
     const data = await request.json();
     
-    // SQLite veritabanı bağlantısı
-    const dbPath = path.resolve(process.cwd(), 'prisma', 'admin.db');
-    const db = new Database(dbPath);
+    try {
+      // Müşteri oluştur
+      const newCustomer = await prisma.customer.create({
+        data: {
+          tenantId,
+          firstName: data.firstName || '',
+          lastName: data.lastName || '',
+          email: data.email || '',
+          phone: data.phone || '',
+          birthDate: data.birthDate ? new Date(data.birthDate) : null,
+          gender: data.gender || null,
+          address: data.address || null,
+          notes: data.notes || '',
+          status: data.status || 'active'
+        }
+      });
 
-    // Müşteri oluştur
-    const id = `customer_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    const insert = db.prepare(`
-      INSERT INTO customers (id, tenantId, firstName, lastName, email, phone, dateOfBirth, gender, address, notes, status, createdAt, updatedAt)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `);
+      return NextResponse.json({
+        success: true,
+        data: newCustomer
+      });
 
-    const result = insert.run(
-      id,
-      tenantId,
-      data.firstName || '',
-      data.lastName || '',
-      data.email || '',
-      data.phone || '',
-      data.dateOfBirth || null,
-      data.gender || null,
-      data.address || '',
-      data.notes || '',
-      data.status || 'active',
-      new Date().toISOString(),
-      new Date().toISOString()
-    );
-
-    const newCustomer = {
-      id,
-      tenantId,
-      firstName: data.firstName || '',
-      lastName: data.lastName || '',
-      email: data.email || '',
-      phone: data.phone || '',
-      dateOfBirth: data.dateOfBirth || null,
-      gender: data.gender || null,
-      address: data.address || '',
-      notes: data.notes || '',
-      status: data.status || 'active',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    };
-
-    db.close();
-
-    return NextResponse.json({ 
-      success: true, 
-      data: newCustomer 
-    });
+    } catch (error) {
+      console.error('Error creating customer:', error);
+      return NextResponse.json(
+        { success: false, error: 'Failed to create customer' },
+        { status: 400 }
+      );
+    }
   } catch (error) {
-    console.error('Error creating customer:', error);
+    console.error('Error in POST /api/customers:', error);
     return NextResponse.json(
-      { success: false, error: 'Failed to create customer' },
-      { status: 400 }
+      { success: false, error: 'Internal server error' },
+      { status: 500 }
     );
   }
 }

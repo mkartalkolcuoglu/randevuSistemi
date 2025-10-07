@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
-const Database = require('better-sqlite3');
-const path = require('path');
+import { prisma } from '../../../lib/prisma';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -42,19 +41,27 @@ export async function GET() {
       );
     }
 
-    // Database bağlantısı
-    const dbPath = path.join(process.cwd(), 'prisma', 'admin.db');
-    const db = new Database(dbPath);
-
     try {
       // Tenant bilgilerini getir
-      const tenant = db.prepare(`
-        SELECT id, businessName, slug, username, ownerName, ownerEmail, phone, 
-               address, businessType, businessDescription, workingHours, theme, location,
-               createdAt, lastLogin
-        FROM tenants 
-        WHERE id = ?
-      `).get(tenantId);
+      const tenant = await prisma.tenant.findUnique({
+        where: { id: tenantId },
+        select: {
+          id: true,
+          businessName: true,
+          slug: true,
+          username: true,
+          ownerName: true,
+          ownerEmail: true,
+          phone: true,
+          address: true,
+          businessType: true,
+          businessDescription: true,
+          workingHours: true,
+          theme: true,
+          createdAt: true,
+          lastLogin: true
+        }
+      });
 
       if (!tenant) {
         return NextResponse.json(
@@ -64,6 +71,13 @@ export async function GET() {
       }
 
       // JSON alanlarını parse et
+      const parsedTheme = tenant.theme ? JSON.parse(tenant.theme) : {
+        primaryColor: '#EC4899',
+        secondaryColor: '#BE185D',
+        logo: '',
+        headerImage: ''
+      };
+
       const responseData = {
         ...tenant,
         workingHours: tenant.workingHours ? JSON.parse(tenant.workingHours) : {
@@ -75,16 +89,16 @@ export async function GET() {
           saturday: { start: '09:00', end: '17:00', closed: false },
           sunday: { start: '10:00', end: '16:00', closed: true }
         },
-        theme: tenant.theme ? JSON.parse(tenant.theme) : {
-          primaryColor: '#EC4899',
-          secondaryColor: '#BE185D',
-          logo: '',
-          headerImage: ''
+        themeSettings: {
+          primaryColor: parsedTheme.primaryColor || '#EC4899',
+          secondaryColor: parsedTheme.secondaryColor || '#BE185D',
+          logo: parsedTheme.logo || '',
+          headerImage: parsedTheme.headerImage || ''
         },
-        location: tenant.location ? JSON.parse(tenant.location) : {
-          latitude: '',
-          longitude: '',
-          address: ''
+        location: {
+          latitude: parsedTheme.location?.latitude || '',
+          longitude: parsedTheme.location?.longitude || '',
+          address: tenant.address || ''
         }
       };
 
@@ -94,7 +108,7 @@ export async function GET() {
       }, { headers: corsHeaders });
 
     } finally {
-      db.close();
+      await prisma.$disconnect();
     }
 
   } catch (error) {
@@ -136,10 +150,6 @@ export async function PUT(request: NextRequest) {
     }
     const data = await request.json();
 
-    // Database bağlantısı
-    const dbPath = path.join(process.cwd(), 'prisma', 'admin.db');
-    const db = new Database(dbPath);
-
     try {
       // Güncelleme verilerini hazırla
       const updateData: any = {
@@ -151,68 +161,49 @@ export async function PUT(request: NextRequest) {
         businessType: data.businessType || 'other',
         businessDescription: data.businessDescription || null,
         workingHours: JSON.stringify(data.workingHours),
-        theme: JSON.stringify(data.themeSettings),
-        location: JSON.stringify(data.location)
+        theme: JSON.stringify({
+          ...data.themeSettings,
+          location: data.location // Location verisini theme içine ekle
+        })
       };
-
-      // Şifre varsa güncellenecek alanlar listesine ekle
-      let updateQuery = `
-        UPDATE tenants SET 
-          businessName = ?, ownerName = ?, ownerEmail = ?, phone = ?, 
-          address = ?, businessType = ?, businessDescription = ?, 
-          workingHours = ?, theme = ?, location = ?
-      `;
-      let queryParams = [
-        updateData.businessName, updateData.ownerName, updateData.ownerEmail, 
-        updateData.phone, updateData.address, updateData.businessType, 
-        updateData.businessDescription, updateData.workingHours, updateData.theme,
-        updateData.location
-      ];
 
       // Kullanıcı adı varsa ekle
       if (data.username) {
-        updateQuery += `, username = ?`;
-        queryParams.push(data.username);
+        updateData.username = data.username;
       }
 
       // Şifre varsa ekle
       if (data.password && data.password.trim() !== '') {
-        updateQuery += `, password = ?`;
-        queryParams.push(data.password);
+        updateData.password = data.password;
       }
-
-      updateQuery += ` WHERE id = ?`;
-      queryParams.push(tenantId);
 
       // Tenant'ı güncelle
-      const updateResult = db.prepare(updateQuery).run(...queryParams);
-
-      if (updateResult.changes === 0) {
-        return NextResponse.json(
-          { success: false, error: 'Tenant not found or no changes made' },
-          { status: 404, headers: corsHeaders }
-        );
-      }
-
-      // Güncellenmiş tenant bilgilerini getir
-      const updatedTenant = db.prepare(`
-        SELECT id, businessName, slug, username, ownerName, ownerEmail, phone, 
-               address, businessType, businessDescription, workingHours, theme, location,
-               createdAt, lastLogin
-        FROM tenants 
-        WHERE id = ?
-      `).get(tenantId);
+      const updatedTenant = await prisma.tenant.update({
+        where: { id: tenantId },
+        data: updateData,
+        select: {
+          id: true,
+          businessName: true,
+          slug: true,
+          username: true,
+          ownerName: true,
+          ownerEmail: true,
+          phone: true,
+          address: true,
+          businessType: true,
+          businessDescription: true,
+          workingHours: true,
+          theme: true,
+          createdAt: true,
+          lastLogin: true
+        }
+      });
 
       // JSON alanlarını parse et
       const responseData = {
         ...updatedTenant,
         workingHours: JSON.parse(updatedTenant.workingHours),
-        theme: JSON.parse(updatedTenant.theme),
-        location: updatedTenant.location ? JSON.parse(updatedTenant.location) : {
-          latitude: '',
-          longitude: '',
-          address: ''
-        }
+        theme: JSON.parse(updatedTenant.theme)
       };
 
       return NextResponse.json({
@@ -222,7 +213,7 @@ export async function PUT(request: NextRequest) {
       }, { headers: corsHeaders });
 
     } finally {
-      db.close();
+      await prisma.$disconnect();
     }
 
   } catch (error) {

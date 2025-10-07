@@ -10,13 +10,52 @@ export default function AppointmentDetailPage() {
   const router = useRouter();
   const params = useParams();
   const [appointment, setAppointment] = useState(null);
+  const [services, setServices] = useState([]);
+  const [staff, setStaff] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (params.id) {
-      fetchAppointment();
+      // Önce hizmetler ve personel listesini yükle, sonra randevu verisini yükle
+      Promise.all([fetchServices(), fetchStaff()]).then(() => {
+        fetchAppointment();
+      });
     }
   }, [params.id]);
+
+  const fetchServices = async () => {
+    try {
+      const response = await fetch('/api/services');
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success && data.data) {
+          setServices(data.data);
+        } else {
+          console.error('Services API returned invalid format:', data);
+          setServices([]);
+        }
+      } else {
+        console.error('Services API failed:', response.status, response.statusText);
+        setServices([]);
+      }
+    } catch (error) {
+      console.error('Error fetching services:', error);
+      setServices([]);
+    }
+  };
+
+  const fetchStaff = async () => {
+    try {
+      const response = await fetch('/api/staff');
+      if (response.ok) {
+        const data = await response.json();
+        const staffList = data.data || [];
+        setStaff(staffList);
+      }
+    } catch (error) {
+      console.error('Error fetching staff:', error);
+    }
+  };
 
   const fetchAppointment = async () => {
     try {
@@ -24,7 +63,48 @@ export default function AppointmentDetailPage() {
       const response = await fetch(`/api/appointments/${params.id}`);
       if (response.ok) {
         const data = await response.json();
-        setAppointment(data.data);
+        let appointmentData = data.data;
+        
+        // Eğer serviceName boşsa ve serviceId varsa, hizmet listesinden eşleştirme yap
+        if (!appointmentData.serviceName && appointmentData.serviceId && services.length > 0) {
+          // Önce exact match dene
+          let matchingService = services.find(s => s.id === appointmentData.serviceId);
+          
+          // Exact match bulunamazsa, serviceId'den gerçek ID'yi çıkarmaya çalış
+          if (!matchingService && appointmentData.serviceId.includes('-')) {
+            // "8myl91xdudn2j4wj9w7u5x-service" formatından "8myl91xdudn2j4wj9w7u5x" çıkar
+            const baseId = appointmentData.serviceId.split('-')[0];
+            matchingService = services.find(s => s.id === baseId);
+          }
+          
+          // Hâlâ bulunamazsa, serviceId'nin bir kısmını içeren hizmeti ara
+          if (!matchingService) {
+            matchingService = services.find(s => 
+              appointmentData.serviceId.includes(s.id) || s.id.includes(appointmentData.serviceId)
+            );
+          }
+          
+          if (matchingService) {
+            appointmentData.serviceName = matchingService.name;
+            appointmentData.serviceDuration = matchingService.duration;
+          }
+        }
+        
+        // Eğer staffName boşsa ve staffId varsa, personel listesinden eşleştirme yap
+        if (!appointmentData.staffName && appointmentData.staffId && staff.length > 0) {
+          const matchingStaff = staff.find(s => s.id === appointmentData.staffId);
+          if (matchingStaff) {
+            appointmentData.staffName = `${matchingStaff.firstName} ${matchingStaff.lastName}`;
+          } else {
+            // Eğer exact match bulunamazsa, ilk personeli kullan
+            const firstStaff = staff[0];
+            if (firstStaff) {
+              appointmentData.staffName = `${firstStaff.firstName} ${firstStaff.lastName}`;
+            }
+          }
+        }
+        
+        setAppointment(appointmentData);
       } else {
         console.error('Appointment not found');
         router.push('/admin/appointments');
@@ -257,14 +337,16 @@ export default function AppointmentDetailPage() {
                 <div className="bg-gray-50 p-4 rounded-lg">
                   <div className="flex justify-between items-start">
                     <div>
-                      <h5 className="font-medium">{appointment.serviceName}</h5>
+                      <h5 className="font-medium">
+                        {appointment.serviceName || 'Hizmet bilgisi bulunamadı'}
+                      </h5>
                       <p className="text-sm text-gray-600">
-                        {appointment.duration} dakika
+                        {appointment.serviceDuration || appointment.duration || 0} dakika
                       </p>
                     </div>
                     <div className="text-right">
                       <p className="text-lg font-semibold text-green-600">
-                        ₺{appointment.price}
+                        ₺{appointment.price || 0}
                       </p>
                     </div>
                   </div>
