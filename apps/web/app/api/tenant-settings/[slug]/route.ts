@@ -88,13 +88,34 @@ export async function GET(
         },
         theme: (() => {
           try {
-            const parsedTheme = tenant.theme ? JSON.parse(tenant.theme) : {
-              primaryColor: '#3B82F6',
-              secondaryColor: '#1E40AF',
-              logo: '',
-              headerImage: ''
+            let themeData = tenant.theme;
+            
+            // Eğer theme string ise parse et
+            if (typeof themeData === 'string') {
+              themeData = JSON.parse(themeData);
+            }
+            
+            // Eğer hala string ise (double-encoded) tekrar parse et
+            if (typeof themeData === 'string') {
+              themeData = JSON.parse(themeData);
+            }
+            
+            // Eğer theme bir object değilse veya gerekli alanlar yoksa default döndür
+            if (!themeData || typeof themeData !== 'object') {
+              return {
+                primaryColor: '#3B82F6',
+                secondaryColor: '#1E40AF',
+                logo: '',
+                headerImage: ''
+              };
+            }
+            
+            return {
+              primaryColor: themeData.primaryColor || '#3B82F6',
+              secondaryColor: themeData.secondaryColor || '#1E40AF',
+              logo: themeData.logo || '',
+              headerImage: themeData.headerImage || ''
             };
-            return parsedTheme;
           } catch (error) {
             console.error('Theme parse error:', error);
             return {
@@ -107,10 +128,21 @@ export async function GET(
         })(),
         location: (() => {
           try {
-            const parsedTheme = tenant.theme ? JSON.parse(tenant.theme) : {};
+            let themeData = tenant.theme;
+            
+            // Eğer theme string ise parse et
+            if (typeof themeData === 'string') {
+              themeData = JSON.parse(themeData);
+            }
+            
+            // Eğer hala string ise (double-encoded) tekrar parse et
+            if (typeof themeData === 'string') {
+              themeData = JSON.parse(themeData);
+            }
+            
             return {
-              latitude: parsedTheme.location?.latitude || '',
-              longitude: parsedTheme.location?.longitude || '',
+              latitude: themeData?.location?.latitude || '',
+              longitude: themeData?.location?.longitude || '',
               address: tenant.address || ''
             };
           } catch (error) {
