@@ -1,16 +1,18 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 
 export default function TenantPage() {
   const params = useParams();
+  const router = useRouter();
   const slug = params.slug as string;
   const [tenantSettings, setTenantSettings] = useState(null);
   const [services, setServices] = useState([]);
   const [staff, setStaff] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [tenantNotFound, setTenantNotFound] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -18,23 +20,46 @@ export default function TenantPage() {
         // Tenant ayarlarını çek
         const tenantResponse = await fetch(`/api/tenant-settings/${slug}`);
         const tenantResult = await tenantResponse.json();
-        setTenantSettings(tenantResult.success ? tenantResult.data : null);
+        
+        console.log('Tenant response for slug:', slug, tenantResult);
+        
+        if (tenantResult.success && tenantResult.data) {
+          setTenantSettings(tenantResult.data);
+          
+          // Tenant varsa, diğer verileri de çek
+          try {
+            // Hizmetleri çek
+            const servicesResponse = await fetch(`/api/services/${slug}`);
+            const servicesResult = await servicesResponse.json();
+            setServices(servicesResult.success ? servicesResult.data : []);
 
-        // Hizmetleri çek
-        const servicesResponse = await fetch(`/api/services/${slug}`);
-        const servicesResult = await servicesResponse.json();
-        setServices(servicesResult.success ? servicesResult.data : []);
-
-        // Personeli çek
-        const staffResponse = await fetch(`/api/staff/${slug}`);
-        const staffResult = await staffResponse.json();
-        setStaff(staffResult.success ? staffResult.data : []);
+            // Personeli çek
+            const staffResponse = await fetch(`/api/staff/${slug}`);
+            const staffResult = await staffResponse.json();
+            setStaff(staffResult.success ? staffResult.data : []);
+          } catch (serviceError) {
+            console.warn('Error fetching services/staff:', serviceError);
+            // Hizmet/personel hatası tenant'ı etkilemesin
+          }
+        } else {
+          // Tenant bulunamadı
+          console.log('Tenant not found for slug:', slug);
+          setTenantNotFound(true);
+          
+          // 3 saniye sonra ana sayfaya yönlendir
+          setTimeout(() => {
+            router.push('/');
+          }, 3000);
+        }
         
       } catch (error) {
-        console.error('Error fetching data:', error);
-        setTenantSettings(null);
-        setServices([]);
-        setStaff([]);
+        console.error('Error fetching tenant data:', error);
+        setTenantNotFound(true);
+        
+        // Hata durumunda da ana sayfaya yönlendir
+        setTimeout(() => {
+          router.push('/');
+        }, 3000);
       } finally {
         setLoading(false);
       }
@@ -72,6 +97,45 @@ export default function TenantPage() {
             100% { transform: rotate(360deg); }
           }
         `}</style>
+      </div>
+    );
+  }
+
+  if (tenantNotFound) {
+    return (
+      <div style={{ 
+        display: 'flex', 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        height: '100vh',
+        fontFamily: 'Arial, sans-serif',
+        backgroundColor: '#f8f9fa'
+      }}>
+        <div style={{ textAlign: 'center', maxWidth: '500px', padding: '40px' }}>
+          <div style={{ fontSize: '4rem', marginBottom: '20px' }}>🔍</div>
+          <h1 style={{ color: '#dc3545', marginBottom: '20px' }}>Salon Bulunamadı</h1>
+          <p style={{ color: '#6c757d', marginBottom: '30px', lineHeight: '1.6' }}>
+            <strong>"{slug}"</strong> adında bir salon bulunamadı. 
+            <br />3 saniye içinde ana sayfaya yönlendirileceksiniz...
+          </p>
+          <button 
+            onClick={() => router.push('/')}
+            style={{
+              backgroundColor: '#007bff',
+              color: 'white',
+              border: 'none',
+              padding: '12px 24px',
+              borderRadius: '6px',
+              cursor: 'pointer',
+              fontSize: '16px',
+              fontWeight: '500'
+            }}
+            onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#0056b3'}
+            onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#007bff'}
+          >
+            Ana Sayfaya Git
+          </button>
+        </div>
       </div>
     );
   }
