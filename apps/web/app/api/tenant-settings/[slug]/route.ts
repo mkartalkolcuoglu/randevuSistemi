@@ -50,12 +50,16 @@ export async function GET(
       });
       
       if (!tenant) {
-        // Tenant bulunamadı, default ayarlar döndür
-        const defaultSettings = generateDefaultSettings(slug);
+        // Tenant bulunamadı, 404 döndür
+        console.log(`Tenant not found for slug: ${slug}`);
         return NextResponse.json({
-          success: true,
-          data: defaultSettings
-        }, { headers: corsHeaders });
+          success: false,
+          error: `Tenant with slug '${slug}' not found`,
+          code: 'TENANT_NOT_FOUND'
+        }, { 
+          status: 404, 
+          headers: corsHeaders 
+        });
       }
 
       const tenantId = tenant.id;
@@ -164,12 +168,15 @@ export async function GET(
     } catch (dbError) {
       console.error('Database error:', dbError);
       
-      // Fallback to default settings
-      const defaultSettings = generateDefaultSettings(slug);
+      // Database hatası durumunda da 404 döndür (tenant bulunamadı)
       return NextResponse.json({
-        success: true,
-        data: defaultSettings
-      }, { headers: corsHeaders });
+        success: false,
+        error: `Database error: tenant '${slug}' could not be retrieved`,
+        code: 'DATABASE_ERROR'
+      }, { 
+        status: 500, 
+        headers: corsHeaders 
+      });
     } finally {
       await prisma.$disconnect();
     }
