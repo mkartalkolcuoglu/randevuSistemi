@@ -55,9 +55,24 @@ export default function SettingsClient({ user }: SettingsClientProps) {
     try {
       setLoading(true);
       
-      // Tenant bilgilerini al
-      const tenantResponse = await fetch('/api/tenant-info?t=' + Date.now());
-      const tenantData = await tenantResponse.json();
+      // Önce mevcut tenant info'yu al (slug için)
+      const currentTenantResponse = await fetch('/api/tenant-info?t=' + Date.now());
+      const currentTenantData = await currentTenantResponse.json();
+      
+      let tenantResponse, tenantData;
+      
+      if (currentTenantData.success && currentTenantData.data?.slug) {
+        // Slug varsa, web API'sini kullan (doğru data için)
+        const slug = currentTenantData.data.slug;
+        console.log('Using slug:', slug);
+        tenantResponse = await fetch(`https://randevu-sistemi-web.vercel.app/api/tenant-settings/${slug}?t=` + Date.now());
+        tenantData = await tenantResponse.json();
+      } else {
+        // Fallback: admin API kullan
+        console.log('Fallback to admin API');
+        tenantResponse = currentTenantResponse;
+        tenantData = currentTenantData;
+      }
       
       console.log('Load Settings Response:', tenantData);
       
