@@ -21,34 +21,20 @@ export async function GET(
   try {
     const { slug } = await params;
     
-      // Admin API'sinden tenant bilgisini al
-      const tenantResponse = await fetch(`http://localhost:3000/api/tenant-settings/${slug}`);
-      if (!tenantResponse.ok) {
-        return NextResponse.json(
-          { success: false, error: 'Tenant not found' },
-          { status: 404, headers: corsHeaders }
-        );
-      }
+    // Tenant'ı direkt database'den bul
+    const tenant = await prisma.tenant.findUnique({
+      where: { slug: slug },
+      select: { id: true }
+    });
     
-    const responseText = await tenantResponse.text();
-    let tenantData;
-    try {
-      tenantData = JSON.parse(responseText);
-    } catch (error) {
-      console.error('Failed to parse tenant response:', responseText);
+    if (!tenant) {
       return NextResponse.json(
-        { success: false, error: 'Invalid tenant response' },
-        { status: 500, headers: corsHeaders }
-      );
-    }
-    if (!tenantData.success || !tenantData.data?.tenant?.id) {
-      return NextResponse.json(
-        { success: false, error: 'Tenant data invalid' },
+        { success: false, error: 'Tenant not found' },
         { status: 404, headers: corsHeaders }
       );
     }
     
-    const tenantId = tenantData.data.tenant.id;
+    const tenantId = tenant.id;
     console.log('Staff API - Tenant ID:', tenantId);
     
     const staff = await prisma.staff.findMany({
