@@ -161,17 +161,46 @@ export default function SettingsClient({ user }: SettingsClientProps) {
       console.log('Logo is URL:', logoIsUrl);
       console.log('Header is URL:', headerIsUrl);
       
-      // Only compress if it's base64, not URL
-      const compressedSettings = { ...settings };
+      // Clean theme settings - only keep essential fields
+      let cleanLogo = settings.themeSettings?.logo || '';
+      let cleanHeaderImage = settings.themeSettings?.headerImage || '';
       
-      if (settings.themeSettings?.logo && !logoIsUrl) {
-        console.log('Compressing logo (base64)...');
-        compressedSettings.themeSettings.logo = await compressImage(settings.themeSettings.logo);
+      // If logo is huge base64, convert to empty or URL only
+      if (cleanLogo && cleanLogo.length > 100000) { // 100KB limit
+        console.warn('Logo too large, removing base64 data');
+        cleanLogo = logoIsUrl ? cleanLogo : '';
       }
       
-      if (settings.themeSettings?.headerImage && !headerIsUrl) {
+      // If header image is huge base64, convert to empty or URL only  
+      if (cleanHeaderImage && cleanHeaderImage.length > 100000) { // 100KB limit
+        console.warn('Header image too large, removing base64 data');
+        cleanHeaderImage = headerIsUrl ? cleanHeaderImage : '';
+      }
+      
+      const cleanThemeSettings = {
+        primaryColor: settings.themeSettings?.primaryColor || '#3B82F6',
+        secondaryColor: settings.themeSettings?.secondaryColor || '#1E40AF',
+        logo: cleanLogo,
+        headerImage: cleanHeaderImage
+      };
+      
+      console.log('Original themeSettings size:', JSON.stringify(settings.themeSettings).length);
+      console.log('Cleaned themeSettings size:', JSON.stringify(cleanThemeSettings).length);
+      
+      const compressedSettings = { 
+        ...settings,
+        themeSettings: cleanThemeSettings
+      };
+      
+      // Only compress if it's base64, not URL
+      if (cleanThemeSettings.logo && !logoIsUrl) {
+        console.log('Compressing logo (base64)...');
+        compressedSettings.themeSettings.logo = await compressImage(cleanThemeSettings.logo);
+      }
+      
+      if (cleanThemeSettings.headerImage && !headerIsUrl) {
         console.log('Compressing header image (base64)...');
-        compressedSettings.themeSettings.headerImage = await compressImage(settings.themeSettings.headerImage);
+        compressedSettings.themeSettings.headerImage = await compressImage(cleanThemeSettings.headerImage);
       }
       
       // Check total size
