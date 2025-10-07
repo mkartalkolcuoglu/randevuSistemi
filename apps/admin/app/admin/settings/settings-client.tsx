@@ -104,19 +104,33 @@ export default function SettingsClient({ user }: SettingsClientProps) {
             }
           }
           
+          // Web API'den gelen data farklı structure'da olabilir
+          const isWebApiData = tenant.tenant && typeof tenant.tenant === 'object';
+          const businessData = isWebApiData ? tenant.tenant : tenant;
+          
+          console.log('Data structure detected:', isWebApiData ? 'Web API' : 'Admin API');
+          console.log('Business data:', businessData);
+          
           setSettings(prev => ({
             ...prev,
-            businessName: tenant.businessName || '',
-            businessType: tenant.businessType || 'salon',
-            businessDescription: tenant.businessDescription || '',
-            businessAddress: tenant.address || '',
-            ownerName: tenant.ownerName || '',
-            ownerEmail: tenant.ownerEmail || '',
-            phone: tenant.phone || '',
-            username: tenant.username || '',
+            // Business info mapping
+            businessName: businessData.businessName || tenant.businessName || '',
+            businessType: businessData.businessType || tenant.businessType || 'salon',
+            businessDescription: businessData.businessDescription || tenant.businessDescription || '',
+            businessAddress: businessData.businessAddress || businessData.address || tenant.address || '',
+            
+            // Owner info mapping  
+            ownerName: businessData.ownerName || tenant.ownerName || '',
+            ownerEmail: businessData.businessEmail || businessData.ownerEmail || tenant.ownerEmail || '',
+            phone: businessData.businessPhone || businessData.phone || tenant.phone || '',
+            
+            // Login info mapping
+            username: businessData.username || tenant.username || '',
             password: '', // Güvenlik için şifreyi boş göster
+            
+            // Other data
             workingHours: tenant.workingHours || prev.workingHours,
-            themeSettings: tenant.theme || prev.themeSettings,
+            themeSettings: tenant.themeSettings || tenant.theme || prev.themeSettings,
             location: tenant.location || prev.location
           }));
         } else {
