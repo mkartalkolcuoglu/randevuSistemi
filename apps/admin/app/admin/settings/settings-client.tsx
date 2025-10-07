@@ -56,7 +56,7 @@ export default function SettingsClient({ user }: SettingsClientProps) {
       setLoading(true);
       
       // Tenant bilgilerini al
-      const tenantResponse = await fetch('/api/tenant-info');
+      const tenantResponse = await fetch('/api/tenant-info?t=' + Date.now());
       const tenantData = await tenantResponse.json();
       
       console.log('Load Settings Response:', tenantData);
@@ -304,6 +304,8 @@ export default function SettingsClient({ user }: SettingsClientProps) {
       if (response.ok) {
         if (result.success) {
           alert('Ayarlar başarıyla kaydedildi!');
+          // Ayarları yeniden yükle
+          await loadSettings();
         } else {
           throw new Error(result.error || 'Bilinmeyen hata');
         }

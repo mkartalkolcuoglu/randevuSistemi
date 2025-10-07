@@ -78,6 +78,8 @@ export async function GET() {
         headerImage: ''
       };
 
+      console.log('GET - Parsed theme from DB:', parsedTheme);
+
       const responseData = {
         ...tenant,
         workingHours: tenant.workingHours ? JSON.parse(tenant.workingHours) : {
@@ -89,18 +91,24 @@ export async function GET() {
           saturday: { start: '09:00', end: '17:00', closed: false },
           sunday: { start: '10:00', end: '16:00', closed: true }
         },
+        // Use the entire parsed theme as themeSettings, not just 4 fields
         themeSettings: {
           primaryColor: parsedTheme.primaryColor || '#EC4899',
           secondaryColor: parsedTheme.secondaryColor || '#BE185D',
           logo: parsedTheme.logo || '',
-          headerImage: parsedTheme.headerImage || ''
+          headerImage: parsedTheme.headerImage || '',
+          // Include any other fields that might be in the theme
+          ...parsedTheme
         },
+        // Extract location from theme, but also use address as fallback
         location: {
           latitude: parsedTheme.location?.latitude || '',
           longitude: parsedTheme.location?.longitude || '',
-          address: tenant.address || ''
+          address: parsedTheme.location?.address || tenant.address || ''
         }
       };
+
+      console.log('GET - Returning themeSettings:', responseData.themeSettings);
 
       return NextResponse.json({
         success: true,
@@ -154,6 +162,9 @@ export async function PUT(request: NextRequest) {
     console.log(`Request size: ${(requestText.length / 1024).toFixed(2)} KB`);
     
     const data = JSON.parse(requestText);
+
+    console.log('PUT - Received themeSettings:', data.themeSettings);
+    console.log('PUT - Received location:', data.location);
 
     try {
       // Güncelleme verilerini hazırla
