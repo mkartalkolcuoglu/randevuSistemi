@@ -41,6 +41,8 @@ export default function AppointmentsClient({ initialAppointments, tenantId, user
     switch (status) {
       case 'scheduled':
         return 'bg-blue-100 text-blue-800';
+      case 'confirmed':
+        return 'bg-green-100 text-green-800';
       case 'completed':
         return 'bg-green-100 text-green-800';
       case 'cancelled':
@@ -56,6 +58,8 @@ export default function AppointmentsClient({ initialAppointments, tenantId, user
     switch (status) {
       case 'scheduled':
         return 'Planlandı';
+      case 'confirmed':
+        return 'Tamamlandı';
       case 'completed':
         return 'Tamamlandı';
       case 'cancelled':
