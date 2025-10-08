@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { PrismaClient } from '@prisma/client';
 
-const ADMIN_API_URL = process.env.ADMIN_API_URL || 'https://randevu-sistemi-admin.vercel.app';
+const prisma = new PrismaClient();
 
 // Health check for this endpoint
 export async function GET() {
@@ -8,84 +9,150 @@ export async function GET() {
     status: 'ok',
     endpoint: '/api/appointments',
     methods: ['POST'],
-    admin_api: ADMIN_API_URL,
     message: 'Appointment API is ready. Use POST method to create appointments.'
   });
 }
 
 export async function POST(request: NextRequest) {
-  console.log('🚀 Web Appointment API - Proxying to Admin API');
+  console.log('🚀 Web Appointment API - Direct Database Write');
   
   try {
     const appointmentData = await request.json();
     console.log('📥 Received appointment request for tenant:', appointmentData.tenantSlug);
     
-    // Proxy to Admin API
-    const adminApiUrl = `${ADMIN_API_URL}/api/appointments`;
-    console.log('🔄 Forwarding to:', adminApiUrl);
-    
-    const adminResponse = await fetch(adminApiUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        tenantSlug: appointmentData.tenantSlug,
-        customerName: appointmentData.customerInfo?.name || appointmentData.customerName || 'Web Müşteri',
-        customerEmail: appointmentData.customerInfo?.email || appointmentData.customerEmail || '',
-        customerPhone: appointmentData.customerInfo?.phone || appointmentData.customerPhone || '',
-        serviceName: appointmentData.serviceName,
-        staffId: appointmentData.staffId,
-        date: appointmentData.date,
-        time: appointmentData.time,
-        duration: appointmentData.duration,
-        price: appointmentData.price,
-        notes: appointmentData.customerInfo?.notes || appointmentData.notes || '',
-        paymentType: 'cash',
-        status: 'pending'
-      }),
+    // Find tenant by slug
+    console.log('🔍 Step 1: Looking for tenant:', appointmentData.tenantSlug);
+    const tenant = await prisma.tenant.findUnique({
+      where: { slug: appointmentData.tenantSlug },
+      select: { id: true }
     });
     
-    console.log('📡 Admin API response status:', adminResponse.status);
-    
-    if (!adminResponse.ok) {
-      const errorText = await adminResponse.text();
-      console.error('❌ Admin API error:', adminResponse.status, errorText);
+    if (!tenant) {
+      console.error('❌ Tenant not found:', appointmentData.tenantSlug);
       return NextResponse.json({
         success: false,
-        error: `Randevu oluşturulamadı: ${errorText}`
-      }, { status: adminResponse.status });
+        error: 'Tenant not found'
+      }, { status: 404 });
     }
     
-    const result = await adminResponse.json();
-    console.log('✅ Admin API result:', result.success ? 'Success' : 'Failed');
+    console.log('✅ Tenant found:', tenant.id);
     
-    if (result.success) {
+    // Find service by name
+    console.log('🔍 Step 2: Looking for service:', appointmentData.serviceName);
+    const service = await prisma.service.findFirst({
+      where: {
+        tenantId: tenant.id,
+        name: appointmentData.serviceName
+      },
+      select: { id: true, name: true, price: true, duration: true }
+    });
+    
+    if (!service) {
+      console.error('❌ Service not found:', appointmentData.serviceName);
       return NextResponse.json({
-        success: true,
-        message: 'Randevu başarıyla oluşturuldu',
+        success: false,
+        error: `Service not found: ${appointmentData.serviceName}`
+      }, { status: 404 });
+    }
+    
+    console.log('✅ Service found:', service.id);
+    
+    // Find staff
+    console.log('🔍 Step 3: Looking for staff:', appointmentData.staffId);
+    const staff = await prisma.staff.findUnique({
+      where: { id: appointmentData.staffId },
+      select: { id: true, firstName: true, lastName: true }
+    });
+    
+    if (!staff) {
+      console.error('❌ Staff not found:', appointmentData.staffId);
+      return NextResponse.json({
+        success: false,
+        error: `Staff not found: ${appointmentData.staffId}`
+      }, { status: 404 });
+    }
+    
+    console.log('✅ Staff found:', `${staff.firstName} ${staff.lastName}`);
+    
+    // Find or create customer
+    console.log('🔍 Step 4: Finding/creating customer');
+    let customer = await prisma.customer.findFirst({
+      where: {
+        tenantId: tenant.id,
+        OR: [
+          { email: appointmentData.customerEmail || '' },
+          { phone: appointmentData.customerPhone || '' }
+        ]
+      }
+    });
+    
+    if (!customer) {
+      const customerName = appointmentData.customerInfo?.name || appointmentData.customerName || 'Web Müşteri';
+      const [firstName, ...lastNameParts] = customerName.split(' ');
+      
+      customer = await prisma.customer.create({
         data: {
-          id: result.data?.id || `apt_${Date.now()}`,
-          customerName: appointmentData.customerInfo?.name || appointmentData.customerName,
-          serviceName: appointmentData.serviceName,
-          staffName: result.data?.staffName || 'Personel',
-          date: appointmentData.date,
-          time: appointmentData.time,
-          status: 'pending'
+          tenantId: tenant.id,
+          firstName: firstName || 'Web',
+          lastName: lastNameParts.join(' ') || 'Müşteri',
+          email: appointmentData.customerInfo?.email || appointmentData.customerEmail || '',
+          phone: appointmentData.customerInfo?.phone || appointmentData.customerPhone || '',
+          birthDate: null,
+          gender: null,
+          address: null
         }
       });
+      console.log('✅ Customer created:', customer.id);
     } else {
-      return NextResponse.json({
-        success: false,
-        error: result.error || 'Randevu oluşturulamadı'
-      }, { status: 400 });
+      console.log('✅ Customer found:', customer.id);
     }
     
+    // Create appointment
+    console.log('💾 Step 5: Creating appointment');
+    const appointment = await prisma.appointment.create({
+      data: {
+        tenantId: tenant.id,
+        customerId: customer.id,
+        customerName: appointmentData.customerInfo?.name || appointmentData.customerName || `${customer.firstName} ${customer.lastName}`,
+        customerPhone: appointmentData.customerInfo?.phone || appointmentData.customerPhone || customer.phone || '',
+        customerEmail: appointmentData.customerInfo?.email || appointmentData.customerEmail || customer.email || '',
+        serviceId: service.id,
+        serviceName: service.name,
+        staffId: staff.id,
+        staffName: `${staff.firstName} ${staff.lastName}`,
+        date: appointmentData.date,
+        time: appointmentData.time,
+        duration: appointmentData.duration || service.duration,
+        price: appointmentData.price || service.price,
+        status: 'pending',
+        paymentType: 'cash',
+        notes: appointmentData.customerInfo?.notes || appointmentData.notes || ''
+      }
+    });
+    
+    console.log('✅ Appointment created successfully:', appointment.id);
+    
+    return NextResponse.json({
+      success: true,
+      message: 'Randevu başarıyla oluşturuldu',
+      data: {
+        id: appointment.id,
+        customerName: appointment.customerName,
+        serviceName: appointment.serviceName,
+        staffName: appointment.staffName,
+        date: appointment.date,
+        time: appointment.time,
+        status: appointment.status
+      }
+    });
+    
   } catch (error) {
-    console.error('❌ Appointment creation error:', error);
+    console.error('❌ Error creating appointment:', error);
     return NextResponse.json({
       success: false,
       error: 'Randevu oluşturulurken hata oluştu: ' + (error instanceof Error ? error.message : 'Bilinmeyen hata')
     }, { status: 500 });
+  } finally {
+    await prisma.$disconnect();
   }
 }
