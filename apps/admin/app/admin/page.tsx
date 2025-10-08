@@ -65,7 +65,7 @@ async function getDashboardData(tenantId: string) {
       recentAppointments,
       appointmentsByStatus: {
         scheduled: appointments.filter((app) => app.status === 'scheduled').length,
-        completed: appointments.filter((app) => app.status === 'completed').length,
+        completed: appointments.filter((app) => app.status === 'completed' || app.status === 'confirmed').length,
         cancelled: appointments.filter((app) => app.status === 'cancelled').length,
         pending: appointments.filter((app) => app.status === 'pending').length,
       }
@@ -99,6 +99,8 @@ export default async function AdminDashboard() {
     switch (status) {
       case 'scheduled':
         return 'bg-blue-100 text-blue-800';
+      case 'confirmed':
+        return 'bg-green-100 text-green-800';
       case 'completed':
         return 'bg-green-100 text-green-800';
       case 'cancelled':
@@ -114,6 +116,8 @@ export default async function AdminDashboard() {
     switch (status) {
       case 'scheduled':
         return 'Planlandı';
+      case 'confirmed':
+        return 'Tamamlandı';
       case 'completed':
         return 'Tamamlandı';
       case 'cancelled':
