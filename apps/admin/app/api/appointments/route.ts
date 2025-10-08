@@ -39,14 +39,20 @@ export async function GET(request: NextRequest) {
     const date = searchParams.get('date') || '';
     const tenantId = searchParams.get('tenantId') || sessionTenantId || '';
     
-    console.log('📊 Fetching appointments with Prisma, tenant:', tenantId);
+    console.log('📊 Fetching appointments with Prisma');
+    console.log('🔍 Session tenant ID:', sessionTenantId);
+    console.log('🔍 Query tenant ID:', tenantId);
+    console.log('🔍 Search params:', { page, limit, search, status, date });
 
     // Build Prisma where clause
     const where: any = {};
     
-    if (tenantId) {
-      where.tenantId = tenantId;
-    }
+    // TEMPORARILY DISABLE TENANT FILTER FOR DEBUGGING
+    // if (tenantId) {
+    //   where.tenantId = tenantId;
+    // }
+    
+    console.log('🔍 Where clause:', JSON.stringify(where));
     
     if (search) {
       where.OR = [
@@ -66,6 +72,7 @@ export async function GET(request: NextRequest) {
     
     // Get total count
     const total = await prisma.appointment.count({ where });
+    console.log('📊 Total appointments found:', total);
     
     // Get appointments
     const appointments = await prisma.appointment.findMany({
@@ -77,6 +84,11 @@ export async function GET(request: NextRequest) {
       skip: (page - 1) * limit,
       take: limit
     });
+    
+    console.log('📊 Returning', appointments.length, 'appointments');
+    if (appointments.length > 0) {
+      console.log('📊 First appointment:', appointments[0]);
+    }
 
     return NextResponse.json({
       success: true,
