@@ -6,16 +6,32 @@ export const dynamic = 'force-dynamic';
 // Server Component - server-side data fetch with tenant filtering
 async function getAppointments(tenantId: string) {
   try {
-    const baseUrl = 'http://localhost:3001/api/appointments';
-    const url = `${baseUrl}?tenantId=${tenantId}`;
+    // Use Prisma directly instead of fetching from API
+    const { PrismaClient } = await import('@prisma/client');
+    const prisma = new PrismaClient();
     
-    const response = await fetch(url, {
-      cache: 'no-store'
-    });
-    const data = await response.json();
-    return data.success ? data.data : [];
+    console.log('🔍 Fetching appointments for tenant:', tenantId);
+    
+    try {
+      const appointments = await prisma.appointment.findMany({
+        where: {
+          tenantId: tenantId
+        },
+        orderBy: [
+          { date: 'desc' },
+          { time: 'desc' }
+        ],
+        take: 100 // Limit to 100 for performance
+      });
+      
+      console.log('📊 Found', appointments.length, 'appointments');
+      
+      return appointments;
+    } finally {
+      await prisma.$disconnect();
+    }
   } catch (error) {
-    console.error('Error fetching appointments:', error);
+    console.error('❌ Error fetching appointments:', error);
     return [];
   }
 }
