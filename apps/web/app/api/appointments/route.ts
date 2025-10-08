@@ -2,6 +2,17 @@ import { NextRequest, NextResponse } from 'next/server';
 
 const ADMIN_API_URL = process.env.ADMIN_API_URL || 'https://randevu-sistemi-admin.vercel.app';
 
+// Health check for this endpoint
+export async function GET() {
+  return NextResponse.json({
+    status: 'ok',
+    endpoint: '/api/appointments',
+    methods: ['POST'],
+    admin_api: ADMIN_API_URL,
+    message: 'Appointment API is ready. Use POST method to create appointments.'
+  });
+}
+
 export async function POST(request: NextRequest) {
   console.log('🚀 Web Appointment API - Proxying to Admin API');
   
