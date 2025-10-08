@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '../../../../lib/sqlite';
+import { PrismaClient } from '@prisma/client';
+
+const prisma = new PrismaClient();
 
 // CORS headers
 const corsHeaders = {
@@ -18,18 +20,11 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
+    console.log('🔍 Fetching appointment:', id);
     
-    const appointment = db.prepare(`
-      SELECT 
-        a.*,
-        s.name as serviceName,
-        s.duration as serviceDuration,
-        st.firstName || ' ' || st.lastName as staffName
-      FROM appointments a
-      LEFT JOIN services s ON a.serviceId = s.id
-      LEFT JOIN staff st ON a.staffId = st.id
-      WHERE a.id = ?
-    `).get(id);
+    const appointment = await prisma.appointment.findUnique({
+      where: { id }
+    });
     
     if (!appointment) {
       return NextResponse.json(
@@ -48,6 +43,8 @@ export async function GET(
       { success: false, error: 'Failed to fetch appointment' },
       { status: 500, headers: corsHeaders }
     );
+  } finally {
+    await prisma.$disconnect();
   }
 }
 
@@ -59,55 +56,26 @@ export async function PUT(
     const { id } = await params;
     const data = await request.json();
     
-    // Update customer information
-    let updateData: any = {
-      customerName: data.customerName,
-      customerPhone: data.customerPhone,
-      customerEmail: data.customerEmail,
-      date: data.date,
-      time: data.time,
-      status: data.status,
-      notes: data.notes,
-      duration: data.duration,
-      paymentType: data.paymentType,
-      updatedAt: new Date().toISOString()
-    };
-
-    if (data.serviceId) {
-      const service = db.prepare('SELECT * FROM services WHERE id = ?').get(data.serviceId) as any;
-      if (service) {
-        updateData.serviceId = data.serviceId;
-        updateData.serviceName = service.name;
-        updateData.price = service.price;
-        updateData.duration = service.duration;
-      }
-    }
-
-    if (data.staffId) {
-      const staff = db.prepare('SELECT * FROM staff WHERE id = ?').get(data.staffId) as any;
-      if (staff) {
-        updateData.staffId = data.staffId;
-        updateData.staffName = `${staff.firstName} ${staff.lastName}`;
-      }
-    }
-
-    if (data.customerId) {
-      const customer = db.prepare('SELECT * FROM customers WHERE id = ?').get(data.customerId) as any;
-      if (customer) {
-        updateData.customerId = data.customerId;
-        updateData.customerName = `${customer.firstName} ${customer.lastName}`;
-      }
-    }
+    console.log('📝 Updating appointment:', id, data);
     
-    // Build update query
-    const fields = Object.keys(updateData);
-    const setClause = fields.map(field => `${field} = ?`).join(', ');
-    const values = [...Object.values(updateData), id];
-    
-    db.prepare(`UPDATE appointments SET ${setClause} WHERE id = ?`).run(...values);
-    
-    // Get updated appointment
-    const updatedAppointment = db.prepare('SELECT * FROM appointments WHERE id = ?').get(id);
+    const updatedAppointment = await prisma.appointment.update({
+      where: { id },
+      data: {
+        customerName: data.customerName,
+        customerPhone: data.customerPhone || '',
+        customerEmail: data.customerEmail || '',
+        serviceName: data.serviceName,
+        staffName: data.staffName,
+        staffId: data.staffId,
+        date: data.date,
+        time: data.time,
+        status: data.status,
+        notes: data.notes || '',
+        price: data.price || 0,
+        duration: data.duration || 60,
+        paymentType: data.paymentType || 'cash'
+      }
+    });
 
     return NextResponse.json({
       success: true,
@@ -117,9 +85,11 @@ export async function PUT(
   } catch (error) {
     console.error('Error updating appointment:', error);
     return NextResponse.json(
-      { success: false, error: 'Failed to update appointment' },
+      { success: false, error: 'Failed to update appointment: ' + (error instanceof Error ? error.message : 'Unknown error') },
       { status: 400, headers: corsHeaders }
     );
+  } finally {
+    await prisma.$disconnect();
   }
 }
 
@@ -129,8 +99,11 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params;
+    console.log('🗑️ Deleting appointment:', id);
     
-    db.prepare('DELETE FROM appointments WHERE id = ?').run(id);
+    await prisma.appointment.delete({
+      where: { id }
+    });
 
     return NextResponse.json({
       success: true,
@@ -139,8 +112,10 @@ export async function DELETE(
   } catch (error) {
     console.error('Error deleting appointment:', error);
     return NextResponse.json(
-      { success: false, error: 'Failed to delete appointment' },
+      { success: false, error: 'Failed to delete appointment: ' + (error instanceof Error ? error.message : 'Unknown error') },
       { status: 400, headers: corsHeaders }
     );
+  } finally {
+    await prisma.$disconnect();
   }
 }
