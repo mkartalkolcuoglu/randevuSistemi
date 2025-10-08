@@ -138,22 +138,33 @@ export async function POST(request: NextRequest) {
     }
     
     // Randevu oluştur
+    console.log('💾 Step 4: Creating appointment...');
+    const appointmentCreateData = {
+      tenantId: tenant.id,
+      customerId: customer.id,
+      customerName: appointmentData.customerInfo?.name || appointmentData.customerName || `${customer.firstName} ${customer.lastName}`,
+      customerPhone: appointmentData.customerInfo?.phone || appointmentData.customerPhone || customer.phone || '',
+      customerEmail: appointmentData.customerInfo?.email || appointmentData.customerEmail || customer.email || '',
+      serviceId: service.id,
+      serviceName: service.name,
+      staffId: staff.id,
+      staffName: `${staff.firstName} ${staff.lastName}`,
+      date: appointmentData.date,
+      time: appointmentData.time,
+      duration: appointmentData.duration || service.duration,
+      price: appointmentData.price || service.price,
+      status: 'pending',
+      paymentType: 'cash',
+      notes: appointmentData.customerInfo?.notes || appointmentData.notes || ''
+    };
+    
+    console.log('💾 Appointment data to create:', appointmentCreateData);
+    
     const appointment = await prisma.appointment.create({
-      data: {
-        tenantId: tenant.id,
-        customerId: customer.id,
-        serviceId: service.id,
-        staffId: staff.id,
-        date: appointmentData.date,
-        time: appointmentData.time,
-        duration: appointmentData.duration || service.duration,
-        price: appointmentData.price || service.price,
-        status: 'pending',
-        paymentType: 'cash',
-        notes: appointmentData.customerInfo?.notes || appointmentData.notes || '',
-        customerName: appointmentData.customerInfo?.name || appointmentData.customerName || `${customer.firstName} ${customer.lastName}`
-      }
+      data: appointmentCreateData
     });
+    
+    console.log('✅ Appointment created successfully:', appointment.id);
     
     return NextResponse.json({
       success: true,
