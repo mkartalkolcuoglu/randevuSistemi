@@ -316,19 +316,32 @@ export function useCreateAppointment() {
 
   return useMutation({
     mutationFn: async (appointmentData: CreateAppointmentRequest): Promise<Appointment> => {
+      console.log('🎯 useCreateAppointment called with:', appointmentData);
+      
       try {
         // Direct API call
+        console.log('📤 Sending POST to /api/appointments');
         const response = await fetch('/api/appointments', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(appointmentData)
         });
-        if (!response.ok) throw new Error('Failed to create appointment');
+        
+        console.log('📥 Response status:', response.status, response.statusText);
+        console.log('📥 Response URL:', response.url);
+        
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error('❌ API Error Response:', errorText);
+          throw new Error(`API returned ${response.status}: ${errorText}`);
+        }
+        
         const data = await response.json();
+        console.log('✅ API Success Response:', data);
         return data.data;
       } catch (error) {
-        console.error('Error creating appointment:', error);
-        throw new Error('Randevu oluşturulamadı: ' + error.message);
+        console.error('❌ Error creating appointment:', error);
+        throw new Error('Randevu oluşturulamadı: ' + (error instanceof Error ? error.message : 'Unknown error'));
       }
     },
     onSuccess: () => {
