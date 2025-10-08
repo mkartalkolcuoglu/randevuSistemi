@@ -17,35 +17,45 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { requireAuth } from '../../lib/auth-utils';
-import { db } from '../../lib/sqlite';
+import { PrismaClient } from '@prisma/client';
 import AdminHeader from './admin-header';
+
+const prisma = new PrismaClient();
 
 // Server-side data fetching functions
 async function getDashboardData(tenantId: string) {
   try {
-    // Get real data from SQLite database
-    const appointments = db.prepare('SELECT * FROM appointments WHERE tenantId = ?').all(tenantId);
-    const customers = db.prepare('SELECT * FROM customers WHERE tenantId = ?').all(tenantId);
-    
+    console.log('📊 Fetching dashboard data for tenant:', tenantId);
+
+    // Get real data from PostgreSQL database using Prisma
+    const appointments = await prisma.appointment.findMany({
+      where: { tenantId: tenantId },
+      orderBy: { createdAt: 'desc' }
+    });
+
+    const customers = await prisma.customer.findMany({
+      where: { tenantId: tenantId }
+    });
+
+    console.log('📊 Found', appointments.length, 'appointments and', customers.length, 'customers');
+
     // Calculate stats
     const totalAppointments = appointments.length;
-    const todayAppointments = appointments.filter((app: any) => {
+    const todayAppointments = appointments.filter((app) => {
       const today = new Date().toISOString().split('T')[0];
       return app.date === today;
     }).length;
     
     const monthlyRevenue = appointments
-      .filter((app: any) => {
+      .filter((app) => {
         const appointmentDate = new Date(app.date);
         const now = new Date();
         return appointmentDate.getMonth() === now.getMonth() && 
                appointmentDate.getFullYear() === now.getFullYear();
       })
-      .reduce((sum: number, app: any) => sum + (app.price || 0), 0);
+      .reduce((sum, app) => sum + (Number(app.price) || 0), 0);
 
-    const recentAppointments = appointments
-      .sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-      .slice(0, 5);
+    const recentAppointments = appointments.slice(0, 5);
 
     return {
       totalAppointments,
@@ -54,14 +64,14 @@ async function getDashboardData(tenantId: string) {
       monthlyRevenue,
       recentAppointments,
       appointmentsByStatus: {
-        scheduled: appointments.filter((app: any) => app.status === 'scheduled').length,
-        completed: appointments.filter((app: any) => app.status === 'completed').length,
-        cancelled: appointments.filter((app: any) => app.status === 'cancelled').length,
-        pending: appointments.filter((app: any) => app.status === 'pending').length,
+        scheduled: appointments.filter((app) => app.status === 'scheduled').length,
+        completed: appointments.filter((app) => app.status === 'completed').length,
+        cancelled: appointments.filter((app) => app.status === 'cancelled').length,
+        pending: appointments.filter((app) => app.status === 'pending').length,
       }
     };
   } catch (error) {
-    console.error('Error fetching dashboard data:', error);
+    console.error('❌ Error fetching dashboard data:', error);
     return {
       totalAppointments: 0,
       todayAppointments: 0,
@@ -75,6 +85,8 @@ async function getDashboardData(tenantId: string) {
         pending: 0,
       }
     };
+  } finally {
+    await prisma.$disconnect();
   }
 }
 
