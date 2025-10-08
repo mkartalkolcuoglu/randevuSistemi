@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '../../../lib/sqlite';
+import { PrismaClient } from '@prisma/client';
+
+const prisma = new PrismaClient();
 
 // CORS headers
 const corsHeaders = {
@@ -36,50 +38,45 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get('status') || 'all';
     const date = searchParams.get('date') || '';
     const tenantId = searchParams.get('tenantId') || sessionTenantId || '';
+    
+    console.log('📊 Fetching appointments with Prisma, tenant:', tenantId);
 
-    let query = `
-      SELECT 
-        a.*,
-        s.name as serviceName,
-        s.duration as serviceDuration,
-        st.firstName || ' ' || st.lastName as staffName
-      FROM appointments a
-      LEFT JOIN services s ON a.serviceId = s.id
-      LEFT JOIN staff st ON a.staffId = st.id
-      WHERE 1=1
-    `;
-    const params: any[] = [];
-
-    // Filter by tenant (from session or query param)
+    // Build Prisma where clause
+    const where: any = {};
+    
     if (tenantId) {
-      query += ' AND a.tenantId = ?';
-      params.push(tenantId);
+      where.tenantId = tenantId;
     }
-
+    
     if (search) {
-      query += ' AND (a.customerName LIKE ? OR s.name LIKE ? OR (st.firstName || \' \' || st.lastName) LIKE ?)';
-      const searchTerm = `%${search}%`;
-      params.push(searchTerm, searchTerm, searchTerm);
+      where.OR = [
+        { customerName: { contains: search, mode: 'insensitive' } },
+        { serviceName: { contains: search, mode: 'insensitive' } },
+        { staffName: { contains: search, mode: 'insensitive' } }
+      ];
     }
-
+    
     if (status !== 'all') {
-      query += ' AND a.status = ?';
-      params.push(status);
+      where.status = status;
     }
-
+    
     if (date) {
-      query += ' AND a.date = ?';
-      params.push(date);
+      where.date = date;
     }
-
-    const countQuery = query.replace(/SELECT[\s\S]*?FROM/, 'SELECT COUNT(*) as count FROM');
-    const totalResult = db.prepare(countQuery).get(...params) as { count: number };
-    const total = totalResult.count;
-
-    query += ' ORDER BY a.date DESC, a.time DESC LIMIT ? OFFSET ?';
-    params.push(limit, (page - 1) * limit);
-
-    const appointments = db.prepare(query).all(...params);
+    
+    // Get total count
+    const total = await prisma.appointment.count({ where });
+    
+    // Get appointments
+    const appointments = await prisma.appointment.findMany({
+      where,
+      orderBy: [
+        { date: 'desc' },
+        { time: 'desc' }
+      ],
+      skip: (page - 1) * limit,
+      take: limit
+    });
 
     return NextResponse.json({
       success: true,
