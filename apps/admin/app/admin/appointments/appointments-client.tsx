@@ -83,17 +83,9 @@ export default function AppointmentsClient({ initialAppointments, tenantId, user
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <Link href="/admin">
-                <Button variant="outline" size="sm">
-                  <ArrowLeft className="w-4 h-4 mr-2" />
-                  Geri Dön
-                </Button>
-              </Link>
-              <div>
-                <h1 className="text-3xl font-bold text-gray-900">Randevu Yönetimi</h1>
-                <p className="text-gray-600">Randevuları görüntüleyin ve yönetin</p>
-              </div>
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">Randevu Yönetimi</h1>
+              <p className="text-gray-600">Randevuları görüntüleyin ve yönetin</p>
             </div>
             <Link href="/admin/appointments/new">
               <Button className="bg-blue-600 hover:bg-blue-700 text-white">
