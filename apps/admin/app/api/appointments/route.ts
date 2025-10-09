@@ -162,31 +162,42 @@ export async function POST(request: NextRequest) {
       // Use email or phone as unique identifier
       const customerIdentifier = data.customerEmail || data.customerPhone || `guest_${Date.now()}`;
       
-      // Create or find customer using upsert (handles email uniqueness per tenant)
+      // Find or create customer (don't use upsert until Prisma client is updated)
       let customer;
       if (data.customerEmail) {
-        // If email provided, upsert by tenantId + email composite key
-        customer = await prisma.customer.upsert({
-          where: { 
-            tenantId_email: {
-              tenantId: tenant.id,
-              email: data.customerEmail
-            }
-          },
-          update: {
-            firstName,
-            lastName,
-            phone: data.customerPhone || '',
-          },
-          create: {
+        // If email provided, try to find existing customer first
+        customer = await prisma.customer.findFirst({
+          where: {
             tenantId: tenant.id,
-            firstName,
-            lastName,
-            email: data.customerEmail,
-            phone: data.customerPhone || '',
-            status: 'active'
+            email: data.customerEmail
           }
         });
+        
+        if (customer) {
+          // Update existing customer
+          customer = await prisma.customer.update({
+            where: { id: customer.id },
+            data: {
+              firstName,
+              lastName,
+              phone: data.customerPhone || customer.phone
+            }
+          });
+          console.log('📝 Updated existing customer:', customer.id);
+        } else {
+          // Create new customer
+          customer = await prisma.customer.create({
+            data: {
+              tenantId: tenant.id,
+              firstName,
+              lastName,
+              email: data.customerEmail,
+              phone: data.customerPhone || '',
+              status: 'active'
+            }
+          });
+          console.log('✨ Created new customer:', customer.id);
+        }
       } else if (data.customerPhone) {
         // If only phone provided, find or create by phone
         customer = await prisma.customer.findFirst({
@@ -202,11 +213,12 @@ export async function POST(request: NextRequest) {
               tenantId: tenant.id,
               firstName,
               lastName,
-              email: `${data.customerPhone}@noemail.com`, // Generate unique email
+              email: `${data.customerPhone}@noemail.com`,
               phone: data.customerPhone,
               status: 'active'
             }
           });
+          console.log('✨ Created phone-only customer:', customer.id);
         }
       } else {
         // Guest customer without email or phone
@@ -220,6 +232,7 @@ export async function POST(request: NextRequest) {
             status: 'active'
           }
         });
+        console.log('✨ Created guest customer:', customer.id);
       }
       
       console.log('👤 Customer:', customer.id);
