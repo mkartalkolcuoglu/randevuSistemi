@@ -162,12 +162,17 @@ export async function POST(request: NextRequest) {
       // Use email or phone as unique identifier
       const customerIdentifier = data.customerEmail || data.customerPhone || `guest_${Date.now()}`;
       
-      // Create or find customer using upsert (handles email uniqueness)
+      // Create or find customer using upsert (handles email uniqueness per tenant)
       let customer;
       if (data.customerEmail) {
-        // If email provided, upsert by email
+        // If email provided, upsert by tenantId + email composite key
         customer = await prisma.customer.upsert({
-          where: { email: data.customerEmail },
+          where: { 
+            tenantId_email: {
+              tenantId: tenant.id,
+              email: data.customerEmail
+            }
+          },
           update: {
             firstName,
             lastName,
