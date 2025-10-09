@@ -110,97 +110,138 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const data = await request.json();
+    console.log('📥 Creating appointment with data:', data);
 
     // Check if this is from web app (tenant appointment)
     if (data.tenantSlug) {
-      // Handle tenant appointment from web - first find the actual tenant ID
-      const tenant = db.prepare('SELECT id FROM tenants WHERE slug = ?').get(data.tenantSlug) as { id: string } | undefined;
+      console.log('🌐 Web appointment for tenant:', data.tenantSlug);
+      
+      // Find tenant by slug
+      const tenant = await prisma.tenant.findUnique({
+        where: { slug: data.tenantSlug }
+      });
       
       if (!tenant) {
-        console.error('Tenant not found for slug:', data.tenantSlug);
+        console.error('❌ Tenant not found for slug:', data.tenantSlug);
         return NextResponse.json(
           { success: false, error: 'Tenant not found' },
           { status: 404, headers: corsHeaders }
         );
       }
       
-      // Çakışma kontrolü yap
-      const conflictCheck = db.prepare(`
-        SELECT id FROM appointments 
-        WHERE staffId = ? AND date = ? AND time = ? AND status != 'cancelled'
-      `).get(data.staffId, data.date, data.time);
+      // Check for time conflicts
+      const conflictCheck = await prisma.appointment.findFirst({
+        where: {
+          staffId: data.staffId,
+          date: data.date,
+          time: data.time,
+          status: { not: 'cancelled' }
+        }
+      });
       
       if (conflictCheck) {
+        console.error('⚠️ Time conflict detected');
         return NextResponse.json(
           { success: false, error: 'Bu tarih ve saatte seçili personelin başka bir randevusu var' },
           { status: 409, headers: corsHeaders }
         );
       }
       
-      // Staff bilgisini gerçek veritabanından al
-      const staff = db.prepare('SELECT firstName, lastName FROM staff WHERE id = ?').get(data.staffId);
+      // Get staff info
+      const staff = await prisma.staff.findUnique({
+        where: { id: data.staffId },
+        select: { firstName: true, lastName: true }
+      });
       const staffName = staff ? `${staff.firstName} ${staff.lastName}` : 'Bilinmeyen Personel';
       
-      const appointmentId = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+      // Split customer name
+      const nameParts = data.customerName.split(' ');
+      const firstName = nameParts[0] || '';
+      const lastName = nameParts.slice(1).join(' ') || '';
       
-      const newAppointment = {
-        id: appointmentId,
-        tenantId: tenant.id, // Use actual tenant ID, not slug
-        customerId: appointmentId + '-customer',
-        customerName: data.customerName,
-        customerPhone: data.customerPhone || '',
-        customerEmail: data.customerEmail || '',
-        serviceId: appointmentId + '-service',
-        serviceName: data.serviceName,
-        staffId: data.staffId,
-        staffName: staffName,
-        date: data.date,
-        time: data.time,
-        status: data.status || 'pending',
-        notes: data.notes || '',
-        price: data.price || 0,
-        duration: data.duration || 60,
-        paymentType: data.paymentType || 'cash',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      };
-
-      // Insert into database
-      const insert = db.prepare(`
-        INSERT INTO appointments (
-          id, tenantId, customerId, customerName, customerPhone, customerEmail, serviceId, serviceName,
-          staffId, staffName, date, time, status, notes, price, duration, paymentType, createdAt, updatedAt
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `);
-
-      insert.run(
-        newAppointment.id, newAppointment.tenantId, newAppointment.customerId,
-        newAppointment.customerName, newAppointment.customerPhone, newAppointment.customerEmail,
-        newAppointment.serviceId, newAppointment.serviceName,
-        newAppointment.staffId, newAppointment.staffName, newAppointment.date,
-        newAppointment.time, newAppointment.status, newAppointment.notes,
-        newAppointment.price, newAppointment.duration, newAppointment.paymentType, 
-        newAppointment.createdAt, newAppointment.updatedAt
-      );
-
-      // Also create customer if email provided
+      // Use email or phone as unique identifier
+      const customerIdentifier = data.customerEmail || data.customerPhone || `guest_${Date.now()}`;
+      
+      // Create or find customer using upsert (handles email uniqueness)
+      let customer;
       if (data.customerEmail) {
-        const customerInsert = db.prepare(`
-          INSERT OR IGNORE INTO customers (
-            id, tenantId, firstName, lastName, email, phone, status, createdAt, updatedAt
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-        `);
-
-        const nameParts = data.customerName.split(' ');
-        const firstName = nameParts[0] || '';
-        const lastName = nameParts.slice(1).join(' ') || '';
-
-        customerInsert.run(
-          newAppointment.customerId, newAppointment.tenantId, firstName, lastName,
-          data.customerEmail, data.customerPhone || '', 'active',
-          newAppointment.createdAt, newAppointment.updatedAt
-        );
+        // If email provided, upsert by email
+        customer = await prisma.customer.upsert({
+          where: { email: data.customerEmail },
+          update: {
+            firstName,
+            lastName,
+            phone: data.customerPhone || '',
+          },
+          create: {
+            tenantId: tenant.id,
+            firstName,
+            lastName,
+            email: data.customerEmail,
+            phone: data.customerPhone || '',
+            status: 'active'
+          }
+        });
+      } else if (data.customerPhone) {
+        // If only phone provided, find or create by phone
+        customer = await prisma.customer.findFirst({
+          where: {
+            phone: data.customerPhone,
+            tenantId: tenant.id
+          }
+        });
+        
+        if (!customer) {
+          customer = await prisma.customer.create({
+            data: {
+              tenantId: tenant.id,
+              firstName,
+              lastName,
+              email: `${data.customerPhone}@noemail.com`, // Generate unique email
+              phone: data.customerPhone,
+              status: 'active'
+            }
+          });
+        }
+      } else {
+        // Guest customer without email or phone
+        customer = await prisma.customer.create({
+          data: {
+            tenantId: tenant.id,
+            firstName,
+            lastName,
+            email: `guest_${Date.now()}@noemail.com`,
+            phone: '',
+            status: 'active'
+          }
+        });
       }
+      
+      console.log('👤 Customer:', customer.id);
+      
+      // Create appointment
+      const newAppointment = await prisma.appointment.create({
+        data: {
+          tenantId: tenant.id,
+          customerId: customer.id,
+          customerName: data.customerName,
+          customerPhone: data.customerPhone || '',
+          customerEmail: data.customerEmail || '',
+          serviceId: data.serviceId || 'web-service',
+          serviceName: data.serviceName,
+          staffId: data.staffId,
+          staffName: staffName,
+          date: data.date,
+          time: data.time,
+          status: data.status || 'pending',
+          notes: data.notes || '',
+          price: data.price || 0,
+          duration: data.duration || 60,
+          paymentType: data.paymentType || 'cash',
+        }
+      });
+
+      console.log('✅ Appointment created:', newAppointment.id);
 
       return NextResponse.json({
         success: true,
@@ -217,68 +258,69 @@ export async function POST(request: NextRequest) {
       }, { headers: corsHeaders });
     }
 
-    // Original admin panel appointment creation - SQLite version
-    const service = db.prepare('SELECT * FROM services WHERE id = ?').get(data.serviceId);
-    const staff = db.prepare('SELECT * FROM staff WHERE id = ?').get(data.staffId);
-    const customer = db.prepare('SELECT * FROM customers WHERE id = ?').get(data.customerId);
+    // Admin panel appointment creation
+    console.log('🔧 Admin appointment creation');
+    
+    const service = await prisma.service.findUnique({
+      where: { id: data.serviceId }
+    });
+    
+    const staff = await prisma.staff.findUnique({
+      where: { id: data.staffId }
+    });
+    
+    const customer = await prisma.customer.findUnique({
+      where: { id: data.customerId }
+    });
 
     if (!service || !staff || !customer) {
+      console.error('❌ Service, staff, or customer not found');
       return NextResponse.json(
         { success: false, error: 'Service, staff, or customer not found' },
         { status: 400, headers: corsHeaders }
       );
     }
 
-    // Admin paneli için de çakışma kontrolü
-    const conflictCheck = db.prepare(`
-      SELECT id FROM appointments 
-      WHERE staffId = ? AND date = ? AND time = ? AND status != 'cancelled'
-    `).get(data.staffId, data.date, data.time);
+    // Check for conflicts
+    const conflictCheck = await prisma.appointment.findFirst({
+      where: {
+        staffId: data.staffId,
+        date: data.date,
+        time: data.time,
+        status: { not: 'cancelled' }
+      }
+    });
     
     if (conflictCheck) {
+      console.error('⚠️ Time conflict detected');
       return NextResponse.json(
         { success: false, error: 'Bu tarih ve saatte seçili personelin başka bir randevusu var' },
         { status: 409, headers: corsHeaders }
       );
     }
-
-    const appointmentId = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
     
-    const newAppointment = {
-      id: appointmentId,
-      tenantId: (customer as any).tenantId,
-      customerId: data.customerId,
-      customerName: `${(customer as any).firstName} ${(customer as any).lastName}`,
-      serviceId: data.serviceId,
-      serviceName: (service as any).name,
-      staffId: data.staffId,
-      staffName: `${(staff as any).firstName} ${(staff as any).lastName}`,
-      date: data.date,
-      time: data.time,
-      status: data.status || 'scheduled',
-      notes: data.notes || '',
-      price: (service as any).price,
-      duration: (service as any).duration,
-      paymentType: data.paymentType || 'cash',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    };
+    const newAppointment = await prisma.appointment.create({
+      data: {
+        tenantId: customer.tenantId,
+        customerId: data.customerId,
+        customerName: `${customer.firstName} ${customer.lastName}`,
+        customerPhone: customer.phone || '',
+        customerEmail: customer.email,
+        serviceId: data.serviceId,
+        serviceName: service.name,
+        staffId: data.staffId,
+        staffName: `${staff.firstName} ${staff.lastName}`,
+        date: data.date,
+        time: data.time,
+        status: data.status || 'scheduled',
+        notes: data.notes || '',
+        price: service.price,
+        duration: service.duration,
+        paymentType: data.paymentType || 'cash',
+      }
+    });
 
-    const insert = db.prepare(`
-      INSERT INTO appointments (
-        id, tenantId, customerId, customerName, serviceId, serviceName,
-        staffId, staffName, date, time, status, notes, price, duration, paymentType, createdAt, updatedAt
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `);
-
-    insert.run(
-      newAppointment.id, newAppointment.tenantId, newAppointment.customerId,
-      newAppointment.customerName, newAppointment.serviceId, newAppointment.serviceName,
-      newAppointment.staffId, newAppointment.staffName, newAppointment.date,
-      newAppointment.time, newAppointment.status, newAppointment.notes,
-      newAppointment.price, newAppointment.duration, newAppointment.paymentType,
-      newAppointment.createdAt, newAppointment.updatedAt
-    );
+    console.log('✅ Admin appointment created:', newAppointment.id);
 
     return NextResponse.json({
       success: true,
@@ -286,10 +328,12 @@ export async function POST(request: NextRequest) {
       data: newAppointment,
     }, { headers: corsHeaders });
   } catch (error) {
-    console.error('Error creating appointment:', error);
+    console.error('❌ Error creating appointment:', error);
     return NextResponse.json(
-      { success: false, error: 'Failed to create appointment' },
-      { status: 400, headers: corsHeaders }
+      { success: false, error: `Randevu oluşturulurken hata oluştu: ${error instanceof Error ? error.message : 'Unknown error'}` },
+      { status: 500, headers: corsHeaders }
     );
+  } finally {
+    await prisma.$disconnect();
   }
 }
