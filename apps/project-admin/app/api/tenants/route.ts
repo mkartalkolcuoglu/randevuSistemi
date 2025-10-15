@@ -37,9 +37,48 @@ export async function GET(request: NextRequest) {
       orderBy: { createdAt: 'desc' }
     });
 
+    // Enrich tenants with real appointment and customer counts
+    const enrichedTenants = await Promise.all(
+      tenants.map(async (tenant) => {
+        // Get real appointment count
+        const appointmentCount = await prisma.appointment.count({
+          where: { tenantId: tenant.id }
+        });
+
+        // Get real customer count
+        const customerCount = await prisma.customer.count({
+          where: { tenantId: tenant.id }
+        });
+
+        // Calculate real monthly revenue (from completed appointments)
+        const completedAppointments = await prisma.appointment.findMany({
+          where: {
+            tenantId: tenant.id,
+            status: { in: ['completed', 'confirmed'] },
+            createdAt: {
+              gte: new Date(new Date().getFullYear(), new Date().getMonth(), 1) // Start of current month
+            }
+          },
+          select: { price: true }
+        });
+
+        const monthlyRevenue = completedAppointments.reduce(
+          (sum, app) => sum + (app.price || 0),
+          0
+        );
+
+        return {
+          ...tenant,
+          appointmentCount,
+          customerCount,
+          monthlyRevenue: Math.round(monthlyRevenue)
+        };
+      })
+    );
+
     return NextResponse.json({
       success: true,
-      data: tenants,
+      data: enrichedTenants,
       total,
       page,
       limit,
