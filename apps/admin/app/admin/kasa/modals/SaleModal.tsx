@@ -30,6 +30,12 @@ export default function SaleModal({ isOpen, onClose, onSuccess, tenantId, editin
   const [products, setProducts] = useState<Product[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(false);
+  
+  // Search states
+  const [productSearch, setProductSearch] = useState('');
+  const [customerSearch, setCustomerSearch] = useState('');
+  const [showProductList, setShowProductList] = useState(false);
+  const [showCustomerList, setShowCustomerList] = useState(false);
 
   const [formData, setFormData] = useState({
     productId: '',
@@ -149,8 +155,17 @@ export default function SaleModal({ isOpen, onClose, onSuccess, tenantId, editin
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+    <div 
+      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+      onClick={() => {
+        setShowProductList(false);
+        setShowCustomerList(false);
+      }}
+    >
+      <div 
+        className="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="flex justify-between items-center p-6 border-b">
           <h2 className="text-2xl font-bold text-gray-900">
             {editingTransaction ? 'Satışı Düzenle' : 'Yeni Satış'}
@@ -161,64 +176,95 @@ export default function SaleModal({ isOpen, onClose, onSuccess, tenantId, editin
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          <div>
+          <div className="relative">
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Ürün *
             </label>
             <input
-              list="products-list"
-              value={selectedProduct ? `${selectedProduct.name} - ₺${selectedProduct.price}` : ''}
+              type="text"
+              value={productSearch}
               onChange={(e) => {
-                const value = e.target.value;
-                const product = products.find(p => 
-                  `${p.name} - ₺${p.price}` === value || 
-                  p.name.toLowerCase().includes(value.toLowerCase())
-                );
-                if (product) {
-                  setFormData({ ...formData, productId: product.id });
+                setProductSearch(e.target.value);
+                setShowProductList(true);
+                // Clear selection if user types
+                if (formData.productId) {
+                  setFormData({ ...formData, productId: '' });
                 }
               }}
-              onFocus={(e) => e.target.value = ''}
+              onFocus={() => setShowProductList(true)}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-              placeholder="Ürün ara veya seç..."
+              placeholder="Ürün ara..."
               required
             />
-            <datalist id="products-list">
-              {products.map((product) => (
-                <option key={product.id} value={`${product.name} - ₺${product.price}`}>
-                  Stok: {product.stock}
-                </option>
-              ))}
-            </datalist>
+            {showProductList && (
+              <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                {products
+                  .filter(p => 
+                    p.name.toLowerCase().includes(productSearch.toLowerCase()) ||
+                    productSearch === ''
+                  )
+                  .map((product) => (
+                    <div
+                      key={product.id}
+                      onClick={() => {
+                        setFormData({ ...formData, productId: product.id });
+                        setProductSearch(`${product.name} - ₺${product.price}`);
+                        setShowProductList(false);
+                      }}
+                      className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
+                    >
+                      <div className="font-medium">{product.name}</div>
+                      <div className="text-sm text-gray-600">
+                        ₺{product.price.toLocaleString('tr-TR')} • Stok: {product.stock}
+                      </div>
+                    </div>
+                  ))}
+              </div>
+            )}
           </div>
 
-          <div>
+          <div className="relative">
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Müşteri *
             </label>
             <input
-              list="customers-list"
-              value={selectedCustomer ? `${selectedCustomer.firstName} ${selectedCustomer.lastName}` : ''}
+              type="text"
+              value={customerSearch}
               onChange={(e) => {
-                const value = e.target.value;
-                const customer = customers.find(c => 
-                  `${c.firstName} ${c.lastName}` === value ||
-                  `${c.firstName} ${c.lastName}`.toLowerCase().includes(value.toLowerCase())
-                );
-                if (customer) {
-                  setFormData({ ...formData, customerId: customer.id });
+                setCustomerSearch(e.target.value);
+                setShowCustomerList(true);
+                // Clear selection if user types
+                if (formData.customerId) {
+                  setFormData({ ...formData, customerId: '' });
                 }
               }}
-              onFocus={(e) => e.target.value = ''}
+              onFocus={() => setShowCustomerList(true)}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-              placeholder="Müşteri ara veya seç..."
+              placeholder="Müşteri ara..."
               required
             />
-            <datalist id="customers-list">
-              {customers.map((customer) => (
-                <option key={customer.id} value={`${customer.firstName} ${customer.lastName}`} />
-              ))}
-            </datalist>
+            {showCustomerList && (
+              <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                {customers
+                  .filter(c => 
+                    `${c.firstName} ${c.lastName}`.toLowerCase().includes(customerSearch.toLowerCase()) ||
+                    customerSearch === ''
+                  )
+                  .map((customer) => (
+                    <div
+                      key={customer.id}
+                      onClick={() => {
+                        setFormData({ ...formData, customerId: customer.id });
+                        setCustomerSearch(`${customer.firstName} ${customer.lastName}`);
+                        setShowCustomerList(false);
+                      }}
+                      className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
+                    >
+                      {customer.firstName} {customer.lastName}
+                    </div>
+                  ))}
+              </div>
+            )}
           </div>
 
           <div>
