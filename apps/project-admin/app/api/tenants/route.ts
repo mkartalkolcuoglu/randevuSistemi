@@ -50,19 +50,33 @@ export async function GET(request: NextRequest) {
           where: { tenantId: tenant.id }
         });
 
-        // Calculate real monthly revenue (from completed appointments)
+        // Calculate total revenue from all completed/confirmed appointments
         const completedAppointments = await prisma.appointment.findMany({
+          where: {
+            tenantId: tenant.id,
+            status: { in: ['completed', 'confirmed'] }
+          },
+          select: { price: true }
+        });
+
+        const totalRevenue = completedAppointments.reduce(
+          (sum, app) => sum + (app.price || 0),
+          0
+        );
+
+        // Calculate current month revenue for comparison
+        const monthlyAppointments = await prisma.appointment.findMany({
           where: {
             tenantId: tenant.id,
             status: { in: ['completed', 'confirmed'] },
             createdAt: {
-              gte: new Date(new Date().getFullYear(), new Date().getMonth(), 1) // Start of current month
+              gte: new Date(new Date().getFullYear(), new Date().getMonth(), 1)
             }
           },
           select: { price: true }
         });
 
-        const monthlyRevenue = completedAppointments.reduce(
+        const monthlyRevenue = monthlyAppointments.reduce(
           (sum, app) => sum + (app.price || 0),
           0
         );
@@ -71,7 +85,8 @@ export async function GET(request: NextRequest) {
           ...tenant,
           appointmentCount,
           customerCount,
-          monthlyRevenue: Math.round(monthlyRevenue)
+          monthlyRevenue: Math.round(monthlyRevenue),
+          totalRevenue: Math.round(totalRevenue)
         };
       })
     );

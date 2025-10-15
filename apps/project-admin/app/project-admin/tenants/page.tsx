@@ -401,7 +401,7 @@ export default function TenantsManagement() {
             <CardContent>
               <div className="space-y-4">
                 {tenants
-                  .sort((a, b) => b.monthlyRevenue - a.monthlyRevenue)
+                  .sort((a, b) => (b.totalRevenue || b.monthlyRevenue || 0) - (a.totalRevenue || a.monthlyRevenue || 0))
                   .slice(0, 5)
                   .map((tenant, index) => (
                     <div key={tenant.id} className="flex items-center justify-between">
@@ -415,7 +415,7 @@ export default function TenantsManagement() {
                         </div>
                       </div>
                       <div className="text-right">
-                        <div className="font-semibold text-green-600">₺{(tenant.monthlyRevenue || 0).toLocaleString()}</div>
+                        <div className="font-semibold text-green-600">₺{((tenant.totalRevenue || tenant.monthlyRevenue || 0)).toLocaleString()}</div>
                         <div className="text-sm text-gray-500">{tenant.appointmentCount || 0} randevu</div>
                       </div>
                     </div>
