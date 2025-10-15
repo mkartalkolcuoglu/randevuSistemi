@@ -11,10 +11,8 @@ import {
   Trash2,
   ShoppingCart,
   Receipt,
-  Wallet,
-  ArrowLeft
+  Wallet
 } from 'lucide-react';
-import Link from 'next/link';
 import AdminHeader from '../admin-header';
 import type { AuthenticatedUser } from '../../../lib/auth-utils';
 
@@ -174,21 +172,12 @@ export default function KasaClient({ tenantId, user }: KasaClientProps) {
   return (
     <>
       <AdminHeader user={user} />
-      <div className="p-8">
+      <div className="max-w-7xl mx-auto px-6 py-8">
         {loading ? (
           <div className="flex justify-center items-center h-64">Yükleniyor...</div>
         ) : (
           <div className="space-y-6">
-            {/* Back button and Header */}
-            <div className="flex items-center gap-4 mb-6">
-              <Link href="/admin">
-                <Button variant="outline" size="sm">
-                  <ArrowLeft className="w-4 h-4 mr-2" />
-                  Geri Dön
-                </Button>
-              </Link>
-            </div>
-            
+            {/* Header */}
             <div className="flex justify-between items-center">
               <div>
                 <h1 className="text-3xl font-bold text-gray-900">Kasa Yönetimi</h1>
