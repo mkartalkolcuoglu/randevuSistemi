@@ -138,8 +138,9 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error('Error creating transaction:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Failed to create transaction';
     return NextResponse.json(
-      { success: false, error: 'Failed to create transaction' },
+      { success: false, error: 'Failed to create transaction', details: errorMessage },
       { status: 500 }
     );
   } finally {

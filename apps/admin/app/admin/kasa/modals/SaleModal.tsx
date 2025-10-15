@@ -134,11 +134,13 @@ export default function SaleModal({ isOpen, onClose, onSuccess, tenantId, editin
         onClose();
       } else {
         const data = await response.json();
-        alert(data.error || 'Satış eklenirken hata oluştu');
+        const errorMsg = data.details || data.error || 'Satış eklenirken hata oluştu';
+        alert(errorMsg);
+        console.error('Sale error:', data);
       }
     } catch (error) {
       console.error('Error creating sale:', error);
-      alert('Satış eklenirken hata oluştu');
+      alert('Satış eklenirken hata oluştu: ' + (error instanceof Error ? error.message : 'Bilinmeyen hata'));
     } finally {
       setLoading(false);
     }
@@ -163,38 +165,60 @@ export default function SaleModal({ isOpen, onClose, onSuccess, tenantId, editin
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Ürün *
             </label>
-            <select
-              value={formData.productId}
-              onChange={(e) => setFormData({ ...formData, productId: e.target.value })}
+            <input
+              list="products-list"
+              value={selectedProduct ? `${selectedProduct.name} - ₺${selectedProduct.price}` : ''}
+              onChange={(e) => {
+                const value = e.target.value;
+                const product = products.find(p => 
+                  `${p.name} - ₺${p.price}` === value || 
+                  p.name.toLowerCase().includes(value.toLowerCase())
+                );
+                if (product) {
+                  setFormData({ ...formData, productId: product.id });
+                }
+              }}
+              onFocus={(e) => e.target.value = ''}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+              placeholder="Ürün ara veya seç..."
               required
-            >
-              <option value="">Ürün Seçiniz</option>
+            />
+            <datalist id="products-list">
               {products.map((product) => (
-                <option key={product.id} value={product.id}>
-                  {product.name} - ₺{product.price} (Stok: {product.stock})
+                <option key={product.id} value={`${product.name} - ₺${product.price}`}>
+                  Stok: {product.stock}
                 </option>
               ))}
-            </select>
+            </datalist>
           </div>
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Müşteri *
             </label>
-            <select
-              value={formData.customerId}
-              onChange={(e) => setFormData({ ...formData, customerId: e.target.value })}
+            <input
+              list="customers-list"
+              value={selectedCustomer ? `${selectedCustomer.firstName} ${selectedCustomer.lastName}` : ''}
+              onChange={(e) => {
+                const value = e.target.value;
+                const customer = customers.find(c => 
+                  `${c.firstName} ${c.lastName}` === value ||
+                  `${c.firstName} ${c.lastName}`.toLowerCase().includes(value.toLowerCase())
+                );
+                if (customer) {
+                  setFormData({ ...formData, customerId: customer.id });
+                }
+              }}
+              onFocus={(e) => e.target.value = ''}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+              placeholder="Müşteri ara veya seç..."
               required
-            >
-              <option value="">Müşteri Seçiniz</option>
+            />
+            <datalist id="customers-list">
               {customers.map((customer) => (
-                <option key={customer.id} value={customer.id}>
-                  {customer.firstName} {customer.lastName}
-                </option>
+                <option key={customer.id} value={`${customer.firstName} ${customer.lastName}`} />
               ))}
-            </select>
+            </datalist>
           </div>
 
           <div>
@@ -257,17 +281,9 @@ export default function SaleModal({ isOpen, onClose, onSuccess, tenantId, editin
                 <span className="text-gray-600">Adet:</span>
                 <span className="font-semibold">{formData.quantity}</span>
               </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-600">Maliyet:</span>
-                <span className="font-semibold text-red-600">₺{totalCost.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}</span>
-              </div>
-              <div className="border-t border-gray-200 pt-2 flex justify-between">
+              <div className="border-t border-gray-200 pt-2 mt-2 flex justify-between">
                 <span className="font-semibold text-gray-900">Toplam:</span>
-                <span className="font-bold text-lg text-green-600">₺{totalAmount.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="font-semibold text-gray-900">Kâr:</span>
-                <span className="font-bold text-lg text-blue-600">₺{profit.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}</span>
+                <span className="font-bold text-2xl text-green-600">₺{totalAmount.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}</span>
               </div>
             </div>
           )}
