@@ -76,3 +76,14 @@ model SlaMetric {
   
   @@map("sla_metrics")
 }
+
+model Admin {
+  id        String   @id @default(cuid())
+  username  String   @unique
+  password  String   // MD5 hashed
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  lastLogin DateTime?
+  
+  @@map("admins")
+}
