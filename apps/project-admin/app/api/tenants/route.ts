@@ -50,36 +50,32 @@ export async function GET(request: NextRequest) {
           where: { tenantId: tenant.id }
         });
 
-        // Calculate total revenue from all completed/confirmed appointments
-        const completedAppointments = await prisma.appointment.findMany({
+        // Calculate total revenue from ALL appointments (excluding cancelled)
+        const allAppointments = await prisma.appointment.findMany({
           where: {
             tenantId: tenant.id,
-            status: { in: ['completed', 'confirmed'] }
+            status: { not: 'cancelled' }
           },
-          select: { price: true }
+          select: { price: true, date: true }
         });
 
-        const totalRevenue = completedAppointments.reduce(
+        const totalRevenue = allAppointments.reduce(
           (sum, app) => sum + (app.price || 0),
           0
         );
 
-        // Calculate current month revenue for comparison
-        const monthlyAppointments = await prisma.appointment.findMany({
-          where: {
-            tenantId: tenant.id,
-            status: { in: ['completed', 'confirmed'] },
-            createdAt: {
-              gte: new Date(new Date().getFullYear(), new Date().getMonth(), 1)
-            }
-          },
-          select: { price: true }
-        });
+        // Calculate current month revenue (matching admin dashboard logic)
+        const now = new Date();
+        const currentMonth = now.getMonth();
+        const currentYear = now.getFullYear();
 
-        const monthlyRevenue = monthlyAppointments.reduce(
-          (sum, app) => sum + (app.price || 0),
-          0
-        );
+        const monthlyRevenue = allAppointments
+          .filter((app) => {
+            const appointmentDate = new Date(app.date);
+            return appointmentDate.getMonth() === currentMonth && 
+                   appointmentDate.getFullYear() === currentYear;
+          })
+          .reduce((sum, app) => sum + (app.price || 0), 0);
 
         return {
           ...tenant,
