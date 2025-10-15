@@ -9,8 +9,6 @@ export default function TenantPage() {
   const router = useRouter();
   const slug = params.slug as string;
   const [tenantSettings, setTenantSettings] = useState(null);
-  const [services, setServices] = useState([]);
-  const [staff, setStaff] = useState([]);
   const [loading, setLoading] = useState(true);
   const [tenantNotFound, setTenantNotFound] = useState(false);
 
@@ -25,22 +23,6 @@ export default function TenantPage() {
         
         if (tenantResult.success && tenantResult.data) {
           setTenantSettings(tenantResult.data);
-          
-          // Tenant varsa, diğer verileri de çek
-          try {
-            // Hizmetleri çek
-            const servicesResponse = await fetch(`/api/services/${slug}`);
-            const servicesResult = await servicesResponse.json();
-            setServices(servicesResult.success ? servicesResult.data : []);
-
-            // Personeli çek
-            const staffResponse = await fetch(`/api/staff/${slug}`);
-            const staffResult = await staffResponse.json();
-            setStaff(staffResult.success ? staffResult.data : []);
-          } catch (serviceError) {
-            console.warn('Error fetching services/staff:', serviceError);
-            // Hizmet/personel hatası tenant'ı etkilemesin
-          }
         } else {
           // Tenant bulunamadı
           console.log('Tenant not found for slug:', slug);
@@ -252,161 +234,6 @@ export default function TenantPage() {
           </div>
         </div>
       </section>
-
-      {/* Services Section */}
-      {services.length > 0 && (
-        <section style={{ padding: '80px 20px', backgroundColor: 'white' }}>
-          <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
-            <div style={{ textAlign: 'center', marginBottom: '60px' }}>
-              <h2 style={{ fontSize: '2.5rem', fontWeight: 'bold', color: '#1f2937', marginBottom: '20px' }}>
-                Hizmetlerimiz
-              </h2>
-              <p style={{ fontSize: '1.1rem', color: '#6b7280' }}>
-                Size özel hizmetlerimizi keşfedin
-              </p>
-            </div>
-            
-            <div style={{ 
-              display: 'grid', 
-              gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', 
-              gap: '30px' 
-            }}>
-              {services.slice(0, 6).map((service) => (
-                <div key={service.id} style={{
-                  backgroundColor: '#f9fafb',
-                  borderRadius: '12px',
-                  padding: '30px',
-                  boxShadow: '0 4px 6px rgba(0,0,0,0.05)',
-                  transition: 'all 0.3s ease',
-                  cursor: 'pointer'
-                }}
-                onMouseOver={(e) => {
-                  e.currentTarget.style.transform = 'translateY(-5px)';
-                  e.currentTarget.style.boxShadow = '0 10px 25px rgba(0,0,0,0.1)';
-                }}
-                onMouseOut={(e) => {
-                  e.currentTarget.style.transform = 'translateY(0)';
-                  e.currentTarget.style.boxShadow = '0 4px 6px rgba(0,0,0,0.05)';
-                }}>
-                  <h3 style={{ fontSize: '1.3rem', fontWeight: 'bold', color: '#1f2937', marginBottom: '10px' }}>
-                    {service.name}
-                  </h3>
-                  {service.description && (
-                    <p style={{ color: '#6b7280', marginBottom: '20px', lineHeight: '1.6' }}>
-                      {service.description}
-                    </p>
-                  )}
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ 
-                      fontSize: '1.5rem', 
-                      fontWeight: 'bold', 
-                      color: theme?.primaryColor || '#3B82F6' 
-                    }}>
-                      ₺{service.price}
-                    </span>
-                    <span style={{ fontSize: '0.9rem', color: '#9ca3af' }}>
-                      {service.duration} dakika
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* Staff Section */}
-      {staff.length > 0 && (
-        <section style={{ padding: '80px 20px', backgroundColor: '#f9fafb' }}>
-          <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
-            <div style={{ textAlign: 'center', marginBottom: '60px' }}>
-              <h2 style={{ fontSize: '2.5rem', fontWeight: 'bold', color: '#1f2937', marginBottom: '20px' }}>
-                Uzman Ekibimiz
-              </h2>
-              <p style={{ fontSize: '1.1rem', color: '#6b7280' }}>
-                Deneyimli kadromuzla tanışın
-              </p>
-            </div>
-            
-            <div style={{ 
-              display: 'grid', 
-              gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', 
-              gap: '30px' 
-            }}>
-              {staff.slice(0, 4).map((member) => (
-                <div key={member.id} style={{
-                  backgroundColor: 'white',
-                  borderRadius: '12px',
-                  padding: '30px',
-                  textAlign: 'center',
-                  boxShadow: '0 4px 6px rgba(0,0,0,0.05)',
-                  transition: 'all 0.3s ease'
-                }}
-                onMouseOver={(e) => {
-                  e.currentTarget.style.transform = 'translateY(-5px)';
-                  e.currentTarget.style.boxShadow = '0 10px 25px rgba(0,0,0,0.1)';
-                }}
-                onMouseOut={(e) => {
-                  e.currentTarget.style.transform = 'translateY(0)';
-                  e.currentTarget.style.boxShadow = '0 4px 6px rgba(0,0,0,0.05)';
-                }}>
-                  <div style={{
-                    width: '80px',
-                    height: '80px',
-                    borderRadius: '50%',
-                    backgroundColor: theme?.primaryColor || '#3B82F6',
-                    color: 'white',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: '1.5rem',
-                    fontWeight: 'bold',
-                    margin: '0 auto 20px'
-                  }}>
-                    {member.firstName?.charAt(0)}{member.lastName?.charAt(0)}
-                  </div>
-                  <h3 style={{ fontSize: '1.2rem', fontWeight: 'bold', color: '#1f2937', marginBottom: '5px' }}>
-                    {member.firstName} {member.lastName}
-                  </h3>
-                  <p style={{ color: '#6b7280', marginBottom: '15px' }}>{member.position}</p>
-                  {member.specializations && (
-                    <div style={{ marginBottom: '15px' }}>
-                      {Array.isArray(member.specializations) ? (
-                        <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '5px' }}>
-                          {member.specializations.map((spec, index) => (
-                            <span 
-                              key={index}
-                              style={{
-                                padding: '4px 8px',
-                                backgroundColor: '#e5e7eb',
-                                color: '#374151',
-                                fontSize: '0.8rem',
-                                borderRadius: '4px'
-                              }}
-                            >
-                              {spec}
-                            </span>
-                          ))}
-                        </div>
-                      ) : (
-                        <span style={{
-                          padding: '4px 8px',
-                          backgroundColor: '#e5e7eb',
-                          color: '#374151',
-                          fontSize: '0.8rem',
-                          borderRadius: '4px'
-                        }}>
-                          {member.specializations}
-                        </span>
-                      )}
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-      )}
 
       {/* Contact & Working Hours Section */}
       <section style={{ padding: '80px 20px', backgroundColor: 'white' }}>
