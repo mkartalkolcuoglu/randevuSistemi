@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { X, Search } from 'lucide-react';
-import { Button } from '@repo/ui/button';
+import { Button } from '@repo/ui';
 
 interface Package {
   id: string;

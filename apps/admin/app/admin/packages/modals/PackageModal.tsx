@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { X, Plus, Trash2 } from 'lucide-react';
-import { Button } from '@repo/ui/button';
+import { Button } from '@repo/ui';
 
 interface PackageItem {
   id?: string;

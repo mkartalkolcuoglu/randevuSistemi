@@ -2,8 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import AdminHeader from '../admin-header';
-import { Card, CardContent } from '@repo/ui/card';
-import { Button } from '@repo/ui/button';
+import { Card, CardContent, Button } from '@repo/ui';
 import { Plus, Edit, Trash2, Users, Package as PackageIcon } from 'lucide-react';
 import PackageModal from './modals/PackageModal';
 import AssignPackageModal from './modals/AssignPackageModal';
