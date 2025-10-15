@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@repo/ui';
-import { LogOut, User, Home, Calendar, Users, Briefcase, Package, Settings } from 'lucide-react';
+import { LogOut, User, Home, Calendar, Users, Briefcase, Package, Settings, Wallet } from 'lucide-react';
 import Link from 'next/link';
 import type { AuthenticatedUser } from '../../lib/auth-utils';
 
@@ -103,6 +103,12 @@ export default function AdminHeader({ user }: AdminHeaderProps) {
               <Button variant="ghost" size="sm" className="text-gray-600 hover:text-gray-900">
                 <Package className="w-4 h-4 mr-2" />
                 Stok
+              </Button>
+            </Link>
+            <Link href="/admin/kasa">
+              <Button variant="ghost" size="sm" className="text-gray-600 hover:text-gray-900">
+                <Wallet className="w-4 h-4 mr-2" />
+                Kasa
               </Button>
             </Link>
             <Link href="/admin/settings">

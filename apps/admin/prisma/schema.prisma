@@ -169,3 +169,25 @@ model Product {
   
   @@map("products")
 }
+
+model Transaction {
+  id              String   @id @default(cuid())
+  tenantId        String
+  type            String   // 'income' (gelir), 'expense' (gider), 'sale' (satış), 'appointment' (randevu)
+  amount          Float
+  description     String
+  paymentType     String?  // 'cash', 'card', 'transfer'
+  customerId      String?  // For sales
+  customerName    String?
+  productId       String?  // For sales
+  productName     String?
+  quantity        Int?     // For sales
+  cost            Float?   // Product cost for profit calculation
+  profit          Float?   // Calculated profit (amount - cost)
+  appointmentId   String?  // Link to appointment if type is 'appointment'
+  date            String   // Transaction date
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  @@map("transactions")
+}
