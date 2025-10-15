@@ -173,7 +173,7 @@ model Product {
 model Transaction {
   id              String   @id @default(cuid())
   tenantId        String
-  type            String   // 'income' (gelir), 'expense' (gider), 'sale' (satış), 'appointment' (randevu)
+  type            String   // 'income' (gelir), 'expense' (gider), 'sale' (satış), 'appointment' (randevu), 'package' (paket satışı)
   amount          Float
   description     String
   paymentType     String?  // 'cash', 'card', 'transfer'
@@ -185,9 +185,72 @@ model Transaction {
   cost            Float?   // Product cost for profit calculation
   profit          Float?   // Calculated profit (amount - cost)
   appointmentId   String?  // Link to appointment if type is 'appointment'
+  packageId       String?  // Link to package if type is 'package'
   date            String   // Transaction date
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
   
   @@map("transactions")
+}
+
+model Package {
+  id          String   @id @default(cuid())
+  tenantId    String
+  name        String
+  description String?
+  price       Float
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  items       PackageItem[]
+  customerPackages CustomerPackage[]
+  
+  @@map("packages")
+}
+
+model PackageItem {
+  id          String   @id @default(cuid())
+  packageId   String
+  itemType    String   // 'service' or 'product'
+  itemId      String   // serviceId or productId
+  itemName    String   // service name or product name
+  quantity    Int      // number of sessions/items
+  createdAt   DateTime @default(now())
+  
+  package     Package  @relation(fields: [packageId], references: [id], onDelete: Cascade)
+  
+  @@map("package_items")
+}
+
+model CustomerPackage {
+  id          String   @id @default(cuid())
+  customerId  String
+  packageId   String
+  tenantId    String
+  assignedAt  DateTime @default(now())
+  expiresAt   DateTime?
+  status      String   @default("active") // active, completed, expired
+  
+  package     Package  @relation(fields: [packageId], references: [id])
+  usages      CustomerPackageUsage[]
+  
+  @@map("customer_packages")
+}
+
+model CustomerPackageUsage {
+  id                  String   @id @default(cuid())
+  customerPackageId   String
+  itemType            String   // 'service' or 'product'
+  itemId              String
+  itemName            String
+  totalQuantity       Int      // Starting quantity (e.g., 10)
+  usedQuantity        Int      @default(0) // Used (e.g., 3)
+  remainingQuantity   Int      // Remaining (e.g., 7)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  
+  customerPackage     CustomerPackage @relation(fields: [customerPackageId], references: [id], onDelete: Cascade)
+  
+  @@map("customer_package_usage")
 }

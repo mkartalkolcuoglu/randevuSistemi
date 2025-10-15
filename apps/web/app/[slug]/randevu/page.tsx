@@ -21,11 +21,16 @@ interface PageProps {
   params: Promise<{ slug: string }>;
 }
 
-type StepType = 'service' | 'staff' | 'datetime' | 'customer' | 'confirmation';
+type StepType = 'phone' | 'service' | 'staff' | 'datetime' | 'customer' | 'confirmation';
 
 export default function RandevuPage({ params }: PageProps) {
   const { slug } = use(params);
-  const [currentStep, setCurrentStep] = useState<StepType>('service');
+  const [currentStep, setCurrentStep] = useState<StepType>('phone');
+  const [phoneNumber, setPhoneNumber] = useState('');
+  const [customerPackages, setCustomerPackages] = useState<any[]>([]);
+  const [hasPackages, setHasPackages] = useState(false);
+  const [existingCustomer, setExistingCustomer] = useState<any>(null);
+  const [selectedPackageUsage, setSelectedPackageUsage] = useState<any>(null);
   const [selectedService, setSelectedService] = useState<string>('');
   const [selectedStaff, setSelectedStaff] = useState<string>('');
   const [selectedDate, setSelectedDate] = useState<string>('');
@@ -57,6 +62,7 @@ export default function RandevuPage({ params }: PageProps) {
   const selectedServiceData = services?.find(s => s.id === selectedService);
 
   const steps = [
+    { id: 'phone', title: 'Telefon Doğrulama', icon: '📱' },
     { id: 'service', title: 'Hizmet Seçimi', icon: '1️⃣' },
     { id: 'staff', title: 'Personel Seçimi', icon: '2️⃣' },
     { id: 'datetime', title: 'Tarih & Saat', icon: '3️⃣' },
@@ -68,6 +74,7 @@ export default function RandevuPage({ params }: PageProps) {
 
   const canProceedToNext = () => {
     switch (currentStep) {
+      case 'phone': return phoneNumber.length >= 10;
       case 'service': return !!selectedService;
       case 'staff': return !!selectedStaff;
       case 'datetime': return !!selectedDate && !!selectedTime;
@@ -77,12 +84,56 @@ export default function RandevuPage({ params }: PageProps) {
     }
   };
 
-  const handleNext = () => {
+  const handleNext = async () => {
     if (!canProceedToNext()) return;
+    
+    // If on phone step, check for packages
+    if (currentStep === 'phone') {
+      await checkCustomerPackages();
+    }
     
     const nextStepIndex = currentStepIndex + 1;
     if (nextStepIndex < steps.length) {
       setCurrentStep(steps[nextStepIndex].id as StepType);
+    }
+  };
+
+  const checkCustomerPackages = async () => {
+    try {
+      const response = await fetch(`https://randevu-sistemi-admin.vercel.app/api/customer-packages/check`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          phone: phoneNumber,
+          tenantId: tenant?.id
+        })
+      });
+
+      const result = await response.json();
+
+      if (result.success && result.hasPackages) {
+        setHasPackages(true);
+        setCustomerPackages(result.packages);
+        setExistingCustomer(result.customer);
+        // Pre-fill customer info
+        setCustomerInfo({
+          name: `${result.customer.firstName} ${result.customer.lastName}`,
+          email: result.customer.email,
+          phone: result.customer.phone,
+          notes: ''
+        });
+      } else {
+        setHasPackages(false);
+        setCustomerPackages([]);
+        setExistingCustomer(null);
+        // Set phone in customer info
+        setCustomerInfo(prev => ({ ...prev, phone: phoneNumber }));
+      }
+    } catch (error) {
+      console.error('Error checking packages:', error);
+      // Continue with normal flow on error
+      setHasPackages(false);
+      setCustomerInfo(prev => ({ ...prev, phone: phoneNumber }));
     }
   };
 
@@ -163,6 +214,83 @@ export default function RandevuPage({ params }: PageProps) {
       </div>
     );
   }
+
+  const renderPhoneVerification = () => (
+    <div className="space-y-6">
+      <div className="text-center">
+        <h2 className="text-2xl font-bold text-gray-900 mb-2">📱 Telefon Numaranız</h2>
+        <p className="text-gray-600">
+          Paket kontrolü için telefon numaranızı girin
+        </p>
+      </div>
+
+      <Card>
+        <CardContent className="p-8">
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Telefon Numarası
+              </label>
+              <div className="relative">
+                <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                <input
+                  type="tel"
+                  value={phoneNumber}
+                  onChange={(e) => setPhoneNumber(e.target.value)}
+                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-lg"
+                  placeholder="5XX XXX XX XX"
+                  maxLength={11}
+                />
+              </div>
+              <p className="text-xs text-gray-500 mt-2">
+                Örnek: 5551234567
+              </p>
+            </div>
+
+            {phoneNumber.length >= 10 && (
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <p className="text-sm text-blue-800">
+                  ✓ Telefon numaranız kaydedildi. Devam etmek için "İleri" butonuna tıklayın.
+                </p>
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      {hasPackages && customerPackages.length > 0 && (
+        <Card className="bg-green-50 border-green-200">
+          <CardContent className="p-6">
+            <div className="flex items-start">
+              <Check className="w-6 h-6 text-green-600 mr-3 flex-shrink-0 mt-1" />
+              <div>
+                <h3 className="font-semibold text-green-900 mb-2">
+                  🎉 Hoş Geldiniz, {existingCustomer?.firstName}!
+                </h3>
+                <p className="text-sm text-green-800 mb-3">
+                  Size atanmış {customerPackages.length} paket bulundu. Randevu alırken paketinizi kullanabilirsiniz.
+                </p>
+                <div className="space-y-2">
+                  {customerPackages.map((cp: any) => (
+                    <div key={cp.id} className="bg-white rounded-lg p-3 border border-green-200">
+                      <h4 className="font-semibold text-gray-900 mb-1">{cp.package.name}</h4>
+                      <ul className="text-sm text-gray-700 space-y-1">
+                        {cp.usages.map((usage: any) => (
+                          <li key={usage.id}>
+                            • {usage.itemName}: <span className="font-semibold">{usage.remainingQuantity}</span> kaldı
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  );
 
   const renderServiceSelection = () => (
     <div className="space-y-6">
@@ -517,6 +645,7 @@ export default function RandevuPage({ params }: PageProps) {
 
   const renderCurrentStep = () => {
     switch (currentStep) {
+      case 'phone': return renderPhoneVerification();
       case 'service': return renderServiceSelection();
       case 'staff': return renderStaffSelection();
       case 'datetime': return renderDateTimeSelection();
