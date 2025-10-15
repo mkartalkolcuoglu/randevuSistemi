@@ -11,8 +11,12 @@ import {
   Trash2,
   ShoppingCart,
   Receipt,
-  Wallet
+  Wallet,
+  ArrowLeft
 } from 'lucide-react';
+import Link from 'next/link';
+import AdminHeader from '../admin-header';
+import type { AuthenticatedUser } from '../../../lib/auth-utils';
 
 interface Transaction {
   id: string;
@@ -35,7 +39,12 @@ interface Summary {
   totalProfit: number;
 }
 
-export default function KasaClient() {
+interface KasaClientProps {
+  tenantId: string;
+  user: AuthenticatedUser;
+}
+
+export default function KasaClient({ tenantId, user }: KasaClientProps) {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [summary, setSummary] = useState<Summary>({
     income: 0,
@@ -54,13 +63,9 @@ export default function KasaClient() {
   const [showExpenseModal, setShowExpenseModal] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
 
-  const tenantId = typeof window !== 'undefined' ? localStorage.getItem('tenantId') : null;
-
   useEffect(() => {
-    if (tenantId) {
-      fetchTransactions();
-    }
-  }, [tenantId, dateFilter, customStartDate, customEndDate]);
+    fetchTransactions();
+  }, [dateFilter, customStartDate, customEndDate]);
 
   const getDateRange = () => {
     const today = new Date();
@@ -99,7 +104,7 @@ export default function KasaClient() {
       const { startDate, endDate } = getDateRange();
       
       const params = new URLSearchParams({
-        tenantId: tenantId!,
+        tenantId: tenantId,
         ...(startDate && { startDate }),
         ...(endDate && { endDate })
       });
@@ -166,19 +171,30 @@ export default function KasaClient() {
     }
   };
 
-  if (loading) {
-    return <div className="flex justify-center items-center h-64">Yükleniyor...</div>;
-  }
-
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Kasa Yönetimi</h1>
-          <p className="text-gray-600 mt-1">Gelir, gider ve satışlarınızı yönetin</p>
-        </div>
-      </div>
+    <>
+      <AdminHeader user={user} />
+      <div className="p-8">
+        {loading ? (
+          <div className="flex justify-center items-center h-64">Yükleniyor...</div>
+        ) : (
+          <div className="space-y-6">
+            {/* Back button and Header */}
+            <div className="flex items-center gap-4 mb-6">
+              <Link href="/admin">
+                <Button variant="outline" size="sm">
+                  <ArrowLeft className="w-4 h-4 mr-2" />
+                  Geri Dön
+                </Button>
+              </Link>
+            </div>
+            
+            <div className="flex justify-between items-center">
+              <div>
+                <h1 className="text-3xl font-bold text-gray-900">Kasa Yönetimi</h1>
+                <p className="text-gray-600 mt-1">Gelir, gider ve satışlarınızı yönetin</p>
+              </div>
+            </div>
 
       {/* Date Filter */}
       <Card>
@@ -407,7 +423,7 @@ export default function KasaClient() {
             setEditingTransaction(null);
           }}
           onSuccess={fetchTransactions}
-          tenantId={tenantId!}
+          tenantId={tenantId}
           editingTransaction={editingTransaction}
         />
       )}
@@ -420,7 +436,7 @@ export default function KasaClient() {
             setEditingTransaction(null);
           }}
           onSuccess={fetchTransactions}
-          tenantId={tenantId!}
+          tenantId={tenantId}
           editingTransaction={editingTransaction}
         />
       )}
@@ -433,11 +449,14 @@ export default function KasaClient() {
             setEditingTransaction(null);
           }}
           onSuccess={fetchTransactions}
-          tenantId={tenantId!}
+          tenantId={tenantId}
           editingTransaction={editingTransaction}
         />
       )}
-    </div>
+          </div>
+        )}
+      </div>
+    </>
   );
 }
 

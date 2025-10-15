@@ -1,13 +1,11 @@
-import { Suspense } from 'react';
+import { requireAuth } from '../../../lib/auth-utils';
 import KasaClient from './kasa-client';
 
-export default function KasaPage() {
-  return (
-    <div className="p-8">
-      <Suspense fallback={<div>Yükleniyor...</div>}>
-        <KasaClient />
-      </Suspense>
-    </div>
-  );
+export const dynamic = 'force-dynamic';
+
+export default async function KasaPage() {
+  const user = await requireAuth();
+
+  return <KasaClient tenantId={user.id} user={user} />;
 }
 
