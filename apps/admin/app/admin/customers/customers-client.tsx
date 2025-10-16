@@ -256,7 +256,11 @@ export default function CustomersClient({ initialCustomers, tenantId, user }: Cu
                     </thead>
                     <tbody>
                       {filteredCustomers.map((customer) => (
-                        <tr key={customer.id} className="border-b border-gray-100 hover:bg-gray-50">
+                        <tr 
+                          key={customer.id} 
+                          className="border-b border-gray-100 hover:bg-blue-50 cursor-pointer transition-colors"
+                          onClick={() => window.location.href = `/admin/customers/${customer.id}`}
+                        >
                           <td className="py-3 px-4">
                             <div className="flex items-center">
                               <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
@@ -296,7 +300,7 @@ export default function CustomersClient({ initialCustomers, tenantId, user }: Cu
                           <td className="py-3 px-4">
                             {getStatusBadge(customer.status)}
                           </td>
-                          <td className="py-3 px-4">
+                          <td className="py-3 px-4" onClick={(e) => e.stopPropagation()}>
                             <div className="flex space-x-2">
                               <Link href={`/admin/customers/${customer.id}/edit`}>
                                 <Button
