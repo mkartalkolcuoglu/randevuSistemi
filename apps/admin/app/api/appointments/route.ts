@@ -241,6 +241,13 @@ export async function POST(request: NextRequest) {
       console.log('🎁 Package info:', data.packageInfo);
       console.log('📦 Use package:', data.usePackageForService);
       
+      // Extract serviceId from packageInfo if available, otherwise use provided serviceId
+      const actualServiceId = (data.usePackageForService && data.packageInfo?.serviceId) 
+        ? data.packageInfo.serviceId 
+        : (data.serviceId || 'web-service');
+
+      console.log('🔍 Service ID:', actualServiceId);
+
       const newAppointment = await prisma.appointment.create({
         data: {
           tenantId: tenant.id,
@@ -248,7 +255,7 @@ export async function POST(request: NextRequest) {
           customerName: data.customerName,
           customerPhone: data.customerPhone || '',
           customerEmail: data.customerEmail || '',
-          serviceId: data.serviceId || 'web-service',
+          serviceId: actualServiceId,
           serviceName: data.serviceName,
           staffId: data.staffId,
           staffName: staffName,

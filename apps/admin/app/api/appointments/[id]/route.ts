@@ -80,11 +80,15 @@ export async function PUT(
         price: data.price || 0,
         duration: data.duration || 60,
         paymentType: data.paymentType || 'cash'
+        // Note: packageInfo is NOT updated - it's set only at creation
       }
     });
 
+    console.log('📦 Updated appointment packageInfo:', updatedAppointment.packageInfo);
+
     // If status changed to "confirmed", deduct from package if applicable
     if (data.status === 'confirmed' && oldAppointment?.status !== 'confirmed') {
+      console.log('✅ Status changed to confirmed - checking for package deduction');
       await deductFromPackage(updatedAppointment);
     }
 

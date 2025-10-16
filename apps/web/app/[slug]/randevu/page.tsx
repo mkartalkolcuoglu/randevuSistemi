@@ -224,6 +224,7 @@ export default function RandevuPage({ params }: PageProps) {
         customerName: customerInfo.name,
         customerEmail: customerInfo.email,
         customerPhone: customerInfo.phone,
+        serviceId: selectedService, // Add serviceId to main data
         serviceName: selectedServiceData?.name || 'Seçilen Hizmet',
         staffId: selectedStaff,
         date: selectedDate,
