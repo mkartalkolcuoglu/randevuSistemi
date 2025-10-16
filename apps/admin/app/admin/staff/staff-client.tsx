@@ -317,20 +317,19 @@ export default function StaffClient({ user }: StaffClientProps) {
                       </div>
                     </div>
 
-                    {/* Rating */}
-                    <div className="mb-4">
-                      <p className="text-xs text-gray-500 mb-1">Değerlendirme</p>
-                      {renderStars(member.rating)}
-                    </div>
-
                     {/* Specializations */}
-                    {member.specializations && (
+                    {member.specializations && member.specializations.length > 0 && (
                       <div className="mb-4">
                         <p className="text-xs text-gray-500 mb-1">Uzmanlık</p>
                         <div className="flex flex-wrap gap-1">
-                          {member.specializations.split(',').map((spec, index) => (
+                          {(Array.isArray(member.specializations) 
+                            ? member.specializations 
+                            : typeof member.specializations === 'string' 
+                              ? member.specializations.split(',').map(s => s.trim())
+                              : []
+                          ).map((spec, index) => (
                             <Badge key={index} className="text-xs bg-blue-100 text-blue-800">
-                              {spec.trim()}
+                              {spec}
                             </Badge>
                           ))}
                         </div>

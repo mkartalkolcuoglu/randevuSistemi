@@ -392,16 +392,6 @@ export default function StaffDetailPage() {
               
               <div className="pt-4 border-t">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">Ortalama Değerlendirme</span>
-                  <span className="text-sm font-medium flex items-center">
-                    <Star className="w-4 h-4 text-yellow-500 mr-1" />
-                    {staff.rating || 0}/5
-                  </span>
-                </div>
-              </div>
-              
-              <div>
-                <div className="flex items-center justify-between">
                   <span className="text-sm text-gray-600">Toplam Deneyim</span>
                   <span className="text-sm font-medium">{staff.experience || 0} yıl</span>
                 </div>
