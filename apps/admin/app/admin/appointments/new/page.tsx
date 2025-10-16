@@ -54,11 +54,20 @@ export default function NewAppointmentPage() {
     const localOffset = now.getTimezoneOffset(); // Local timezone offset in minutes
     const turkeyTime = new Date(now.getTime() + (turkeyOffset + localOffset) * 60000);
 
+    console.log('🕐 Current time:', now.toISOString());
+    console.log('🇹🇷 Turkey time:', turkeyTime.toISOString());
+    console.log('📅 Selected date:', formData.date);
+
     const selectedDate = new Date(formData.date + 'T00:00:00');
     const todayInTurkey = new Date(turkeyTime.toISOString().split('T')[0] + 'T00:00:00');
 
+    console.log('📅 Selected date (parsed):', selectedDate.toISOString());
+    console.log('📅 Today in Turkey:', todayInTurkey.toISOString());
+    console.log('⚖️ Are they equal?', selectedDate.getTime() === todayInTurkey.getTime());
+
     // If selected date is not today, allow all time slots
     if (selectedDate.getTime() !== todayInTurkey.getTime()) {
+      console.log('✅ Future date selected, showing all slots');
       setAvailableTimeSlots(allTimeSlots);
       return;
     }
@@ -67,14 +76,20 @@ export default function NewAppointmentPage() {
     const currentHour = turkeyTime.getHours();
     const currentMinute = turkeyTime.getMinutes();
 
+    console.log('⏰ Current hour:', currentHour);
+    console.log('⏰ Current minute:', currentMinute);
+
     const filtered = allTimeSlots.filter(timeSlot => {
       const [hour, minute] = timeSlot.split(':').map(Number);
       const slotTime = hour * 60 + minute;
       const currentTime = currentHour * 60 + currentMinute;
       
+      console.log(`🔍 Checking ${timeSlot}: slotTime=${slotTime}, currentTime=${currentTime}, show=${slotTime > currentTime}`);
+      
       return slotTime > currentTime;
     });
 
+    console.log('✅ Filtered slots:', filtered);
     setAvailableTimeSlots(filtered);
   }, [formData.date]);
 
