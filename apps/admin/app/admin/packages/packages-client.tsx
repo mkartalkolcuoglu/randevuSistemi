@@ -356,6 +356,7 @@ export default function PackagesClient({ tenantId, user }: PackagesClientProps) 
 
       {showAssignModal && packageToAssign && (
         <AssignPackageModal
+          key={`${packageToAssign.id}-${Date.now()}`}
           tenantId={tenantId}
           package={packageToAssign}
           onClose={() => {
