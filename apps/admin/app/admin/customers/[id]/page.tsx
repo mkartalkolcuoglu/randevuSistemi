@@ -11,13 +11,16 @@ export default function CustomerDetailPage() {
   const params = useParams();
   const [customer, setCustomer] = useState(null);
   const [customerPackages, setCustomerPackages] = useState([]);
+  const [appointments, setAppointments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [packagesLoading, setPackagesLoading] = useState(true);
+  const [appointmentsLoading, setAppointmentsLoading] = useState(true);
 
   useEffect(() => {
     if (params.id) {
       fetchCustomer();
       fetchCustomerPackages();
+      fetchAppointments();
     }
   }, [params.id]);
 
@@ -53,6 +56,26 @@ export default function CustomerDetailPage() {
       setCustomerPackages([]);
     } finally {
       setPackagesLoading(false);
+    }
+  };
+
+  const fetchAppointments = async () => {
+    try {
+      setAppointmentsLoading(true);
+      const response = await fetch(`/api/appointments?customerId=${params.id}`);
+      if (response.ok) {
+        const data = await response.json();
+        // Filter only completed appointments
+        const completedAppts = (data.data || []).filter(
+          (apt: any) => apt.status === 'confirmed' || apt.status === 'completed'
+        );
+        setAppointments(completedAppts);
+      }
+    } catch (error) {
+      console.error('Error fetching appointments:', error);
+      setAppointments([]);
+    } finally {
+      setAppointmentsLoading(false);
     }
   };
 
@@ -221,6 +244,81 @@ export default function CustomerDetailPage() {
                       <Badge key={index} variant="outline">{service}</Badge>
                     ))}
                   </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Appointment History */}
+          <Card className="mt-6">
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <Calendar className="w-5 h-5 mr-2" />
+                Randevu Geçmişi
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {appointmentsLoading ? (
+                <div className="text-center py-4 text-sm text-gray-600">
+                  Yükleniyor...
+                </div>
+              ) : appointments.length === 0 ? (
+                <div className="text-center py-8">
+                  <Calendar className="w-12 h-12 text-gray-300 mx-auto mb-2" />
+                  <p className="text-sm text-gray-600">Tamamlanmış randevu yok</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {appointments.slice(0, 5).map((apt: any) => (
+                    <div key={apt.id} className="border rounded-lg p-4 hover:bg-gray-50 transition-colors">
+                      <div className="flex justify-between items-start mb-2">
+                        <div className="flex-1">
+                          <h4 className="font-semibold text-gray-900">{apt.serviceName}</h4>
+                          <p className="text-sm text-gray-600">{apt.staffName}</p>
+                        </div>
+                        {apt.packageInfo ? (
+                          <div className="text-sm font-semibold text-green-600 flex items-center">
+                            <Gift className="w-4 h-4 mr-1" />
+                            Paket
+                          </div>
+                        ) : (
+                          <div className="text-lg font-semibold text-gray-900">
+                            ₺{apt.price}
+                          </div>
+                        )}
+                      </div>
+                      
+                      <div className="flex items-center gap-4 text-xs text-gray-500">
+                        <div className="flex items-center">
+                          <Calendar className="w-3 h-3 mr-1" />
+                          {new Date(apt.date).toLocaleDateString('tr-TR')}
+                        </div>
+                        <div className="flex items-center">
+                          <Clock className="w-3 h-3 mr-1" />
+                          {apt.time}
+                        </div>
+                        <div>
+                          {apt.duration} dk
+                        </div>
+                      </div>
+
+                      {apt.notes && (
+                        <div className="mt-2 text-xs text-gray-600 bg-gray-50 p-2 rounded">
+                          {apt.notes}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                  
+                  {appointments.length > 5 && (
+                    <div className="text-center pt-2">
+                      <Link href={`/admin/appointments?customer=${customer.id}`}>
+                        <Button variant="outline" size="sm" className="w-full">
+                          Tümünü Gör ({appointments.length} randevu)
+                        </Button>
+                      </Link>
+                    </div>
+                  )}
                 </div>
               )}
             </CardContent>
