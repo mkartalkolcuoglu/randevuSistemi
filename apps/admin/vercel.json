@@ -1,6 +1,9 @@
 {
-  "buildCommand": "cd ../.. && npx turbo run build --filter=admin",
+  "buildCommand": "cd apps/admin && npx prisma generate && cd ../.. && npx turbo run build --filter=admin",
   "installCommand": "npm install --legacy-peer-deps",
-  "framework": "nextjs"
+  "framework": "nextjs",
+  "env": {
+    "SKIP_ENV_VALIDATION": "true"
+  }
 }
 
