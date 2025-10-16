@@ -238,6 +238,9 @@ export async function POST(request: NextRequest) {
       console.log('👤 Customer:', customer.id);
       
       // Create appointment
+      console.log('🎁 Package info:', data.packageInfo);
+      console.log('📦 Use package:', data.usePackageForService);
+      
       const newAppointment = await prisma.appointment.create({
         data: {
           tenantId: tenant.id,
@@ -256,10 +259,14 @@ export async function POST(request: NextRequest) {
           price: data.price || 0,
           duration: data.duration || 60,
           paymentType: data.paymentType || 'cash',
+          // Store package info if user wants to use package
+          packageInfo: (data.usePackageForService && data.packageInfo) 
+            ? JSON.stringify(data.packageInfo) 
+            : null,
         }
       });
 
-      console.log('✅ Appointment created:', newAppointment.id);
+      console.log('✅ Appointment created:', newAppointment.id, 'with package:', data.usePackageForService);
 
       return NextResponse.json({
         success: true,

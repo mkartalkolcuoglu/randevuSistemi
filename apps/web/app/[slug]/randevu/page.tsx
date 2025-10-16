@@ -11,7 +11,8 @@ import {
   Mail, 
   Calendar,
   Check,
-  AlertCircle
+  AlertCircle,
+  X
 } from 'lucide-react';
 import { useTenant, useServices, useStaff, useAvailableSlots, useCreateAppointment } from '../../../lib/api-hooks';
 import { format, addDays } from 'date-fns';
@@ -31,6 +32,8 @@ export default function RandevuPage({ params }: PageProps) {
   const [hasPackages, setHasPackages] = useState(false);
   const [existingCustomer, setExistingCustomer] = useState<any>(null);
   const [selectedPackageUsage, setSelectedPackageUsage] = useState<any>(null);
+  const [usePackageForService, setUsePackageForService] = useState<boolean>(false);
+  const [showPackageChoice, setShowPackageChoice] = useState<boolean>(false);
   const [selectedService, setSelectedService] = useState<string>('');
   const [selectedStaff, setSelectedStaff] = useState<string>('');
   const [selectedDate, setSelectedDate] = useState<string>('');
@@ -119,27 +122,38 @@ export default function RandevuPage({ params }: PageProps) {
     
     const nextStepIndex = currentStepIndex + 1;
     if (nextStepIndex < steps.length) {
-      setCurrentStep(steps[nextStepIndex].id as StepType);
+      const nextStep = steps[nextStepIndex].id as StepType;
+      
+      // If moving to confirmation and service is covered by package, show choice modal
+      if (nextStep === 'confirmation' && servicePackageInfo) {
+        setShowPackageChoice(true);
+      }
+      
+      setCurrentStep(nextStep);
     }
   };
 
   const checkCustomerPackages = async () => {
     try {
+      console.log('📞 Checking packages for phone:', phoneNumber, 'slug:', slug);
+      
       const response = await fetch(`https://randevu-sistemi-admin.vercel.app/api/customer-packages/check`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           phone: phoneNumber,
-          tenantId: tenant?.id
+          slug: slug
         })
       });
 
       const result = await response.json();
+      console.log('📦 Package check result:', result);
 
       if (result.success && result.hasPackages) {
         setHasPackages(true);
         setCustomerPackages(result.packages);
         setExistingCustomer(result.customer);
+        console.log('✅ Customer with packages found');
         // Pre-fill customer info
         setCustomerInfo({
           name: `${result.customer.firstName} ${result.customer.lastName}`,
@@ -147,10 +161,24 @@ export default function RandevuPage({ params }: PageProps) {
           phone: result.customer.phone,
           notes: ''
         });
+      } else if (result.success && result.customer && !result.hasPackages) {
+        // Customer exists but no packages
+        setHasPackages(false);
+        setCustomerPackages([]);
+        setExistingCustomer(result.customer);
+        console.log('✅ Customer without packages found');
+        setCustomerInfo({
+          name: `${result.customer.firstName} ${result.customer.lastName}`,
+          email: result.customer.email,
+          phone: result.customer.phone,
+          notes: ''
+        });
       } else {
+        // New customer
         setHasPackages(false);
         setCustomerPackages([]);
         setExistingCustomer(null);
+        console.log('ℹ️ New customer');
         // Set phone in customer info
         setCustomerInfo(prev => ({ ...prev, phone: phoneNumber }));
       }
@@ -188,10 +216,18 @@ export default function RandevuPage({ params }: PageProps) {
         duration: selectedServiceData?.duration || 60,
         price: selectedServiceData?.price || 0,
         notes: customerInfo.notes,
-        customerInfo
+        customerInfo,
+        // Package usage info
+        usePackageForService: servicePackageInfo ? usePackageForService : false,
+        packageInfo: (servicePackageInfo && usePackageForService) ? {
+          customerPackageId: servicePackageInfo.customerPackageId,
+          usageId: servicePackageInfo.usage.id,
+          packageName: servicePackageInfo.packageName,
+          serviceId: selectedService
+        } : null
       };
       
-      console.log('Gönderilen randevu verisi:', appointmentData);
+      console.log('📤 Gönderilen randevu verisi:', appointmentData);
       const appointment = await createAppointmentMutation.mutateAsync(appointmentData);
 
       // Redirect to success page or show success message
@@ -646,6 +682,58 @@ export default function RandevuPage({ params }: PageProps) {
         <p className="text-gray-600">Bilgilerinizi kontrol edin ve onaylayın</p>
       </div>
 
+      {/* Package Usage Choice - Only show if service is covered by package and user hasn't decided yet */}
+      {servicePackageInfo && showPackageChoice && (
+        <Card className="border-2 border-orange-300 bg-orange-50">
+          <CardContent className="p-6">
+            <div className="text-center">
+              <div className="text-4xl mb-4">🎁</div>
+              <h3 className="text-xl font-bold text-gray-900 mb-2">
+                Paket Kullanımı
+              </h3>
+              <p className="text-gray-700 mb-4">
+                Aldığınız <strong>{selectedServiceData?.name}</strong> hizmeti, 
+                aktif olan <strong>{servicePackageInfo.packageName}</strong> paketinizde mevcut.
+              </p>
+              <p className="text-sm text-gray-600 mb-6">
+                Paketinizde <strong>{servicePackageInfo.remainingQuantity} seans</strong> hakkınız bulunuyor.
+              </p>
+              <div className="bg-white rounded-lg p-4 mb-6 border border-orange-200">
+                <p className="font-semibold text-gray-900 mb-2">
+                  Bu randevuyu paketinizden düşürmek ister misiniz?
+                </p>
+                <p className="text-sm text-gray-600">
+                  Evet derseniz randevu tamamlandığında paket hakkınız azalacaktır. 
+                  Hayır derseniz normal ücret (₺{selectedServiceData?.price}) tahsil edilecektir.
+                </p>
+              </div>
+              <div className="flex gap-4 justify-center">
+                <button
+                  onClick={() => {
+                    setUsePackageForService(true);
+                    setShowPackageChoice(false);
+                  }}
+                  className="px-8 py-3 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700 transition-colors duration-200 flex items-center gap-2"
+                >
+                  <Check className="w-5 h-5" />
+                  Evet, Paketten Düş
+                </button>
+                <button
+                  onClick={() => {
+                    setUsePackageForService(false);
+                    setShowPackageChoice(false);
+                  }}
+                  className="px-8 py-3 bg-gray-200 text-gray-700 font-semibold rounded-lg hover:bg-gray-300 transition-colors duration-200 flex items-center gap-2"
+                >
+                  <X className="w-5 h-5" />
+                  Hayır, Ödeme Yapacağım
+                </button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       <Card>
         <CardContent className="p-6 space-y-4">
           <div className="border-b pb-4">
@@ -705,7 +793,7 @@ export default function RandevuPage({ params }: PageProps) {
             </div>
           </div>
 
-          {servicePackageInfo ? (
+          {servicePackageInfo && usePackageForService ? (
             <div className="bg-green-50 p-4 rounded-lg border border-green-200">
               <div className="flex justify-between items-center">
                 <span className="text-lg font-semibold text-gray-900">Ödeme</span>

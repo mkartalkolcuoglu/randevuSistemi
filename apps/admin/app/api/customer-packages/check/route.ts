@@ -7,11 +7,32 @@ const prisma = new PrismaClient();
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { phone, tenantId } = body;
+    const { phone, tenantId, slug } = body;
 
-    if (!phone || !tenantId) {
+    console.log('📞 Customer package check request:', { phone, tenantId, slug });
+
+    if (!phone) {
       return NextResponse.json(
-        { success: false, error: 'Telefon numarası ve tenant bilgisi gerekli' },
+        { success: false, error: 'Telefon numarası gerekli' },
+        { status: 400 }
+      );
+    }
+
+    // If slug is provided instead of tenantId, find tenant first
+    let actualTenantId = tenantId;
+    if (!actualTenantId && slug) {
+      const tenant = await prisma.tenant.findUnique({
+        where: { slug }
+      });
+      if (tenant) {
+        actualTenantId = tenant.id;
+        console.log('✅ Tenant found by slug:', actualTenantId);
+      }
+    }
+
+    if (!actualTenantId) {
+      return NextResponse.json(
+        { success: false, error: 'Tenant bilgisi bulunamadı' },
         { status: 400 }
       );
     }
@@ -20,9 +41,11 @@ export async function POST(request: NextRequest) {
     const customer = await prisma.customer.findFirst({
       where: {
         phone,
-        tenantId
+        tenantId: actualTenantId
       }
     });
+
+    console.log('👤 Customer search result:', customer ? 'Found' : 'Not found');
 
     if (!customer) {
       return NextResponse.json({
@@ -37,7 +60,7 @@ export async function POST(request: NextRequest) {
     const customerPackages = await prisma.customerPackage.findMany({
       where: {
         customerId: customer.id,
-        tenantId,
+        tenantId: actualTenantId,
         status: 'active'
       },
       include: {
