@@ -3,18 +3,21 @@
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { Button, Card, CardContent, CardHeader, CardTitle, Badge } from '@repo/ui';
-import { ArrowLeft, Edit, Trash2, Phone, Mail, Calendar, MapPin, User, Clock, DollarSign } from 'lucide-react';
+import { ArrowLeft, Edit, Trash2, Phone, Mail, Calendar, MapPin, User, Clock, DollarSign, Gift, Package } from 'lucide-react';
 import Link from 'next/link';
 
 export default function CustomerDetailPage() {
   const router = useRouter();
   const params = useParams();
   const [customer, setCustomer] = useState(null);
+  const [customerPackages, setCustomerPackages] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [packagesLoading, setPackagesLoading] = useState(true);
 
   useEffect(() => {
     if (params.id) {
       fetchCustomer();
+      fetchCustomerPackages();
     }
   }, [params.id]);
 
@@ -34,6 +37,22 @@ export default function CustomerDetailPage() {
       router.push('/admin/customers');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchCustomerPackages = async () => {
+    try {
+      setPackagesLoading(true);
+      const response = await fetch(`/api/packages/assign?customerId=${params.id}`);
+      if (response.ok) {
+        const data = await response.json();
+        setCustomerPackages(data.success ? data.data : []);
+      }
+    } catch (error) {
+      console.error('Error fetching customer packages:', error);
+      setCustomerPackages([]);
+    } finally {
+      setPackagesLoading(false);
     }
   };
 
@@ -245,6 +264,85 @@ export default function CustomerDetailPage() {
                   </span>
                 </div>
               </div>
+            </CardContent>
+          </Card>
+
+          {/* Customer Packages */}
+          <Card className="mt-6">
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <Gift className="w-5 h-5 mr-2" />
+                Paketler
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {packagesLoading ? (
+                <div className="text-center py-4 text-sm text-gray-600">
+                  Yükleniyor...
+                </div>
+              ) : customerPackages.length === 0 ? (
+                <div className="text-center py-4">
+                  <Package className="w-12 h-12 text-gray-300 mx-auto mb-2" />
+                  <p className="text-sm text-gray-600">Atanmış paket yok</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {customerPackages.map((cp: any) => (
+                    <div key={cp.id} className="border rounded-lg p-4 bg-gray-50">
+                      <div className="flex justify-between items-start mb-3">
+                        <div>
+                          <h4 className="font-semibold text-gray-900">{cp.package.name}</h4>
+                          <p className="text-sm text-gray-600">₺{cp.package.price.toLocaleString()}</p>
+                        </div>
+                        <Badge className={
+                          cp.status === 'active' ? 'bg-green-100 text-green-800' :
+                          cp.status === 'completed' ? 'bg-blue-100 text-blue-800' :
+                          'bg-gray-100 text-gray-800'
+                        }>
+                          {cp.status === 'active' ? 'Aktif' : cp.status === 'completed' ? 'Tamamlandı' : 'Pasif'}
+                        </Badge>
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <p className="text-xs text-gray-500 mb-2">Kalan Haklar:</p>
+                        {cp.usages.map((usage: any) => (
+                          <div key={usage.id} className="flex justify-between items-center text-sm">
+                            <span className="text-gray-700">
+                              {usage.itemName}
+                              <span className="text-xs text-gray-500 ml-1">
+                                ({usage.itemType === 'service' ? 'Hizmet' : 'Ürün'})
+                              </span>
+                            </span>
+                            <div className="flex items-center gap-2">
+                              <span className={`font-semibold ${
+                                usage.remainingQuantity === 0 ? 'text-red-600' : 
+                                usage.remainingQuantity <= 2 ? 'text-orange-600' : 
+                                'text-green-600'
+                              }`}>
+                                {usage.remainingQuantity}
+                              </span>
+                              <span className="text-gray-500">/ {usage.totalQuantity}</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+
+                      <div className="mt-3 pt-3 border-t text-xs text-gray-500">
+                        <div className="flex justify-between">
+                          <span>Atanma:</span>
+                          <span>{new Date(cp.assignedAt).toLocaleDateString('tr-TR')}</span>
+                        </div>
+                        {cp.expiresAt && (
+                          <div className="flex justify-between mt-1">
+                            <span>Bitiş:</span>
+                            <span>{new Date(cp.expiresAt).toLocaleDateString('tr-TR')}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
 
