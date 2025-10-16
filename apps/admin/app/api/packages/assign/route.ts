@@ -113,6 +113,8 @@ export async function GET(request: NextRequest) {
 
     // If packageId is provided, return assigned customers for that package
     if (packageId) {
+      console.log('🔍 Fetching assigned customers for packageId:', packageId);
+      
       const customerPackages = await prisma.customerPackage.findMany({
         where: { packageId },
         include: {
@@ -122,6 +124,9 @@ export async function GET(request: NextRequest) {
         },
         orderBy: { assignedAt: 'desc' }
       });
+
+      console.log('📦 Found customer packages:', customerPackages.length);
+      console.log('👥 Customer packages data:', JSON.stringify(customerPackages, null, 2));
 
       return NextResponse.json({
         success: true,

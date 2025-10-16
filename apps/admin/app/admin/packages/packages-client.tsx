@@ -127,18 +127,27 @@ export default function PackagesClient({ tenantId, user }: PackagesClientProps) 
     setShowAssignedCustomersModal(true);
     setLoadingCustomers(true);
 
+    console.log('🔍 Loading assigned customers for package:', pkg.id, pkg.name);
+
     try {
-      const response = await fetch(`/api/packages/assign?packageId=${pkg.id}`);
+      const url = `/api/packages/assign?packageId=${pkg.id}`;
+      console.log('📡 Fetching:', url);
+      
+      const response = await fetch(url);
       const result = await response.json();
+
+      console.log('📦 API Response:', result);
+      console.log('👥 Assigned customers count:', result.data?.length || 0);
 
       if (result.success) {
         setAssignedCustomers(result.data || []);
+        console.log('✅ Customers loaded:', result.data);
       } else {
-        console.error('Failed to load assigned customers:', result.error);
+        console.error('❌ Failed to load assigned customers:', result.error);
         setAssignedCustomers([]);
       }
     } catch (error) {
-      console.error('Error loading assigned customers:', error);
+      console.error('❌ Error loading assigned customers:', error);
       setAssignedCustomers([]);
     } finally {
       setLoadingCustomers(false);
