@@ -33,12 +33,45 @@ export default function NewAppointmentPage() {
   });
 
   // Time slots
-  const timeSlots = [
+  const allTimeSlots = [
     '09:00', '09:30', '10:00', '10:30', '11:00', '11:30', 
     '12:00', '12:30', '13:00', '13:30', '14:00', '14:30',
     '15:00', '15:30', '16:00', '16:30', '17:00', '17:30',
     '18:00', '18:30', '19:00', '19:30'
   ];
+
+  // Filter time slots based on selected date (Turkey timezone)
+  const getAvailableTimeSlots = () => {
+    if (!formData.date) return allTimeSlots;
+
+    // Get current time in Turkey timezone (UTC+3)
+    const now = new Date();
+    const turkeyOffset = 3 * 60; // Turkey is UTC+3
+    const localOffset = now.getTimezoneOffset(); // Local timezone offset in minutes
+    const turkeyTime = new Date(now.getTime() + (turkeyOffset + localOffset) * 60000);
+
+    const selectedDate = new Date(formData.date + 'T00:00:00');
+    const todayInTurkey = new Date(turkeyTime.toISOString().split('T')[0] + 'T00:00:00');
+
+    // If selected date is not today, allow all time slots
+    if (selectedDate.getTime() !== todayInTurkey.getTime()) {
+      return allTimeSlots;
+    }
+
+    // If selected date is today, filter out past time slots
+    const currentHour = turkeyTime.getHours();
+    const currentMinute = turkeyTime.getMinutes();
+
+    return allTimeSlots.filter(timeSlot => {
+      const [hour, minute] = timeSlot.split(':').map(Number);
+      const slotTime = hour * 60 + minute;
+      const currentTime = currentHour * 60 + currentMinute;
+      
+      return slotTime > currentTime;
+    });
+  };
+
+  const timeSlots = getAvailableTimeSlots();
 
   // Fetch data on component mount
   useEffect(() => {
