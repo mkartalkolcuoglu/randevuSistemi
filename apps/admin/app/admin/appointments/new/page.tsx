@@ -43,7 +43,10 @@ export default function NewAppointmentPage() {
 
   // Update available time slots when date changes
   useEffect(() => {
+    console.log('🔄 useEffect triggered! formData.date:', formData.date);
+    
     if (!formData.date) {
+      console.log('⚠️ No date selected, showing all time slots');
       setAvailableTimeSlots(allTimeSlots);
       return;
     }
