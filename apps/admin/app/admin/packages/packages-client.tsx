@@ -38,8 +38,11 @@ export default function PackagesClient({ tenantId, user }: PackagesClientProps) 
   const [loading, setLoading] = useState(true);
   const [showPackageModal, setShowPackageModal] = useState(false);
   const [showAssignModal, setShowAssignModal] = useState(false);
+  const [showAssignedCustomersModal, setShowAssignedCustomersModal] = useState(false);
   const [selectedPackage, setSelectedPackage] = useState<Package | null>(null);
   const [packageToAssign, setPackageToAssign] = useState<Package | null>(null);
+  const [assignedCustomers, setAssignedCustomers] = useState<any[]>([]);
+  const [loadingCustomers, setLoadingCustomers] = useState(false);
 
   useEffect(() => {
     loadPackages();
@@ -117,6 +120,58 @@ export default function PackagesClient({ tenantId, user }: PackagesClientProps) 
     setShowAssignModal(false);
     setPackageToAssign(null);
     loadPackages();
+  };
+
+  const handleViewAssignedCustomers = async (pkg: Package) => {
+    setSelectedPackage(pkg);
+    setShowAssignedCustomersModal(true);
+    setLoadingCustomers(true);
+
+    try {
+      const response = await fetch(`/api/packages/assign?packageId=${pkg.id}`);
+      const result = await response.json();
+
+      if (result.success) {
+        setAssignedCustomers(result.data || []);
+      } else {
+        console.error('Failed to load assigned customers:', result.error);
+        setAssignedCustomers([]);
+      }
+    } catch (error) {
+      console.error('Error loading assigned customers:', error);
+      setAssignedCustomers([]);
+    } finally {
+      setLoadingCustomers(false);
+    }
+  };
+
+  const handleRemoveCustomerPackage = async (customerPackageId: string) => {
+    if (!confirm('Bu müşteriden paketi kaldırmak istediğinizden emin misiniz?')) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/packages/assign?customerPackageId=${customerPackageId}`, {
+        method: 'DELETE'
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        alert('Paket müşteriden başarıyla kaldırıldı');
+        // Reload assigned customers
+        if (selectedPackage) {
+          handleViewAssignedCustomers(selectedPackage);
+        }
+        // Reload packages to update counts
+        loadPackages();
+      } else {
+        alert('Hata: ' + result.error);
+      }
+    } catch (error) {
+      console.error('Error removing customer package:', error);
+      alert('Paket kaldırılırken hata oluştu');
+    }
   };
 
   if (loading) {
@@ -232,11 +287,16 @@ export default function PackagesClient({ tenantId, user }: PackagesClientProps) 
                   </div>
 
                   {/* Assigned Count */}
-                  <div className="mb-4 flex items-center text-sm text-gray-600">
-                    <Users className="w-4 h-4 mr-1" />
-                    <span>
-                      {pkg._count.customerPackages} müşteriye atanmış
-                    </span>
+                  <div className="mb-4">
+                    <button
+                      onClick={() => handleViewAssignedCustomers(pkg)}
+                      className="flex items-center text-sm text-blue-600 hover:text-blue-800 hover:underline"
+                    >
+                      <Users className="w-4 h-4 mr-1" />
+                      <span>
+                        {pkg._count.customerPackages} müşteriye atanmış
+                      </span>
+                    </button>
                   </div>
 
                   {/* Actions */}
@@ -295,6 +355,110 @@ export default function PackagesClient({ tenantId, user }: PackagesClientProps) 
           }}
           onAssign={handlePackageAssigned}
         />
+      )}
+
+      {/* Assigned Customers Modal */}
+      {showAssignedCustomersModal && selectedPackage && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[80vh] overflow-hidden">
+            {/* Modal Header */}
+            <div className="bg-blue-600 text-white px-6 py-4">
+              <h2 className="text-xl font-bold">
+                {selectedPackage.name} - Atanan Müşteriler
+              </h2>
+              <p className="text-sm text-blue-100 mt-1">
+                Bu pakete atanmış müşterileri görüntüleyin ve yönetin
+              </p>
+            </div>
+
+            {/* Modal Content */}
+            <div className="p-6 overflow-y-auto max-h-[calc(80vh-140px)]">
+              {loadingCustomers ? (
+                <div className="text-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+                  <p className="mt-2 text-gray-600">Yükleniyor...</p>
+                </div>
+              ) : assignedCustomers.length === 0 ? (
+                <div className="text-center py-8">
+                  <Users className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                  <p className="text-gray-600">Bu pakete henüz müşteri atanmamış</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {assignedCustomers.map((cp: any) => (
+                    <div
+                      key={cp.id}
+                      className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors"
+                    >
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <h3 className="font-semibold text-gray-900">
+                            {cp.customer.firstName} {cp.customer.lastName}
+                          </h3>
+                          <div className="text-sm text-gray-600 mt-1 space-y-1">
+                            <p>📧 {cp.customer.email}</p>
+                            <p>📞 {cp.customer.phone}</p>
+                            <p className="text-xs text-gray-500">
+                              Atanma: {new Date(cp.assignedAt).toLocaleDateString('tr-TR')}
+                            </p>
+                          </div>
+                          
+                          {/* Package Usage Details */}
+                          {cp.usages && cp.usages.length > 0 && (
+                            <div className="mt-3 bg-gray-50 rounded p-3">
+                              <p className="text-xs font-semibold text-gray-700 mb-2">
+                                Paket Kullanımı:
+                              </p>
+                              <div className="space-y-1">
+                                {cp.usages.map((usage: any) => (
+                                  <div key={usage.id} className="flex justify-between text-sm">
+                                    <span className="text-gray-700">{usage.itemName}</span>
+                                    <span className={`font-semibold ${
+                                      usage.remainingQuantity === 0 
+                                        ? 'text-red-600' 
+                                        : usage.remainingQuantity <= 2 
+                                        ? 'text-orange-600' 
+                                        : 'text-green-600'
+                                    }`}>
+                                      {usage.remainingQuantity} / {usage.totalQuantity}
+                                    </span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                        
+                        <Button
+                          onClick={() => handleRemoveCustomerPackage(cp.id)}
+                          variant="outline"
+                          size="sm"
+                          className="ml-4 text-red-600 hover:bg-red-50 border-red-300"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="bg-gray-50 px-6 py-4 flex justify-end">
+              <Button
+                onClick={() => {
+                  setShowAssignedCustomersModal(false);
+                  setSelectedPackage(null);
+                  setAssignedCustomers([]);
+                }}
+                variant="outline"
+              >
+                Kapat
+              </Button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

@@ -103,16 +103,36 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// GET - Get customer packages
+// GET - Get customer packages or assigned customers for a package
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const customerId = searchParams.get('customerId');
     const tenantId = searchParams.get('tenantId');
+    const packageId = searchParams.get('packageId');
 
+    // If packageId is provided, return assigned customers for that package
+    if (packageId) {
+      const customerPackages = await prisma.customerPackage.findMany({
+        where: { packageId },
+        include: {
+          customer: true,
+          usages: true,
+          package: true
+        },
+        orderBy: { assignedAt: 'desc' }
+      });
+
+      return NextResponse.json({
+        success: true,
+        data: customerPackages
+      });
+    }
+
+    // Otherwise, return customer packages (existing behavior)
     if (!customerId && !tenantId) {
       return NextResponse.json(
-        { success: false, error: 'Müşteri ID veya Tenant ID gerekli' },
+        { success: false, error: 'Müşteri ID, Tenant ID veya Paket ID gerekli' },
         { status: 400 }
       );
     }
@@ -144,6 +164,48 @@ export async function GET(request: NextRequest) {
       { 
         success: false, 
         error: 'Müşteri paketleri yüklenirken hata oluştu',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      },
+      { status: 500 }
+    );
+  } finally {
+    await prisma.$disconnect();
+  }
+}
+
+// DELETE - Remove customer package assignment
+export async function DELETE(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const customerPackageId = searchParams.get('customerPackageId');
+
+    if (!customerPackageId) {
+      return NextResponse.json(
+        { success: false, error: 'Müşteri paket ID gerekli' },
+        { status: 400 }
+      );
+    }
+
+    // First, delete all usages
+    await prisma.customerPackageUsage.deleteMany({
+      where: { customerPackageId }
+    });
+
+    // Then delete the customer package
+    await prisma.customerPackage.delete({
+      where: { id: customerPackageId }
+    });
+
+    return NextResponse.json({
+      success: true,
+      message: 'Paket müşteriden başarıyla kaldırıldı'
+    });
+  } catch (error) {
+    console.error('Error removing customer package:', error);
+    return NextResponse.json(
+      { 
+        success: false, 
+        error: 'Paket kaldırılırken hata oluştu',
         details: error instanceof Error ? error.message : 'Unknown error'
       },
       { status: 500 }
