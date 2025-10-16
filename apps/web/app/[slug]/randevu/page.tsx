@@ -61,6 +61,31 @@ export default function RandevuPage({ params }: PageProps) {
 
   const selectedServiceData = services?.find(s => s.id === selectedService);
 
+  // Check if selected service is covered by a package
+  const checkServiceInPackage = (serviceId: string) => {
+    if (!hasPackages || !customerPackages.length) return null;
+    
+    for (const cp of customerPackages) {
+      const usage = cp.usages.find((u: any) => 
+        u.itemType === 'service' && 
+        u.itemId === serviceId && 
+        u.remainingQuantity > 0
+      );
+      if (usage) {
+        return {
+          hasPackage: true,
+          packageName: cp.package.name,
+          remainingQuantity: usage.remainingQuantity,
+          usage: usage,
+          customerPackageId: cp.id
+        };
+      }
+    }
+    return null;
+  };
+
+  const servicePackageInfo = selectedService ? checkServiceInPackage(selectedService) : null;
+
   const steps = [
     { id: 'phone', title: 'Telefon Doğrulama', icon: '📱' },
     { id: 'service', title: 'Hizmet Seçimi', icon: '1️⃣' },
@@ -258,32 +283,51 @@ export default function RandevuPage({ params }: PageProps) {
         </CardContent>
       </Card>
 
-      {hasPackages && customerPackages.length > 0 && (
-        <Card className="bg-green-50 border-green-200">
+      {existingCustomer && (
+        <Card className={hasPackages ? "bg-green-50 border-green-200" : "bg-blue-50 border-blue-200"}>
           <CardContent className="p-6">
             <div className="flex items-start">
-              <Check className="w-6 h-6 text-green-600 mr-3 flex-shrink-0 mt-1" />
-              <div>
-                <h3 className="font-semibold text-green-900 mb-2">
-                  🎉 Hoş Geldiniz, {existingCustomer?.firstName}!
+              <Check className={`w-6 h-6 ${hasPackages ? 'text-green-600' : 'text-blue-600'} mr-3 flex-shrink-0 mt-1`} />
+              <div className="w-full">
+                <h3 className={`font-semibold ${hasPackages ? 'text-green-900' : 'text-blue-900'} mb-2`}>
+                  👋 Hoş Geldiniz, {existingCustomer.firstName} {existingCustomer.lastName}!
                 </h3>
-                <p className="text-sm text-green-800 mb-3">
-                  Size atanmış {customerPackages.length} paket bulundu. Randevu alırken paketinizi kullanabilirsiniz.
-                </p>
-                <div className="space-y-2">
-                  {customerPackages.map((cp: any) => (
-                    <div key={cp.id} className="bg-white rounded-lg p-3 border border-green-200">
-                      <h4 className="font-semibold text-gray-900 mb-1">{cp.package.name}</h4>
-                      <ul className="text-sm text-gray-700 space-y-1">
-                        {cp.usages.map((usage: any) => (
-                          <li key={usage.id}>
-                            • {usage.itemName}: <span className="font-semibold">{usage.remainingQuantity}</span> kaldı
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  ))}
+                <div className="text-sm text-gray-700 mb-3 space-y-1">
+                  <p><strong>Email:</strong> {existingCustomer.email}</p>
+                  <p><strong>Telefon:</strong> {existingCustomer.phone}</p>
                 </div>
+                
+                {hasPackages && customerPackages.length > 0 ? (
+                  <>
+                    <p className="text-sm text-green-800 mb-3 font-medium">
+                      🎁 Size atanmış {customerPackages.length} paket bulundu!
+                    </p>
+                    <div className="space-y-2">
+                      {customerPackages.map((cp: any) => (
+                        <div key={cp.id} className="bg-white rounded-lg p-3 border border-green-200">
+                          <div className="flex justify-between items-start mb-2">
+                            <h4 className="font-semibold text-gray-900">{cp.package.name}</h4>
+                            <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">Aktif</span>
+                          </div>
+                          <ul className="text-sm text-gray-700 space-y-1">
+                            {cp.usages.map((usage: any) => (
+                              <li key={usage.id} className="flex justify-between">
+                                <span>• {usage.itemName}</span>
+                                <span className="font-semibold text-green-600">
+                                  {usage.remainingQuantity} / {usage.totalQuantity}
+                                </span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                ) : (
+                  <p className="text-sm text-blue-800">
+                    Bilgileriniz sistemde kayıtlı. Normal randevu akışı ile devam edebilirsiniz.
+                  </p>
+                )}
               </div>
             </div>
           </CardContent>
@@ -309,31 +353,46 @@ export default function RandevuPage({ params }: PageProps) {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {services?.map((service) => (
-            <Card 
-              key={service.id}
-              className={`cursor-pointer transition-all duration-200 hover:shadow-lg transform hover:scale-[1.02] ${
-                selectedService === service.id 
-                  ? 'ring-2 ring-blue-500 bg-blue-50 border-blue-200 shadow-lg' 
-                  : 'hover:border-blue-200'
-              }`}
-              onClick={() => setSelectedService(service.id)}
-            >
-              <CardContent className="p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">{service.name}</h3>
-                <p className="text-gray-600 text-sm mb-4">{service.description}</p>
-                <div className="flex justify-between items-center">
-                  <div className="flex items-center text-gray-500">
-                    <Clock className="w-4 h-4 mr-1" />
-                    <span className="text-sm">{service.duration} dakika</span>
+          {services?.map((service) => {
+            const packageInfo = checkServiceInPackage(service.id);
+            return (
+              <Card 
+                key={service.id}
+                className={`cursor-pointer transition-all duration-200 hover:shadow-lg transform hover:scale-[1.02] relative ${
+                  selectedService === service.id 
+                    ? 'ring-2 ring-blue-500 bg-blue-50 border-blue-200 shadow-lg' 
+                    : 'hover:border-blue-200'
+                }`}
+                onClick={() => setSelectedService(service.id)}
+              >
+                {packageInfo && (
+                  <div className="absolute top-2 right-2 bg-green-500 text-white text-xs font-semibold px-2 py-1 rounded-full flex items-center gap-1">
+                    <span>🎁</span>
+                    <span>Paketinizde var ({packageInfo.remainingQuantity})</span>
                   </div>
-                  <div className="text-lg font-bold text-blue-600">
-                    ₺{service.price}
+                )}
+                <CardContent className="p-6">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">{service.name}</h3>
+                  <p className="text-gray-600 text-sm mb-4">{service.description}</p>
+                  <div className="flex justify-between items-center">
+                    <div className="flex items-center text-gray-500">
+                      <Clock className="w-4 h-4 mr-1" />
+                      <span className="text-sm">{service.duration} dakika</span>
+                    </div>
+                    {packageInfo ? (
+                      <div className="text-lg font-bold text-green-600">
+                        Paketten
+                      </div>
+                    ) : (
+                      <div className="text-lg font-bold text-blue-600">
+                        ₺{service.price}
+                      </div>
+                    )}
                   </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
       )}
     </div>
@@ -594,8 +653,22 @@ export default function RandevuPage({ params }: PageProps) {
             <p className="text-gray-600">{selectedServiceData?.name}</p>
             <div className="flex justify-between items-center mt-2">
               <span className="text-sm text-gray-500">{selectedServiceData?.duration} dakika</span>
-              <span className="font-semibold text-blue-600">₺{selectedServiceData?.price}</span>
+              {servicePackageInfo ? (
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-semibold text-green-600">
+                    🎁 Paketinizden kullanılacak
+                  </span>
+                </div>
+              ) : (
+                <span className="font-semibold text-blue-600">₺{selectedServiceData?.price}</span>
+              )}
             </div>
+            {servicePackageInfo && (
+              <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded text-sm text-green-800">
+                <p className="font-medium">{servicePackageInfo.packageName}</p>
+                <p className="text-xs">Kalan: {servicePackageInfo.remainingQuantity} seans</p>
+              </div>
+            )}
           </div>
 
           <div className="border-b pb-4">
@@ -632,12 +705,24 @@ export default function RandevuPage({ params }: PageProps) {
             </div>
           </div>
 
-          <div className="bg-blue-50 p-4 rounded-lg">
-            <div className="flex justify-between items-center">
-              <span className="text-lg font-semibold text-gray-900">Toplam Tutar</span>
-              <span className="text-2xl font-bold text-blue-600">₺{selectedServiceData?.price}</span>
+          {servicePackageInfo ? (
+            <div className="bg-green-50 p-4 rounded-lg border border-green-200">
+              <div className="flex justify-between items-center">
+                <span className="text-lg font-semibold text-gray-900">Ödeme</span>
+                <span className="text-2xl font-bold text-green-600">Paket Kullanılacak</span>
+              </div>
+              <p className="text-sm text-green-700 mt-2">
+                Bu hizmet paketinizden düşülecektir. Ek ödeme gerekmez.
+              </p>
             </div>
-          </div>
+          ) : (
+            <div className="bg-blue-50 p-4 rounded-lg">
+              <div className="flex justify-between items-center">
+                <span className="text-lg font-semibold text-gray-900">Toplam Tutar</span>
+                <span className="text-2xl font-bold text-blue-600">₺{selectedServiceData?.price}</span>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
