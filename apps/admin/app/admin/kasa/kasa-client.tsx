@@ -143,6 +143,7 @@ export default function KasaClient({ tenantId, user }: KasaClientProps) {
       case 'income': return 'Gelir';
       case 'expense': return 'Gider';
       case 'appointment': return 'Randevu';
+      case 'package': return 'Paket Satışı';
       default: return type;
     }
   };
@@ -152,6 +153,7 @@ export default function KasaClient({ tenantId, user }: KasaClientProps) {
       case 'sale':
       case 'income':
       case 'appointment':
+      case 'package':
         return 'text-green-600 bg-green-50';
       case 'expense':
         return 'text-red-600 bg-red-50';

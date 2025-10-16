@@ -38,7 +38,7 @@ export async function GET(request: NextRequest) {
 
     // Calculate totals
     const income = transactions
-      .filter(t => ['income', 'sale', 'appointment'].includes(t.type))
+      .filter(t => ['income', 'sale', 'appointment', 'package'].includes(t.type))
       .reduce((sum, t) => sum + t.amount, 0);
 
     const expense = transactions
@@ -47,6 +47,16 @@ export async function GET(request: NextRequest) {
 
     const profit = transactions
       .reduce((sum, t) => sum + (t.profit || 0), 0);
+    
+    console.log('📊 Transaction Summary:', {
+      totalTransactions: transactions.length,
+      incomeTransactions: transactions.filter(t => ['income', 'sale', 'appointment', 'package'].includes(t.type)).length,
+      expenseTransactions: transactions.filter(t => t.type === 'expense').length,
+      income,
+      expense,
+      profit: income - expense,
+      totalProfit: profit
+    });
 
     return NextResponse.json({
       success: true,
