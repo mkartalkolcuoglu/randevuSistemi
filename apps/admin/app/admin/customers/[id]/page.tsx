@@ -236,27 +236,62 @@ export default function CustomerDetailPage() {
                 İstatistikler
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="text-center">
-                <div className="text-3xl font-bold text-blue-600">{customer.totalAppointments || 0}</div>
-                <div className="text-sm text-gray-600">Toplam Randevu</div>
+            <CardContent className="space-y-4">
+              {/* Main Stats */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="text-center p-3 bg-blue-50 rounded-lg">
+                  <div className="text-2xl font-bold text-blue-600">{customer.totalAppointments || 0}</div>
+                  <div className="text-xs text-gray-600">Toplam Randevu</div>
+                </div>
+                
+                <div className="text-center p-3 bg-green-50 rounded-lg">
+                  <div className="text-2xl font-bold text-green-600">₺{(customer.totalSpent || 0).toLocaleString()}</div>
+                  <div className="text-xs text-gray-600">Toplam Harcama</div>
+                </div>
               </div>
-              
-              <div className="text-center">
-                <div className="text-3xl font-bold text-green-600">₺{customer.totalSpent || 0}</div>
-                <div className="text-sm text-gray-600">Toplam Harcama</div>
-              </div>
-              
-              <div className="pt-4 border-t">
+
+              {/* Detailed Stats */}
+              <div className="pt-4 border-t space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">Kayıt Tarihi</span>
-                  <span className="text-sm font-medium">
-                    {new Date(customer.registrationDate).toLocaleDateString('tr-TR')}
+                  <span className="text-sm text-gray-600 flex items-center">
+                    <Calendar className="w-4 h-4 mr-1" />
+                    Tamamlanan
+                  </span>
+                  <span className="text-sm font-semibold text-green-600">
+                    {customer.completedAppointments || 0}
+                  </span>
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-gray-600 flex items-center">
+                    <Clock className="w-4 h-4 mr-1" />
+                    Yaklaşan
+                  </span>
+                  <span className="text-sm font-semibold text-blue-600">
+                    {customer.upcomingAppointments || 0}
+                  </span>
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-gray-600 flex items-center">
+                    <span className="w-4 h-4 mr-1 text-red-500">✕</span>
+                    İptal Edilen
+                  </span>
+                  <span className="text-sm font-semibold text-red-600">
+                    {customer.cancelledAppointments || 0}
                   </span>
                 </div>
               </div>
               
-              <div>
+              {/* Dates */}
+              <div className="pt-4 border-t space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-gray-600">Kayıt Tarihi</span>
+                  <span className="text-sm font-medium">
+                    {new Date(customer.registrationDate || customer.createdAt).toLocaleDateString('tr-TR')}
+                  </span>
+                </div>
+              
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-gray-600">Son Ziyaret</span>
                   <span className="text-sm font-medium">
@@ -264,6 +299,18 @@ export default function CustomerDetailPage() {
                   </span>
                 </div>
               </div>
+
+              {/* Average Spending */}
+              {customer.completedAppointments > 0 && (
+                <div className="pt-4 border-t">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-gray-600">Ortalama Harcama</span>
+                    <span className="text-sm font-semibold text-purple-600">
+                      ₺{Math.round((customer.totalSpent || 0) / customer.completedAppointments).toLocaleString()}
+                    </span>
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
 

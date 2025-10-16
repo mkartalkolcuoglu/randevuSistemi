@@ -42,9 +42,66 @@ export async function GET(
       );
     }
 
+    // Calculate statistics
+    const appointments = await prisma.appointment.findMany({
+      where: {
+        customerId: id,
+        tenantId
+      },
+      orderBy: {
+        createdAt: 'desc'
+      }
+    });
+
+    const totalAppointments = appointments.length;
+    
+    // Calculate total spent (only completed/confirmed appointments, exclude package usage)
+    const totalSpent = appointments
+      .filter(app => 
+        (app.status === 'confirmed' || app.status === 'completed') && 
+        !app.packageInfo
+      )
+      .reduce((sum, app) => sum + (Number(app.price) || 0), 0);
+
+    // Get last visit (most recent completed appointment)
+    const lastCompletedAppointment = appointments.find(
+      app => app.status === 'confirmed' || app.status === 'completed'
+    );
+    const lastVisit = lastCompletedAppointment 
+      ? lastCompletedAppointment.date 
+      : null;
+
+    // Get upcoming appointments count
+    const today = new Date().toISOString().split('T')[0];
+    const upcomingAppointments = appointments.filter(
+      app => app.date >= today && app.status === 'scheduled'
+    ).length;
+
+    // Get completed appointments count
+    const completedAppointments = appointments.filter(
+      app => app.status === 'confirmed' || app.status === 'completed'
+    ).length;
+
+    // Get cancelled appointments count
+    const cancelledAppointments = appointments.filter(
+      app => app.status === 'cancelled'
+    ).length;
+
+    // Enrich customer data with statistics
+    const enrichedCustomer = {
+      ...customer,
+      totalAppointments,
+      totalSpent,
+      lastVisit,
+      upcomingAppointments,
+      completedAppointments,
+      cancelledAppointments,
+      registrationDate: customer.createdAt
+    };
+
     return NextResponse.json({
       success: true,
-      data: customer
+      data: enrichedCustomer
     });
   } catch (error) {
     console.error('Error fetching customer:', error);
