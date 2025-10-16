@@ -43,6 +43,7 @@ export interface CreateAppointmentRequest {
   customerName: string;
   customerEmail?: string;
   customerPhone?: string;
+  serviceId?: string; // Added for package tracking
   serviceName: string;
   staffId: string;
   date: string;
@@ -56,6 +57,14 @@ export interface CreateAppointmentRequest {
     phone: string;
     notes?: string;
   };
+  // Package usage fields
+  usePackageForService?: boolean;
+  packageInfo?: {
+    customerPackageId: string;
+    usageId: string;
+    packageName: string;
+    serviceId: string;
+  } | null;
 }
 
 export interface AvailableSlots {
