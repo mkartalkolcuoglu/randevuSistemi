@@ -3,6 +3,7 @@ import { PrismaClient } from '@prisma/client';
 
 export interface AuthenticatedUser {
   id: string;
+  tenantId: string; // Alias for id
   businessName: string;
   slug: string;
   ownerName: string;
@@ -47,6 +48,7 @@ export async function getAuthenticatedUser(): Promise<AuthenticatedUser | null> 
 
       return {
         id: tenant.id,
+        tenantId: tenant.id, // Same as id, for backward compatibility
         businessName: tenant.businessName,
         slug: tenant.slug,
         ownerName: tenant.ownerName,
