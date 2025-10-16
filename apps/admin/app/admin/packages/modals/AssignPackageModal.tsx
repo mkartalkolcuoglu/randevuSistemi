@@ -38,14 +38,18 @@ export default function AssignPackageModal({
   const [assignedCustomerIds, setAssignedCustomerIds] = useState<string[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+  const [staff, setStaff] = useState<any[]>([]);
+  const [selectedStaff, setSelectedStaff] = useState<string>('');
   const [paymentType, setPaymentType] = useState('cash');
   const [expiresAt, setExpiresAt] = useState('');
   const [loading, setLoading] = useState(false);
   const [loadingCustomers, setLoadingCustomers] = useState(true);
+  const [loadingStaff, setLoadingStaff] = useState(true);
 
   useEffect(() => {
     loadCustomers();
     loadAssignedCustomers();
+    loadStaff();
   }, [tenantId, pkg.id]);
 
   useEffect(() => {
@@ -98,9 +102,30 @@ export default function AssignPackageModal({
     }
   };
 
+  const loadStaff = async () => {
+    try {
+      setLoadingStaff(true);
+      const response = await fetch(`/api/staff?tenantId=${tenantId}`);
+      const result = await response.json();
+
+      if (result.success) {
+        setStaff(result.data);
+      }
+    } catch (error) {
+      console.error('Error loading staff:', error);
+    } finally {
+      setLoadingStaff(false);
+    }
+  };
+
   const handleAssign = async () => {
     if (!selectedCustomer) {
       alert('Lütfen bir müşteri seçin');
+      return;
+    }
+
+    if (!selectedStaff) {
+      alert('Lütfen paketi satan personeli seçin');
       return;
     }
 
@@ -114,6 +139,7 @@ export default function AssignPackageModal({
           packageId: pkg.id,
           customerId: selectedCustomer.id,
           tenantId,
+          staffId: selectedStaff,
           paymentType,
           expiresAt: expiresAt || null
         })
@@ -232,6 +258,30 @@ export default function AssignPackageModal({
                   </div>
                 ))}
               </div>
+            )}
+          </div>
+
+          {/* Staff Selection */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Paketi Satan Personel *
+            </label>
+            {loadingStaff ? (
+              <div className="text-sm text-gray-600 py-2">Personeller yükleniyor...</div>
+            ) : (
+              <select
+                value={selectedStaff}
+                onChange={(e) => setSelectedStaff(e.target.value)}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                required
+              >
+                <option value="">Personel seçin</option>
+                {staff.map((member) => (
+                  <option key={member.id} value={member.id}>
+                    {member.firstName} {member.lastName} - {member.position}
+                  </option>
+                ))}
+              </select>
             )}
           </div>
 

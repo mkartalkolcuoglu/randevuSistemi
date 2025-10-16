@@ -7,12 +7,19 @@ const prisma = new PrismaClient();
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { packageId, customerId, tenantId, paymentType, expiresAt } = body;
+    const { packageId, customerId, tenantId, staffId, paymentType, expiresAt } = body;
 
     // Validation
     if (!packageId || !customerId || !tenantId) {
       return NextResponse.json(
         { success: false, error: 'Paket, müşteri ve tenant bilgisi gerekli' },
+        { status: 400 }
+      );
+    }
+
+    if (!staffId) {
+      return NextResponse.json(
+        { success: false, error: 'Personel bilgisi gerekli' },
         { status: 400 }
       );
     }
@@ -38,6 +45,18 @@ export async function POST(request: NextRequest) {
     if (!customer) {
       return NextResponse.json(
         { success: false, error: 'Müşteri bulunamadı' },
+        { status: 404 }
+      );
+    }
+
+    // Get staff details
+    const staff = await prisma.staff.findUnique({
+      where: { id: staffId }
+    });
+
+    if (!staff) {
+      return NextResponse.json(
+        { success: false, error: 'Personel bulunamadı' },
         { status: 404 }
       );
     }
@@ -74,10 +93,12 @@ export async function POST(request: NextRequest) {
         tenantId,
         type: 'package',
         amount: packageData.price,
-        description: `${packageData.name} paketi - ${customer.firstName} ${customer.lastName}`,
+        description: `${packageData.name} paketi - ${customer.firstName} ${customer.lastName} (Satan: ${staff.firstName} ${staff.lastName})`,
         paymentType: paymentType || 'cash',
         customerId: customer.id,
         customerName: `${customer.firstName} ${customer.lastName}`,
+        staffId: staff.id,
+        staffName: `${staff.firstName} ${staff.lastName}`,
         packageId: packageData.id,
         date: today
       }
