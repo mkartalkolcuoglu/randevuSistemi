@@ -3,6 +3,21 @@ import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
+// CORS headers
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+};
+
+// OPTIONS handler for CORS preflight
+export async function OPTIONS() {
+  return new Response(null, { 
+    status: 200, 
+    headers: corsHeaders 
+  });
+}
+
 // POST - Check if customer has packages by phone
 export async function POST(request: NextRequest) {
   try {
@@ -14,7 +29,7 @@ export async function POST(request: NextRequest) {
     if (!phone) {
       return NextResponse.json(
         { success: false, error: 'Telefon numarası gerekli' },
-        { status: 400 }
+        { status: 400, headers: corsHeaders }
       );
     }
 
@@ -33,7 +48,7 @@ export async function POST(request: NextRequest) {
     if (!actualTenantId) {
       return NextResponse.json(
         { success: false, error: 'Tenant bilgisi bulunamadı' },
-        { status: 400 }
+        { status: 400, headers: corsHeaders }
       );
     }
 
@@ -53,7 +68,7 @@ export async function POST(request: NextRequest) {
         hasPackages: false,
         customer: null,
         packages: []
-      });
+      }, { headers: corsHeaders });
     }
 
     // Get active packages for this customer
@@ -94,7 +109,7 @@ export async function POST(request: NextRequest) {
         phone: customer.phone
       },
       packages: activePackages
-    });
+    }, { headers: corsHeaders });
   } catch (error) {
     console.error('Error checking customer packages:', error);
     return NextResponse.json(
@@ -103,7 +118,7 @@ export async function POST(request: NextRequest) {
         error: 'Paket kontrolü yapılırken hata oluştu',
         details: error instanceof Error ? error.message : 'Unknown error'
       },
-      { status: 500 }
+      { status: 500, headers: corsHeaders }
     );
   } finally {
     await prisma.$disconnect();
