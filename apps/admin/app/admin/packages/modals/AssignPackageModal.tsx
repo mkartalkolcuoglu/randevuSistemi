@@ -35,6 +35,7 @@ export default function AssignPackageModal({
 }: AssignPackageModalProps) {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [filteredCustomers, setFilteredCustomers] = useState<Customer[]>([]);
+  const [assignedCustomerIds, setAssignedCustomerIds] = useState<string[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [paymentType, setPaymentType] = useState('cash');
@@ -44,25 +45,26 @@ export default function AssignPackageModal({
 
   useEffect(() => {
     loadCustomers();
-  }, [tenantId]);
+    loadAssignedCustomers();
+  }, [tenantId, pkg.id]);
 
   useEffect(() => {
-    // Filter customers based on search term
-    if (searchTerm.trim() === '') {
-      setFilteredCustomers(customers);
-    } else {
+    // Filter customers: exclude already assigned ones and apply search
+    let filtered = customers.filter(c => !assignedCustomerIds.includes(c.id));
+    
+    if (searchTerm.trim() !== '') {
       const term = searchTerm.toLowerCase();
-      setFilteredCustomers(
-        customers.filter(
-          (c) =>
-            c.firstName.toLowerCase().includes(term) ||
-            c.lastName.toLowerCase().includes(term) ||
-            c.email.toLowerCase().includes(term) ||
-            c.phone?.toLowerCase().includes(term)
-        )
+      filtered = filtered.filter(
+        (c) =>
+          c.firstName.toLowerCase().includes(term) ||
+          c.lastName.toLowerCase().includes(term) ||
+          c.email.toLowerCase().includes(term) ||
+          c.phone?.toLowerCase().includes(term)
       );
     }
-  }, [searchTerm, customers]);
+    
+    setFilteredCustomers(filtered);
+  }, [searchTerm, customers, assignedCustomerIds]);
 
   const loadCustomers = async () => {
     try {
@@ -72,12 +74,27 @@ export default function AssignPackageModal({
 
       if (result.success) {
         setCustomers(result.data);
-        setFilteredCustomers(result.data);
       }
     } catch (error) {
       console.error('Error loading customers:', error);
     } finally {
       setLoadingCustomers(false);
+    }
+  };
+
+  const loadAssignedCustomers = async () => {
+    try {
+      const response = await fetch(`/api/packages/assign?packageId=${pkg.id}`);
+      const result = await response.json();
+
+      if (result.success) {
+        // Extract customer IDs from assigned packages
+        const assignedIds = result.data.map((cp: any) => cp.customerId);
+        setAssignedCustomerIds(assignedIds);
+        console.log('🚫 Already assigned customer IDs:', assignedIds);
+      }
+    } catch (error) {
+      console.error('Error loading assigned customers:', error);
     }
   };
 

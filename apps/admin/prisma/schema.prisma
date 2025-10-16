@@ -48,6 +48,8 @@ model Customer {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   
+  customerPackages CustomerPackage[]
+  
   @@unique([tenantId, email])
   @@map("customers")
 }
@@ -233,9 +235,11 @@ model CustomerPackage {
   expiresAt   DateTime?
   status      String   @default("active") // active, completed, expired
   
+  customer    Customer @relation(fields: [customerId], references: [id])
   package     Package  @relation(fields: [packageId], references: [id])
   usages      CustomerPackageUsage[]
   
+  @@unique([customerId, packageId]) // Prevent duplicate assignments
   @@map("customer_packages")
 }
 
