@@ -189,6 +189,8 @@ model Transaction {
   profit          Float?   // Calculated profit (amount - cost)
   appointmentId   String?  // Link to appointment if type is 'appointment'
   packageId       String?  // Link to package if type is 'package'
+  staffId         String?  // Staff member who made the sale/transaction
+  staffName       String?  // Staff member name
   date            String   // Transaction date
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
