@@ -352,7 +352,7 @@ export default function TenantDetailPage({ params }: TenantDetailPageProps) {
               </CardHeader>
               <CardContent className="space-y-3">
                 <a 
-                  href={`http://localhost:3000/${tenant.slug}`} 
+                  href={`https://randevu-sistemi-web.vercel.app/${tenant.slug}`} 
                   target="_blank" 
                   rel="noopener noreferrer"
                   className="flex items-center justify-between p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
@@ -365,7 +365,7 @@ export default function TenantDetailPage({ params }: TenantDetailPageProps) {
                 </a>
                 
                 <a 
-                  href={`http://localhost:3000/${tenant.slug}/randevu`} 
+                  href={`https://randevu-sistemi-web.vercel.app/${tenant.slug}/randevu`} 
                   target="_blank" 
                   rel="noopener noreferrer"
                   className="flex items-center justify-between p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
