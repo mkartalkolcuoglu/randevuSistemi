@@ -34,6 +34,8 @@ export default function RandevuPage({ params }: PageProps) {
   const [selectedPackageUsage, setSelectedPackageUsage] = useState<any>(null);
   const [usePackageForService, setUsePackageForService] = useState<boolean>(false);
   const [showPackageChoice, setShowPackageChoice] = useState<boolean>(false);
+  const [checkingPackages, setCheckingPackages] = useState<boolean>(false);
+  const [phoneChecked, setPhoneChecked] = useState<boolean>(false);
   const [selectedService, setSelectedService] = useState<string>('');
   const [selectedStaff, setSelectedStaff] = useState<string>('');
   const [selectedDate, setSelectedDate] = useState<string>('');
@@ -102,7 +104,9 @@ export default function RandevuPage({ params }: PageProps) {
 
   const canProceedToNext = () => {
     switch (currentStep) {
-      case 'phone': return phoneNumber.length >= 10;
+      case 'phone': 
+        // Can proceed if phone is valid AND not checking AND (customer info loaded OR new customer)
+        return phoneNumber.length >= 10 && !checkingPackages;
       case 'service': return !!selectedService;
       case 'staff': return !!selectedStaff;
       case 'datetime': return !!selectedDate && !!selectedTime;
@@ -115,9 +119,16 @@ export default function RandevuPage({ params }: PageProps) {
   const handleNext = async () => {
     if (!canProceedToNext()) return;
     
-    // If on phone step, check for packages
+    // If on phone step, check for packages first
     if (currentStep === 'phone') {
-      await checkCustomerPackages();
+      if (!phoneChecked && phoneNumber.length >= 10) {
+        // First click: Check packages and show results
+        await checkCustomerPackages();
+        setPhoneChecked(true);
+        // Don't proceed to next step - let user see the results
+        return;
+      }
+      // Second click (after seeing results): Proceed to next step
     }
     
     const nextStepIndex = currentStepIndex + 1;
@@ -134,6 +145,7 @@ export default function RandevuPage({ params }: PageProps) {
   };
 
   const checkCustomerPackages = async () => {
+    setCheckingPackages(true);
     try {
       console.log('📞 Checking packages for phone:', phoneNumber, 'slug:', slug);
       
@@ -183,10 +195,13 @@ export default function RandevuPage({ params }: PageProps) {
         setCustomerInfo(prev => ({ ...prev, phone: phoneNumber }));
       }
     } catch (error) {
-      console.error('Error checking packages:', error);
+      console.error('❌ Error checking packages:', error);
       // Continue with normal flow on error
       setHasPackages(false);
+      setExistingCustomer(null);
       setCustomerInfo(prev => ({ ...prev, phone: phoneNumber }));
+    } finally {
+      setCheckingPackages(false);
     }
   };
 
@@ -297,7 +312,14 @@ export default function RandevuPage({ params }: PageProps) {
                 <input
                   type="tel"
                   value={phoneNumber}
-                  onChange={(e) => setPhoneNumber(e.target.value)}
+                  onChange={(e) => {
+                    setPhoneNumber(e.target.value);
+                    // Reset check state when phone changes
+                    setPhoneChecked(false);
+                    setExistingCustomer(null);
+                    setCustomerPackages([]);
+                    setHasPackages(false);
+                  }}
                   className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-lg"
                   placeholder="5XX XXX XX XX"
                   maxLength={11}
@@ -308,18 +330,29 @@ export default function RandevuPage({ params }: PageProps) {
               </p>
             </div>
 
-            {phoneNumber.length >= 10 && (
+            {phoneNumber.length >= 10 && !checkingPackages && !existingCustomer && (
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                 <p className="text-sm text-blue-800">
                   ✓ Telefon numaranız kaydedildi. Devam etmek için "İleri" butonuna tıklayın.
                 </p>
               </div>
             )}
+
+            {checkingPackages && (
+              <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                <div className="flex items-center justify-center">
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600 mr-3"></div>
+                  <p className="text-sm text-gray-700">
+                    Müşteri bilgileri kontrol ediliyor...
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>
 
-      {existingCustomer && (
+      {existingCustomer && !checkingPackages && (
         <Card className={hasPackages ? "bg-green-50 border-green-200" : "bg-blue-50 border-blue-200"}>
           <CardContent className="p-6">
             <div className="flex items-start">
