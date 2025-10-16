@@ -266,13 +266,6 @@ export default function StaffDetailPage() {
                   <p>{staff.experience || 0} yıl</p>
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-gray-600">Değerlendirme</label>
-                  <p className="flex items-center">
-                    <Star className="w-4 h-4 mr-1 text-yellow-500" />
-                    {staff.rating || 0}/5
-                  </p>
-                </div>
-                <div>
                   <label className="text-sm font-medium text-gray-600">İşe Başlama</label>
                   <p>{staff.hireDate ? new Date(staff.hireDate).toLocaleDateString('tr-TR') : 'Belirtilmemiş'}</p>
                 </div>

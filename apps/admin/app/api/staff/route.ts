@@ -92,8 +92,20 @@ export async function GET(request: NextRequest) {
             0
           );
 
+          // Parse specializations if it's a JSON string
+          let parsedSpecializations = staffMember.specializations;
+          if (typeof staffMember.specializations === 'string' && staffMember.specializations) {
+            try {
+              parsedSpecializations = JSON.parse(staffMember.specializations);
+            } catch {
+              // If parsing fails, keep as string
+              parsedSpecializations = staffMember.specializations;
+            }
+          }
+
           return {
             ...staffMember,
+            specializations: parsedSpecializations,
             monthlyAppointments,
             monthlyRevenue
           };
