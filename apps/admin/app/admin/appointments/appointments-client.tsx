@@ -269,12 +269,26 @@ export default function AppointmentsClient({ initialAppointments, tenantId, user
                       </div>
                       <div className="flex items-center space-x-2">
                         <div className="text-right mr-4">
-                          <div className="text-lg font-semibold text-gray-900">
-                            {appointment.price}₺
-                          </div>
-                          <div className="text-sm text-gray-500">
-                            {appointment.duration} dk
-                          </div>
+                          {appointment.packageInfo ? (
+                            <>
+                              <div className="text-sm font-semibold text-green-600 flex items-center justify-end">
+                                <span className="mr-1">🎁</span>
+                                Paket Kullanımı
+                              </div>
+                              <div className="text-xs text-gray-500">
+                                {appointment.duration} dk
+                              </div>
+                            </>
+                          ) : (
+                            <>
+                              <div className="text-lg font-semibold text-gray-900">
+                                {appointment.price}₺
+                              </div>
+                              <div className="text-sm text-gray-500">
+                                {appointment.duration} dk
+                              </div>
+                            </>
+                          )}
                         </div>
                         <Link href={`/admin/appointments/${appointment.id}/edit`}>
                           <Button variant="outline" size="sm">

@@ -51,7 +51,8 @@ async function getDashboardData(tenantId: string) {
         const appointmentDate = new Date(app.date);
         const now = new Date();
         return appointmentDate.getMonth() === now.getMonth() && 
-               appointmentDate.getFullYear() === now.getFullYear();
+               appointmentDate.getFullYear() === now.getFullYear() &&
+               !app.packageInfo; // Exclude package usage appointments from revenue
       })
       .reduce((sum, app) => sum + (Number(app.price) || 0), 0);
 
