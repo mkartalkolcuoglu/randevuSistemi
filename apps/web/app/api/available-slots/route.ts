@@ -59,6 +59,20 @@ export async function GET(request: NextRequest) {
       }
     });
     
+    // Get current time in Turkey timezone (UTC+3)
+    const now = new Date();
+    const turkeyOffset = 3 * 60; // Turkey is UTC+3
+    const localOffset = now.getTimezoneOffset(); // Local timezone offset in minutes
+    const turkeyTime = new Date(now.getTime() + (turkeyOffset + localOffset) * 60000);
+    
+    const selectedDate = new Date(date + 'T00:00:00');
+    const todayInTurkey = new Date(turkeyTime.toISOString().split('T')[0] + 'T00:00:00');
+    
+    const isToday = selectedDate.getTime() === todayInTurkey.getTime();
+    const currentHour = turkeyTime.getHours();
+    const currentMinute = turkeyTime.getMinutes();
+    const currentTimeInMinutes = currentHour * 60 + currentMinute;
+    
     const timeSlots = [];
     
     // Working hours: 9:00 AM to 6:00 PM with 30-minute intervals
@@ -68,9 +82,16 @@ export async function GET(request: NextRequest) {
         if (hour === 12) continue;
         
         const timeString = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
+        const slotTimeInMinutes = hour * 60 + minute;
+        
+        // If today, check if time slot is in the past
+        const isPast = isToday && slotTimeInMinutes <= currentTimeInMinutes;
         
         // Bu saat rezerve edilmiş mi kontrol et
-        const isAvailable = !bookedTimes.has(timeString);
+        const isBooked = bookedTimes.has(timeString);
+        
+        // Available only if not booked AND not in the past
+        const isAvailable = !isBooked && !isPast;
         
         timeSlots.push({
           time: timeString,
