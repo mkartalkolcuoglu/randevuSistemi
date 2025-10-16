@@ -109,6 +109,9 @@ export async function POST(request: NextRequest) {
     
     // Create appointment
     console.log('💾 Step 5: Creating appointment');
+    console.log('🎁 Package info from request:', appointmentData.packageInfo);
+    console.log('📦 Use package flag:', appointmentData.usePackageForService);
+    
     const appointment = await prisma.appointment.create({
       data: {
         tenantId: tenant.id,
@@ -126,9 +129,16 @@ export async function POST(request: NextRequest) {
         price: appointmentData.price || service.price,
         status: 'pending',
         paymentType: 'cash',
-        notes: appointmentData.customerInfo?.notes || appointmentData.notes || ''
+        notes: appointmentData.customerInfo?.notes || appointmentData.notes || '',
+        // Store package info if user wants to use package
+        packageInfo: (appointmentData.usePackageForService && appointmentData.packageInfo) 
+          ? JSON.stringify(appointmentData.packageInfo) 
+          : null
       }
     });
+    
+    console.log('✅ Appointment created with ID:', appointment.id);
+    console.log('📦 PackageInfo saved:', appointment.packageInfo ? 'Yes' : 'No');
     
     console.log('✅ Appointment created successfully:', appointment.id);
     
