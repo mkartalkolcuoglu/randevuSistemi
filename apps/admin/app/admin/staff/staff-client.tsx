@@ -364,7 +364,7 @@ export default function StaffClient({ user }: StaffClientProps) {
                 <CardTitle>Personel Özeti</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="bg-blue-50 p-4 rounded-lg text-center">
                     <Users className="w-8 h-8 mx-auto text-blue-600 mb-2" />
                     <p className="text-2xl font-bold text-blue-600">{filteredStaff.length}</p>
@@ -376,20 +376,6 @@ export default function StaffClient({ user }: StaffClientProps) {
                       {filteredStaff.filter(s => s.status === 'active').length}
                     </p>
                     <p className="text-sm text-green-800">Aktif Personel</p>
-                  </div>
-                  <div className="bg-yellow-50 p-4 rounded-lg text-center">
-                    <Clock className="w-8 h-8 mx-auto text-yellow-600 mb-2" />
-                    <p className="text-2xl font-bold text-yellow-600">
-                      {filteredStaff.filter(s => s.status === 'vacation').length}
-                    </p>
-                    <p className="text-sm text-yellow-800">İzinli Personel</p>
-                  </div>
-                  <div className="bg-purple-50 p-4 rounded-lg text-center">
-                    <Star className="w-8 h-8 mx-auto text-purple-600 mb-2" />
-                    <p className="text-2xl font-bold text-purple-600">
-                      {(filteredStaff.reduce((sum, s) => sum + (s.rating || 0), 0) / filteredStaff.length).toFixed(1)}
-                    </p>
-                    <p className="text-sm text-purple-800">Ortalama Puan</p>
                   </div>
                 </div>
               </CardContent>

@@ -37,20 +37,32 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get('search') || '';
     const status = searchParams.get('status') || 'all';
     const date = searchParams.get('date') || '';
+    const staffId = searchParams.get('staffId') || '';
+    const customerId = searchParams.get('customerId') || '';
     const tenantId = searchParams.get('tenantId') || sessionTenantId || '';
     
     console.log('📊 Fetching appointments with Prisma');
     console.log('🔍 Session tenant ID:', sessionTenantId);
     console.log('🔍 Query tenant ID:', tenantId);
-    console.log('🔍 Search params:', { page, limit, search, status, date });
+    console.log('🔍 Search params:', { page, limit, search, status, date, staffId, customerId });
 
     // Build Prisma where clause
     const where: any = {};
     
-    // TEMPORARILY DISABLE TENANT FILTER FOR DEBUGGING
-    // if (tenantId) {
-    //   where.tenantId = tenantId;
-    // }
+    // Filter by tenant
+    if (tenantId) {
+      where.tenantId = tenantId;
+    }
+    
+    // Filter by staff
+    if (staffId) {
+      where.staffId = staffId;
+    }
+    
+    // Filter by customer
+    if (customerId) {
+      where.customerId = customerId;
+    }
     
     console.log('🔍 Where clause:', JSON.stringify(where));
     
