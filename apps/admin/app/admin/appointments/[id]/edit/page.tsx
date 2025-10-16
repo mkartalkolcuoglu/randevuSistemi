@@ -14,6 +14,7 @@ export default function EditAppointmentPage() {
   const [loading, setLoading] = useState(true);
   const [services, setServices] = useState([]);
   const [staff, setStaff] = useState([]);
+  const [availableTimeSlots, setAvailableTimeSlots] = useState<string[]>([]);
 
   const [formData, setFormData] = useState({
     customerName: '',
@@ -37,9 +38,12 @@ export default function EditAppointmentPage() {
     '18:00', '18:30', '19:00', '19:30'
   ];
 
-  // Filter time slots based on selected date (Turkey timezone)
-  const getAvailableTimeSlots = () => {
-    if (!formData.date) return allTimeSlots;
+  // Update available time slots when date changes
+  useEffect(() => {
+    if (!formData.date) {
+      setAvailableTimeSlots(allTimeSlots);
+      return;
+    }
 
     // Get current time in Turkey timezone (UTC+3)
     const now = new Date();
@@ -52,23 +56,24 @@ export default function EditAppointmentPage() {
 
     // If selected date is not today, allow all time slots
     if (selectedDate.getTime() !== todayInTurkey.getTime()) {
-      return allTimeSlots;
+      setAvailableTimeSlots(allTimeSlots);
+      return;
     }
 
     // If selected date is today, filter out past time slots
     const currentHour = turkeyTime.getHours();
     const currentMinute = turkeyTime.getMinutes();
 
-    return allTimeSlots.filter(timeSlot => {
+    const filtered = allTimeSlots.filter(timeSlot => {
       const [hour, minute] = timeSlot.split(':').map(Number);
       const slotTime = hour * 60 + minute;
       const currentTime = currentHour * 60 + currentMinute;
       
       return slotTime > currentTime;
     });
-  };
 
-  const timeSlots = getAvailableTimeSlots();
+    setAvailableTimeSlots(filtered);
+  }, [formData.date]);
 
   useEffect(() => {
     if (params.id) {
@@ -334,7 +339,7 @@ export default function EditAppointmentPage() {
                   required
                 >
                   <option value="">Saat seçin</option>
-                  {timeSlots.map((time) => (
+                  {availableTimeSlots.map((time) => (
                     <option key={time} value={time}>
                       {time}
                     </option>
