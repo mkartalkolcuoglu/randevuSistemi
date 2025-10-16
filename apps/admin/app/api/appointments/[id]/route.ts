@@ -86,9 +86,12 @@ export async function PUT(
 
     console.log('📦 Updated appointment packageInfo:', updatedAppointment.packageInfo);
 
-    // If status changed to "confirmed", deduct from package if applicable
-    if (data.status === 'confirmed' && oldAppointment?.status !== 'confirmed') {
-      console.log('✅ Status changed to confirmed - checking for package deduction');
+    // If status changed to "confirmed" or "completed", deduct from package if applicable
+    const isCompleted = data.status === 'confirmed' || data.status === 'completed';
+    const wasCompleted = oldAppointment?.status === 'confirmed' || oldAppointment?.status === 'completed';
+    
+    if (isCompleted && !wasCompleted) {
+      console.log(`✅ Status changed to ${data.status} - checking for package deduction`);
       await deductFromPackage(updatedAppointment);
     }
 
