@@ -85,6 +85,7 @@ model Appointment {
   price        Float?
   duration     Int?     // in minutes
   paymentType  String   @default("cash")
+  packageInfo  String?  @db.Text // JSON string containing package usage info
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
   
