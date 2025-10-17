@@ -27,7 +27,8 @@ export default function EditAppointmentPage() {
     duration: 60,
     notes: '',
     status: 'pending',
-    paymentType: 'cash'
+    paymentType: 'cash',
+    packageInfo: null as any
   });
 
   // Time slots
@@ -108,6 +109,18 @@ export default function EditAppointmentPage() {
         const appointment = data.data;
         
         
+        // Parse packageInfo if it exists
+        let parsedPackageInfo = null;
+        if (appointment.packageInfo) {
+          try {
+            parsedPackageInfo = typeof appointment.packageInfo === 'string' 
+              ? JSON.parse(appointment.packageInfo) 
+              : appointment.packageInfo;
+          } catch (error) {
+            console.error('Error parsing packageInfo:', error);
+          }
+        }
+
         const newFormData = {
           customerName: appointment.customerName || '',
           customerPhone: appointment.customerPhone || '',
@@ -119,7 +132,8 @@ export default function EditAppointmentPage() {
           duration: appointment.duration || 60,
           notes: appointment.notes || '',
           status: appointment.status || 'pending',
-          paymentType: appointment.paymentType || 'cash'
+          paymentType: appointment.paymentType || 'cash',
+          packageInfo: parsedPackageInfo
         };
         setFormData(newFormData);
       } else {
@@ -379,19 +393,49 @@ export default function EditAppointmentPage() {
 
               <div className="space-y-2">
                 <Label htmlFor="paymentType">Ödeme Tipi</Label>
-                <select
-                  id="paymentType"
-                  name="paymentType"
-                  value={formData.paymentType}
-                  onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="cash">Nakit</option>
-                  <option value="credit_card">Kredi Kartı</option>
-                  <option value="bank_transfer">Havale</option>
-                </select>
+                {formData.packageInfo ? (
+                  <div className="flex items-center h-10 px-3 py-2 border border-green-300 bg-green-50 rounded-md">
+                    <span className="text-green-700 font-semibold flex items-center">
+                      🎁 Paket Kullanımı
+                    </span>
+                  </div>
+                ) : (
+                  <select
+                    id="paymentType"
+                    name="paymentType"
+                    value={formData.paymentType}
+                    onChange={handleInputChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="cash">Nakit</option>
+                    <option value="credit_card">Kredi Kartı</option>
+                    <option value="bank_transfer">Havale</option>
+                  </select>
+                )}
               </div>
             </div>
+
+            {/* Package Info Banner */}
+            {formData.packageInfo && (
+              <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-lg p-4">
+                <div className="flex items-start">
+                  <div className="flex-shrink-0">
+                    <span className="text-2xl">🎁</span>
+                  </div>
+                  <div className="ml-3 flex-1">
+                    <h3 className="text-sm font-semibold text-green-900">
+                      Paket Randevusu
+                    </h3>
+                    <p className="mt-1 text-sm text-green-700">
+                      Bu randevu, <span className="font-semibold">{formData.packageInfo.packageName}</span> paketinden kullanılmaktadır.
+                    </p>
+                    <p className="mt-1 text-xs text-green-600">
+                      Bu randevu için ödeme alınmayacaktır.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
 
             <div className="space-y-2">
               <Label htmlFor="notes">Notlar</Label>
