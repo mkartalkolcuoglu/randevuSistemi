@@ -165,32 +165,44 @@ export default function ServicesClient({ user }: ServicesClientProps) {
           {/* Services Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredServices.map((service) => (
-              <Card key={service.id} className="hover:shadow-lg transition-shadow">
-                <CardHeader className="pb-3">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <CardTitle className="text-lg">{service.name}</CardTitle>
-                      <Badge variant={service.status === 'active' ? "default" : "secondary"} className="mt-1">
-                        {service.status === 'active' ? 'Aktif' : 'Pasif'}
-                      </Badge>
-                    </div>
-                    <div className="flex space-x-1">
-                      <Link href={`/admin/services/${service.id}/edit`}>
-                        <Button variant="outline" size="sm">
-                          <Edit3 className="w-4 h-4" />
+              <Link 
+                key={service.id} 
+                href={`/admin/services/${service.id}`}
+                className="block"
+              >
+                <Card className="hover:shadow-lg transition-shadow cursor-pointer h-full">
+                  <CardHeader className="pb-3">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <CardTitle className="text-lg">{service.name}</CardTitle>
+                        <Badge variant={service.status === 'active' ? "default" : "secondary"} className="mt-1">
+                          {service.status === 'active' ? 'Aktif' : 'Pasif'}
+                        </Badge>
+                      </div>
+                      <div className="flex space-x-1">
+                        <Link 
+                          href={`/admin/services/${service.id}/edit`}
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <Button variant="outline" size="sm">
+                            <Edit3 className="w-4 h-4" />
+                          </Button>
+                        </Link>
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            deleteService(service.id);
+                          }}
+                          className="text-red-600 hover:text-red-700"
+                        >
+                          <Trash2 className="w-4 h-4" />
                         </Button>
-                      </Link>
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        onClick={() => deleteService(service.id)}
-                        className="text-red-600 hover:text-red-700"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
+                      </div>
                     </div>
-                  </div>
-                </CardHeader>
+                  </CardHeader>
                 <CardContent>
                   <div className="space-y-2">
                     <div className="flex items-center text-sm text-gray-600">
@@ -212,6 +224,7 @@ export default function ServicesClient({ user }: ServicesClientProps) {
                   </div>
                 </CardContent>
               </Card>
+              </Link>
             ))}
           </div>
 
