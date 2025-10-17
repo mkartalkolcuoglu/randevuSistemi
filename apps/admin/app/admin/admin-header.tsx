@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@repo/ui';
-import { LogOut, User, Home, Calendar, Users, Briefcase, Package, Settings, Wallet, Gift } from 'lucide-react';
+import { LogOut, User, Home, Calendar, Users, Briefcase, Package, Settings, Wallet, Gift, Clock } from 'lucide-react';
 import Link from 'next/link';
 import type { AuthenticatedUser } from '../../lib/auth-utils';
 
@@ -13,7 +13,59 @@ interface AdminHeaderProps {
 
 export default function AdminHeader({ user }: AdminHeaderProps) {
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [remainingDays, setRemainingDays] = useState<number | null>(null);
+  const [subscriptionPlan, setSubscriptionPlan] = useState<string | null>(null);
   const router = useRouter();
+
+  // Fetch tenant subscription info
+  useEffect(() => {
+    const fetchTenantInfo = async () => {
+      try {
+        const response = await fetch('/api/tenant-info');
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success && data.data) {
+            const { subscriptionEnd, subscriptionPlan } = data.data;
+            
+            // Calculate remaining days
+            if (subscriptionEnd) {
+              const now = new Date();
+              const endDate = new Date(subscriptionEnd);
+              const diffTime = endDate.getTime() - now.getTime();
+              const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+              setRemainingDays(diffDays);
+            }
+            
+            setSubscriptionPlan(subscriptionPlan);
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching tenant info:', error);
+      }
+    };
+
+    fetchTenantInfo();
+  }, []);
+
+  // Get badge color based on remaining days
+  const getBadgeColor = () => {
+    if (remainingDays === null) return 'bg-gray-100 text-gray-800';
+    if (remainingDays <= 0) return 'bg-red-100 text-red-800 border-red-300';
+    if (remainingDays <= 7) return 'bg-orange-100 text-orange-800 border-orange-300';
+    if (remainingDays <= 15) return 'bg-yellow-100 text-yellow-800 border-yellow-300';
+    return 'bg-green-100 text-green-800 border-green-300';
+  };
+
+  // Get plan name in Turkish
+  const getPlanName = () => {
+    if (!subscriptionPlan) return null;
+    switch (subscriptionPlan) {
+      case 'trial': return 'Deneme';
+      case 'monthly': return 'Aylık';
+      case 'yearly': return 'Yıllık';
+      default: return subscriptionPlan;
+    }
+  };
 
   const handleLogout = async () => {
     setIsLoggingOut(true);
@@ -48,6 +100,23 @@ export default function AdminHeader({ user }: AdminHeaderProps) {
           </div>
           
           <div className="flex items-center space-x-4">
+            {/* Subscription Badge */}
+            {remainingDays !== null && (
+              <div className={`flex items-center space-x-2 px-3 py-1.5 rounded-full border ${getBadgeColor()} text-xs font-medium`}>
+                <Clock className="w-4 h-4" />
+                <div className="flex flex-col">
+                  <span className="font-semibold">
+                    {remainingDays <= 0 ? 'Abonelik Süresi Doldu' : `${remainingDays} Gün Kaldı`}
+                  </span>
+                  {getPlanName() && (
+                    <span className="text-[10px] opacity-75">
+                      {getPlanName()} Paket
+                    </span>
+                  )}
+                </div>
+              </div>
+            )}
+
             <div className="flex items-center space-x-2 text-sm text-gray-600">
               <User className="w-4 h-4" />
               <span>{user.ownerName}</span>
