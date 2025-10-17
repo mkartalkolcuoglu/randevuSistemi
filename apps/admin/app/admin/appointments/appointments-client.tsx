@@ -233,7 +233,11 @@ export default function AppointmentsClient({ initialAppointments, tenantId, user
             ) : (
               <div className="divide-y divide-gray-200">
                 {filteredAppointments.map((appointment: any) => (
-                  <div key={appointment.id} className="p-6 hover:bg-gray-50 transition-colors">
+                  <Link 
+                    key={appointment.id} 
+                    href={`/admin/appointments/${appointment.id}`}
+                    className="block p-6 hover:bg-gray-50 transition-colors cursor-pointer"
+                  >
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-4">
                         <div className="flex-shrink-0">
@@ -290,7 +294,10 @@ export default function AppointmentsClient({ initialAppointments, tenantId, user
                             </>
                           )}
                         </div>
-                        <Link href={`/admin/appointments/${appointment.id}/edit`}>
+                        <Link 
+                          href={`/admin/appointments/${appointment.id}/edit`}
+                          onClick={(e) => e.stopPropagation()}
+                        >
                           <Button variant="outline" size="sm">
                             <Edit className="w-4 h-4" />
                           </Button>
@@ -298,7 +305,11 @@ export default function AppointmentsClient({ initialAppointments, tenantId, user
                         <Button 
                           variant="outline" 
                           size="sm" 
-                          onClick={() => handleDelete(appointment.id)}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            handleDelete(appointment.id);
+                          }}
                           className="text-red-600 hover:text-red-700 hover:bg-red-50"
                         >
                           <Trash2 className="w-4 h-4" />
@@ -315,7 +326,7 @@ export default function AppointmentsClient({ initialAppointments, tenantId, user
                     <div className="mt-2 text-xs text-gray-400">
                       ID: {appointment.id} | Tenant: {appointment.tenantId} | Oluşturulma: {new Date(appointment.createdAt).toLocaleString('tr-TR')}
                     </div>
-                  </div>
+                  </Link>
                 ))}
               </div>
             )}
