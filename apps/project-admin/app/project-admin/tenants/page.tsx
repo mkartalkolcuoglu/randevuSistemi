@@ -38,6 +38,28 @@ export default function TenantsManagement() {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [planFilter, setPlanFilter] = useState('all');
+  const [showRemainingDays, setShowRemainingDays] = useState(true);
+
+  // Calculate remaining days for subscription
+  const calculateRemainingDays = (subscriptionEnd: string | null) => {
+    if (!subscriptionEnd) return null;
+    
+    const now = new Date();
+    const endDate = new Date(subscriptionEnd);
+    const diffTime = endDate.getTime() - now.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    return diffDays;
+  };
+
+  // Get badge color based on remaining days
+  const getRemainingDaysBadgeColor = (days: number | null) => {
+    if (days === null) return 'bg-gray-100 text-gray-800';
+    if (days <= 0) return 'bg-red-100 text-red-800';
+    if (days <= 7) return 'bg-orange-100 text-orange-800';
+    if (days <= 15) return 'bg-yellow-100 text-yellow-800';
+    return 'bg-green-100 text-green-800';
+  };
 
   const fetchTenants = useCallback(async () => {
     try {
@@ -301,6 +323,15 @@ export default function TenantsManagement() {
               <option value="Premium">Premium</option>
               <option value="Enterprise">Enterprise</option>
             </select>
+
+            <Button 
+              variant="outline"
+              onClick={() => setShowRemainingDays(!showRemainingDays)}
+              className="flex items-center gap-2"
+            >
+              <Eye className="w-4 h-4" />
+              {showRemainingDays ? 'Kalan Günleri Gizle' : 'Kalan Günleri Göster'}
+            </Button>
           </div>
 
           <Link href="/project-admin/tenants/new">
@@ -324,6 +355,9 @@ export default function TenantsManagement() {
                     <th className="text-left py-3 px-4 font-semibold text-gray-700">Abone</th>
                     <th className="text-left py-3 px-4 font-semibold text-gray-700">Plan</th>
                     <th className="text-left py-3 px-4 font-semibold text-gray-700">Durum</th>
+                    {showRemainingDays && (
+                      <th className="text-left py-3 px-4 font-semibold text-gray-700">Kalan Süre</th>
+                    )}
                     <th className="text-left py-3 px-4 font-semibold text-gray-700">Gelir</th>
                     <th className="text-left py-3 px-4 font-semibold text-gray-700">Kullanım</th>
                     <th className="text-left py-3 px-4 font-semibold text-gray-700">İşlemler</th>
@@ -350,6 +384,25 @@ export default function TenantsManagement() {
                       <td className="py-4 px-4">
                         {getStatusBadge(tenant.status)}
                       </td>
+                      {showRemainingDays && (
+                        <td className="py-4 px-4">
+                          {(() => {
+                            const remainingDays = calculateRemainingDays(tenant.subscriptionEnd);
+                            if (remainingDays === null) {
+                              return (
+                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                                  Süresiz
+                                </span>
+                              );
+                            }
+                            return (
+                              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getRemainingDaysBadgeColor(remainingDays)}`}>
+                                {remainingDays <= 0 ? 'Süresi Doldu' : `${remainingDays} gün`}
+                              </span>
+                            );
+                          })()}
+                        </td>
+                      )}
                       <td className="py-4 px-4">
                         <div className="text-lg font-semibold text-gray-900">
                           ₺{(tenant.monthlyRevenue || 0).toLocaleString()}
