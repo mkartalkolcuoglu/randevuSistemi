@@ -314,18 +314,6 @@ export default function SettingsClient({ user }: SettingsClientProps) {
       let cleanLogo = settings.themeSettings?.logo || '';
       let cleanHeaderImage = settings.themeSettings?.headerImage || '';
       
-      // If logo is huge base64, convert to empty or URL only
-      if (cleanLogo && cleanLogo.length > 100000) { // 100KB limit
-        console.warn('Logo too large, removing base64 data');
-        cleanLogo = logoIsUrl ? cleanLogo : '';
-      }
-      
-      // If header image is huge base64, convert to empty or URL only  
-      if (cleanHeaderImage && cleanHeaderImage.length > 100000) { // 100KB limit
-        console.warn('Header image too large, removing base64 data');
-        cleanHeaderImage = headerIsUrl ? cleanHeaderImage : '';
-      }
-      
       const cleanThemeSettings = {
         primaryColor: settings.themeSettings?.primaryColor || '#3B82F6',
         secondaryColor: settings.themeSettings?.secondaryColor || '#1E40AF',
@@ -341,15 +329,17 @@ export default function SettingsClient({ user }: SettingsClientProps) {
         themeSettings: cleanThemeSettings
       };
       
-      // Only compress if it's base64, not URL
+      // Compress base64 images to reduce size
       if (cleanThemeSettings.logo && !logoIsUrl) {
         console.log('Compressing logo (base64)...');
-        compressedSettings.themeSettings.logo = await compressImage(cleanThemeSettings.logo);
+        // More aggressive compression for logo (300KB target)
+        compressedSettings.themeSettings.logo = await compressImage(cleanThemeSettings.logo, 300);
       }
       
       if (cleanThemeSettings.headerImage && !headerIsUrl) {
         console.log('Compressing header image (base64)...');
-        compressedSettings.themeSettings.headerImage = await compressImage(cleanThemeSettings.headerImage);
+        // More aggressive compression for header (400KB target)
+        compressedSettings.themeSettings.headerImage = await compressImage(cleanThemeSettings.headerImage, 400);
       }
       
       // Check total size
