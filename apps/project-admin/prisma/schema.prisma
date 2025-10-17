@@ -31,11 +31,6 @@ model Tenant {
   createdAt          DateTime @default(now())
   lastLogin          DateTime?
   
-  // Subscription package fields
-  subscriptionPlan   String?  // "trial", "monthly", "yearly"
-  subscriptionStart  DateTime?
-  subscriptionEnd    DateTime?
-  
   // JSON fields for complex data
   workingHours       String?  // JSON string
   theme              String?  // JSON string

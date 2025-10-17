@@ -149,31 +149,38 @@ export async function POST(request: NextRequest) {
 
 
     try {
+      // Prepare tenant data (conditionally include subscription fields)
+      const tenantData: any = {
+        businessName: data.businessName,
+        slug: data.slug,
+        domain: process.env.WEB_APP_URL ? `${process.env.WEB_APP_URL}/${data.slug}` : `${data.slug}.randevu.com`,
+        username: data.username,
+        password: data.password, // In production, this should be hashed
+        ownerName: data.ownerName,
+        ownerEmail: data.ownerEmail,
+        phone: data.phone || '',
+        plan: data.plan || 'Standard',
+        status: data.status || 'active',
+        address: data.address || '',
+        businessType: data.businessType || 'other',
+        businessDescription: data.businessDescription || '',
+        monthlyRevenue: 0,
+        appointmentCount: 0,
+        customerCount: 0,
+        workingHours: JSON.stringify(mergedWorkingHours),
+        theme: JSON.stringify(mergedTheme)
+      };
+
+      // Only add subscription fields if they're provided (for new tenants with package selection)
+      if (data.subscriptionPlan) {
+        tenantData.subscriptionPlan = data.subscriptionPlan;
+        tenantData.subscriptionStart = data.subscriptionStart ? new Date(data.subscriptionStart) : new Date();
+        tenantData.subscriptionEnd = data.subscriptionEnd ? new Date(data.subscriptionEnd) : null;
+      }
+
       // Create tenant using Prisma
       const newTenant = await prisma.tenant.create({
-        data: {
-          businessName: data.businessName,
-          slug: data.slug,
-          domain: process.env.WEB_APP_URL ? `${process.env.WEB_APP_URL}/${data.slug}` : `${data.slug}.randevu.com`,
-          username: data.username,
-          password: data.password, // In production, this should be hashed
-          ownerName: data.ownerName,
-          ownerEmail: data.ownerEmail,
-          phone: data.phone || '',
-          plan: data.plan || 'Standard',
-          status: data.status || 'active',
-          address: data.address || '',
-          businessType: data.businessType || 'other',
-          businessDescription: data.businessDescription || '',
-          monthlyRevenue: 0,
-          appointmentCount: 0,
-          customerCount: 0,
-          subscriptionPlan: data.subscriptionPlan || 'trial',
-          subscriptionStart: data.subscriptionStart ? new Date(data.subscriptionStart) : new Date(),
-          subscriptionEnd: data.subscriptionEnd ? new Date(data.subscriptionEnd) : null,
-          workingHours: JSON.stringify(mergedWorkingHours),
-          theme: JSON.stringify(mergedTheme)
-        }
+        data: tenantData
       });
 
       return NextResponse.json({
