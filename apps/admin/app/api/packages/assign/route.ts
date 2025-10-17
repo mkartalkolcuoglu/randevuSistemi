@@ -164,15 +164,28 @@ export async function GET(request: NextRequest) {
       const customerPackages = await prisma.customerPackage.findMany({
         where: { packageId },
         include: {
-          customer: true,
+          customer: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              email: true,
+              phone: true
+            }
+          },
           usages: true,
-          package: true
+          package: {
+            select: {
+              id: true,
+              name: true,
+              price: true
+            }
+          }
         },
         orderBy: { assignedAt: 'desc' }
       });
 
       console.log('📦 Found customer packages:', customerPackages.length);
-      console.log('👥 Customer packages data:', JSON.stringify(customerPackages, null, 2));
 
       return NextResponse.json({
         success: true,
