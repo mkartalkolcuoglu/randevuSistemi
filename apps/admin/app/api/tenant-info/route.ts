@@ -11,7 +11,7 @@ export const dynamic = 'force-dynamic';
 export async function GET() {
   try {
     const cookieStore = cookies();
-    const sessionCookie = cookieStore.get('admin-session');
+    const sessionCookie = cookieStore.get('tenant-session');
 
     if (!sessionCookie) {
       return NextResponse.json(
