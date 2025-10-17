@@ -134,9 +134,10 @@ export default function PackagesClient({ tenantId, user }: PackagesClientProps) 
       console.log('📡 Fetching:', url);
       
       const response = await fetch(url);
+      console.log('📥 Response status:', response.status);
+      
       const result = await response.json();
-
-      console.log('📦 API Response:', result);
+      console.log('📦 API Response (full):', JSON.stringify(result, null, 2));
       console.log('👥 Assigned customers count:', result.data?.length || 0);
 
       if (result.success) {
@@ -144,6 +145,7 @@ export default function PackagesClient({ tenantId, user }: PackagesClientProps) 
         console.log('✅ Customers loaded:', result.data);
       } else {
         console.error('❌ Failed to load assigned customers:', result.error);
+        console.error('❌ Error details:', result.details);
         setAssignedCustomers([]);
       }
     } catch (error) {
