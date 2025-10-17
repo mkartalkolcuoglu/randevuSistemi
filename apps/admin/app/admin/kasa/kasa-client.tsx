@@ -329,14 +329,13 @@ export default function KasaClient({ tenantId, user }: KasaClientProps) {
                   <th className="text-left py-3 px-4 font-semibold text-gray-700">Açıklama</th>
                   <th className="text-left py-3 px-4 font-semibold text-gray-700">Ödeme</th>
                   <th className="text-right py-3 px-4 font-semibold text-gray-700">Tutar</th>
-                  <th className="text-right py-3 px-4 font-semibold text-gray-700">Kâr</th>
                   <th className="text-right py-3 px-4 font-semibold text-gray-700">İşlemler</th>
                 </tr>
               </thead>
               <tbody>
                 {transactions.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="text-center py-8 text-gray-500">
+                    <td colSpan={6} className="text-center py-8 text-gray-500">
                       Henüz işlem bulunmuyor
                     </td>
                   </tr>
@@ -371,9 +370,6 @@ export default function KasaClient({ tenantId, user }: KasaClientProps) {
                         transaction.type === 'expense' ? 'text-red-600' : 'text-green-600'
                       }`}>
                         {transaction.type === 'expense' ? '-' : '+'}₺{transaction.amount.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
-                      </td>
-                      <td className="py-3 px-4 text-right text-gray-600">
-                        {transaction.profit ? `₺${transaction.profit.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}` : '-'}
                       </td>
                       <td className="py-3 px-4 text-right">
                         <div className="flex justify-end gap-2">
