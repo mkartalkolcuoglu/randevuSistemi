@@ -16,6 +16,8 @@ export default function EditTenantPage({ params }: EditTenantPageProps) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [logoPreview, setLogoPreview] = useState<string>('');
+  const [headerPreview, setHeaderPreview] = useState<string>('');
   const [formData, setFormData] = useState({
     businessName: '',
     slug: '',
@@ -136,6 +138,22 @@ export default function EditTenantPage({ params }: EditTenantPageProps) {
             }
           })()
         });
+        
+        // Set existing image previews
+        const theme = data.data.theme;
+        let parsedTheme;
+        try {
+          parsedTheme = typeof theme === 'string' ? JSON.parse(theme) : theme;
+        } catch {
+          parsedTheme = {};
+        }
+        
+        if (parsedTheme?.logo) {
+          setLogoPreview(parsedTheme.logo);
+        }
+        if (parsedTheme?.headerImage) {
+          setHeaderPreview(parsedTheme.headerImage);
+        }
       } else {
         alert('Abone bulunamadı');
         router.push('/project-admin/tenants');
@@ -154,6 +172,55 @@ export default function EditTenantPage({ params }: EditTenantPageProps) {
       ...prev,
       [name]: value
     }));
+  };
+
+  // Handle image file upload and convert to base64
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>, type: 'logo' | 'headerImage') => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Check file size (max 3MB)
+    const maxSize = 3 * 1024 * 1024; // 3MB in bytes
+    if (file.size > maxSize) {
+      alert('Dosya boyutu 3MB\'dan küçük olmalıdır.');
+      e.target.value = ''; // Clear input
+      return;
+    }
+
+    // Check file type
+    if (!file.type.startsWith('image/')) {
+      alert('Lütfen bir resim dosyası seçin.');
+      e.target.value = '';
+      return;
+    }
+
+    // Convert to base64
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const base64String = reader.result as string;
+      
+      // Update form data
+      setFormData((prev) => ({
+        ...prev,
+        theme: {
+          ...prev.theme,
+          [type]: base64String,
+        },
+      }));
+
+      // Update preview
+      if (type === 'logo') {
+        setLogoPreview(base64String);
+      } else {
+        setHeaderPreview(base64String);
+      }
+    };
+
+    reader.onerror = () => {
+      alert('Dosya yüklenirken bir hata oluştu.');
+    };
+
+    reader.readAsDataURL(file);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -544,34 +611,40 @@ export default function EditTenantPage({ params }: EditTenantPageProps) {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Logo URL
+                  Logo (Max 3MB)
                 </label>
                 <input
-                  type="url"
+                  type="file"
                   name="logo"
-                  value={formData.theme?.logo || ''}
-                  onChange={(e) => setFormData(prev => ({
-                    ...prev,
-                    theme: { ...prev.theme, logo: e.target.value }
-                  }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  accept="image/*"
+                  onChange={(e) => handleImageUpload(e, 'logo')}
+                  className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer bg-white border border-gray-300 rounded-md"
                 />
+                {logoPreview && (
+                  <div className="mt-2">
+                    <img src={logoPreview} alt="Logo preview" className="h-20 w-20 object-contain border border-gray-200 rounded" />
+                  </div>
+                )}
+                <p className="mt-1 text-xs text-gray-500">PNG, JPG, GIF formatları destekleniyor</p>
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Header Görseli URL
+                  Header Görseli (Max 3MB)
                 </label>
                 <input
-                  type="url"
+                  type="file"
                   name="headerImage"
-                  value={formData.theme?.headerImage || ''}
-                  onChange={(e) => setFormData(prev => ({
-                    ...prev,
-                    theme: { ...prev.theme, headerImage: e.target.value }
-                  }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  accept="image/*"
+                  onChange={(e) => handleImageUpload(e, 'headerImage')}
+                  className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer bg-white border border-gray-300 rounded-md"
                 />
+                {headerPreview && (
+                  <div className="mt-2">
+                    <img src={headerPreview} alt="Header preview" className="h-32 w-full object-cover border border-gray-200 rounded" />
+                  </div>
+                )}
+                <p className="mt-1 text-xs text-gray-500">PNG, JPG, GIF formatları destekleniyor</p>
               </div>
             </CardContent>
           </Card>

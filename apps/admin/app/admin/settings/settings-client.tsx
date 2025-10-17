@@ -13,6 +13,8 @@ interface SettingsClientProps {
 export default function SettingsClient({ user }: SettingsClientProps) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [logoPreview, setLogoPreview] = useState<string>('');
+  const [headerPreview, setHeaderPreview] = useState<string>('');
   const [settings, setSettings] = useState({
     // Tema ayarları
     themeSettings: {
@@ -160,6 +162,8 @@ export default function SettingsClient({ user }: SettingsClientProps) {
             }
           }
           
+          const themeData = tenant.themeSettings || tenant.theme || prev.themeSettings;
+          
           setSettings(prev => ({
             ...prev,
             // Business info mapping
@@ -179,9 +183,17 @@ export default function SettingsClient({ user }: SettingsClientProps) {
             
             // Other data
             workingHours: tenant.workingHours || prev.workingHours,
-            themeSettings: tenant.themeSettings || tenant.theme || prev.themeSettings,
+            themeSettings: themeData,
             location: tenant.location || prev.location
           }));
+          
+          // Set existing image previews
+          if (themeData?.logo) {
+            setLogoPreview(themeData.logo);
+          }
+          if (themeData?.headerImage) {
+            setHeaderPreview(themeData.headerImage);
+          }
         } else {
           throw new Error(tenantData.error || 'Tenant bilgisi alınamadı');
         }
@@ -426,6 +438,55 @@ export default function SettingsClient({ user }: SettingsClientProps) {
     }));
   };
 
+  // Handle image file upload and convert to base64
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>, type: 'logo' | 'headerImage') => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Check file size (max 3MB)
+    const maxSize = 3 * 1024 * 1024; // 3MB in bytes
+    if (file.size > maxSize) {
+      alert('Dosya boyutu 3MB\'dan küçük olmalıdır.');
+      e.target.value = ''; // Clear input
+      return;
+    }
+
+    // Check file type
+    if (!file.type.startsWith('image/')) {
+      alert('Lütfen bir resim dosyası seçin.');
+      e.target.value = '';
+      return;
+    }
+
+    // Convert to base64
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const base64String = reader.result as string;
+      
+      // Update settings
+      setSettings((prev) => ({
+        ...prev,
+        themeSettings: {
+          ...prev.themeSettings,
+          [type]: base64String,
+        },
+      }));
+
+      // Update preview
+      if (type === 'logo') {
+        setLogoPreview(base64String);
+      } else {
+        setHeaderPreview(base64String);
+      }
+    };
+
+    reader.onerror = () => {
+      alert('Dosya yüklenirken bir hata oluştu.');
+    };
+
+    reader.readAsDataURL(file);
+  };
+
   useEffect(() => {
     loadSettings();
   }, []);
@@ -540,28 +601,38 @@ export default function SettingsClient({ user }: SettingsClientProps) {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Logo URL
+                Logo (Max 3MB)
               </label>
               <input
-                type="text"
-                value={settings.themeSettings?.logo || ''}
-                onChange={(e) => handleThemeChange('logo', e.target.value)}
-                placeholder="https://example.com/logo.png"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                type="file"
+                accept="image/*"
+                onChange={(e) => handleImageUpload(e, 'logo')}
+                className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer bg-white border border-gray-300 rounded-md"
               />
+              {logoPreview && (
+                <div className="mt-2">
+                  <img src={logoPreview} alt="Logo preview" className="h-20 w-20 object-contain border border-gray-200 rounded" />
+                </div>
+              )}
+              <p className="mt-1 text-xs text-gray-500">PNG, JPG, GIF formatları destekleniyor</p>
             </div>
             
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Header Fotoğrafı URL
+                Header Görseli (Max 3MB)
               </label>
               <input
-                type="text"
-                value={settings.themeSettings?.headerImage || ''}
-                onChange={(e) => handleThemeChange('headerImage', e.target.value)}
-                placeholder="https://example.com/header.jpg"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                type="file"
+                accept="image/*"
+                onChange={(e) => handleImageUpload(e, 'headerImage')}
+                className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer bg-white border border-gray-300 rounded-md"
               />
+              {headerPreview && (
+                <div className="mt-2">
+                  <img src={headerPreview} alt="Header preview" className="h-32 w-full object-cover border border-gray-200 rounded" />
+                </div>
+              )}
+              <p className="mt-1 text-xs text-gray-500">PNG, JPG, GIF formatları destekleniyor</p>
             </div>
           </div>
         </CardContent>
