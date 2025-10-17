@@ -61,6 +61,29 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Check if customer already has this package
+    const existingPackage = await prisma.customerPackage.findFirst({
+      where: {
+        customerId,
+        packageId
+      }
+    });
+
+    if (existingPackage) {
+      console.error('❌ Duplicate package assignment attempt:', {
+        customerId,
+        packageId,
+        existingPackageId: existingPackage.id
+      });
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: 'Bu müşteriye bu paket zaten atanmış. Lütfen sayfayı yenileyin.'
+        },
+        { status: 400 }
+      );
+    }
+
     // Create customer package assignment
     const customerPackage = await prisma.customerPackage.create({
       data: {
