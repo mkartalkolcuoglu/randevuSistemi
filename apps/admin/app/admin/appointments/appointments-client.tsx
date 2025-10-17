@@ -254,7 +254,7 @@ export default function AppointmentsClient({ initialAppointments, tenantId, user
                           <div className="flex items-center text-sm text-gray-500 space-x-4">
                             <div className="flex items-center">
                               <Calendar className="w-4 h-4 mr-1" />
-                              {appointment.date}
+                              {new Date(appointment.date).toLocaleDateString('tr-TR')}
                             </div>
                             <div className="flex items-center">
                               <Clock className="w-4 h-4 mr-1" />
