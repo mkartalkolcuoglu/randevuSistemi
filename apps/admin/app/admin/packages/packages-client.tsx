@@ -408,6 +408,11 @@ export default function PackagesClient({ tenantId, user }: PackagesClientProps) 
                           <div className="text-sm text-gray-600 mt-1 space-y-1">
                             <p>📧 {cp.customer.email}</p>
                             <p>📞 {cp.customer.phone}</p>
+                            {cp.staffName && (
+                              <p className="text-sm">
+                                👤 <span className="font-medium">Satan Personel:</span> {cp.staffName}
+                              </p>
+                            )}
                             <p className="text-xs text-gray-500">
                               Atanma: {new Date(cp.assignedAt).toLocaleDateString('tr-TR')}
                             </p>

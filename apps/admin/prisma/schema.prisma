@@ -236,6 +236,8 @@ model CustomerPackage {
   assignedAt  DateTime @default(now())
   expiresAt   DateTime?
   status      String   @default("active") // active, completed, expired
+  staffId     String?  // Staff member who assigned/sold the package
+  staffName   String?  // Staff member name
   
   customer    Customer @relation(fields: [customerId], references: [id])
   package     Package  @relation(fields: [packageId], references: [id])

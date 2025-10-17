@@ -90,6 +90,8 @@ export async function POST(request: NextRequest) {
         customerId,
         packageId,
         tenantId,
+        staffId: staff.id,
+        staffName: `${staff.firstName} ${staff.lastName}`,
         expiresAt: expiresAt ? new Date(expiresAt) : null,
         status: 'active',
         usages: {
