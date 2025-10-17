@@ -43,15 +43,12 @@ export default function TenantsManagement() {
     try {
       setLoading(true);
       
-      // First, check and update expired subscriptions
-      try {
-        await fetch('/api/tenants/check-subscriptions', {
-          method: 'POST'
-        });
-      } catch (err) {
-        console.error('Error checking subscriptions:', err);
-        // Continue even if check fails
-      }
+      // First, check and update expired subscriptions (optional - don't block if it fails)
+      fetch('/api/tenants/check-subscriptions', {
+        method: 'POST'
+      }).catch(err => {
+        console.warn('Subscription check failed (non-blocking):', err);
+      });
 
       const params = new URLSearchParams({
         page: '1',
