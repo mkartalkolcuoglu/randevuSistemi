@@ -38,6 +38,10 @@ export default function ReportsClient({ user }: ReportsClientProps) {
     }
   });
   const [loading, setLoading] = useState(true);
+  const [showFilterModal, setShowFilterModal] = useState(false);
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
 
   // Fetch real data from APIs
   useEffect(() => {
@@ -123,6 +127,58 @@ export default function ReportsClient({ user }: ReportsClientProps) {
     }).format(amount);
   };
 
+  // Button handlers
+  const handleFilter = () => {
+    setShowFilterModal(true);
+  };
+
+  const handleDownloadReport = () => {
+    // Create CSV data
+    const csvData = [
+      ['Metrik', 'Bu Ay', 'Geçen Ay', 'Değişim %'],
+      ['Gelir', formatCurrency(reportData.thisMonth.revenue), formatCurrency(reportData.lastMonth.revenue), 
+       calculatePercentageChange(reportData.thisMonth.revenue, reportData.lastMonth.revenue).toFixed(1) + '%'],
+      ['Randevular', reportData.thisMonth.appointments.toString(), reportData.lastMonth.appointments.toString(),
+       calculatePercentageChange(reportData.thisMonth.appointments, reportData.lastMonth.appointments).toFixed(1) + '%'],
+      ['Yeni Müşteriler', reportData.thisMonth.customers.toString(), reportData.lastMonth.customers.toString(),
+       calculatePercentageChange(reportData.thisMonth.customers, reportData.lastMonth.customers).toFixed(1) + '%'],
+      ['Ortalama Randevu Değeri', formatCurrency(reportData.thisMonth.avgBookingValue), formatCurrency(reportData.lastMonth.avgBookingValue),
+       calculatePercentageChange(reportData.thisMonth.avgBookingValue, reportData.lastMonth.avgBookingValue).toFixed(1) + '%']
+    ];
+
+    const csvContent = csvData.map(row => row.join(',')).join('\n');
+    const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `rapor_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleDetailedReport = () => {
+    alert('Detaylı rapor özelliği yakında eklenecek. Bu rapor tüm verilerin Excel formatında dışa aktarılmasını sağlayacak.');
+  };
+
+  const handleExportData = () => {
+    // Same as download report for now
+    handleDownloadReport();
+  };
+
+  const handleDateRange = () => {
+    setShowDatePicker(!showDatePicker);
+  };
+
+  const applyDateFilter = () => {
+    if (startDate && endDate) {
+      alert(`Tarih aralığı: ${startDate} - ${endDate}\n\nBu özellik yakında aktif olacak.`);
+      setShowDatePicker(false);
+    } else {
+      alert('Lütfen başlangıç ve bitiş tarihlerini seçin.');
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50">
@@ -155,11 +211,11 @@ export default function ReportsClient({ user }: ReportsClientProps) {
               </div>
               
               <div className="flex space-x-3">
-                <Button variant="outline" className="flex items-center">
+                <Button variant="outline" className="flex items-center" onClick={handleFilter}>
                   <Filter className="w-4 h-4 mr-2" />
                   Filtrele
                 </Button>
-                <Button className="bg-green-600 hover:bg-green-700 text-white flex items-center">
+                <Button className="bg-green-600 hover:bg-green-700 text-white flex items-center" onClick={handleDownloadReport}>
                   <Download className="w-4 h-4 mr-2" />
                   Rapor İndir
                 </Button>
@@ -332,19 +388,75 @@ export default function ReportsClient({ user }: ReportsClientProps) {
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <Button variant="outline" className="h-16 flex flex-col items-center justify-center">
+                <Button variant="outline" className="h-16 flex flex-col items-center justify-center" onClick={handleDetailedReport}>
                   <FileText className="w-6 h-6 mb-2" />
                   Detaylı Rapor
                 </Button>
-                <Button variant="outline" className="h-16 flex flex-col items-center justify-center">
+                <Button variant="outline" className="h-16 flex flex-col items-center justify-center" onClick={handleExportData}>
                   <Download className="w-6 h-6 mb-2" />
                   Veri Dışa Aktar
                 </Button>
-                <Button variant="outline" className="h-16 flex flex-col items-center justify-center">
+                <Button variant="outline" className="h-16 flex flex-col items-center justify-center" onClick={handleDateRange}>
                   <Calendar className="w-6 h-6 mb-2" />
                   Tarih Aralığı Seç
                 </Button>
               </div>
+
+              {/* Date Picker Modal */}
+              {showDatePicker && (
+                <div className="mt-4 p-4 border border-gray-200 rounded-lg bg-gray-50">
+                  <h3 className="font-semibold mb-3">Tarih Aralığı Seçin</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Başlangıç Tarihi
+                      </label>
+                      <input
+                        type="date"
+                        value={startDate}
+                        onChange={(e) => setStartDate(e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Bitiş Tarihi
+                      </label>
+                      <input
+                        type="date"
+                        value={endDate}
+                        onChange={(e) => setEndDate(e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+                  </div>
+                  <div className="flex gap-2 justify-end">
+                    <Button variant="outline" onClick={() => setShowDatePicker(false)}>
+                      İptal
+                    </Button>
+                    <Button onClick={applyDateFilter} className="bg-blue-600 hover:bg-blue-700 text-white">
+                      Uygula
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {/* Filter Modal */}
+              {showFilterModal && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                  <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+                    <h2 className="text-xl font-bold mb-4">Filtre Seçenekleri</h2>
+                    <p className="text-gray-600 mb-6">
+                      Filtreleme özelliği yakında eklenecek. Bu özellik sayesinde raporları tarih aralığı, personel, hizmet türü ve daha fazlasına göre filtreleyebileceksiniz.
+                    </p>
+                    <div className="flex justify-end">
+                      <Button onClick={() => setShowFilterModal(false)} className="bg-blue-600 hover:bg-blue-700 text-white">
+                        Tamam
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
