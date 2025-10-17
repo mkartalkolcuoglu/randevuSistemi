@@ -168,6 +168,9 @@ export async function POST(request: NextRequest) {
           monthlyRevenue: 0,
           appointmentCount: 0,
           customerCount: 0,
+          subscriptionPlan: data.subscriptionPlan || 'trial',
+          subscriptionStart: data.subscriptionStart ? new Date(data.subscriptionStart) : new Date(),
+          subscriptionEnd: data.subscriptionEnd ? new Date(data.subscriptionEnd) : null,
           workingHours: JSON.stringify(mergedWorkingHours),
           theme: JSON.stringify(mergedTheme)
         }
