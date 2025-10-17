@@ -65,6 +65,18 @@ export default function AppointmentDetailPage() {
         const data = await response.json();
         let appointmentData = data.data;
         
+        // Parse packageInfo if it exists
+        if (appointmentData.packageInfo) {
+          try {
+            appointmentData.packageInfo = typeof appointmentData.packageInfo === 'string' 
+              ? JSON.parse(appointmentData.packageInfo) 
+              : appointmentData.packageInfo;
+          } catch (error) {
+            console.error('Error parsing packageInfo:', error);
+            appointmentData.packageInfo = null;
+          }
+        }
+        
         // Eğer serviceName boşsa ve serviceId varsa, hizmet listesinden eşleştirme yap
         if (!appointmentData.serviceName && appointmentData.serviceId && services.length > 0) {
           // Önce exact match dene
@@ -334,7 +346,7 @@ export default function AppointmentDetailPage() {
 
               <div className="pt-4 border-t">
                 <h4 className="font-medium mb-3">Hizmet Bilgileri</h4>
-                <div className="bg-gray-50 p-4 rounded-lg">
+                <div className={`p-4 rounded-lg ${appointment.packageInfo ? 'bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200' : 'bg-gray-50'}`}>
                   <div className="flex justify-between items-start">
                     <div>
                       <h5 className="font-medium">
@@ -343,11 +355,25 @@ export default function AppointmentDetailPage() {
                       <p className="text-sm text-gray-600">
                         {appointment.serviceDuration || appointment.duration || 0} dakika
                       </p>
+                      {appointment.packageInfo && (
+                        <div className="mt-2 flex items-center">
+                          <span className="text-xs font-semibold text-green-700 bg-green-100 px-2 py-1 rounded-full">
+                            🎁 {appointment.packageInfo.packageName}
+                          </span>
+                        </div>
+                      )}
                     </div>
                     <div className="text-right">
-                      <p className="text-lg font-semibold text-green-600">
-                        ₺{appointment.price || 0}
-                      </p>
+                      {appointment.packageInfo ? (
+                        <div className="text-sm font-semibold text-green-700 flex items-center justify-end">
+                          <span className="mr-1">🎁</span>
+                          Paket Kullanımı
+                        </div>
+                      ) : (
+                        <p className="text-lg font-semibold text-green-600">
+                          ₺{appointment.price || 0}
+                        </p>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -392,9 +418,15 @@ export default function AppointmentDetailPage() {
               <div>
                 <label className="text-sm font-medium text-gray-600">Ödeme Tipi</label>
                 <div className="mt-1">
-                  <Badge className={getPaymentTypeColor(appointment.paymentType)}>
-                    {getPaymentTypeText(appointment.paymentType)}
-                  </Badge>
+                  {appointment.packageInfo ? (
+                    <Badge className="bg-green-100 text-green-800">
+                      🎁 Paket Kullanımı
+                    </Badge>
+                  ) : (
+                    <Badge className={getPaymentTypeColor(appointment.paymentType)}>
+                      {getPaymentTypeText(appointment.paymentType)}
+                    </Badge>
+                  )}
                 </div>
               </div>
 
@@ -412,12 +444,29 @@ export default function AppointmentDetailPage() {
                 </select>
               </div>
 
-              <div className="pt-4 border-t">
-                <h4 className="font-medium mb-2">Toplam Tutar</h4>
-                <div className="text-2xl font-bold text-green-600">
-                  ₺{appointment.price}
+              {appointment.packageInfo ? (
+                <div className="pt-4 border-t">
+                  <h4 className="font-medium mb-2 flex items-center">
+                    <span className="mr-2">🎁</span>
+                    Paket Bilgisi
+                  </h4>
+                  <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-lg p-3">
+                    <p className="text-sm font-semibold text-green-900">
+                      {appointment.packageInfo.packageName}
+                    </p>
+                    <p className="text-xs text-green-700 mt-1">
+                      Bu randevu için ödeme alınmayacaktır.
+                    </p>
+                  </div>
                 </div>
-              </div>
+              ) : (
+                <div className="pt-4 border-t">
+                  <h4 className="font-medium mb-2">Toplam Tutar</h4>
+                  <div className="text-2xl font-bold text-green-600">
+                    ₺{appointment.price}
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
 
