@@ -21,11 +21,17 @@ export default function AdminHeader({ user }: AdminHeaderProps) {
   useEffect(() => {
     const fetchTenantInfo = async () => {
       try {
+        console.log('🔍 Fetching tenant subscription info...');
         const response = await fetch('/api/tenant-info');
+        console.log('📡 Response status:', response.status);
+        
         if (response.ok) {
           const data = await response.json();
+          console.log('📦 Tenant data:', data);
+          
           if (data.success && data.data) {
             const { subscriptionEnd, subscriptionPlan } = data.data;
+            console.log('🎁 Subscription:', { subscriptionEnd, subscriptionPlan });
             
             // Calculate remaining days
             if (subscriptionEnd) {
@@ -33,14 +39,19 @@ export default function AdminHeader({ user }: AdminHeaderProps) {
               const endDate = new Date(subscriptionEnd);
               const diffTime = endDate.getTime() - now.getTime();
               const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+              console.log('⏰ Remaining days:', diffDays);
               setRemainingDays(diffDays);
+            } else {
+              console.log('⚠️ No subscriptionEnd found');
             }
             
             setSubscriptionPlan(subscriptionPlan);
           }
+        } else {
+          console.error('❌ API response not ok:', response.status);
         }
       } catch (error) {
-        console.error('Error fetching tenant info:', error);
+        console.error('❌ Error fetching tenant info:', error);
       }
     };
 
