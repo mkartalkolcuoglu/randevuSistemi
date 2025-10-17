@@ -62,13 +62,17 @@ export default function CustomerDetailPage() {
   const fetchAppointments = async () => {
     try {
       setAppointmentsLoading(true);
+      // Session cookie'den tenantId otomatik olarak alınacak, ama emin olmak için customerId ile beraber sorgu yapıyoruz
+      // API zaten session'dan tenantId alıyor ve filtreleme yapıyor
       const response = await fetch(`/api/appointments?customerId=${params.id}`);
       if (response.ok) {
         const data = await response.json();
+        console.log('📊 Fetched appointments for customer:', data.data?.length || 0);
         // Filter only completed appointments
         const completedAppts = (data.data || []).filter(
           (apt: any) => apt.status === 'confirmed' || apt.status === 'completed'
         );
+        console.log('✅ Completed appointments:', completedAppts.length);
         setAppointments(completedAppts);
       }
     } catch (error) {
