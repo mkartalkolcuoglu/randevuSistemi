@@ -163,7 +163,31 @@ export default function SettingsClient({ user }: SettingsClientProps) {
           }
           
           // Extract theme data first (needed for both setSettings and image previews)
-          const themeData = tenant.themeSettings || tenant.theme || {};
+          let themeData = tenant.themeSettings || tenant.theme || {};
+          
+          // Parse theme if it's a string
+          if (typeof themeData === 'string') {
+            try {
+              themeData = JSON.parse(themeData);
+            } catch (error) {
+              console.error('Error parsing theme:', error);
+              themeData = {};
+            }
+          }
+          
+          // Parse workingHours if it's a string
+          let workingHoursData = tenant.workingHours;
+          if (typeof workingHoursData === 'string') {
+            try {
+              workingHoursData = JSON.parse(workingHoursData);
+            } catch (error) {
+              console.error('Error parsing workingHours:', error);
+              workingHoursData = null;
+            }
+          }
+          
+          // Extract location from theme (if it exists there)
+          const locationData = themeData.location || tenant.location || {};
           
           setSettings(prev => ({
             ...prev,
@@ -183,9 +207,9 @@ export default function SettingsClient({ user }: SettingsClientProps) {
             password: '', // Güvenlik için şifreyi boş göster
             
             // Other data
-            workingHours: tenant.workingHours || prev.workingHours,
+            workingHours: workingHoursData || prev.workingHours,
             themeSettings: themeData,
-            location: tenant.location || prev.location
+            location: locationData
           }));
           
           // Set existing image previews
