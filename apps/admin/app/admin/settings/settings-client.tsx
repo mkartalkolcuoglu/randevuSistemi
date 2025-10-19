@@ -335,17 +335,23 @@ export default function SettingsClient({ user }: SettingsClientProps) {
       console.log('Logo is URL:', logoIsUrl);
       console.log('Header is URL:', headerIsUrl);
       
+      // Debug: Check current theme settings
+      console.log('🎨 Current themeSettings:', settings.themeSettings);
+      console.log('🎨 Primary Color:', settings.themeSettings?.primaryColor);
+      console.log('🎨 Secondary Color:', settings.themeSettings?.secondaryColor);
+      
       // Clean theme settings - only keep essential fields
       let cleanLogo = settings.themeSettings?.logo || '';
       let cleanHeaderImage = settings.themeSettings?.headerImage || '';
       
       const cleanThemeSettings = {
-        primaryColor: settings.themeSettings?.primaryColor || '#3B82F6',
-        secondaryColor: settings.themeSettings?.secondaryColor || '#1E40AF',
+        primaryColor: settings.themeSettings?.primaryColor || '#EC4899',
+        secondaryColor: settings.themeSettings?.secondaryColor || '#BE185D',
         logo: cleanLogo,
         headerImage: cleanHeaderImage
       };
       
+      console.log('🎨 Clean Theme Settings:', cleanThemeSettings);
       console.log('Original themeSettings size:', JSON.stringify(settings.themeSettings).length);
       console.log('Cleaned themeSettings size:', JSON.stringify(cleanThemeSettings).length);
       
