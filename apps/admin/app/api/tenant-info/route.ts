@@ -40,15 +40,8 @@ export async function GET() {
 
     // Fetch tenant info from local admin database
     const tenant = await prisma.tenant.findUnique({
-      where: { id: tenantId },
-      select: {
-        id: true,
-        businessName: true,
-        status: true,
-        subscriptionPlan: true,
-        subscriptionStart: true,
-        subscriptionEnd: true
-      }
+      where: { id: tenantId }
+      // Don't use select - return all fields including theme, workingHours, etc.
     });
 
     if (!tenant) {
@@ -58,7 +51,7 @@ export async function GET() {
       );
     }
 
-    // Return tenant info with subscription fields
+    // Return full tenant info (including theme, workingHours, subscription, etc.)
     return NextResponse.json({
       success: true,
       data: tenant
