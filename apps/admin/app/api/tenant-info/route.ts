@@ -72,3 +72,82 @@ export async function GET() {
     );
   }
 }
+
+/**
+ * PUT /api/tenant-info
+ * Updates the current tenant's settings
+ */
+export async function PUT(request: Request) {
+  try {
+    const cookieStore = cookies();
+    const sessionCookie = cookieStore.get('tenant-session');
+
+    if (!sessionCookie) {
+      return NextResponse.json(
+        { success: false, error: 'Not authenticated' },
+        { status: 401 }
+      );
+    }
+
+    let session;
+    try {
+      session = JSON.parse(sessionCookie.value);
+    } catch {
+      return NextResponse.json(
+        { success: false, error: 'Invalid session' },
+        { status: 401 }
+      );
+    }
+
+    const tenantId = session.tenantId;
+    if (!tenantId) {
+      return NextResponse.json(
+        { success: false, error: 'Tenant ID not found in session' },
+        { status: 400 }
+      );
+    }
+
+    const data = await request.json();
+    console.log('📝 Updating tenant settings for:', tenantId);
+
+    // Prepare update data
+    const updateData: any = {
+      businessName: data.businessName,
+      businessType: data.businessType,
+      businessDescription: data.businessDescription,
+      address: data.businessAddress,
+      ownerName: data.ownerName,
+      ownerEmail: data.ownerEmail,
+      phone: data.phone,
+      username: data.username,
+      workingHours: data.workingHours,
+      location: data.location,
+      themeSettings: data.themeSettings
+    };
+
+    // Only update password if provided
+    if (data.password && data.password.trim() !== '') {
+      updateData.password = data.password;
+    }
+
+    // Update tenant in database
+    const updatedTenant = await prisma.tenant.update({
+      where: { id: tenantId },
+      data: updateData
+    });
+
+    console.log('✅ Tenant settings updated successfully');
+
+    return NextResponse.json({
+      success: true,
+      data: updatedTenant
+    });
+
+  } catch (error) {
+    console.error('❌ Error updating tenant settings:', error);
+    return NextResponse.json(
+      { success: false, error: 'Ayarlar güncellenirken hata oluştu', details: error.message },
+      { status: 500 }
+    );
+  }
+}
