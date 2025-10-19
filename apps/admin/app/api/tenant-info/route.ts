@@ -119,11 +119,19 @@ export async function PUT(request: Request) {
       ownerName: data.ownerName,
       ownerEmail: data.ownerEmail,
       phone: data.phone,
-      username: data.username,
-      workingHours: data.workingHours,
-      location: data.location,
-      themeSettings: data.themeSettings
+      username: data.username
     };
+
+    // Convert JSON objects to strings for database storage
+    if (data.workingHours) {
+      updateData.workingHours = JSON.stringify(data.workingHours);
+    }
+    if (data.location) {
+      updateData.location = JSON.stringify(data.location);
+    }
+    if (data.themeSettings) {
+      updateData.themeSettings = JSON.stringify(data.themeSettings);
+    }
 
     // Only update password if provided
     if (data.password && data.password.trim() !== '') {
