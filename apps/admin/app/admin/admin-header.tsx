@@ -111,22 +111,25 @@ export default function AdminHeader({ user }: AdminHeaderProps) {
           </div>
           
           <div className="flex items-center space-x-4">
-            {/* Subscription Badge */}
-            {remainingDays !== null && (
-              <div className={`flex items-center space-x-2 px-3 py-1.5 rounded-full border ${getBadgeColor()} text-xs font-medium`}>
-                <Clock className="w-4 h-4" />
-                <div className="flex flex-col">
-                  <span className="font-semibold">
-                    {remainingDays <= 0 ? 'Abonelik Süresi Doldu' : `${remainingDays} Gün Kaldı`}
+            {/* Subscription Badge - Always show */}
+            <div className={`flex items-center space-x-2 px-3 py-1.5 rounded-full border ${getBadgeColor()} text-xs font-medium`}>
+              <Clock className="w-4 h-4" />
+              <div className="flex flex-col">
+                <span className="font-semibold">
+                  {remainingDays === null 
+                    ? 'Paket Bilgisi Yok' 
+                    : remainingDays <= 0 
+                      ? 'Abonelik Süresi Doldu' 
+                      : `${remainingDays} Gün Kaldı`
+                  }
+                </span>
+                {getPlanName() && (
+                  <span className="text-[10px] opacity-75">
+                    {getPlanName()} Paket
                   </span>
-                  {getPlanName() && (
-                    <span className="text-[10px] opacity-75">
-                      {getPlanName()} Paket
-                    </span>
-                  )}
-                </div>
+                )}
               </div>
-            )}
+            </div>
 
             <div className="flex items-center space-x-2 text-sm text-gray-600">
               <User className="w-4 h-4" />
