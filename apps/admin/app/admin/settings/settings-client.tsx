@@ -162,32 +162,31 @@ export default function SettingsClient({ user }: SettingsClientProps) {
             }
           }
           
-          setSettings(prev => {
-            const themeData = tenant.themeSettings || tenant.theme || prev.themeSettings;
+          // Extract theme data first (needed for both setSettings and image previews)
+          const themeData = tenant.themeSettings || tenant.theme || {};
+          
+          setSettings(prev => ({
+            ...prev,
+            // Business info mapping
+            businessName: businessData.businessName || finalData.businessName || '',
+            businessType: businessData.businessType || finalData.businessType || 'salon',
+            businessDescription: businessData.businessDescription || finalData.businessDescription || '',
+            businessAddress: businessData.businessAddress || businessData.address || finalData.address || '',
             
-            return {
-              ...prev,
-              // Business info mapping
-              businessName: businessData.businessName || finalData.businessName || '',
-              businessType: businessData.businessType || finalData.businessType || 'salon',
-              businessDescription: businessData.businessDescription || finalData.businessDescription || '',
-              businessAddress: businessData.businessAddress || businessData.address || finalData.address || '',
-              
-              // Owner info mapping - admin API'den tamamlanmış data kullan
-              ownerName: finalData.ownerName || businessData.ownerName || '',
-              ownerEmail: businessData.businessEmail || businessData.ownerEmail || finalData.ownerEmail || '',
-              phone: businessData.businessPhone || businessData.phone || finalData.phone || '',
-              
-              // Login info mapping - admin API'den tamamlanmış data kullan
-              username: finalData.username || businessData.username || '',
-              password: '', // Güvenlik için şifreyi boş göster
-              
-              // Other data
-              workingHours: tenant.workingHours || prev.workingHours,
-              themeSettings: themeData,
-              location: tenant.location || prev.location
-            };
-          });
+            // Owner info mapping - admin API'den tamamlanmış data kullan
+            ownerName: finalData.ownerName || businessData.ownerName || '',
+            ownerEmail: businessData.businessEmail || businessData.ownerEmail || finalData.ownerEmail || '',
+            phone: businessData.businessPhone || businessData.phone || finalData.phone || '',
+            
+            // Login info mapping - admin API'den tamamlanmış data kullan
+            username: finalData.username || businessData.username || '',
+            password: '', // Güvenlik için şifreyi boş göster
+            
+            // Other data
+            workingHours: tenant.workingHours || prev.workingHours,
+            themeSettings: themeData,
+            location: tenant.location || prev.location
+          }));
           
           // Set existing image previews
           if (themeData?.logo) {
