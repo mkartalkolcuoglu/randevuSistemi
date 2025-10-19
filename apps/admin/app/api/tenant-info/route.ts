@@ -126,11 +126,22 @@ export async function PUT(request: Request) {
     if (data.workingHours) {
       updateData.workingHours = JSON.stringify(data.workingHours);
     }
-    if (data.location) {
-      updateData.location = JSON.stringify(data.location);
-    }
-    if (data.themeSettings) {
-      updateData.themeSettings = JSON.stringify(data.themeSettings);
+    
+    // Combine themeSettings and location into theme field
+    if (data.themeSettings || data.location) {
+      const themeData: any = {};
+      
+      // Add theme settings
+      if (data.themeSettings) {
+        Object.assign(themeData, data.themeSettings);
+      }
+      
+      // Add location to theme
+      if (data.location) {
+        themeData.location = data.location;
+      }
+      
+      updateData.theme = JSON.stringify(themeData);
     }
 
     // Only update password if provided
