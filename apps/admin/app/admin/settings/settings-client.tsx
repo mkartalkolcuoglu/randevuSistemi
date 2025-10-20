@@ -213,10 +213,16 @@ export default function SettingsClient({ user }: SettingsClientProps) {
           }));
           
           // Set existing image previews
+          console.log('🖼️ Setting image previews...');
+          console.log('🖼️ themeData.logo exists:', !!themeData?.logo);
+          console.log('🖼️ themeData.headerImage exists:', !!themeData?.headerImage);
+          
           if (themeData?.logo) {
+            console.log('🖼️ Setting logo preview (size:', themeData.logo.length, 'chars)');
             setLogoPreview(themeData.logo);
           }
           if (themeData?.headerImage) {
+            console.log('🖼️ Setting header preview (size:', themeData.headerImage.length, 'chars)');
             setHeaderPreview(themeData.headerImage);
           }
         } else {
