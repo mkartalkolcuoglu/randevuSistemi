@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Button, Card, CardContent, CardHeader, CardTitle, Input } from '../../components/ui';
-import { ArrowLeft, ArrowRight, Building2, User, Mail, Phone, MapPin, Lock, Check, CreditCard } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Building2, User, Mail, Phone, MapPin, Lock, Check, CreditCard, Calendar } from 'lucide-react';
 
 type Step = 'info' | 'package' | 'payment' | 'success';
 
