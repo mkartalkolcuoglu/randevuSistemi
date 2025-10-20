@@ -84,7 +84,7 @@ export default function AppointmentsClient({ initialAppointments, tenantId, user
       key: 'date',
       label: 'Tarih',
       sortable: true,
-      filterable: true,
+      filterable: false, // Removed from filter inputs, use date filter below table instead
       getValue: (apt) => new Date(apt.date).getTime(),
       render: (apt) => (
         <div className="text-sm font-medium text-gray-900">
