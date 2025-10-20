@@ -796,15 +796,16 @@ export default function SettingsClient({ user }: SettingsClientProps) {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Kullanıcı Adı *
+                Kullanıcı Adı
               </label>
               <input
                 type="text"
                 value={settings.username}
-                onChange={(e) => setSettings(prev => ({ ...prev, username: e.target.value }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                required
+                disabled
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-600 cursor-not-allowed"
+                title="Kullanıcı adı değiştirilemez"
               />
+              <p className="mt-1 text-xs text-gray-500">Kullanıcı adı değiştirilemez</p>
             </div>
             
             <div>
