@@ -299,8 +299,18 @@ export default function AppointmentsClient({ initialAppointments, tenantId, user
                     type="date"
                     value={dateFilter}
                     onChange={(e) => setDateFilter(e.target.value)}
-                    className="flex-1 px-3 py-2 border border-gray-300 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    onClick={(e) => {
+                      // Force open date picker
+                      try {
+                        (e.target as HTMLInputElement).showPicker?.();
+                      } catch (err) {
+                        // Fallback for browsers that don't support showPicker
+                        console.log('showPicker not supported');
+                      }
+                    }}
+                    className="flex-1 px-3 py-2 border border-gray-300 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
                     placeholder="Tarih seçin"
+                    title="Tarih seçmek için tıklayın"
                   />
                   {dateFilter && (
                     <Button
@@ -314,6 +324,11 @@ export default function AppointmentsClient({ initialAppointments, tenantId, user
                     </Button>
                   )}
                 </div>
+                {!dateFilter && (
+                  <p className="text-xs text-gray-500 mt-1">
+                    📅 Belirli bir tarihe göre filtrelemek için tıklayın
+                  </p>
+                )}
               </div>
             </div>
           </CardContent>
