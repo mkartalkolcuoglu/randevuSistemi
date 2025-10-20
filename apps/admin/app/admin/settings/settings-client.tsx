@@ -637,8 +637,26 @@ export default function SettingsClient({ user }: SettingsClientProps) {
                 className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer bg-white border border-gray-300 rounded-md"
               />
               {logoPreview && (
-                <div className="mt-2">
+                <div className="mt-2 space-y-2">
                   <img src={logoPreview} alt="Logo preview" className="h-20 w-20 object-contain border border-gray-200 rounded" />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setLogoPreview('');
+                      setSettings(prev => ({
+                        ...prev,
+                        themeSettings: {
+                          ...prev.themeSettings,
+                          logo: ''
+                        }
+                      }));
+                    }}
+                    className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-300"
+                  >
+                    Logoyu Kaldır
+                  </Button>
                 </div>
               )}
               <p className="mt-1 text-xs text-gray-500">PNG, JPG, GIF formatları destekleniyor</p>
@@ -655,8 +673,26 @@ export default function SettingsClient({ user }: SettingsClientProps) {
                 className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer bg-white border border-gray-300 rounded-md"
               />
               {headerPreview && (
-                <div className="mt-2">
+                <div className="mt-2 space-y-2">
                   <img src={headerPreview} alt="Header preview" className="h-32 w-full object-cover border border-gray-200 rounded" />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setHeaderPreview('');
+                      setSettings(prev => ({
+                        ...prev,
+                        themeSettings: {
+                          ...prev.themeSettings,
+                          headerImage: ''
+                        }
+                      }));
+                    }}
+                    className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-300"
+                  >
+                    Header Görselini Kaldır
+                  </Button>
                 </div>
               )}
               <p className="mt-1 text-xs text-gray-500">PNG, JPG, GIF formatları destekleniyor</p>
