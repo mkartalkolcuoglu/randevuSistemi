@@ -5,6 +5,7 @@ import { Button, Input, Card, CardContent, CardHeader, CardTitle, Badge } from '
 import { Plus, Search, Edit, Trash2, Phone, Mail, Calendar, User } from 'lucide-react';
 import Link from 'next/link';
 import AdminHeader from '../admin-header';
+import { DataTable, Column } from '../../../components/DataTable';
 import type { AuthenticatedUser } from '../../../lib/auth-utils';
 
 interface CustomersClientProps {
@@ -14,7 +15,6 @@ interface CustomersClientProps {
 }
 
 export default function CustomersClient({ initialCustomers, tenantId, user }: CustomersClientProps) {
-  const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [customers, setCustomers] = useState(initialCustomers);
   const [loading, setLoading] = useState(false);
@@ -23,12 +23,6 @@ export default function CustomersClient({ initialCustomers, tenantId, user }: Cu
   useEffect(() => {
     fetchCustomers();
   }, []);
-
-  useEffect(() => {
-    if (searchTerm || statusFilter !== 'all') {
-      fetchCustomers();
-    }
-  }, [searchTerm, statusFilter]);
 
   const fetchCustomers = async () => {
     try {
@@ -77,19 +71,105 @@ export default function CustomersClient({ initialCustomers, tenantId, user }: Cu
     }
   };
 
-  const filteredCustomers = customers.filter(customer => {
-    const fullName = `${customer.firstName || ''} ${customer.lastName || ''}`.trim();
-    const matchesSearch = 
-      fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      customer.firstName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      customer.lastName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      customer.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      customer.phone?.includes(searchTerm);
-    
-    const matchesStatus = statusFilter === 'all' || customer.status === statusFilter;
-    
-    return matchesSearch && matchesStatus;
-  });
+  // Filter by status
+  const statusFilteredCustomers = statusFilter === 'all' 
+    ? customers 
+    : customers.filter(c => c.status === statusFilter);
+
+  // Define table columns
+  const columns: Column<any>[] = [
+    {
+      key: 'name',
+      label: 'Müşteri',
+      sortable: true,
+      filterable: true,
+      getValue: (customer) => `${customer.firstName || ''} ${customer.lastName || ''}`.trim(),
+      render: (customer) => (
+        <div 
+          className="flex items-center cursor-pointer" 
+          onClick={() => window.location.href = `/admin/customers/${customer.id}`}
+        >
+          <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
+            <User className="w-5 h-5 text-blue-600" />
+          </div>
+          <div className="ml-3">
+            <div className="font-medium text-gray-900">
+              {`${customer.firstName || ''} ${customer.lastName || ''}`.trim() || 'İsimsiz'}
+            </div>
+            {customer.notes && (
+              <div className="text-sm text-gray-500 truncate max-w-xs">{customer.notes}</div>
+            )}
+          </div>
+        </div>
+      )
+    },
+    {
+      key: 'email',
+      label: 'E-posta',
+      sortable: true,
+      filterable: true,
+      render: (customer) => customer.email ? (
+        <div className="flex items-center text-sm text-gray-600">
+          <Mail className="w-4 h-4 mr-1 flex-shrink-0" />
+          {customer.email}
+        </div>
+      ) : '-'
+    },
+    {
+      key: 'phone',
+      label: 'Telefon',
+      sortable: true,
+      filterable: true,
+      render: (customer) => customer.phone ? (
+        <div className="flex items-center text-sm text-gray-600">
+          <Phone className="w-4 h-4 mr-1 flex-shrink-0" />
+          {customer.phone}
+        </div>
+      ) : '-'
+    },
+    {
+      key: 'createdAt',
+      label: 'Kayıt Tarihi',
+      sortable: true,
+      getValue: (customer) => new Date(customer.createdAt).getTime(),
+      render: (customer) => (
+        <div className="text-sm text-gray-900">
+          {new Date(customer.createdAt).toLocaleDateString('tr-TR')}
+        </div>
+      )
+    },
+    {
+      key: 'status',
+      label: 'Durum',
+      sortable: true,
+      render: (customer) => getStatusBadge(customer.status)
+    },
+    {
+      key: 'actions',
+      label: 'İşlemler',
+      render: (customer) => (
+        <div className="flex space-x-2" onClick={(e) => e.stopPropagation()}>
+          <Link href={`/admin/customers/${customer.id}/edit`}>
+            <Button
+              variant="outline"
+              size="sm"
+              className="text-blue-600 hover:bg-blue-50"
+            >
+              <Edit className="w-4 h-4" />
+            </Button>
+          </Link>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => handleDelete(customer.id)}
+            className="text-red-600 hover:bg-red-50"
+          >
+            <Trash2 className="w-4 h-4" />
+          </Button>
+        </div>
+      )
+    }
+  ];
 
   if (loading && customers.length === 0) {
     return (
@@ -190,41 +270,30 @@ export default function CustomersClient({ initialCustomers, tenantId, user }: Cu
             </Card>
           </div>
 
-          {/* Filtreler */}
+          {/* Status Filter */}
           <Card className="mb-6">
             <CardContent className="p-6">
-              <div className="flex flex-col md:flex-row gap-4">
-                <div className="flex-1">
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                    <Input
-                      placeholder="Müşteri adı, e-posta veya telefon ile ara..."
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      className="pl-10"
-                    />
-                  </div>
-                </div>
-                
-                <div className="w-full md:w-48">
-                  <select
-                    value={statusFilter}
-                    onChange={(e) => setStatusFilter(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  >
-                    <option value="all">Tüm Durumlar</option>
-                    <option value="active">Aktif</option>
-                    <option value="inactive">Pasif</option>
-                  </select>
-                </div>
+              <div className="w-full md:w-64">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Durum Filtresi
+                </label>
+                <select
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  <option value="all">Tüm Durumlar</option>
+                  <option value="active">Aktif</option>
+                  <option value="inactive">Pasif</option>
+                </select>
               </div>
             </CardContent>
           </Card>
 
-          {/* Müşteri Listesi */}
+          {/* Müşteri Listesi with DataTable */}
           <Card>
             <CardHeader>
-              <CardTitle>Müşteri Listesi ({filteredCustomers.length} müşteri)</CardTitle>
+              <CardTitle>Müşteri Listesi</CardTitle>
             </CardHeader>
             <CardContent>
               {loading ? (
@@ -232,100 +301,23 @@ export default function CustomersClient({ initialCustomers, tenantId, user }: Cu
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto"></div>
                   <p className="mt-2 text-gray-600">Yükleniyor...</p>
                 </div>
-              ) : filteredCustomers.length === 0 ? (
+              ) : statusFilteredCustomers.length === 0 ? (
                 <div className="text-center py-8">
                   <User className="w-16 h-16 mx-auto text-gray-400 mb-4" />
                   <p className="text-gray-500 text-lg">
-                    {searchTerm || statusFilter !== 'all' ? 'Arama kriterlerinize uygun müşteri bulunamadı' : 'Henüz müşteri eklenmemiş'}
+                    {statusFilter !== 'all' ? 'Bu durumda müşteri bulunamadı' : 'Henüz müşteri eklenmemiş'}
                   </p>
-                  {!searchTerm && statusFilter === 'all' && (
+                  {statusFilter === 'all' && (
                     <p className="text-gray-400">İlk müşterinizi eklemek için yukarıdaki butonu kullanın</p>
                   )}
                 </div>
               ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead>
-                      <tr className="border-b border-gray-200">
-                        <th className="text-left py-3 px-4 font-semibold text-gray-700">Müşteri</th>
-                        <th className="text-left py-3 px-4 font-semibold text-gray-700">İletişim</th>
-                        <th className="text-left py-3 px-4 font-semibold text-gray-700">Kayıt Tarihi</th>
-                        <th className="text-left py-3 px-4 font-semibold text-gray-700">Durum</th>
-                        <th className="text-left py-3 px-4 font-semibold text-gray-700">İşlemler</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {filteredCustomers.map((customer) => (
-                        <tr 
-                          key={customer.id} 
-                          className="border-b border-gray-100 hover:bg-blue-50 cursor-pointer transition-colors"
-                          onClick={() => window.location.href = `/admin/customers/${customer.id}`}
-                        >
-                          <td className="py-3 px-4">
-                            <div className="flex items-center">
-                              <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                                <User className="w-5 h-5 text-blue-600" />
-                              </div>
-                              <div className="ml-3">
-                                <div className="font-medium text-gray-900">
-                                {`${customer.firstName || ''} ${customer.lastName || ''}`.trim() || 'İsimsiz'}
-                              </div>
-                                {customer.notes && (
-                                  <div className="text-sm text-gray-500 truncate max-w-xs">{customer.notes}</div>
-                                )}
-                              </div>
-                            </div>
-                          </td>
-                          <td className="py-3 px-4">
-                            <div className="space-y-1">
-                              {customer.email && (
-                                <div className="flex items-center text-sm text-gray-600">
-                                  <Mail className="w-4 h-4 mr-1" />
-                                  {customer.email}
-                                </div>
-                              )}
-                              {customer.phone && (
-                                <div className="flex items-center text-sm text-gray-600">
-                                  <Phone className="w-4 h-4 mr-1" />
-                                  {customer.phone}
-                                </div>
-                              )}
-                            </div>
-                          </td>
-                          <td className="py-3 px-4">
-                            <div className="text-sm text-gray-900">
-                              {new Date(customer.createdAt).toLocaleDateString('tr-TR')}
-                            </div>
-                          </td>
-                          <td className="py-3 px-4">
-                            {getStatusBadge(customer.status)}
-                          </td>
-                          <td className="py-3 px-4" onClick={(e) => e.stopPropagation()}>
-                            <div className="flex space-x-2">
-                              <Link href={`/admin/customers/${customer.id}/edit`}>
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  className="text-blue-600 hover:bg-blue-50"
-                                >
-                                  <Edit className="w-4 h-4" />
-                                </Button>
-                              </Link>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => handleDelete(customer.id)}
-                                className="text-red-600 hover:bg-red-50"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </Button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                <DataTable
+                  data={statusFilteredCustomers}
+                  columns={columns}
+                  keyExtractor={(customer) => customer.id}
+                  emptyMessage="Arama kriterlerinize uygun müşteri bulunamadı"
+                />
               )}
             </CardContent>
           </Card>
