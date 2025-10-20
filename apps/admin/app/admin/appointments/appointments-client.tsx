@@ -285,25 +285,18 @@ export default function AppointmentsClient({ initialAppointments, tenantId, user
               </div>
             ) : (
               <>
-                <DataTable
-                  data={filteredAppointments}
-                  columns={columns}
-                  keyExtractor={(apt) => apt.id}
-                  emptyMessage="Arama kriterlerinize uygun randevu bulunamadı"
-                />
-                
-                {/* Additional Filters Below Table */}
-                <div className="mt-6 pt-6 border-t border-gray-200">
-                  <h3 className="text-sm font-semibold text-gray-700 mb-4">Ek Filtreler</h3>
-                  <div className="flex flex-col md:flex-row gap-4">
-                    <div className="w-full md:w-48">
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Durum Filtresi
+                {/* Filters and Table Combined */}
+                <div className="space-y-4">
+                  {/* Filters */}
+                  <div className="flex flex-col sm:flex-row gap-3 pb-4 border-b border-gray-200">
+                    <div className="flex-1 sm:max-w-xs">
+                      <label className="block text-xs font-medium text-gray-600 mb-1.5">
+                        Durum
                       </label>
                       <select 
                         value={statusFilter}
                         onChange={(e) => setStatusFilter(e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                       >
                         <option value="all">Tüm Durumlar</option>
                         <option value="scheduled">Planlandı</option>
@@ -312,9 +305,9 @@ export default function AppointmentsClient({ initialAppointments, tenantId, user
                         <option value="cancelled">İptal Edildi</option>
                       </select>
                     </div>
-                    <div className="w-full md:w-64">
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Tarih Filtresi
+                    <div className="flex-1 sm:max-w-xs">
+                      <label className="block text-xs font-medium text-gray-600 mb-1.5">
+                        Tarih
                       </label>
                       <div className="flex gap-2">
                         <input
@@ -330,7 +323,7 @@ export default function AppointmentsClient({ initialAppointments, tenantId, user
                               console.log('showPicker not supported');
                             }
                           }}
-                          className="flex-1 px-3 py-2 border border-gray-300 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
+                          className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
                           placeholder="Tarih seçin"
                           title="Tarih seçmek için tıklayın"
                         />
@@ -339,20 +332,38 @@ export default function AppointmentsClient({ initialAppointments, tenantId, user
                             variant="outline"
                             size="sm"
                             onClick={() => setDateFilter('')}
-                            className="px-3"
+                            className="px-2"
                             title="Filtreyi temizle"
                           >
                             ✕
                           </Button>
                         )}
                       </div>
-                      {!dateFilter && (
-                        <p className="text-xs text-gray-500 mt-1">
-                          📅 Belirli bir tarihe göre filtrelemek için tıklayın
-                        </p>
-                      )}
                     </div>
+                    {(statusFilter !== 'all' || dateFilter) && (
+                      <div className="flex items-end">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setStatusFilter('all');
+                            setDateFilter('');
+                          }}
+                          className="text-gray-600 hover:text-gray-900"
+                        >
+                          Filtreleri Temizle
+                        </Button>
+                      </div>
+                    )}
                   </div>
+
+                  {/* DataTable */}
+                  <DataTable
+                    data={filteredAppointments}
+                    columns={columns}
+                    keyExtractor={(apt) => apt.id}
+                    emptyMessage="Arama kriterlerinize uygun randevu bulunamadı"
+                  />
                 </div>
               </>
             )}
