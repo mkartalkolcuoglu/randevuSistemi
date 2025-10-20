@@ -44,6 +44,14 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
       <div className="max-w-md w-full space-y-8 p-8 bg-white rounded-2xl shadow-2xl">
         <div>
+          {/* System Logo */}
+          <div className="flex justify-center mb-6">
+            <img 
+              src="https://i.hizliresim.com/ic4kc72.png" 
+              alt="Randevu Sistemi Logo" 
+              className="h-20 w-auto"
+            />
+          </div>
           <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
             Proje Yönetim Paneli
           </h2>

@@ -105,8 +105,15 @@ export default function AdminHeader({ user }: AdminHeaderProps) {
       <div className="max-w-7xl mx-auto px-6 py-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
+            {/* System Logo */}
+            <img 
+              src="https://i.hizliresim.com/ic4kc72.png" 
+              alt="Randevu Sistemi Logo" 
+              className="h-10 w-auto"
+            />
+            <span className="text-gray-300">|</span>
             <h1 className="text-xl font-bold text-gray-900">Admin Panel</h1>
-            <span className="text-gray-500">|</span>
+            <span className="text-gray-300">|</span>
             <span className="text-gray-600">{user.businessName}</span>
           </div>
           

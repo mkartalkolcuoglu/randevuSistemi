@@ -45,8 +45,13 @@ export default function LoginPage() {
       <div className="w-full max-w-md">
         <Card className="shadow-lg">
           <CardHeader className="text-center">
-            <div className="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center mx-auto mb-4">
-              <LogIn className="w-8 h-8 text-white" />
+            {/* System Logo */}
+            <div className="flex justify-center mb-4">
+              <img 
+                src="https://i.hizliresim.com/ic4kc72.png" 
+                alt="Randevu Sistemi Logo" 
+                className="h-16 w-auto"
+              />
             </div>
             <CardTitle className="text-2xl font-bold text-gray-900">
               İşletme Paneli
