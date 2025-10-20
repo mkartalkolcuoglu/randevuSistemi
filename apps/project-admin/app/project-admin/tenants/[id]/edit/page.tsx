@@ -67,6 +67,12 @@ export default function EditTenantPage({ params }: EditTenantPageProps) {
       const data = await response.json();
       
       if (data.success) {
+        console.log('📦 Loaded tenant data:', {
+          subscriptionPlan: data.data.subscriptionPlan,
+          subscriptionStart: data.data.subscriptionStart,
+          subscriptionEnd: data.data.subscriptionEnd
+        });
+        
         setFormData({
           businessName: data.data.businessName || '',
           slug: data.data.slug || '',
@@ -174,10 +180,41 @@ export default function EditTenantPage({ params }: EditTenantPageProps) {
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
+    
+    // If subscription plan changes, recalculate end date
+    if (name === 'subscriptionPlan') {
+      const now = new Date();
+      let daysToAdd = 15; // Default trial
+      
+      switch (value) {
+        case 'trial':
+          daysToAdd = 15;
+          break;
+        case 'monthly':
+          daysToAdd = 30;
+          break;
+        case 'yearly':
+          daysToAdd = 365;
+          break;
+      }
+      
+      const endDate = new Date(now.getTime() + daysToAdd * 24 * 60 * 60 * 1000);
+      
+      console.log('Subscription plan changed to:', value);
+      console.log('New end date:', endDate.toISOString());
+      
+      setFormData(prev => ({
+        ...prev,
+        subscriptionPlan: value,
+        subscriptionStart: now.toISOString(),
+        subscriptionEnd: endDate.toISOString()
+      }));
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        [name]: value
+      }));
+    }
   };
 
   // Handle image file upload and convert to base64
@@ -233,6 +270,12 @@ export default function EditTenantPage({ params }: EditTenantPageProps) {
     e.preventDefault();
     setSaving(true);
 
+    console.log('📤 Submitting form data:', {
+      subscriptionPlan: formData.subscriptionPlan,
+      subscriptionStart: formData.subscriptionStart,
+      subscriptionEnd: formData.subscriptionEnd
+    });
+
     try {
       const response = await fetch(`/api/tenants/${tenantId}`, {
         method: 'PUT',
@@ -243,6 +286,7 @@ export default function EditTenantPage({ params }: EditTenantPageProps) {
       });
 
       const data = await response.json();
+      console.log('📥 API Response:', data);
 
       if (data.success) {
         // Regenerate landing page with updated data

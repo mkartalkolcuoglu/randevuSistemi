@@ -47,6 +47,12 @@ export async function PUT(
     const { id } = await params;
     const data = await request.json();
 
+    console.log('📝 Updating tenant subscription:', {
+      subscriptionPlan: data.subscriptionPlan,
+      subscriptionStart: data.subscriptionStart,
+      subscriptionEnd: data.subscriptionEnd
+    });
+
     const updatedTenant = await prisma.tenant.update({
       where: { id },
       data: {
