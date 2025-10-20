@@ -19,10 +19,13 @@ async function getUniqueSlug(baseSlug: string): Promise<string> {
   let slug = baseSlug;
   let counter = 1;
   
+  // Get project-admin URL from environment or use default
+  const projectAdminUrl = process.env.PROJECT_ADMIN_URL || 'https://randevu-sistemi-project-admin.vercel.app';
+  
   while (true) {
     // Check if slug exists in project-admin database
     try {
-      const checkResponse = await fetch(`http://localhost:3002/api/tenants/check-slug?slug=${slug}`);
+      const checkResponse = await fetch(`${projectAdminUrl}/api/tenants/check-slug?slug=${slug}`);
       const checkData = await checkResponse.json();
       
       if (!checkData.exists) {
@@ -116,8 +119,11 @@ export async function POST(request: NextRequest) {
 
     console.log('📤 Creating tenant in project-admin...');
 
+    // Get project-admin URL from environment or use default
+    const projectAdminUrl = process.env.PROJECT_ADMIN_URL || 'https://randevu-sistemi-project-admin.vercel.app';
+
     // Call project-admin API to create tenant
-    const createResponse = await fetch('http://localhost:3002/api/tenants', {
+    const createResponse = await fetch(`${projectAdminUrl}/api/tenants`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
