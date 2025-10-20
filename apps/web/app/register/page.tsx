@@ -158,14 +158,20 @@ export default function RegisterPage() {
       });
 
       const data = await response.json();
+      
+      console.log('📥 Registration response:', data);
 
-      if (data.success) {
+      if (data.success && data.data) {
+        const slug = data.data.slug || '';
+        const businessName = data.data.businessName || formData.businessName;
+        const username = data.data.username || formData.username;
+        
         setCredentials({
-          businessName: data.data.businessName,
-          username: data.data.username,
-          slug: data.data.slug,
+          businessName: businessName,
+          username: username,
+          slug: slug,
           loginUrl: `https://randevu-sistemi-admin.vercel.app/login`,
-          tenantUrl: `https://randevu-sistemi-web.vercel.app/${data.data.slug}`
+          tenantUrl: `https://randevu-sistemi-web.vercel.app/${slug}`
         });
         setCurrentStep('success');
       } else {
@@ -679,38 +685,46 @@ export default function RegisterPage() {
                 <div className="space-y-3 text-sm">
                   <div className="flex justify-between">
                     <span className="text-gray-600">İşletme Adı:</span>
-                    <span className="font-semibold text-gray-900">{credentials.businessName}</span>
+                    <span className="font-semibold text-gray-900">{credentials.businessName || 'N/A'}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-600">Kullanıcı Adı:</span>
-                    <span className="font-semibold text-gray-900">{credentials.username}</span>
+                    <span className="font-semibold text-gray-900">{credentials.username || 'N/A'}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-600">Slug:</span>
-                    <span className="font-semibold text-gray-900">{credentials.slug}</span>
+                    <span className="font-semibold text-gray-900">{credentials.slug || 'N/A'}</span>
                   </div>
                   <div className="border-t border-blue-200 pt-3 mt-3">
                     <div className="mb-2">
                       <span className="text-gray-600 block mb-1">Admin Paneli:</span>
-                      <a
-                        href={credentials.loginUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-blue-600 hover:underline text-xs break-all"
-                      >
-                        {credentials.loginUrl}
-                      </a>
+                      {credentials.loginUrl ? (
+                        <a
+                          href={credentials.loginUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-600 hover:underline text-xs break-all"
+                        >
+                          {credentials.loginUrl}
+                        </a>
+                      ) : (
+                        <span className="text-gray-500 text-xs">URL mevcut değil</span>
+                      )}
                     </div>
                     <div>
                       <span className="text-gray-600 block mb-1">Müşteri Randevu Sayfası:</span>
-                      <a
-                        href={credentials.tenantUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-blue-600 hover:underline text-xs break-all"
-                      >
-                        {credentials.tenantUrl}
-                      </a>
+                      {credentials.tenantUrl ? (
+                        <a
+                          href={credentials.tenantUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-600 hover:underline text-xs break-all"
+                        >
+                          {credentials.tenantUrl}
+                        </a>
+                      ) : (
+                        <span className="text-gray-500 text-xs">URL mevcut değil</span>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -724,18 +738,22 @@ export default function RegisterPage() {
               </div>
 
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <a href={credentials.loginUrl} target="_blank" rel="noopener noreferrer">
-                  <Button size="lg" className="w-full sm:w-auto">
-                    <Lock className="w-4 h-4 mr-2" />
-                    Admin Paneline Git
-                  </Button>
-                </a>
-                <a href={credentials.tenantUrl} target="_blank" rel="noopener noreferrer">
-                  <Button variant="outline" size="lg" className="w-full sm:w-auto">
-                    <Calendar className="w-4 h-4 mr-2" />
-                    Randevu Sayfasını Gör
-                  </Button>
-                </a>
+                {credentials.loginUrl && (
+                  <a href={credentials.loginUrl} target="_blank" rel="noopener noreferrer">
+                    <Button size="lg" className="w-full sm:w-auto">
+                      <Lock className="w-4 h-4 mr-2" />
+                      Admin Paneline Git
+                    </Button>
+                  </a>
+                )}
+                {credentials.tenantUrl && (
+                  <a href={credentials.tenantUrl} target="_blank" rel="noopener noreferrer">
+                    <Button variant="outline" size="lg" className="w-full sm:w-auto">
+                      <Calendar className="w-4 h-4 mr-2" />
+                      Randevu Sayfasını Gör
+                    </Button>
+                  </a>
+                )}
               </div>
             </CardContent>
           </Card>
