@@ -275,6 +275,9 @@ export default function AppointmentsClient({ initialAppointments, tenantId, user
                 </div>
               </div>
               <div className="w-full md:w-48">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Durum Filtresi
+                </label>
                 <select 
                   value={statusFilter}
                   onChange={(e) => setStatusFilter(e.target.value)}
@@ -287,13 +290,30 @@ export default function AppointmentsClient({ initialAppointments, tenantId, user
                   <option value="cancelled">İptal Edildi</option>
                 </select>
               </div>
-              <div className="w-full md:w-48">
-                <input
-                  type="date"
-                  value={dateFilter}
-                  onChange={(e) => setDateFilter(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
+              <div className="w-full md:w-64">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Tarih Filtresi
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    type="date"
+                    value={dateFilter}
+                    onChange={(e) => setDateFilter(e.target.value)}
+                    className="flex-1 px-3 py-2 border border-gray-300 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="Tarih seçin"
+                  />
+                  {dateFilter && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setDateFilter('')}
+                      className="px-3"
+                      title="Filtreyi temizle"
+                    >
+                      ✕
+                    </Button>
+                  )}
+                </div>
               </div>
             </div>
           </CardContent>

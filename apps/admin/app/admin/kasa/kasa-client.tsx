@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Button, Card, CardContent, CardHeader, CardTitle } from '@repo/ui';
+import { Button, Card, CardContent, CardHeader, CardTitle, Badge } from '@repo/ui';
 import {
   DollarSign,
   TrendingUp,
@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import AdminHeader from '../admin-header';
 import type { AuthenticatedUser } from '../../../lib/auth-utils';
+import { DataTable, Column } from '../../../components/DataTable';
 
 interface Transaction {
   id: string;
@@ -171,6 +172,106 @@ export default function KasaClient({ tenantId, user }: KasaClientProps) {
     }
   };
 
+  // Define table columns
+  const columns: Column<Transaction>[] = [
+    {
+      key: 'date',
+      label: 'Tarih',
+      sortable: true,
+      filterable: true,
+      getValue: (transaction) => new Date(transaction.date).getTime(),
+      render: (transaction) => (
+        <div className="text-sm text-gray-900">
+          {new Date(transaction.date).toLocaleDateString('tr-TR')}
+        </div>
+      )
+    },
+    {
+      key: 'type',
+      label: 'Tip',
+      sortable: true,
+      filterable: true,
+      getValue: (transaction) => getTypeLabel(transaction.type),
+      render: (transaction) => (
+        <Badge className={getTypeColor(transaction.type)}>
+          {getTypeLabel(transaction.type)}
+        </Badge>
+      )
+    },
+    {
+      key: 'description',
+      label: 'Açıklama',
+      sortable: true,
+      filterable: true,
+      render: (transaction) => (
+        <div>
+          <div className="text-sm text-gray-900">{transaction.description}</div>
+          {transaction.customerName && (
+            <div className="text-xs text-gray-500">Müşteri: {transaction.customerName}</div>
+          )}
+          {transaction.productName && (
+            <div className="text-xs text-gray-500">
+              Ürün: {transaction.productName} {transaction.quantity && `(${transaction.quantity} adet)`}
+            </div>
+          )}
+        </div>
+      )
+    },
+    {
+      key: 'paymentType',
+      label: 'Ödeme',
+      sortable: true,
+      filterable: true,
+      getValue: (transaction) => getPaymentTypeLabel(transaction.paymentType),
+      render: (transaction) => (
+        <div className="text-sm text-gray-600">
+          {getPaymentTypeLabel(transaction.paymentType)}
+        </div>
+      )
+    },
+    {
+      key: 'amount',
+      label: 'Tutar',
+      sortable: true,
+      render: (transaction) => (
+        <div className={`text-sm font-semibold text-right ${
+          transaction.type === 'expense' ? 'text-red-600' : 'text-green-600'
+        }`}>
+          {transaction.type === 'expense' ? '-' : '+'}₺{transaction.amount.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
+        </div>
+      )
+    },
+    {
+      key: 'actions',
+      label: 'İşlemler',
+      render: (transaction) => (
+        <div className="flex justify-end gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              setEditingTransaction(transaction);
+              if (transaction.type === 'sale') setShowSaleModal(true);
+              else if (transaction.type === 'income' || transaction.type === 'appointment') setShowIncomeModal(true);
+              else setShowExpenseModal(true);
+            }}
+            className="text-blue-600 hover:bg-blue-50"
+          >
+            <Edit className="w-4 h-4" />
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => handleDelete(transaction.id)}
+            className="text-red-600 hover:bg-red-50"
+          >
+            <Trash2 className="w-4 h-4" />
+          </Button>
+        </div>
+      )
+    }
+  ];
+
   return (
     <>
       <AdminHeader user={user} />
@@ -320,84 +421,19 @@ export default function KasaClient({ tenantId, user }: KasaClientProps) {
           <CardTitle>İşlem Geçmişi</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-gray-200">
-                  <th className="text-left py-3 px-4 font-semibold text-gray-700">Tarih</th>
-                  <th className="text-left py-3 px-4 font-semibold text-gray-700">Tip</th>
-                  <th className="text-left py-3 px-4 font-semibold text-gray-700">Açıklama</th>
-                  <th className="text-left py-3 px-4 font-semibold text-gray-700">Ödeme</th>
-                  <th className="text-right py-3 px-4 font-semibold text-gray-700">Tutar</th>
-                  <th className="text-right py-3 px-4 font-semibold text-gray-700">İşlemler</th>
-                </tr>
-              </thead>
-              <tbody>
-                {transactions.length === 0 ? (
-                  <tr>
-                    <td colSpan={6} className="text-center py-8 text-gray-500">
-                      Henüz işlem bulunmuyor
-                    </td>
-                  </tr>
-                ) : (
-                  transactions.map((transaction) => (
-                    <tr key={transaction.id} className="border-b border-gray-100 hover:bg-gray-50">
-                      <td className="py-3 px-4 text-gray-900">
-                        {new Date(transaction.date).toLocaleDateString('tr-TR')}
-                      </td>
-                      <td className="py-3 px-4">
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${getTypeColor(transaction.type)}`}>
-                          {getTypeLabel(transaction.type)}
-                        </span>
-                      </td>
-                      <td className="py-3 px-4 text-gray-900">
-                        <div>
-                          {transaction.description}
-                          {transaction.customerName && (
-                            <div className="text-xs text-gray-500">Müşteri: {transaction.customerName}</div>
-                          )}
-                          {transaction.productName && (
-                            <div className="text-xs text-gray-500">
-                              Ürün: {transaction.productName} {transaction.quantity && `(${transaction.quantity} adet)`}
-                            </div>
-                          )}
-                        </div>
-                      </td>
-                      <td className="py-3 px-4 text-gray-600">
-                        {getPaymentTypeLabel(transaction.paymentType)}
-                      </td>
-                      <td className={`py-3 px-4 text-right font-semibold ${
-                        transaction.type === 'expense' ? 'text-red-600' : 'text-green-600'
-                      }`}>
-                        {transaction.type === 'expense' ? '-' : '+'}₺{transaction.amount.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
-                      </td>
-                      <td className="py-3 px-4 text-right">
-                        <div className="flex justify-end gap-2">
-                          <button
-                            onClick={() => {
-                              setEditingTransaction(transaction);
-                              if (transaction.type === 'sale') setShowSaleModal(true);
-                              else if (transaction.type === 'income' || transaction.type === 'appointment') setShowIncomeModal(true);
-                              else setShowExpenseModal(true);
-                            }}
-                            className="p-1 text-blue-600 hover:bg-blue-50 rounded"
-                          >
-                            <Edit className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => handleDelete(transaction.id)}
-                            className="p-1 text-red-600 hover:bg-red-50 rounded"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
+          {transactions.length === 0 ? (
+            <div className="text-center py-8">
+              <Wallet className="w-16 h-16 mx-auto text-gray-400 mb-4" />
+              <p className="text-gray-500 text-lg">Henüz işlem bulunmuyor</p>
+            </div>
+          ) : (
+            <DataTable
+              data={transactions}
+              columns={columns}
+              keyExtractor={(transaction) => transaction.id}
+              emptyMessage="Arama kriterlerinize uygun işlem bulunamadı"
+            />
+          )}
         </CardContent>
       </Card>
 
