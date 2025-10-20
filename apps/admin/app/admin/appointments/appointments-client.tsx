@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle, Button, Badge, Input } from '@repo/ui';
 import { Plus, Search, Calendar, Clock, User, Edit, Trash2, ArrowLeft } from 'lucide-react';
 import AdminHeader from '../admin-header';
+import { DataTable, Column } from '../../../components/DataTable';
 import type { AuthenticatedUser } from '../../../lib/auth-utils';
 
 interface AppointmentsClientProps {
@@ -71,14 +72,107 @@ export default function AppointmentsClient({ initialAppointments, tenantId, user
     }
   };
 
-  // Filter appointments
+  // Filter by status and date
   const filteredAppointments = appointments.filter((appointment: any) => {
-    const matchesSearch = appointment.customerName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         appointment.serviceName?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === 'all' || appointment.status === statusFilter;
     const matchesDate = !dateFilter || appointment.date === dateFilter;
-    return matchesSearch && matchesStatus && matchesDate;
+    return matchesStatus && matchesDate;
   });
+
+  // Define table columns
+  const columns: Column<any>[] = [
+    {
+      key: 'date',
+      label: 'Tarih',
+      sortable: true,
+      filterable: true,
+      getValue: (apt) => new Date(apt.date).getTime(),
+      render: (apt) => (
+        <Link href={`/admin/appointments/${apt.id}`} className="block hover:underline">
+          <div className="text-sm font-medium text-gray-900">
+            {new Date(apt.date).toLocaleDateString('tr-TR')}
+          </div>
+        </Link>
+      )
+    },
+    {
+      key: 'time',
+      label: 'Saat',
+      sortable: true,
+      filterable: true,
+      render: (apt) => (
+        <div className="text-sm text-gray-600 flex items-center">
+          <Clock className="w-4 h-4 mr-1" />
+          {apt.time}
+        </div>
+      )
+    },
+    {
+      key: 'customerName',
+      label: 'Müşteri',
+      sortable: true,
+      filterable: true,
+      render: (apt) => (
+        <div className="flex items-center">
+          <User className="w-4 h-4 mr-2 text-gray-400" />
+          <div className="text-sm font-medium text-gray-900">{apt.customerName}</div>
+        </div>
+      )
+    },
+    {
+      key: 'serviceName',
+      label: 'Hizmet',
+      sortable: true,
+      filterable: true,
+      render: (apt) => (
+        <div className="text-sm text-gray-600">{apt.serviceName}</div>
+      )
+    },
+    {
+      key: 'staffName',
+      label: 'Personel',
+      sortable: true,
+      filterable: true,
+      render: (apt) => (
+        <div className="text-sm text-gray-600">{apt.staffName}</div>
+      )
+    },
+    {
+      key: 'status',
+      label: 'Durum',
+      sortable: true,
+      render: (apt) => (
+        <Badge className={getStatusColor(apt.status)}>
+          {getStatusText(apt.status)}
+        </Badge>
+      )
+    },
+    {
+      key: 'actions',
+      label: 'İşlemler',
+      render: (apt) => (
+        <div className="flex items-center space-x-2" onClick={(e) => e.stopPropagation()}>
+          <Link href={`/admin/appointments/${apt.id}/edit`}>
+            <Button variant="outline" size="sm" onClick={(e) => e.stopPropagation()}>
+              <Edit className="w-4 h-4" />
+            </Button>
+          </Link>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              handleDelete(apt.id);
+            }}
+            className="text-red-600 hover:text-red-700 hover:bg-red-50"
+          >
+            <Trash2 className="w-4 h-4" />
+          </Button>
+        </div>
+      )
+    }
+  ];
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -205,22 +299,22 @@ export default function AppointmentsClient({ initialAppointments, tenantId, user
           </CardContent>
         </Card>
 
-        {/* Appointments List */}
+        {/* Appointments List with DataTable */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center">
               <Calendar className="w-5 h-5 mr-2" />
-              Randevu Listesi ({filteredAppointments.length})
+              Randevu Listesi
             </CardTitle>
           </CardHeader>
-          <CardContent className="p-0">
+          <CardContent>
             {filteredAppointments.length === 0 ? (
               <div className="p-8 text-center">
                 <Calendar className="w-12 h-12 text-gray-400 mx-auto mb-4" />
                 <h3 className="text-lg font-medium text-gray-900 mb-2">Randevu bulunamadı</h3>
                 <p className="text-gray-600 mb-4">
-                  {searchTerm || statusFilter !== 'all' || dateFilter 
-                    ? 'Arama kriterlerinize uygun randevu bulunamadı.'
+                  {statusFilter !== 'all' || dateFilter 
+                    ? 'Filtre kriterlerinize uygun randevu bulunamadı.'
                     : 'Henüz randevu bulunmuyor.'}
                 </p>
                 <Link href="/admin/appointments/new">
@@ -231,104 +325,12 @@ export default function AppointmentsClient({ initialAppointments, tenantId, user
                 </Link>
               </div>
             ) : (
-              <div className="divide-y divide-gray-200">
-                {filteredAppointments.map((appointment: any) => (
-                  <Link 
-                    key={appointment.id} 
-                    href={`/admin/appointments/${appointment.id}`}
-                    className="block p-6 hover:bg-gray-50 transition-colors cursor-pointer"
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-4">
-                        <div className="flex-shrink-0">
-                          <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-                            <User className="w-6 h-6 text-blue-600" />
-                          </div>
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center space-x-2 mb-1">
-                            <h3 className="text-lg font-semibold text-gray-900">
-                              {appointment.customerName}
-                            </h3>
-                            <Badge className={getStatusColor(appointment.status)}>
-                              {getStatusText(appointment.status)}
-                            </Badge>
-                          </div>
-                          <p className="text-gray-600 mb-2">{appointment.serviceName}</p>
-                          <div className="flex items-center text-sm text-gray-500 space-x-4">
-                            <div className="flex items-center">
-                              <Calendar className="w-4 h-4 mr-1" />
-                              {new Date(appointment.date).toLocaleDateString('tr-TR')}
-                            </div>
-                            <div className="flex items-center">
-                              <Clock className="w-4 h-4 mr-1" />
-                              {appointment.time}
-                            </div>
-                            <div className="flex items-center">
-                              <User className="w-4 h-4 mr-1" />
-                              {appointment.staffName}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <div className="text-right mr-4">
-                          {appointment.packageInfo ? (
-                            <>
-                              <div className="text-sm font-semibold text-green-600 flex items-center justify-end">
-                                <span className="mr-1">🎁</span>
-                                Paket Kullanımı
-                              </div>
-                              <div className="text-xs text-gray-500">
-                                {appointment.duration} dk
-                              </div>
-                            </>
-                          ) : (
-                            <>
-                              <div className="text-lg font-semibold text-gray-900">
-                                {appointment.price}₺
-                              </div>
-                              <div className="text-sm text-gray-500">
-                                {appointment.duration} dk
-                              </div>
-                            </>
-                          )}
-                        </div>
-                        <Link 
-                          href={`/admin/appointments/${appointment.id}/edit`}
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          <Button variant="outline" size="sm">
-                            <Edit className="w-4 h-4" />
-                          </Button>
-                        </Link>
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
-                          onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            handleDelete(appointment.id);
-                          }}
-                          className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    </div>
-                    {appointment.notes && (
-                      <div className="mt-4 pt-4 border-t border-gray-200">
-                        <p className="text-sm text-gray-600">
-                          <strong>Notlar:</strong> {appointment.notes}
-                        </p>
-                      </div>
-                    )}
-                    <div className="mt-2 text-xs text-gray-400">
-                      ID: {appointment.id} | Tenant: {appointment.tenantId} | Oluşturulma: {new Date(appointment.createdAt).toLocaleString('tr-TR')}
-                    </div>
-                  </Link>
-                ))}
-              </div>
+              <DataTable
+                data={filteredAppointments}
+                columns={columns}
+                keyExtractor={(apt) => apt.id}
+                emptyMessage="Arama kriterlerinize uygun randevu bulunamadı"
+              />
             )}
           </CardContent>
         </Card>
