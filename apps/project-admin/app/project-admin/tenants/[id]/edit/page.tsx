@@ -31,6 +31,9 @@ export default function EditTenantPage({ params }: EditTenantPageProps) {
     address: '',
     businessType: 'salon',
     businessDescription: '',
+    subscriptionPlan: 'trial',
+    subscriptionStart: '',
+    subscriptionEnd: '',
     workingHours: {
       monday: { start: '09:00', end: '18:00', closed: false },
       tuesday: { start: '09:00', end: '18:00', closed: false },
@@ -77,6 +80,9 @@ export default function EditTenantPage({ params }: EditTenantPageProps) {
           address: data.data.address || '',
           businessType: data.data.businessType || 'salon',
           businessDescription: data.data.businessDescription || '',
+          subscriptionPlan: data.data.subscriptionPlan || 'trial',
+          subscriptionStart: data.data.subscriptionStart || '',
+          subscriptionEnd: data.data.subscriptionEnd || '',
           workingHours: (() => {
             try {
               // If workingHours is a string, parse it
@@ -529,25 +535,32 @@ export default function EditTenantPage({ params }: EditTenantPageProps) {
           {/* Plan & Status */}
           <Card>
             <CardHeader>
-              <CardTitle>Plan ve Durum</CardTitle>
+              <CardTitle>Abonelik ve Durum</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Plan
+                    Abonelik Paketi
                   </label>
                   <select
-                    name="plan"
-                    value={formData.plan}
+                    name="subscriptionPlan"
+                    value={formData.subscriptionPlan}
                     onChange={handleInputChange}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
-                    <option value="Trial">Trial (30 gün)</option>
-                    <option value="Standard">Standard</option>
-                    <option value="Premium">Premium</option>
-                    <option value="Enterprise">Enterprise</option>
+                    <option value="trial">Deneme (15 gün)</option>
+                    <option value="monthly">Aylık (30 gün)</option>
+                    <option value="yearly">Yıllık (365 gün)</option>
                   </select>
+                  {formData.subscriptionStart && (
+                    <p className="mt-2 text-xs text-gray-600">
+                      Başlangıç: {new Date(formData.subscriptionStart).toLocaleDateString('tr-TR')}
+                      {formData.subscriptionEnd && (
+                        <> • Bitiş: {new Date(formData.subscriptionEnd).toLocaleDateString('tr-TR')}</>
+                      )}
+                    </p>
+                  )}
                 </div>
                 
                 <div>

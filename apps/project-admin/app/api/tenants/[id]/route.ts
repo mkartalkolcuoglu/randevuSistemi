@@ -62,6 +62,9 @@ export async function PUT(
         businessType: data.businessType || 'other',
         businessDescription: data.businessDescription || '',
         status: data.status || 'active',
+        subscriptionPlan: data.subscriptionPlan,
+        subscriptionStart: data.subscriptionStart ? new Date(data.subscriptionStart) : undefined,
+        subscriptionEnd: data.subscriptionEnd ? new Date(data.subscriptionEnd) : undefined,
         workingHours: JSON.stringify(data.workingHours || {}),
         theme: JSON.stringify(data.theme || {})
       }
