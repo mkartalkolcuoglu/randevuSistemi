@@ -81,6 +81,18 @@ export default function AppointmentsClient({ initialAppointments, tenantId, user
   // Define table columns
   const columns: Column<any>[] = [
     {
+      key: 'date',
+      label: 'Tarih',
+      sortable: true,
+      filterable: true,
+      getValue: (apt) => new Date(apt.date).getTime(),
+      render: (apt) => (
+        <div className="text-sm font-medium text-gray-900">
+          {new Date(apt.date).toLocaleDateString('tr-TR')}
+        </div>
+      )
+    },
+    {
       key: 'time',
       label: 'Saat',
       sortable: true,
