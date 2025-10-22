@@ -5,6 +5,8 @@ import { useRouter, useParams } from 'next/navigation';
 import { Button, Input, Label, Textarea, Card, CardContent, CardHeader, CardTitle, Switch } from '@repo/ui';
 import { ArrowLeft, Save, Plus, X } from 'lucide-react';
 import Link from 'next/link';
+import StaffAuthForm from '../new/staff-form-with-auth';
+import type { StaffPermissions } from '../../../../lib/permissions';
 
 export default function EditStaffPage() {
   const router = useRouter();
@@ -37,6 +39,14 @@ export default function EditStaffPage() {
   });
 
   const [newSpecialization, setNewSpecialization] = useState('');
+
+  // Auth state
+  const [authData, setAuthData] = useState<{
+    username: string;
+    password: string;
+    canLogin: boolean;
+    permissions: StaffPermissions;
+  } | null>(null);
 
   useEffect(() => {
     if (params.id) {
@@ -95,6 +105,25 @@ export default function EditStaffPage() {
           rating: staffData.rating?.toString() || '',
           salary: staffData.salary?.toString() || ''
         });
+
+        // Load auth data
+        let parsedPermissions = {};
+        if (staffData.permissions) {
+          try {
+            parsedPermissions = typeof staffData.permissions === 'string' 
+              ? JSON.parse(staffData.permissions) 
+              : staffData.permissions;
+          } catch {
+            console.error('Failed to parse permissions');
+          }
+        }
+
+        setAuthData({
+          username: staffData.username || '',
+          password: '', // Never load existing password
+          canLogin: staffData.canLogin || false,
+          permissions: parsedPermissions as StaffPermissions
+        });
       } else {
         console.error('Staff not found');
         router.push('/admin/staff');
@@ -134,18 +163,33 @@ export default function EditStaffPage() {
     
     setIsLoading(true);
 
+    // Auth validation
+    if (authData?.canLogin) {
+      if (!authData.username || authData.username.trim() === '') {
+        alert('Giriş yetkisi verildi ama kullanıcı adı boş!');
+        return;
+      }
+      if (authData.password && authData.password.length > 0 && authData.password.length < 6) {
+        alert('Şifre en az 6 karakter olmalıdır!');
+        return;
+      }
+    }
+
     try {
+      const submitData = {
+        ...formData,
+        experience: parseInt(formData.experience) || 0,
+        rating: parseFloat(formData.rating) || 0,
+        salary: parseFloat(formData.salary) || 0,
+        ...(authData || {}) // Merge auth data
+      };
+
       const response = await fetch(`/api/staff/${params.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          ...formData,
-          experience: parseInt(formData.experience) || 0,
-          rating: parseFloat(formData.rating) || 0,
-          salary: parseFloat(formData.salary) || 0
-        })
+        body: JSON.stringify(submitData)
       });
 
       if (!response.ok) {
@@ -429,7 +473,20 @@ export default function EditStaffPage() {
               </div>
             </div>
 
-            <div className="space-y-2">
+            {/* Authentication & Permissions Section */}
+            <div className="mt-8">
+              <StaffAuthForm 
+                onAuthDataChange={setAuthData}
+                initialAuthData={authData || {
+                  username: '',
+                  password: '',
+                  canLogin: false,
+                  permissions: {}
+                }}
+              />
+            </div>
+
+            <div className="space-y-2 mt-8">
               <Label htmlFor="notes">Notlar</Label>
               <Textarea
                 id="notes"

@@ -1,20 +1,38 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button, Input, Label, Card, CardContent, CardHeader, CardTitle } from '@repo/ui';
 import { Lock, User, Shield, Eye, EyeOff } from 'lucide-react';
 import { DEFAULT_STAFF_PERMISSIONS, PAGE_NAMES, type StaffPermissions } from '../../../../lib/permissions';
 
 interface StaffAuthFormProps {
   onAuthDataChange: (data: { username: string; password: string; canLogin: boolean; permissions: StaffPermissions }) => void;
+  initialAuthData?: {
+    username: string;
+    password: string;
+    canLogin: boolean;
+    permissions: StaffPermissions;
+  };
 }
 
-export default function StaffAuthForm({ onAuthDataChange }: StaffAuthFormProps) {
-  const [canLogin, setCanLogin] = useState(false);
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
+export default function StaffAuthForm({ onAuthDataChange, initialAuthData }: StaffAuthFormProps) {
+  const [canLogin, setCanLogin] = useState(initialAuthData?.canLogin || false);
+  const [username, setUsername] = useState(initialAuthData?.username || '');
+  const [password, setPassword] = useState(''); // Never pre-fill password for security
   const [showPassword, setShowPassword] = useState(false);
-  const [permissions, setPermissions] = useState<StaffPermissions>(DEFAULT_STAFF_PERMISSIONS);
+  const [permissions, setPermissions] = useState<StaffPermissions>(
+    initialAuthData?.permissions || DEFAULT_STAFF_PERMISSIONS
+  );
+
+  // Update state when initialAuthData changes (for edit mode)
+  useEffect(() => {
+    if (initialAuthData) {
+      setCanLogin(initialAuthData.canLogin || false);
+      setUsername(initialAuthData.username || '');
+      // Don't set password - keep it empty for security
+      setPermissions(initialAuthData.permissions || DEFAULT_STAFF_PERMISSIONS);
+    }
+  }, [initialAuthData]);
 
   const handleCanLoginChange = (checked: boolean) => {
     setCanLogin(checked);
