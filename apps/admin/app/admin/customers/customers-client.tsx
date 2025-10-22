@@ -6,12 +6,12 @@ import { Plus, Search, Edit, Trash2, Phone, Mail, Calendar, User } from 'lucide-
 import Link from 'next/link';
 import AdminHeader from '../admin-header';
 import { DataTable, Column } from '../../../components/DataTable';
-import type { AuthenticatedUser } from '../../../lib/auth-utils';
+import type { ClientUser } from '../../../lib/client-permissions';
 
 interface CustomersClientProps {
   initialCustomers: any[];
   tenantId?: string;
-  user: AuthenticatedUser;
+  user: ClientUser;
 }
 
 export default function CustomersClient({ initialCustomers, tenantId, user }: CustomersClientProps) {

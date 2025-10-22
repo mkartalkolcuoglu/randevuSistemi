@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { Button, Input, Label, Card, CardContent, CardHeader, CardTitle, Badge } from '@repo/ui';
 import { Plus, Package, Edit, Trash2, Save, X, Search } from 'lucide-react';
 import AdminHeader from '../admin-header';
-import type { AuthenticatedUser } from '../../../lib/auth-utils';
+import type { ClientUser } from '../../../lib/client-permissions';
 
 interface Product {
   id: string;
@@ -19,7 +19,7 @@ interface Product {
 interface StockClientProps {
   initialProducts: Product[];
   tenantId?: string;
-  user: AuthenticatedUser;
+  user: ClientUser;
 }
 
 export default function StockClient({ initialProducts, tenantId, user }: StockClientProps) {

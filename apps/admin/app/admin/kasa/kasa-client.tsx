@@ -14,7 +14,7 @@ import {
   Wallet
 } from 'lucide-react';
 import AdminHeader from '../admin-header';
-import type { AuthenticatedUser } from '../../../lib/auth-utils';
+import type { ClientUser } from '../../../lib/client-permissions';
 import { DataTable, Column } from '../../../components/DataTable';
 
 interface Transaction {
@@ -40,7 +40,7 @@ interface Summary {
 
 interface KasaClientProps {
   tenantId: string;
-  user: AuthenticatedUser;
+  user: ClientUser;
 }
 
 export default function KasaClient({ tenantId, user }: KasaClientProps) {

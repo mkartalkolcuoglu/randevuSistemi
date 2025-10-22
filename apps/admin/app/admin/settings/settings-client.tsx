@@ -4,10 +4,10 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, Button } from '@repo/ui';
 import { Save, Palette, Building2, User, Key, Clock, Upload, ArrowLeft, MapPin, Settings } from 'lucide-react';
 import AdminHeader from '../admin-header';
-import type { AuthenticatedUser } from '../../../lib/auth-utils';
+import type { ClientUser } from '../../../lib/client-permissions';
 
 interface SettingsClientProps {
-  user: AuthenticatedUser;
+  user: ClientUser;
 }
 
 export default function SettingsClient({ user }: SettingsClientProps) {

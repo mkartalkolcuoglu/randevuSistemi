@@ -5,7 +5,7 @@ import { Button, Input, Card, CardContent, CardHeader, CardTitle, Badge } from '
 import { Plus, Search, Edit, Trash2, Phone, Mail, Calendar, User, Star, Clock, Users, Scissors } from 'lucide-react';
 import Link from 'next/link';
 import AdminHeader from '../admin-header';
-import type { AuthenticatedUser } from '../../../lib/auth-utils';
+import type { ClientUser } from '../../../lib/client-permissions';
 
 interface StaffMember {
   id: string;
@@ -28,7 +28,7 @@ interface StaffMember {
 }
 
 interface StaffClientProps {
-  user: AuthenticatedUser;
+  user: ClientUser;
 }
 
 export default function StaffClient({ user }: StaffClientProps) {

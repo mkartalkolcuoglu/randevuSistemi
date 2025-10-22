@@ -1,16 +1,31 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button, Input, Label, Textarea, Card, CardContent, CardHeader, CardTitle, Switch } from '@repo/ui';
 import { ChevronLeft, Save, Plus, X } from 'lucide-react';
 import Link from 'next/link';
 import StaffAuthForm from './staff-form-with-auth';
 import type { StaffPermissions } from '../../../../lib/permissions';
+import AdminHeader from '../../admin-header';
+import type { ClientUser } from '../../../../lib/client-permissions';
 
 export default function NewStaffPage() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
+  const [user, setUser] = useState<ClientUser | null>(null);
+
+  // Fetch current user
+  useEffect(() => {
+    fetch('/api/auth/session')
+      .then(res => res.json())
+      .then(data => {
+        if (data.user) {
+          setUser(data.user);
+        }
+      })
+      .catch(err => console.error('Failed to fetch user:', err));
+  }, []);
 
   // Form state
   const [formData, setFormData] = useState({
@@ -168,10 +183,22 @@ export default function NewStaffPage() {
     }
   };
 
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Yükleniyor...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="flex min-h-screen w-full flex-col bg-muted/40">
-      <div className="flex flex-col sm:gap-4 sm:py-4 sm:pl-14">
-        <main className="grid flex-1 items-start gap-4 p-4 sm:px-6 sm:py-0 md:gap-8">
+    <div className="min-h-screen bg-gray-50">
+      <AdminHeader user={user} />
+      <div className="max-w-7xl mx-auto p-6">
+        <main className="grid flex-1 items-start gap-4">
           <div className="mx-auto grid max-w-6xl flex-1 auto-rows-max gap-4">
             <div className="flex items-center gap-4">
               <Link href="/admin/staff">

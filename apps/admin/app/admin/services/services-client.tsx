@@ -6,7 +6,7 @@ import { Button, Input, Card, CardContent, CardDescription, CardHeader, CardTitl
 import { Plus, Search, Edit3, Trash2, Clock, DollarSign, Eye, Briefcase } from 'lucide-react';
 import { apiClient } from '../../../lib/api-client';
 import AdminHeader from '../admin-header';
-import type { AuthenticatedUser } from '../../../lib/auth-utils';
+import type { ClientUser } from '../../../lib/client-permissions';
 
 interface Service {
   id: string;
@@ -21,7 +21,7 @@ interface Service {
 }
 
 interface ServicesClientProps {
-  user: AuthenticatedUser;
+  user: ClientUser;
 }
 
 export default function ServicesClient({ user }: ServicesClientProps) {

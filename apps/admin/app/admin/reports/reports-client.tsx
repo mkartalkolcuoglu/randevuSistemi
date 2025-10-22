@@ -16,10 +16,10 @@ import {
   ArrowDownRight
 } from 'lucide-react';
 import AdminHeader from '../admin-header';
-import type { AuthenticatedUser } from '../../../lib/auth-utils';
+import type { ClientUser } from '../../../lib/client-permissions';
 
 interface ReportsClientProps {
-  user: AuthenticatedUser;
+  user: ClientUser;
 }
 
 export default function ReportsClient({ user }: ReportsClientProps) {

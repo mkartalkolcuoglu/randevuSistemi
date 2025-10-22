@@ -6,12 +6,12 @@ import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle, Button, Badge } from '@repo/ui';
 import { ArrowLeft, ChevronLeft, ChevronRight, X, Calendar, Clock, User, MapPin, DollarSign, Package } from 'lucide-react';
 import AdminHeader from '../../admin-header';
-import type { AuthenticatedUser } from '../../../../lib/auth-utils';
+import type { ClientUser } from '../../../../lib/client-permissions';
 
 interface CalendarClientProps {
   initialAppointments: any[];
   tenantId?: string;
-  user: AuthenticatedUser;
+  user: ClientUser;
 }
 
 export default function CalendarClient({ initialAppointments, tenantId, user }: CalendarClientProps) {
