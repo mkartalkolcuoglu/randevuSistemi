@@ -202,43 +202,78 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-12 px-4">
-      <div className="max-w-4xl mx-auto">
-        {/* Header */}
-        <div className="text-center mb-8">
-          <Link href="/" className="inline-flex items-center text-blue-600 hover:text-blue-700 mb-4">
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Ana Sayfaya Dön
-          </Link>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">İşletmenizi Kaydedin</h1>
-          <p className="text-gray-600">Birkaç adımda sisteme katılın ve dijital dönüşümü başlatın</p>
+    <div className="min-h-screen bg-white">
+      {/* Header */}
+      <header className="sticky top-0 bg-white/80 backdrop-blur-md shadow-sm z-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center py-4">
+            <Link href="/" className="flex items-center space-x-2">
+              <div className="w-8 h-8 bg-gradient-to-br from-green-400 to-blue-500 rounded-lg"></div>
+              <span className="text-xl font-bold text-gray-900">Randevu Sistemi</span>
+            </Link>
+            <Link href="/" className="text-gray-600 hover:text-gray-900 flex items-center">
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Ana Sayfa
+            </Link>
+          </div>
+        </div>
+      </header>
+
+      <div className="max-w-5xl mx-auto px-4 py-12">
+        {/* Hero Text */}
+        <div className="text-center mb-12">
+          <div className="inline-block mb-4 px-4 py-2 bg-green-100 rounded-full">
+            <span className="text-green-700 font-medium text-sm">✨ 15 Gün Ücretsiz Deneme</span>
+          </div>
+          <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
+            İşletmenizi <span className="bg-gradient-to-r from-green-400 to-blue-500 bg-clip-text text-transparent">Kaydedin</span>
+          </h1>
+          <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+            Birkaç adımda sisteme katılın ve dijital dönüşümü başlatın
+          </p>
         </div>
 
         {/* Progress Steps */}
         {currentStep !== 'success' && (
-          <div className="mb-8">
-            <div className="flex items-center justify-center space-x-4">
-              <div className={`flex items-center ${currentStep === 'info' ? 'text-blue-600' : 'text-gray-400'}`}>
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center ${currentStep === 'info' ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}>
+          <div className="mb-12">
+            <div className="flex items-center justify-center space-x-2 md:space-x-4">
+              <div className={`flex items-center ${currentStep === 'info' ? 'text-green-600' : 'text-gray-400'}`}>
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center font-semibold transition ${
+                  currentStep === 'info' 
+                    ? 'bg-gradient-to-br from-green-400 to-blue-500 text-white shadow-lg' 
+                    : 'bg-gray-200'
+                }`}>
                   1
                 </div>
-                <span className="ml-2 hidden sm:inline">Bilgiler</span>
+                <span className="ml-2 hidden sm:inline font-medium">Bilgiler</span>
               </div>
-              <div className="w-12 h-0.5 bg-gray-300"></div>
-              <div className={`flex items-center ${currentStep === 'package' || currentStep === 'payment' ? 'text-blue-600' : 'text-gray-400'}`}>
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center ${currentStep === 'package' || currentStep === 'payment' ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}>
+              <div className={`w-12 md:w-20 h-1 rounded transition ${
+                currentStep === 'package' || currentStep === 'payment' ? 'bg-gradient-to-r from-green-400 to-blue-500' : 'bg-gray-300'
+              }`}></div>
+              <div className={`flex items-center ${currentStep === 'package' || currentStep === 'payment' ? 'text-green-600' : 'text-gray-400'}`}>
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center font-semibold transition ${
+                  currentStep === 'package' || currentStep === 'payment'
+                    ? 'bg-gradient-to-br from-green-400 to-blue-500 text-white shadow-lg' 
+                    : 'bg-gray-200'
+                }`}>
                   2
                 </div>
-                <span className="ml-2 hidden sm:inline">Paket</span>
+                <span className="ml-2 hidden sm:inline font-medium">Paket</span>
               </div>
               {formData.subscriptionPlan !== 'trial' && (
                 <>
-                  <div className="w-12 h-0.5 bg-gray-300"></div>
-                  <div className={`flex items-center ${currentStep === 'payment' ? 'text-blue-600' : 'text-gray-400'}`}>
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center ${currentStep === 'payment' ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}>
+                  <div className={`w-12 md:w-20 h-1 rounded transition ${
+                    currentStep === 'payment' ? 'bg-gradient-to-r from-green-400 to-blue-500' : 'bg-gray-300'
+                  }`}></div>
+                  <div className={`flex items-center ${currentStep === 'payment' ? 'text-green-600' : 'text-gray-400'}`}>
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center font-semibold transition ${
+                      currentStep === 'payment'
+                        ? 'bg-gradient-to-br from-green-400 to-blue-500 text-white shadow-lg' 
+                        : 'bg-gray-200'
+                    }`}>
                       3
                     </div>
-                    <span className="ml-2 hidden sm:inline">Ödeme</span>
+                    <span className="ml-2 hidden sm:inline font-medium">Ödeme</span>
                   </div>
                 </>
               )}
@@ -248,14 +283,21 @@ export default function RegisterPage() {
 
         {/* Error Message */}
         {error && (
-          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
-            {error}
+          <div className="mb-6 p-4 bg-red-50 border-2 border-red-200 rounded-xl text-red-700 text-sm shadow-sm">
+            <div className="flex items-start">
+              <div className="flex-shrink-0">
+                <span className="text-xl">⚠️</span>
+              </div>
+              <div className="ml-3">
+                <p className="font-medium">{error}</p>
+              </div>
+            </div>
           </div>
         )}
 
         {/* Step 1: Business Information */}
         {currentStep === 'info' && (
-          <Card>
+          <Card className="shadow-xl border-2"  >
             <CardHeader>
               <CardTitle className="flex items-center">
                 <Building2 className="w-5 h-5 mr-2" />
@@ -401,7 +443,11 @@ export default function RegisterPage() {
               </div>
 
               <div className="flex justify-end pt-4">
-                <Button onClick={handleNext} size="lg">
+                <Button 
+                  onClick={handleNext} 
+                  size="lg" 
+                  className="bg-gradient-to-r from-green-400 to-blue-500 text-white hover:shadow-xl transition"
+                >
                   Devam Et
                   <ArrowRight className="w-4 h-4 ml-2" />
                 </Button>
@@ -412,7 +458,7 @@ export default function RegisterPage() {
 
         {/* Step 2: Package Selection */}
         {currentStep === 'package' && (
-          <Card>
+          <Card className="shadow-xl border-2">
             <CardHeader>
               <CardTitle>Paket Seçimi</CardTitle>
             </CardHeader>
@@ -538,11 +584,16 @@ export default function RegisterPage() {
               </div>
 
               <div className="flex justify-between pt-4">
-                <Button variant="outline" onClick={() => setCurrentStep('info')}>
+                <Button variant="outline" onClick={() => setCurrentStep('info')} size="lg">
                   <ArrowLeft className="w-4 h-4 mr-2" />
                   Geri
                 </Button>
-                <Button onClick={handleNext} size="lg" disabled={loading}>
+                <Button 
+                  onClick={handleNext} 
+                  size="lg" 
+                  disabled={loading}
+                  className="bg-gradient-to-r from-green-400 to-blue-500 text-white hover:shadow-xl transition disabled:opacity-50"
+                >
                   {loading ? 'İşleniyor...' : formData.subscriptionPlan === 'trial' ? 'Kayıt Ol' : 'Ödemeye Geç'}
                   <ArrowRight className="w-4 h-4 ml-2" />
                 </Button>
@@ -553,7 +604,7 @@ export default function RegisterPage() {
 
         {/* Step 3: Payment (Demo) */}
         {currentStep === 'payment' && (
-          <Card>
+          <Card className="shadow-xl border-2">
             <CardHeader>
               <CardTitle className="flex items-center">
                 <CreditCard className="w-5 h-5 mr-2" />
@@ -655,11 +706,16 @@ export default function RegisterPage() {
               </div>
 
               <div className="flex justify-between pt-4">
-                <Button variant="outline" onClick={() => setCurrentStep('package')}>
+                <Button variant="outline" onClick={() => setCurrentStep('package')} size="lg">
                   <ArrowLeft className="w-4 h-4 mr-2" />
                   Geri
                 </Button>
-                <Button onClick={handleNext} size="lg" disabled={loading}>
+                <Button 
+                  onClick={handleNext} 
+                  size="lg" 
+                  disabled={loading}
+                  className="bg-gradient-to-r from-green-400 to-blue-500 text-white hover:shadow-xl transition disabled:opacity-50"
+                >
                   {loading ? 'İşleniyor...' : `${getPlanPrice()} Öde`}
                 </Button>
               </div>
@@ -669,7 +725,7 @@ export default function RegisterPage() {
 
         {/* Step 4: Success */}
         {currentStep === 'success' && credentials && (
-          <Card>
+          <Card className="shadow-2xl border-2">
             <CardContent className="p-8 text-center">
               <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Check className="w-8 h-8 text-green-600" />
@@ -740,7 +796,10 @@ export default function RegisterPage() {
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 {credentials.loginUrl && (
                   <a href={credentials.loginUrl} target="_blank" rel="noopener noreferrer">
-                    <Button size="lg" className="w-full sm:w-auto">
+                    <Button 
+                      size="lg" 
+                      className="w-full sm:w-auto bg-gradient-to-r from-green-400 to-blue-500 text-white hover:shadow-xl transition"
+                    >
                       <Lock className="w-4 h-4 mr-2" />
                       Admin Paneline Git
                     </Button>
@@ -748,7 +807,11 @@ export default function RegisterPage() {
                 )}
                 {credentials.tenantUrl && (
                   <a href={credentials.tenantUrl} target="_blank" rel="noopener noreferrer">
-                    <Button variant="outline" size="lg" className="w-full sm:w-auto">
+                    <Button 
+                      variant="outline" 
+                      size="lg" 
+                      className="w-full sm:w-auto border-2 hover:bg-gray-50"
+                    >
                       <Calendar className="w-4 h-4 mr-2" />
                       Randevu Sayfasını Gör
                     </Button>
