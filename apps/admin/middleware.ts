@@ -1,6 +1,20 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
+// Page to permission key mapping
+const pagePermissions: Record<string, string> = {
+  '/admin': 'dashboard',
+  '/admin/appointments': 'appointments',
+  '/admin/customers': 'customers',
+  '/admin/services': 'services',
+  '/admin/staff': 'staff',
+  '/admin/packages': 'packages',
+  '/admin/kasa': 'kasa',
+  '/admin/stock': 'stock',
+  '/admin/reports': 'reports',
+  '/admin/settings': 'settings',
+};
+
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
@@ -39,12 +53,42 @@ export function middleware(request: NextRequest) {
       return NextResponse.redirect(new URL('/login', request.url));
     }
 
+    // Permission check for staff users
+    if (sessionData.userType === 'staff' && sessionData.permissions) {
+      // Find matching page permission
+      let requiredPermission: string | null = null;
+      
+      for (const [path, permission] of Object.entries(pagePermissions)) {
+        if (pathname === path || pathname.startsWith(path + '/')) {
+          requiredPermission = permission;
+          break;
+        }
+      }
+
+      // If this is a protected admin page
+      if (requiredPermission) {
+        const permissions = sessionData.permissions;
+        
+        // Check if user has read permission for this page
+        if (!permissions[requiredPermission]?.read) {
+          console.log(`🚫 Access denied: ${sessionData.ownerName} tried to access ${pathname}`);
+          console.log(`Required permission: ${requiredPermission}, Has read: ${permissions[requiredPermission]?.read}`);
+          
+          // Redirect to dashboard with error
+          const redirectUrl = new URL('/admin', request.url);
+          redirectUrl.searchParams.set('error', 'permission_denied');
+          return NextResponse.redirect(redirectUrl);
+        }
+      }
+    }
+
     // Add tenant ID to headers for API routes
     const response = NextResponse.next();
     response.headers.set('x-tenant-id', sessionData.tenantId);
     
     return response;
   } catch (error) {
+    console.error('Middleware error:', error);
     // Invalid session cookie
     return NextResponse.redirect(new URL('/login', request.url));
   }
