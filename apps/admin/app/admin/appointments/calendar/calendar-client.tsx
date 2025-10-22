@@ -203,13 +203,13 @@ export default function CalendarClient({ initialAppointments, tenantId, user }: 
         <Card>
           <CardContent className="p-4 sm:p-6">
             {calendarView === 'day' && (
-              <DayView appointments={appointments} date={currentDate} onAppointmentClick={setSelectedAppointment} />
+              <DayView appointments={filteredAppointments} date={currentDate} onAppointmentClick={setSelectedAppointment} />
             )}
             {calendarView === 'week' && (
-              <WeekView appointments={appointments} date={currentDate} onAppointmentClick={setSelectedAppointment} />
+              <WeekView appointments={filteredAppointments} date={currentDate} onAppointmentClick={setSelectedAppointment} />
             )}
             {calendarView === 'month' && (
-              <MonthView appointments={appointments} date={currentDate} onAppointmentClick={setSelectedAppointment} />
+              <MonthView appointments={filteredAppointments} date={currentDate} onAppointmentClick={setSelectedAppointment} />
             )}
           </CardContent>
         </Card>
