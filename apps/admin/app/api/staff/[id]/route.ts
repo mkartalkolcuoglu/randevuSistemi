@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '../../../../lib/prisma';
+import bcrypt from 'bcryptjs';
 
 export async function GET(
   request: NextRequest,
@@ -40,23 +41,35 @@ export async function PUT(
     const { id } = await params;
     const data = await request.json();
     
+    // Prepare update data
+    const updateData: any = {
+      firstName: data.firstName,
+      lastName: data.lastName,
+      email: data.email,
+      phone: data.phone,
+      position: data.position,
+      status: data.status,
+      salary: data.salary ? parseFloat(data.salary) : null,
+      hireDate: data.hireDate || null,
+      specializations: data.specializations ? JSON.stringify(data.specializations) : null,
+      experience: data.experience ? parseInt(data.experience) : null,
+      rating: data.rating ? parseFloat(data.rating) : null,
+      workingHours: data.workingHours ? JSON.stringify(data.workingHours) : null,
+      notes: data.notes || null,
+      // Auth fields
+      canLogin: data.canLogin || false,
+      username: data.canLogin ? data.username : null,
+      permissions: data.canLogin && data.permissions ? JSON.stringify(data.permissions) : null
+    };
+
+    // Hash password if provided and changed
+    if (data.canLogin && data.password && data.password.trim() !== '') {
+      updateData.password = await bcrypt.hash(data.password, 10);
+    }
+    
     const updatedStaff = await prisma.staff.update({
       where: { id },
-      data: {
-        firstName: data.firstName,
-        lastName: data.lastName,
-        email: data.email,
-        phone: data.phone,
-        position: data.position,
-        status: data.status,
-        salary: data.salary ? parseFloat(data.salary) : null,
-        hireDate: data.hireDate || null,
-        specializations: data.specializations ? JSON.stringify(data.specializations) : null,
-        experience: data.experience ? parseInt(data.experience) : null,
-        rating: data.rating ? parseFloat(data.rating) : null,
-        workingHours: data.workingHours ? JSON.stringify(data.workingHours) : null,
-        notes: data.notes || null
-      }
+      data: updateData
     });
 
     return NextResponse.json({

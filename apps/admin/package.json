@@ -21,6 +21,7 @@
     "@repo/ui": "*",
     "@types/pg": "^8.15.5",
     "autoprefixer": "^10.4.16",
+    "bcryptjs": "^3.0.2",
     "better-sqlite3": "^12.4.1",
     "next": "^15.5.0",
     "pg": "^8.16.3",

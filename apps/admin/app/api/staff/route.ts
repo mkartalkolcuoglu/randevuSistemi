@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '../../../lib/prisma';
+import bcrypt from 'bcryptjs';
 
 export async function GET(request: NextRequest) {
   try {
@@ -171,6 +172,12 @@ export async function POST(request: NextRequest) {
       );
     }
     
+    // Hash password if provided
+    let hashedPassword = null;
+    if (data.canLogin && data.password) {
+      hashedPassword = await bcrypt.hash(data.password, 10);
+    }
+
     const newStaff = await prisma.staff.create({
       data: {
         firstName: data.firstName,
@@ -186,7 +193,13 @@ export async function POST(request: NextRequest) {
         experience: data.experience ? parseInt(data.experience) : null,
         rating: data.rating ? parseFloat(data.rating) : 4.0,
         workingHours: data.workingHours ? JSON.stringify(data.workingHours) : null,
-        notes: data.notes || null
+        notes: data.notes || null,
+        // Auth fields
+        username: data.canLogin ? data.username : null,
+        password: hashedPassword,
+        role: 'staff',
+        permissions: data.canLogin && data.permissions ? JSON.stringify(data.permissions) : null,
+        canLogin: data.canLogin || false
       }
     });
 
