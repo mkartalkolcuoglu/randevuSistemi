@@ -3,9 +3,11 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@repo/ui';
-import { LogOut, User, Home, Calendar, Users, Briefcase, Package, Settings, Wallet, Gift, Clock } from 'lucide-react';
+import { LogOut, User, Home, Calendar, Users, Briefcase, Package, Settings, Wallet, Gift, Clock, BarChart3 } from 'lucide-react';
 import Link from 'next/link';
 import type { AuthenticatedUser } from '../../lib/auth-utils';
+import { canAccessPage } from '../../lib/auth-utils';
+import type { StaffPermissions } from '../../lib/permissions';
 
 interface AdminHeaderProps {
   user: AuthenticatedUser;
@@ -156,63 +158,89 @@ export default function AdminHeader({ user }: AdminHeaderProps) {
           </div>
         </div>
         
-        {/* Navigation Menu */}
+        {/* Navigation Menu - With Permission Filtering */}
         <nav className="mt-4">
-          <div className="flex space-x-1">
-            <Link href="/admin">
-              <Button variant="ghost" size="sm" className="text-gray-600 hover:text-gray-900">
-                <Home className="w-4 h-4 mr-2" />
-                Dashboard
-              </Button>
-            </Link>
-            <Link href="/admin/appointments">
-              <Button variant="ghost" size="sm" className="text-gray-600 hover:text-gray-900">
-                <Calendar className="w-4 h-4 mr-2" />
-                Randevular
-              </Button>
-            </Link>
-            <Link href="/admin/customers">
-              <Button variant="ghost" size="sm" className="text-gray-600 hover:text-gray-900">
-                <Users className="w-4 h-4 mr-2" />
-                Müşteriler
-              </Button>
-            </Link>
-            <Link href="/admin/services">
-              <Button variant="ghost" size="sm" className="text-gray-600 hover:text-gray-900">
-                <Briefcase className="w-4 h-4 mr-2" />
-                Hizmetler
-              </Button>
-            </Link>
-            <Link href="/admin/staff">
-              <Button variant="ghost" size="sm" className="text-gray-600 hover:text-gray-900">
-                <User className="w-4 h-4 mr-2" />
-                Personel
-              </Button>
-            </Link>
-            <Link href="/admin/stock">
-              <Button variant="ghost" size="sm" className="text-gray-600 hover:text-gray-900">
-                <Package className="w-4 h-4 mr-2" />
-                Stok
-              </Button>
-            </Link>
-            <Link href="/admin/packages">
-              <Button variant="ghost" size="sm" className="text-gray-600 hover:text-gray-900">
-                <Gift className="w-4 h-4 mr-2" />
-                Paketler
-              </Button>
-            </Link>
-            <Link href="/admin/kasa">
-              <Button variant="ghost" size="sm" className="text-gray-600 hover:text-gray-900">
-                <Wallet className="w-4 h-4 mr-2" />
-                Kasa
-              </Button>
-            </Link>
-            <Link href="/admin/settings">
-              <Button variant="ghost" size="sm" className="text-gray-600 hover:text-gray-900">
-                <Settings className="w-4 h-4 mr-2" />
-                Ayarlar
-              </Button>
-            </Link>
+          <div className="flex space-x-1 flex-wrap gap-y-2">
+            {canAccessPage(user, 'dashboard') && (
+              <Link href="/admin">
+                <Button variant="ghost" size="sm" className="text-gray-600 hover:text-gray-900">
+                  <Home className="w-4 h-4 mr-2" />
+                  Dashboard
+                </Button>
+              </Link>
+            )}
+            {canAccessPage(user, 'appointments') && (
+              <Link href="/admin/appointments">
+                <Button variant="ghost" size="sm" className="text-gray-600 hover:text-gray-900">
+                  <Calendar className="w-4 h-4 mr-2" />
+                  Randevular
+                </Button>
+              </Link>
+            )}
+            {canAccessPage(user, 'customers') && (
+              <Link href="/admin/customers">
+                <Button variant="ghost" size="sm" className="text-gray-600 hover:text-gray-900">
+                  <Users className="w-4 h-4 mr-2" />
+                  Müşteriler
+                </Button>
+              </Link>
+            )}
+            {canAccessPage(user, 'services') && (
+              <Link href="/admin/services">
+                <Button variant="ghost" size="sm" className="text-gray-600 hover:text-gray-900">
+                  <Briefcase className="w-4 h-4 mr-2" />
+                  Hizmetler
+                </Button>
+              </Link>
+            )}
+            {canAccessPage(user, 'staff') && (
+              <Link href="/admin/staff">
+                <Button variant="ghost" size="sm" className="text-gray-600 hover:text-gray-900">
+                  <User className="w-4 h-4 mr-2" />
+                  Personel
+                </Button>
+              </Link>
+            )}
+            {canAccessPage(user, 'stock') && (
+              <Link href="/admin/stock">
+                <Button variant="ghost" size="sm" className="text-gray-600 hover:text-gray-900">
+                  <Package className="w-4 h-4 mr-2" />
+                  Stok
+                </Button>
+              </Link>
+            )}
+            {canAccessPage(user, 'packages') && (
+              <Link href="/admin/packages">
+                <Button variant="ghost" size="sm" className="text-gray-600 hover:text-gray-900">
+                  <Gift className="w-4 h-4 mr-2" />
+                  Paketler
+                </Button>
+              </Link>
+            )}
+            {canAccessPage(user, 'kasa') && (
+              <Link href="/admin/kasa">
+                <Button variant="ghost" size="sm" className="text-gray-600 hover:text-gray-900">
+                  <Wallet className="w-4 h-4 mr-2" />
+                  Kasa
+                </Button>
+              </Link>
+            )}
+            {canAccessPage(user, 'reports') && (
+              <Link href="/admin/reports">
+                <Button variant="ghost" size="sm" className="text-gray-600 hover:text-gray-900">
+                  <BarChart3 className="w-4 h-4 mr-2" />
+                  Raporlar
+                </Button>
+              </Link>
+            )}
+            {canAccessPage(user, 'settings') && (
+              <Link href="/admin/settings">
+                <Button variant="ghost" size="sm" className="text-gray-600 hover:text-gray-900">
+                  <Settings className="w-4 h-4 mr-2" />
+                  Ayarlar
+                </Button>
+              </Link>
+            )}
           </div>
         </nav>
       </div>
