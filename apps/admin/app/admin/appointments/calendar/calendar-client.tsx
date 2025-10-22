@@ -21,6 +21,21 @@ export default function CalendarClient({ initialAppointments, tenantId, user }: 
   const [calendarView, setCalendarView] = useState<'day' | 'week' | 'month'>('week');
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedAppointment, setSelectedAppointment] = useState<any>(null);
+  const [selectedStaffId, setSelectedStaffId] = useState<string>('all');
+
+  // Get unique staff members from appointments
+  const staffList = Array.from(
+    new Map(
+      appointments
+        .filter(apt => apt.staffId && apt.staffName)
+        .map(apt => [apt.staffId, { id: apt.staffId, name: apt.staffName }])
+    ).values()
+  );
+
+  // Filter appointments by selected staff
+  const filteredAppointments = selectedStaffId === 'all' 
+    ? appointments 
+    : appointments.filter(apt => apt.staffId === selectedStaffId);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -79,9 +94,11 @@ export default function CalendarClient({ initialAppointments, tenantId, user }: 
         {/* Calendar Controls */}
         <Card className="mb-6">
           <CardContent className="p-4">
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-              {/* View Switcher */}
-              <div className="flex bg-gray-100 rounded-lg p-1 w-full sm:w-auto">
+            <div className="flex flex-col gap-4">
+              {/* Top Row: View Switcher and Staff Filter */}
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                {/* View Switcher */}
+                <div className="flex bg-gray-100 rounded-lg p-1 w-full sm:w-auto">
                 <button
                   onClick={() => setCalendarView('day')}
                   className={`flex-1 sm:flex-none px-4 py-2 rounded-md text-sm font-medium transition ${
@@ -114,8 +131,25 @@ export default function CalendarClient({ initialAppointments, tenantId, user }: 
                 </button>
               </div>
 
-              {/* Date Navigation */}
-              <div className="flex items-center gap-2 sm:gap-4 w-full sm:w-auto justify-between">
+              {/* Staff Filter */}
+              <div className="w-full sm:w-auto sm:min-w-[200px]">
+                <select
+                  value={selectedStaffId}
+                  onChange={(e) => setSelectedStaffId(e.target.value)}
+                  className="w-full px-4 py-2 text-sm border border-gray-300 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="all">Tüm Personeller</option>
+                  {staffList.map(staff => (
+                    <option key={staff.id} value={staff.id}>
+                      {staff.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {/* Bottom Row: Date Navigation */}
+            <div className="flex items-center gap-2 sm:gap-4 w-full sm:w-auto justify-center">
                 <button
                   onClick={() => {
                     const newDate = new Date(currentDate);
