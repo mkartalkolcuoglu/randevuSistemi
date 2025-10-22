@@ -33,8 +33,8 @@ model Staff {
   password      String?
   role          String?  @default("staff") // "owner", "manager", "staff"
   permissions   String?  @db.Text // JSON string for page permissions
-  canLogin      Boolean  @default(false)
-  lastLogin     DateTime?
+  canLogin      Boolean  @default(false) @map("can_login")
+  lastLogin     DateTime? @map("last_login")
   
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
