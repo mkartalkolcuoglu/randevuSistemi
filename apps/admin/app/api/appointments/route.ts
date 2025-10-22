@@ -16,16 +16,21 @@ export async function OPTIONS() {
 
 export async function GET(request: NextRequest) {
   try {
-    // Get tenant ID from session cookie (for admin panel)
+    // Get tenant ID and user info from session cookie (for admin panel)
     const { cookies } = await import('next/headers');
     const cookieStore = await cookies();
     const sessionCookie = cookieStore.get('tenant-session');
     
     let sessionTenantId = null;
+    let userType = null;
+    let sessionStaffId = null;
+    
     if (sessionCookie) {
       try {
         const sessionData = JSON.parse(sessionCookie.value);
         sessionTenantId = sessionData.tenantId;
+        userType = sessionData.userType || 'owner';
+        sessionStaffId = sessionData.staffId || null;
       } catch (error) {
         // Session cookie is invalid, continue without tenant filter
       }
@@ -43,6 +48,8 @@ export async function GET(request: NextRequest) {
     
     console.log('📊 Fetching appointments with Prisma');
     console.log('🔍 Session tenant ID:', sessionTenantId);
+    console.log('🔍 User type:', userType);
+    console.log('🔍 Session staff ID:', sessionStaffId);
     console.log('🔍 Query tenant ID:', tenantId);
     console.log('🔍 Search params:', { page, limit, search, status, date, staffId, customerId });
 
@@ -54,8 +61,13 @@ export async function GET(request: NextRequest) {
       where.tenantId = tenantId;
     }
     
-    // Filter by staff
-    if (staffId) {
+    // IMPORTANT: If user is staff, only show their own appointments
+    if (userType === 'staff' && sessionStaffId) {
+      where.staffId = sessionStaffId;
+      console.log('👤 Staff user detected - filtering by staffId:', sessionStaffId);
+    } 
+    // Otherwise, allow explicit staffId filter (for owners)
+    else if (staffId) {
       where.staffId = staffId;
     }
     
