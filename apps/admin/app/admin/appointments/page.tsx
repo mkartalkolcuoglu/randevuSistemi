@@ -1,5 +1,6 @@
-import { requireAuth } from '../../../lib/auth-utils';
+import { requireAuth, requirePageAccess } from '../../../lib/auth-utils';
 import AppointmentsClient from './appointments-client';
+import UnauthorizedAccess from '../../../components/UnauthorizedAccess';
 
 export const dynamic = 'force-dynamic';
 
@@ -38,6 +39,15 @@ async function getAppointments(tenantId: string) {
 
 export default async function AppointmentsPage() {
   const user = await requireAuth();
+  
+  // Check if user has permission to access appointments page
+  try {
+    await requirePageAccess('appointments');
+  } catch (error) {
+    console.log('❌ User does not have access to appointments page');
+    return <UnauthorizedAccess />;
+  }
+  
   const appointments = await getAppointments(user.id);
 
   return <AppointmentsClient initialAppointments={appointments} tenantId={user.id} user={user} />;
