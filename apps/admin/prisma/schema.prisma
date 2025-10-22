@@ -27,6 +27,15 @@ model Staff {
   rating        Float?   @default(4.0)
   workingHours  String?  // JSON string for working hours
   notes         String?
+  
+  // Authentication fields
+  username      String?  @unique
+  password      String?
+  role          String?  @default("staff") // "owner", "manager", "staff"
+  permissions   String?  @db.Text // JSON string for page permissions
+  canLogin      Boolean  @default(false)
+  lastLogin     DateTime?
+  
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
   
