@@ -16,7 +16,8 @@ interface CalendarClientProps {
 
 export default function CalendarClient({ initialAppointments, tenantId, user }: CalendarClientProps) {
   const router = useRouter();
-  const [appointments, setAppointments] = useState(initialAppointments);
+  // Ensure appointments is always an array
+  const [appointments, setAppointments] = useState(Array.isArray(initialAppointments) ? initialAppointments : []);
   const [calendarView, setCalendarView] = useState<'day' | 'week' | 'month'>('week');
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedAppointment, setSelectedAppointment] = useState<any>(null);
@@ -325,7 +326,8 @@ export default function CalendarClient({ initialAppointments, tenantId, user }: 
 // Day View Component
 function DayView({ appointments, date, onAppointmentClick }: { appointments: any[]; date: Date; onAppointmentClick: (apt: any) => void }) {
   const hours = Array.from({ length: 14 }, (_, i) => i + 8); // 8:00 - 21:00
-  const dayAppointments = appointments.filter(apt => {
+  const safeAppointments = Array.isArray(appointments) ? appointments : [];
+  const dayAppointments = safeAppointments.filter(apt => {
     const aptDate = new Date(apt.date);
     return aptDate.toDateString() === date.toDateString();
   });
@@ -383,6 +385,7 @@ function DayView({ appointments, date, onAppointmentClick }: { appointments: any
 
 // Week View Component
 function WeekView({ appointments, date, onAppointmentClick }: { appointments: any[]; date: Date; onAppointmentClick: (apt: any) => void }) {
+  const safeAppointments = Array.isArray(appointments) ? appointments : [];
   const startOfWeek = new Date(date);
   startOfWeek.setDate(date.getDate() - date.getDay() + 1); // Monday
   
@@ -396,7 +399,7 @@ function WeekView({ appointments, date, onAppointmentClick }: { appointments: an
     <div className="overflow-x-auto -mx-4 sm:mx-0">
       <div className="grid grid-cols-7 gap-1 sm:gap-2 min-w-[700px] px-4 sm:px-0">
         {weekDays.map((day, index) => {
-          const dayAppointments = appointments.filter(apt => {
+          const dayAppointments = safeAppointments.filter(apt => {
             const aptDate = new Date(apt.date);
             return aptDate.toDateString() === day.toDateString();
           });
@@ -450,6 +453,7 @@ function WeekView({ appointments, date, onAppointmentClick }: { appointments: an
 
 // Month View Component
 function MonthView({ appointments, date, onAppointmentClick }: { appointments: any[]; date: Date; onAppointmentClick: (apt: any) => void }) {
+  const safeAppointments = Array.isArray(appointments) ? appointments : [];
   const year = date.getFullYear();
   const month = date.getMonth();
   
@@ -482,7 +486,7 @@ function MonthView({ appointments, date, onAppointmentClick }: { appointments: a
           }
 
           const currentDay = new Date(year, month, day);
-          const dayAppointments = appointments.filter(apt => {
+          const dayAppointments = safeAppointments.filter(apt => {
             const aptDate = new Date(apt.date);
             return aptDate.toDateString() === currentDay.toDateString();
           });

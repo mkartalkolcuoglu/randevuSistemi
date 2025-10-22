@@ -23,7 +23,19 @@ async function getAppointments(tenantId: string) {
       return [];
     }
 
-    return await response.json();
+    const data = await response.json();
+    
+    // Ensure we return an array
+    if (Array.isArray(data)) {
+      return data;
+    } else if (data && typeof data === 'object' && Array.isArray(data.appointments)) {
+      return data.appointments;
+    } else if (data && typeof data === 'object' && Array.isArray(data.data)) {
+      return data.data;
+    }
+    
+    console.error('Unexpected data format:', data);
+    return [];
   } catch (error) {
     console.error('Error fetching appointments:', error);
     return [];
