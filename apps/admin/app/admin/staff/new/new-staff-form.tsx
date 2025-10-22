@@ -424,7 +424,7 @@ export default function NewStaffForm({ user }: NewStaffFormProps) {
             </div>
 
             {/* Authentication & Permissions Section */}
-            <div className="grid auto-rows-max items-start gap-4 lg:col-span-3 mt-8">
+            <div className="mt-8 w-full">
               <StaffAuthForm onAuthDataChange={setAuthData} />
             </div>
 

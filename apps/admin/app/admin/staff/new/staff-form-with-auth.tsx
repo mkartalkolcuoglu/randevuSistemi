@@ -190,9 +190,9 @@ export default function StaffAuthForm({ onAuthDataChange }: StaffAuthFormProps) 
                     <label className="flex items-center gap-2 cursor-pointer">
                       <input
                         type="checkbox"
-                        checked={permissions[page].read}
+                        checked={permissions[page]?.read || false}
                         onChange={(e) => handlePermissionChange(page, 'read', e.target.checked)}
-                        className="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+                        className="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500 cursor-pointer"
                       />
                       <span className="text-sm">Görüntüleme</span>
                     </label>
@@ -200,9 +200,9 @@ export default function StaffAuthForm({ onAuthDataChange }: StaffAuthFormProps) 
                     <label className="flex items-center gap-2 cursor-pointer">
                       <input
                         type="checkbox"
-                        checked={permissions[page].create}
+                        checked={permissions[page]?.create || false}
                         onChange={(e) => handlePermissionChange(page, 'create', e.target.checked)}
-                        className="w-4 h-4 text-green-600 rounded focus:ring-2 focus:ring-green-500"
+                        className="w-4 h-4 text-green-600 rounded focus:ring-2 focus:ring-green-500 cursor-pointer"
                       />
                       <span className="text-sm">Ekleme</span>
                     </label>
@@ -210,9 +210,9 @@ export default function StaffAuthForm({ onAuthDataChange }: StaffAuthFormProps) 
                     <label className="flex items-center gap-2 cursor-pointer">
                       <input
                         type="checkbox"
-                        checked={permissions[page].update}
+                        checked={permissions[page]?.update || false}
                         onChange={(e) => handlePermissionChange(page, 'update', e.target.checked)}
-                        className="w-4 h-4 text-yellow-600 rounded focus:ring-2 focus:ring-yellow-500"
+                        className="w-4 h-4 text-yellow-600 rounded focus:ring-2 focus:ring-yellow-500 cursor-pointer"
                       />
                       <span className="text-sm">Düzenleme</span>
                     </label>
@@ -220,9 +220,9 @@ export default function StaffAuthForm({ onAuthDataChange }: StaffAuthFormProps) 
                     <label className="flex items-center gap-2 cursor-pointer">
                       <input
                         type="checkbox"
-                        checked={permissions[page].delete}
+                        checked={permissions[page]?.delete || false}
                         onChange={(e) => handlePermissionChange(page, 'delete', e.target.checked)}
-                        className="w-4 h-4 text-red-600 rounded focus:ring-2 focus:ring-red-500"
+                        className="w-4 h-4 text-red-600 rounded focus:ring-2 focus:ring-red-500 cursor-pointer"
                       />
                       <span className="text-sm">Silme</span>
                     </label>
