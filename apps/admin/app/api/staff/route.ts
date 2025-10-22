@@ -129,10 +129,11 @@ export async function GET(request: NextRequest) {
       limit,
       totalPages: Math.ceil(total / limit)
     });
-  } catch (error) {
-    console.error('Error fetching staff:', error);
+  } catch (error: any) {
+    console.error('❌ Error fetching staff:', error);
+    console.error('❌ Error details:', error.message);
     return NextResponse.json(
-      { success: false, error: 'Failed to fetch staff' },
+      { success: false, error: error.message || 'Failed to fetch staff' },
       { status: 500 }
     );
   }
@@ -141,6 +142,15 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const data = await request.json();
+    console.log('📝 Creating staff with data:', {
+      firstName: data.firstName,
+      lastName: data.lastName,
+      email: data.email,
+      phone: data.phone,
+      position: data.position,
+      canLogin: data.canLogin,
+      username: data.username
+    });
     
     // Get tenant ID from cookies
     const { cookies } = await import('next/headers');
@@ -178,11 +188,16 @@ export async function POST(request: NextRequest) {
       hashedPassword = await bcrypt.hash(data.password, 10);
     }
 
+    // Email is unique in schema, so if it's empty, generate a unique placeholder
+    const email = data.email && data.email.trim() !== '' 
+      ? data.email 
+      : `staff-${Date.now()}-${Math.random().toString(36).substring(7)}@placeholder.local`;
+
     const newStaff = await prisma.staff.create({
       data: {
         firstName: data.firstName,
         lastName: data.lastName,
-        email: data.email,
+        email: email,
         phone: data.phone,
         position: data.position,
         status: data.status || 'active',
@@ -207,10 +222,21 @@ export async function POST(request: NextRequest) {
       success: true, 
       data: newStaff 
     });
-  } catch (error) {
-    console.error('Error creating staff:', error);
+  } catch (error: any) {
+    console.error('❌ Error creating staff:', error);
+    console.error('❌ Error details:', error.message);
+    console.error('❌ Error stack:', error.stack);
+    
+    // Prisma specific errors
+    if (error.code === 'P2002') {
+      return NextResponse.json(
+        { success: false, error: 'Bu kullanıcı adı veya email zaten kullanılıyor' },
+        { status: 400 }
+      );
+    }
+    
     return NextResponse.json(
-      { success: false, error: 'Failed to create staff' },
+      { success: false, error: error.message || 'Failed to create staff' },
       { status: 400 }
     );
   }
