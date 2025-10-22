@@ -17,7 +17,22 @@ export default function AdminHeader({ user }: AdminHeaderProps) {
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [remainingDays, setRemainingDays] = useState<number | null>(null);
   const [subscriptionPlan, setSubscriptionPlan] = useState<string | null>(null);
+  const [showUnauthorizedAlert, setShowUnauthorizedAlert] = useState(false);
   const router = useRouter();
+
+  // Check for permission_denied error in URL
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('error') === 'permission_denied') {
+      setShowUnauthorizedAlert(true);
+      // Remove error param from URL
+      const newUrl = window.location.pathname;
+      window.history.replaceState({}, '', newUrl);
+      
+      // Auto-hide after 10 seconds
+      setTimeout(() => setShowUnauthorizedAlert(false), 10000);
+    }
+  }, []);
 
   // Fetch tenant subscription info
   useEffect(() => {
@@ -103,9 +118,41 @@ export default function AdminHeader({ user }: AdminHeaderProps) {
   };
 
   return (
-    <header className="bg-white border-b border-gray-200">
-      <div className="max-w-7xl mx-auto px-6 py-4">
-        <div className="flex items-center justify-between">
+    <>
+      {/* Unauthorized Access Alert */}
+      {showUnauthorizedAlert && (
+        <div className="bg-red-50 border-b-2 border-red-200">
+          <div className="max-w-7xl mx-auto px-6 py-4">
+            <div className="flex items-start gap-3">
+              <div className="flex-shrink-0">
+                <svg className="w-6 h-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+              </div>
+              <div className="flex-1">
+                <h3 className="text-sm font-semibold text-red-800 mb-1">
+                  Yetkisiz Erişim Denemesi
+                </h3>
+                <p className="text-sm text-red-700">
+                  Bu sayfayı görüntüleme yetkiniz bulunmamaktadır. Yetkiniz olduğunu düşünüyorsanız lütfen yöneticiniz ile iletişime geçin.
+                </p>
+              </div>
+              <button
+                onClick={() => setShowUnauthorizedAlert(false)}
+                className="flex-shrink-0 text-red-600 hover:text-red-800"
+              >
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <header className="bg-white border-b border-gray-200">
+        <div className="max-w-7xl mx-auto px-6 py-4">
+          <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
             {/* System Logo */}
             <img 
@@ -245,5 +292,6 @@ export default function AdminHeader({ user }: AdminHeaderProps) {
         </nav>
       </div>
     </header>
+    </>
   );
 }
