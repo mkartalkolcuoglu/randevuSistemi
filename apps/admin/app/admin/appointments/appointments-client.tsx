@@ -7,6 +7,7 @@ import { Plus, Search, Calendar, Clock, User, Edit, Trash2, ArrowLeft } from 'lu
 import AdminHeader from '../admin-header';
 import { DataTable, Column } from '../../../components/DataTable';
 import type { AuthenticatedUser } from '../../../lib/auth-utils';
+import { hasPermission } from '../../../lib/auth-utils';
 
 interface AppointmentsClientProps {
   initialAppointments: any[];
@@ -149,23 +150,30 @@ export default function AppointmentsClient({ initialAppointments, tenantId, user
       label: 'İşlemler',
       render: (apt) => (
         <div className="flex items-center space-x-2" onClick={(e) => e.stopPropagation()}>
-          <Link href={`/admin/appointments/${apt.id}/edit`}>
-            <Button variant="outline" size="sm" onClick={(e) => e.stopPropagation()}>
-              <Edit className="w-4 h-4" />
+          {hasPermission(user, 'appointments', 'update') && (
+            <Link href={`/admin/appointments/${apt.id}/edit`}>
+              <Button variant="outline" size="sm" onClick={(e) => e.stopPropagation()}>
+                <Edit className="w-4 h-4" />
+              </Button>
+            </Link>
+          )}
+          {hasPermission(user, 'appointments', 'delete') && (
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                handleDelete(apt.id);
+              }}
+              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+            >
+              <Trash2 className="w-4 h-4" />
             </Button>
-          </Link>
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              handleDelete(apt.id);
-            }}
-            className="text-red-600 hover:text-red-700 hover:bg-red-50"
-          >
-            <Trash2 className="w-4 h-4" />
-          </Button>
+          )}
+          {!hasPermission(user, 'appointments', 'update') && !hasPermission(user, 'appointments', 'delete') && (
+            <span className="text-sm text-gray-400">Yetki yok</span>
+          )}
         </div>
       )
     }
@@ -192,12 +200,14 @@ export default function AppointmentsClient({ initialAppointments, tenantId, user
                   Takvim Görünümü
                 </Button>
               </Link>
-              <Link href="/admin/appointments/new">
-                <Button className="bg-blue-600 hover:bg-blue-700 text-white">
-                  <Plus className="w-4 h-4 mr-2" />
-                  Yeni Randevu
-                </Button>
-              </Link>
+              {hasPermission(user, 'appointments', 'create') && (
+                <Link href="/admin/appointments/new">
+                  <Button className="bg-blue-600 hover:bg-blue-700 text-white">
+                    <Plus className="w-4 h-4 mr-2" />
+                    Yeni Randevu
+                  </Button>
+                </Link>
+              )}
             </div>
           </div>
         </div>
