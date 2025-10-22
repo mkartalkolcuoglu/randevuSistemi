@@ -5,12 +5,12 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@repo/ui';
 import { LogOut, User, Home, Calendar, Users, Briefcase, Package, Settings, Wallet, Gift, Clock, BarChart3 } from 'lucide-react';
 import Link from 'next/link';
-import type { AuthenticatedUser } from '../../lib/auth-utils';
-import { canAccessPage } from '../../lib/auth-utils';
+import type { ClientUser } from '../../lib/client-permissions';
+import { canAccessPage } from '../../lib/client-permissions';
 import type { StaffPermissions } from '../../lib/permissions';
 
 interface AdminHeaderProps {
-  user: AuthenticatedUser;
+  user: ClientUser;
 }
 
 export default function AdminHeader({ user }: AdminHeaderProps) {

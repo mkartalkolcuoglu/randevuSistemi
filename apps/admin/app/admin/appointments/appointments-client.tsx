@@ -6,13 +6,13 @@ import { Card, CardContent, CardHeader, CardTitle, Button, Badge, Input } from '
 import { Plus, Search, Calendar, Clock, User, Edit, Trash2, ArrowLeft } from 'lucide-react';
 import AdminHeader from '../admin-header';
 import { DataTable, Column } from '../../../components/DataTable';
-import type { AuthenticatedUser } from '../../../lib/auth-utils';
-import { hasPermission } from '../../../lib/auth-utils';
+import type { ClientUser } from '../../../lib/client-permissions';
+import { hasPermission } from '../../../lib/client-permissions';
 
 interface AppointmentsClientProps {
   initialAppointments: any[];
   tenantId?: string;
-  user: AuthenticatedUser;
+  user: ClientUser;
 }
 
 export default function AppointmentsClient({ initialAppointments, tenantId, user }: AppointmentsClientProps) {
