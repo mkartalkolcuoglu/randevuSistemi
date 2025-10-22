@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation';
 import { Button, Input, Label, Textarea, Card, CardContent, CardHeader, CardTitle, Switch } from '@repo/ui';
 import { ChevronLeft, Save, Plus, X } from 'lucide-react';
 import Link from 'next/link';
+import StaffAuthForm from './staff-form-with-auth';
+import type { StaffPermissions } from '../../../../lib/permissions';
 
 export default function NewStaffPage() {
   const router = useRouter();
@@ -33,6 +35,14 @@ export default function NewStaffPage() {
     },
     notes: ''
   });
+
+  // Auth state
+  const [authData, setAuthData] = useState<{
+    username: string;
+    password: string;
+    canLogin: boolean;
+    permissions: StaffPermissions;
+  } | null>(null);
 
   const [newSpecialization, setNewSpecialization] = useState('');
 
@@ -105,21 +115,44 @@ export default function NewStaffPage() {
       alert('En az bir uzmanlık alanı eklemelisiniz!');
       return;
     }
+
+    // Auth validation
+    if (authData?.canLogin) {
+      if (!authData.username || authData.username.trim() === '') {
+        alert('Giriş yetkisi verildi ama kullanıcı adı boş!');
+        return;
+      }
+      if (!authData.password || authData.password.trim() === '') {
+        alert('Giriş yetkisi verildi ama şifre boş!');
+        return;
+      }
+      if (authData.password.length < 6) {
+        alert('Şifre en az 6 karakter olmalıdır!');
+        return;
+      }
+    }
     
     setIsLoading(true);
 
     try {
+      // Merge form data with auth data
+      const submitData = {
+        ...formData,
+        ...(authData || {})
+      };
+
       // API call to create new staff member
       const response = await fetch('/api/staff', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(formData)
+        body: JSON.stringify(submitData)
       });
 
       if (!response.ok) {
-        throw new Error('Network response was not ok');
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Network response was not ok');
       }
 
       const result = await response.json();
@@ -127,9 +160,9 @@ export default function NewStaffPage() {
       
       alert('Personel başarıyla eklendi!');
       router.push('/admin/staff');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error creating staff:', error);
-      alert('Personel eklenirken bir hata oluştu.');
+      alert(error.message || 'Personel eklenirken bir hata oluştu.');
     } finally {
       setIsLoading(false);
     }
@@ -383,7 +416,12 @@ export default function NewStaffPage() {
               </div>
             </div>
 
-            <div className="flex items-center justify-center gap-2 md:hidden">
+            {/* Authentication & Permissions Section */}
+            <div className="grid auto-rows-max items-start gap-4 lg:col-span-3 mt-8">
+              <StaffAuthForm onAuthDataChange={setAuthData} />
+            </div>
+
+            <div className="flex items-center justify-center gap-2 md:hidden mt-8">
               <Link href="/admin/staff">
                 <Button variant="outline" size="sm">
                   İptal
