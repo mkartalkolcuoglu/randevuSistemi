@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from 'react';
-import { Button, Input, Label, Card, CardContent, CardHeader, CardTitle, Switch } from '@repo/ui';
+import { Button, Input, Label, Card, CardContent, CardHeader, CardTitle } from '@repo/ui';
 import { Lock, User, Shield, Eye, EyeOff } from 'lucide-react';
 import { DEFAULT_STAFF_PERMISSIONS, PAGE_NAMES, type StaffPermissions } from '../../../../lib/permissions';
 
@@ -82,17 +82,21 @@ export default function StaffAuthForm({ onAuthDataChange }: StaffAuthFormProps) 
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-            <div>
-              <Label className="text-base font-semibold">Bu personel sisteme giriş yapabilsin mi?</Label>
-              <p className="text-sm text-gray-600 mt-1">
-                Giriş yetkisi verilirse, personel kullanıcı adı ve şifre ile admin paneline erişebilir.
-              </p>
-            </div>
-            <Switch
-              checked={canLogin}
-              onCheckedChange={handleCanLoginChange}
-            />
+          <div className="p-4 bg-gray-50 rounded-lg">
+            <label className="flex items-start gap-4 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={canLogin}
+                onChange={(e) => handleCanLoginChange(e.target.checked)}
+                className="w-5 h-5 text-blue-600 rounded focus:ring-2 focus:ring-blue-500 cursor-pointer mt-1 flex-shrink-0"
+              />
+              <div>
+                <div className="text-base font-semibold">Bu personel sisteme giriş yapabilsin mi?</div>
+                <p className="text-sm text-gray-600 mt-1">
+                  Giriş yetkisi verilirse, personel kullanıcı adı ve şifre ile admin paneline erişebilir.
+                </p>
+              </div>
+            </label>
           </div>
         </CardContent>
       </Card>
