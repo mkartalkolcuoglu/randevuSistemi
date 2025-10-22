@@ -5,7 +5,7 @@ import { useRouter, useParams } from 'next/navigation';
 import { Button, Input, Label, Textarea, Card, CardContent, CardHeader, CardTitle, Switch } from '@repo/ui';
 import { ArrowLeft, Save, Plus, X } from 'lucide-react';
 import Link from 'next/link';
-import StaffAuthForm from '../new/staff-form-with-auth';
+import StaffAuthForm from '../../new/staff-form-with-auth';
 import type { StaffPermissions } from '../../../../lib/permissions';
 
 export default function EditStaffPage() {
