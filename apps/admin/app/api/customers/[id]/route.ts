@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { prisma } from '../../../../lib/prisma';
+import { checkApiPermission } from '../../../../lib/api-auth';
 
 export async function GET(
   request: NextRequest,
@@ -117,6 +118,12 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    // Check permission
+    const permissionCheck = await checkApiPermission(request, 'customers', 'update');
+    if (!permissionCheck.authorized) {
+      return permissionCheck.error!;
+    }
+
     // Session kontrolü
     const cookieStore = await cookies();
     const tenantSession = cookieStore.get('tenant-session');
@@ -183,6 +190,12 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    // Check permission
+    const permissionCheck = await checkApiPermission(request, 'customers', 'delete');
+    if (!permissionCheck.authorized) {
+      return permissionCheck.error!;
+    }
+
     // Session kontrolü
     const cookieStore = await cookies();
     const tenantSession = cookieStore.get('tenant-session');

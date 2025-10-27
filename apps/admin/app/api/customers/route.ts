@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { prisma } from '../../../lib/prisma';
+import { checkApiPermission } from '../../../lib/api-auth';
 
 export async function GET(request: NextRequest) {
   try {
@@ -91,6 +92,12 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    // Check permission
+    const permissionCheck = await checkApiPermission(request, 'customers', 'create');
+    if (!permissionCheck.authorized) {
+      return permissionCheck.error!;
+    }
+
     // Session'dan tenant ID'yi al
     const cookieStore = await cookies();
     const tenantSession = cookieStore.get('tenant-session');
