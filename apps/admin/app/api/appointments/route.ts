@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
+import { checkApiPermission } from '../../../lib/api-auth';
 
 const prisma = new PrismaClient();
 
@@ -136,7 +137,7 @@ export async function POST(request: NextRequest) {
     const data = await request.json();
     console.log('📥 Creating appointment with data:', data);
 
-    // Check if this is from web app (tenant appointment)
+    // Check if this is from web app (tenant appointment) - allow without permission check
     if (data.tenantSlug) {
       console.log('🌐 Web appointment for tenant:', data.tenantSlug);
       
@@ -316,6 +317,12 @@ export async function POST(request: NextRequest) {
 
     // Admin panel appointment creation
     console.log('🔧 Admin appointment creation');
+    
+    // Check permission for creating appointments
+    const permissionCheck = await checkApiPermission(request, 'appointments', 'create');
+    if (!permissionCheck.authorized) {
+      return permissionCheck.error!;
+    }
     
     const service = await prisma.service.findUnique({
       where: { id: data.serviceId }

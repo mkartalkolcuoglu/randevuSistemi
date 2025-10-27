@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
+import { checkApiPermission } from '../../../../lib/api-auth';
 
 const prisma = new PrismaClient();
 
@@ -57,6 +58,12 @@ export async function PUT(
     const data = await request.json();
     
     console.log('📝 Updating appointment:', id, data);
+    
+    // Check permission for updating appointments
+    const permissionCheck = await checkApiPermission(request, 'appointments', 'update');
+    if (!permissionCheck.authorized) {
+      return permissionCheck.error!;
+    }
     
     // Get the old appointment to check status change
     const oldAppointment = await prisma.appointment.findUnique({
@@ -188,6 +195,12 @@ export async function DELETE(
   try {
     const { id } = await params;
     console.log('🗑️ Deleting appointment:', id);
+    
+    // Check permission for deleting appointments
+    const permissionCheck = await checkApiPermission(request, 'appointments', 'delete');
+    if (!permissionCheck.authorized) {
+      return permissionCheck.error!;
+    }
     
     await prisma.appointment.delete({
       where: { id }
