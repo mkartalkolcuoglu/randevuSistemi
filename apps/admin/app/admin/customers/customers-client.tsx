@@ -51,7 +51,15 @@ export default function CustomersClient({ initialCustomers, tenantId, user }: Cu
           alert('Müşteri başarıyla silindi!');
           await fetchCustomers();
         } else {
-          throw new Error('Silme işlemi başarısız');
+          const errorData = await response.json();
+          
+          // Check for permission denied error
+          if (response.status === 403 && errorData.code === 'INSUFFICIENT_PERMISSIONS') {
+            alert('⛔ Yetki Hatası: Müşteri silme yetkiniz bulunmamaktadır.\n\nLütfen yöneticiniz ile iletişime geçin.');
+            return;
+          }
+          
+          throw new Error(errorData.error || 'Silme işlemi başarısız');
         }
       } catch (error) {
         console.error('Error deleting customer:', error);

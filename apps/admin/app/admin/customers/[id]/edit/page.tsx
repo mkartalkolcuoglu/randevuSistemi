@@ -71,7 +71,15 @@ export default function EditCustomerPage() {
       });
 
       if (!response.ok) {
-        throw new Error('Network response was not ok');
+        const errorData = await response.json();
+        
+        // Check for permission denied error
+        if (response.status === 403 && errorData.code === 'INSUFFICIENT_PERMISSIONS') {
+          alert('⛔ Yetki Hatası: Müşteri düzenleme yetkiniz bulunmamaktadır.\n\nLütfen yöneticiniz ile iletişime geçin.');
+          return;
+        }
+        
+        throw new Error(errorData.error || 'Network response was not ok');
       }
 
       const result = await response.json();
