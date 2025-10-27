@@ -58,11 +58,21 @@ export default function RandevuPage({ params }: PageProps) {
   // Parse working hours from tenant data
   const workingHours = parseWorkingHours(tenant?.workingHours);
   
+  // Debug: Log working hours and tenant data
+  if (tenant) {
+    console.log('🕒 Tenant workingHours (raw):', tenant.workingHours, typeof tenant.workingHours);
+    console.log('🕒 Parsed workingHours:', workingHours);
+  }
+  
   // Generate next 14 days for date selection
   const availableDates = Array.from({ length: 14 }, (_, i) => {
     const date = addDays(new Date(), i);
     const dateStr = format(date, 'yyyy-MM-dd');
     const isClosed = !isWorkingDay(dateStr, workingHours);
+    
+    if (i < 7) {
+      console.log(`📅 ${dateStr} (${format(date, 'EEEE', { locale: tr })}): isClosed=${isClosed}`);
+    }
     
     return {
       date: dateStr,

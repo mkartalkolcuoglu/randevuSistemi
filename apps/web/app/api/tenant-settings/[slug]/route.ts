@@ -79,6 +79,34 @@ export async function GET(
         // Continue with default value
       }
 
+      // Parse workingHours (handle double-encoded JSON like theme)
+      let parsedWorkingHours = getDefaultWorkingHours();
+      if (tenant.workingHours) {
+        try {
+          let workingHoursData = tenant.workingHours;
+          
+          console.log('🕒 Raw workingHours from DB:', typeof workingHoursData, workingHoursData);
+          
+          // If string, parse it
+          if (typeof workingHoursData === 'string') {
+            workingHoursData = JSON.parse(workingHoursData);
+            console.log('🕒 After first parse:', typeof workingHoursData, workingHoursData);
+          }
+          
+          // If still string (double-encoded), parse again
+          if (typeof workingHoursData === 'string') {
+            workingHoursData = JSON.parse(workingHoursData);
+            console.log('🕒 After second parse:', typeof workingHoursData, workingHoursData);
+          }
+          
+          parsedWorkingHours = workingHoursData;
+          console.log('✅ Final parsed workingHours:', parsedWorkingHours);
+        } catch (error) {
+          console.error('❌ Error parsing workingHours:', error);
+          parsedWorkingHours = getDefaultWorkingHours();
+        }
+      }
+      
       // Tenant'ın doğrudan theme ve workingHours bilgilerini kullan
       const parsedSettings = {
         appointmentTimeInterval: appointmentTimeInterval,
@@ -93,7 +121,7 @@ export async function GET(
           businessPhone: tenant.phone || '+90 555 000 0000',
           businessEmail: tenant.ownerEmail || `info@${slug}.com`,
         },
-        workingHours: tenant.workingHours ? JSON.parse(tenant.workingHours) : getDefaultWorkingHours(),
+        workingHours: parsedWorkingHours,
         notificationSettings: {
           emailNotifications: true,
           smsNotifications: true,
