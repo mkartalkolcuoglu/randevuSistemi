@@ -5,7 +5,7 @@ import { useRouter, useParams } from 'next/navigation';
 import { Button, Input, Label, Textarea, Card, CardContent, CardHeader, CardTitle } from '@repo/ui';
 import { ArrowLeft, Save } from 'lucide-react';
 import Link from 'next/link';
-import { generateTimeSlots } from '../../../../../lib/time-slots';
+import { generateTimeSlots, parseWorkingHours, getWorkingHoursForDay, type WorkingHours } from '../../../../../lib/time-slots';
 
 
 export default function EditAppointmentPage() {
@@ -18,6 +18,7 @@ export default function EditAppointmentPage() {
   const [availableTimeSlots, setAvailableTimeSlots] = useState<string[]>([]);
   const [allTimeSlots, setAllTimeSlots] = useState<string[]>([]);
   const [timeInterval, setTimeInterval] = useState<number>(30); // Default: 30 minutes
+  const [workingHours, setWorkingHours] = useState<WorkingHours | null>(null);
 
   const [formData, setFormData] = useState({
     customerName: '',
@@ -34,17 +35,36 @@ export default function EditAppointmentPage() {
     packageInfo: null as any
   });
 
-  // Update available time slots when date changes
+  // Update available time slots when date or settings change
   useEffect(() => {
-    if (!formData.date) {
-      setAvailableTimeSlots(allTimeSlots);
+    if (!formData.date || !workingHours) {
+      setAvailableTimeSlots([]);
+      setAllTimeSlots([]);
       return;
     }
+
+    // Check if the selected day is a working day
+    const dayHours = getWorkingHoursForDay(formData.date, workingHours);
+    
+    if (!dayHours) {
+      console.log('❌ Selected date is not a working day (closed)');
+      setAvailableTimeSlots([]);
+      setAllTimeSlots([]);
+      return;
+    }
+
+    // Parse start and end hours
+    const [startHour, startMinute] = dayHours.start.split(':').map(Number);
+    const [endHour, endMinute] = dayHours.end.split(':').map(Number);
+
+    // Generate time slots based on working hours
+    const slots = generateTimeSlots(startHour, endHour, timeInterval);
+    setAllTimeSlots(slots);
 
     // Get current time in Turkey timezone (UTC+3)
     const now = new Date();
     const turkeyOffset = 3 * 60; // Turkey is UTC+3
-    const localOffset = now.getTimezoneOffset(); // Local timezone offset in minutes
+    const localOffset = now.getTimezoneOffset();
     const turkeyTime = new Date(now.getTime() + (turkeyOffset + localOffset) * 60000);
 
     const selectedDate = new Date(formData.date + 'T00:00:00');
@@ -52,15 +72,15 @@ export default function EditAppointmentPage() {
 
     // If selected date is not today, allow all time slots
     if (selectedDate.getTime() !== todayInTurkey.getTime()) {
-      setAvailableTimeSlots(allTimeSlots);
+      setAvailableTimeSlots(slots);
       return;
     }
 
-    // If selected date is today, filter out past time slots
+    // If today, filter out past times
     const currentHour = turkeyTime.getHours();
     const currentMinute = turkeyTime.getMinutes();
 
-    const filtered = allTimeSlots.filter(timeSlot => {
+    const filtered = slots.filter(timeSlot => {
       const [hour, minute] = timeSlot.split(':').map(Number);
       const slotTime = hour * 60 + minute;
       const currentTime = currentHour * 60 + currentMinute;
@@ -69,7 +89,7 @@ export default function EditAppointmentPage() {
     });
 
     setAvailableTimeSlots(filtered);
-  }, [formData.date]);
+  }, [formData.date, workingHours, timeInterval]);
 
   useEffect(() => {
     const fetchSettings = async () => {
@@ -80,17 +100,17 @@ export default function EditAppointmentPage() {
           const interval = data.data?.appointmentTimeInterval || 30;
           setTimeInterval(interval);
           
-          // Generate time slots based on interval
-          const slots = generateTimeSlots(9, 19, interval);
-          setAllTimeSlots(slots);
-          console.log('⚙️ Time interval loaded:', interval, 'minutes');
-          console.log('📅 Generated time slots:', slots);
+          // Parse working hours
+          const hours = parseWorkingHours(data.data?.workingHours);
+          setWorkingHours(hours);
+          
+          console.log('⚙️ Settings loaded:', { interval, workingHours: hours });
         }
       } catch (error) {
         console.error('Error fetching settings:', error);
-        // Fallback to default
-        const slots = generateTimeSlots(9, 19, 30);
-        setAllTimeSlots(slots);
+        // Fallback to defaults
+        setTimeInterval(30);
+        setWorkingHours(parseWorkingHours(null));
       }
     };
 
