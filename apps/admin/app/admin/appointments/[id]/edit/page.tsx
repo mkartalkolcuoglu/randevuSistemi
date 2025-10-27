@@ -5,6 +5,7 @@ import { useRouter, useParams } from 'next/navigation';
 import { Button, Input, Label, Textarea, Card, CardContent, CardHeader, CardTitle } from '@repo/ui';
 import { ArrowLeft, Save } from 'lucide-react';
 import Link from 'next/link';
+import { generateTimeSlots } from '../../../../../lib/time-slots';
 
 
 export default function EditAppointmentPage() {
@@ -15,6 +16,8 @@ export default function EditAppointmentPage() {
   const [services, setServices] = useState([]);
   const [staff, setStaff] = useState([]);
   const [availableTimeSlots, setAvailableTimeSlots] = useState<string[]>([]);
+  const [allTimeSlots, setAllTimeSlots] = useState<string[]>([]);
+  const [timeInterval, setTimeInterval] = useState<number>(30); // Default: 30 minutes
 
   const [formData, setFormData] = useState({
     customerName: '',
@@ -30,14 +33,6 @@ export default function EditAppointmentPage() {
     paymentType: 'cash',
     packageInfo: null as any
   });
-
-  // Time slots
-  const allTimeSlots = [
-    '09:00', '09:30', '10:00', '10:30', '11:00', '11:30', 
-    '12:00', '12:30', '13:00', '13:30', '14:00', '14:30',
-    '15:00', '15:30', '16:00', '16:30', '17:00', '17:30',
-    '18:00', '18:30', '19:00', '19:30'
-  ];
 
   // Update available time slots when date changes
   useEffect(() => {
@@ -77,9 +72,31 @@ export default function EditAppointmentPage() {
   }, [formData.date]);
 
   useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        const response = await fetch('/api/tenant-info');
+        if (response.ok) {
+          const data = await response.json();
+          const interval = data.data?.appointmentTimeInterval || 30;
+          setTimeInterval(interval);
+          
+          // Generate time slots based on interval
+          const slots = generateTimeSlots(9, 19, interval);
+          setAllTimeSlots(slots);
+          console.log('⚙️ Time interval loaded:', interval, 'minutes');
+          console.log('📅 Generated time slots:', slots);
+        }
+      } catch (error) {
+        console.error('Error fetching settings:', error);
+        // Fallback to default
+        const slots = generateTimeSlots(9, 19, 30);
+        setAllTimeSlots(slots);
+      }
+    };
+
     if (params.id) {
-      // Önce hizmetler ve personel listesini yükle, sonra randevu verisini yükle
-      Promise.all([fetchServices(), fetchStaff()]).then(() => {
+      // Önce ayarları, hizmetleri ve personel listesini yükle, sonra randevu verisini yükle
+      Promise.all([fetchSettings(), fetchServices(), fetchStaff()]).then(() => {
         fetchAppointment();
       });
     }

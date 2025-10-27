@@ -45,6 +45,8 @@ export default function SettingsClient({ user }: SettingsClientProps) {
       saturday: { start: '09:00', end: '17:00', closed: false },
       sunday: { start: '10:00', end: '16:00', closed: true }
     },
+    // Randevu ayarları
+    appointmentTimeInterval: 30, // dakika cinsinden
     // Konum ayarları
     location: {
       latitude: '',
@@ -208,6 +210,7 @@ export default function SettingsClient({ user }: SettingsClientProps) {
             
             // Other data
             workingHours: workingHoursData || prev.workingHours,
+            appointmentTimeInterval: tenant.appointmentTimeInterval || 30, // Default: 30 dakika
             themeSettings: themeData,
             location: locationData
           }));
@@ -1049,6 +1052,87 @@ export default function SettingsClient({ user }: SettingsClientProps) {
               )}
             </div>
           ))}
+        </CardContent>
+      </Card>
+
+      {/* Randevu Ayarları */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center">
+            <Clock className="w-5 h-5 mr-2" />
+            Randevu Ayarları
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <div className="flex items-start space-x-3">
+              <div className="flex-shrink-0 mt-1">
+                <svg className="w-5 h-5 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-medium text-blue-800 mb-1">Takvim Zaman Aralığı Hakkında</p>
+                <p className="text-xs text-blue-700">
+                  Bu ayar, randevu oluşturulurken gösterilecek saat aralıklarını belirler. 
+                  Örneğin 30 dakika seçerseniz, saatler 09:00, 09:30, 10:00, 10:30 şeklinde görünür.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <label className="block text-sm font-medium text-gray-700">
+              Takvim Zaman Aralıkları
+            </label>
+            <select
+              value={settings.appointmentTimeInterval}
+              onChange={(e) => setSettings(prev => ({ ...prev, appointmentTimeInterval: parseInt(e.target.value) }))}
+              className="w-full md:w-64 px-4 py-2.5 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base font-medium"
+            >
+              <option value={5}>5 dakika</option>
+              <option value={10}>10 dakika</option>
+              <option value={15}>15 dakika</option>
+              <option value={20}>20 dakika</option>
+              <option value={30}>30 dakika</option>
+              <option value={45}>45 dakika</option>
+              <option value={60}>60 dakika (1 saat)</option>
+            </select>
+            <p className="text-xs text-gray-500 mt-1">
+              Seçilen aralık, tüm randevu sayfalarında kullanılacaktır.
+            </p>
+          </div>
+
+          {/* Preview */}
+          <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+            <p className="text-sm font-medium text-gray-700 mb-2">Örnek Saat Aralıkları (09:00 - 12:00):</p>
+            <div className="flex flex-wrap gap-2">
+              {(() => {
+                const interval = settings.appointmentTimeInterval || 30;
+                const startHour = 9;
+                const endHour = 12;
+                const slots = [];
+                
+                for (let hour = startHour; hour < endHour; hour++) {
+                  for (let minute = 0; minute < 60; minute += interval) {
+                    const timeStr = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
+                    slots.push(timeStr);
+                  }
+                }
+                // Add the end hour
+                slots.push(`${endHour.toString().padStart(2, '0')}:00`);
+                
+                return slots.slice(0, 10).map((time, idx) => (
+                  <span key={idx} className="px-3 py-1.5 bg-white border border-gray-300 rounded text-sm font-medium text-gray-700">
+                    {time}
+                  </span>
+                ));
+              })()}
+              {settings.appointmentTimeInterval && settings.appointmentTimeInterval <= 15 && (
+                <span className="px-3 py-1.5 text-sm text-gray-500 italic">...</span>
+              )}
+            </div>
+          </div>
         </CardContent>
       </Card>
 

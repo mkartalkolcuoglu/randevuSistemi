@@ -272,7 +272,7 @@ export function useStaff(tenantSlug?: string) {
 }
 
 // Available Slots Hook
-export function useAvailableSlots(serviceId: string, date: string, staffId?: string) {
+export function useAvailableSlots(serviceId: string, date: string, staffId?: string, tenantSlug?: string) {
   return useQuery({
     queryKey: queryKeys.appointments.availableSlots(serviceId, date, staffId),
     queryFn: async (): Promise<AvailableSlots> => {
@@ -281,7 +281,9 @@ export function useAvailableSlots(serviceId: string, date: string, staffId?: str
       }
 
       try {
-        const response = await fetch(`/api/available-slots?serviceId=${serviceId}&date=${date}&staffId=${staffId}`);
+        const url = `/api/available-slots?serviceId=${serviceId}&date=${date}&staffId=${staffId}${tenantSlug ? `&tenantSlug=${tenantSlug}` : ''}`;
+        const headers = tenantSlug ? { 'X-Tenant-Slug': tenantSlug } : {};
+        const response = await fetch(url, { headers });
         
         if (!response.ok) {
           throw new Error('Failed to fetch available slots');

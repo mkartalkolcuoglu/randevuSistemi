@@ -51,10 +51,21 @@ export async function GET() {
       );
     }
 
+    // Also fetch settings (for appointmentTimeInterval)
+    const settings = await prisma.settings.findUnique({
+      where: { tenantId: tenantId }
+    });
+
+    // Merge tenant and settings data
+    const mergedData = {
+      ...tenant,
+      appointmentTimeInterval: settings?.appointmentTimeInterval || 30
+    };
+
     // Return full tenant info (including theme, workingHours, subscription, etc.)
     return NextResponse.json({
       success: true,
-      data: tenant
+      data: mergedData
     });
 
   } catch (error) {
@@ -148,11 +159,39 @@ export async function PUT(request: Request) {
       data: updateData
     });
 
+    // Also update or create settings (for appointmentTimeInterval)
+    if (data.appointmentTimeInterval !== undefined) {
+      const existingSettings = await prisma.settings.findUnique({
+        where: { tenantId: tenantId }
+      });
+
+      if (existingSettings) {
+        await prisma.settings.update({
+          where: { tenantId: tenantId },
+          data: {
+            appointmentTimeInterval: parseInt(data.appointmentTimeInterval)
+          }
+        });
+      } else {
+        // Create settings if they don't exist
+        await prisma.settings.create({
+          data: {
+            tenantId: tenantId,
+            businessName: data.businessName || updatedTenant.businessName,
+            appointmentTimeInterval: parseInt(data.appointmentTimeInterval)
+          }
+        });
+      }
+    }
+
     console.log('✅ Tenant settings updated successfully');
 
     return NextResponse.json({
       success: true,
-      data: updatedTenant
+      data: {
+        ...updatedTenant,
+        appointmentTimeInterval: data.appointmentTimeInterval || 30
+      }
     });
 
   } catch (error) {

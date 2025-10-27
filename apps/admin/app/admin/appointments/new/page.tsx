@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Button, Input, Label, Textarea, Card, CardContent, CardHeader, CardTitle } from '@repo/ui';
 import { ArrowLeft, Save, Calendar, Clock, User, Search } from 'lucide-react';
 import Link from 'next/link';
+import { generateTimeSlots } from '../../../../lib/time-slots';
 
 export default function NewAppointmentPage() {
   const router = useRouter();
@@ -16,6 +17,8 @@ export default function NewAppointmentPage() {
   const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
   const [customerSearch, setCustomerSearch] = useState('');
   const [availableTimeSlots, setAvailableTimeSlots] = useState<string[]>([]);
+  const [allTimeSlots, setAllTimeSlots] = useState<string[]>([]);
+  const [timeInterval, setTimeInterval] = useState<number>(30); // Default: 30 minutes
 
   // Form state
   const [formData, setFormData] = useState({
@@ -32,14 +35,6 @@ export default function NewAppointmentPage() {
     status: 'pending',
     paymentType: 'cash'
   });
-
-  // Time slots
-  const allTimeSlots = [
-    '09:00', '09:30', '10:00', '10:30', '11:00', '11:30', 
-    '12:00', '12:30', '13:00', '13:30', '14:00', '14:30',
-    '15:00', '15:30', '16:00', '16:30', '17:00', '17:30',
-    '18:00', '18:30', '19:00', '19:30'
-  ];
 
   // Update available time slots when date changes
   useEffect(() => {
@@ -96,8 +91,31 @@ export default function NewAppointmentPage() {
     setAvailableTimeSlots(filtered);
   }, [formData.date]);
 
-  // Fetch data on component mount
+  // Fetch settings and generate time slots on mount
   useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        const response = await fetch('/api/tenant-info');
+        if (response.ok) {
+          const data = await response.json();
+          const interval = data.data?.appointmentTimeInterval || 30;
+          setTimeInterval(interval);
+          
+          // Generate time slots based on interval
+          const slots = generateTimeSlots(9, 19, interval);
+          setAllTimeSlots(slots);
+          console.log('⚙️ Time interval loaded:', interval, 'minutes');
+          console.log('📅 Generated time slots:', slots);
+        }
+      } catch (error) {
+        console.error('Error fetching settings:', error);
+        // Fallback to default
+        const slots = generateTimeSlots(9, 19, 30);
+        setAllTimeSlots(slots);
+      }
+    };
+
+    fetchSettings();
     fetchServices();
     fetchStaff();
     fetchCustomers();

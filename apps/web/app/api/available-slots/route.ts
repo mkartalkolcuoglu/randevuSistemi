@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
+import { generateTimeSlots } from '../../../lib/time-slots';
 
 const prisma = new PrismaClient();
 
@@ -18,6 +19,7 @@ export async function GET(request: NextRequest) {
   const serviceId = searchParams.get('serviceId');
   const date = searchParams.get('date');
   const staffId = searchParams.get('staffId');
+  const tenantSlug = request.headers.get('X-Tenant-Slug') || searchParams.get('tenantSlug');
 
   if (!serviceId || !date || !staffId) {
     return NextResponse.json(
@@ -27,6 +29,32 @@ export async function GET(request: NextRequest) {
   }
 
   try {
+    // Get tenant settings for appointmentTimeInterval
+    let appointmentTimeInterval = 30; // Default
+    
+    if (tenantSlug) {
+      try {
+        const tenant = await prisma.tenant.findUnique({
+          where: { slug: tenantSlug },
+          select: { id: true }
+        });
+        
+        if (tenant) {
+          const settings = await prisma.settings.findUnique({
+            where: { tenantId: tenant.id },
+            select: { appointmentTimeInterval: true }
+          });
+          
+          if (settings?.appointmentTimeInterval) {
+            appointmentTimeInterval = settings.appointmentTimeInterval;
+            console.log('⚙️ Using time interval:', appointmentTimeInterval, 'minutes for tenant:', tenantSlug);
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching settings, using default interval:', error);
+      }
+    }
+    
     // Bu staff için bu tarihte var olan randevuları getir
     const existingAppointments = await prisma.appointment.findMany({
       where: {
@@ -49,8 +77,8 @@ export async function GET(request: NextRequest) {
       const startTime = hours * 60 + minutes; // dakika cinsinden
       const duration = appointment.duration || 60; // varsayılan 60 dakika
       
-      // Randevu süresince tüm 30'luk dilimleri rezerve et
-      for (let i = 0; i < duration; i += 30) {
+      // Randevu süresince tüm interval'luk dilimleri rezerve et
+      for (let i = 0; i < duration; i += appointmentTimeInterval) {
         const timeInMinutes = startTime + i;
         const h = Math.floor(timeInMinutes / 60);
         const m = timeInMinutes % 60;
@@ -73,34 +101,29 @@ export async function GET(request: NextRequest) {
     const currentMinute = turkeyTime.getMinutes();
     const currentTimeInMinutes = currentHour * 60 + currentMinute;
     
-    const timeSlots = [];
+    // Generate time slots dynamically based on tenant settings
+    const allPossibleTimeSlots = generateTimeSlots(9, 17, appointmentTimeInterval);
     
-    // Working hours: 9:00 AM to 6:00 PM with 30-minute intervals
-    for (let hour = 9; hour <= 17; hour++) {
-      for (let minute = 0; minute < 60; minute += 30) {
-        // Skip lunch break (12:00-13:00)
-        if (hour === 12) continue;
-        
-        const timeString = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
-        const slotTimeInMinutes = hour * 60 + minute;
-        
-        // If today, check if time slot is in the past
-        const isPast = isToday && slotTimeInMinutes <= currentTimeInMinutes;
-        
-        // Bu saat rezerve edilmiş mi kontrol et
-        const isBooked = bookedTimes.has(timeString);
-        
-        // Available only if not booked AND not in the past
-        const isAvailable = !isBooked && !isPast;
-        
-        timeSlots.push({
-          time: timeString,
-          available: isAvailable,
-          staffId: staffId,
-          staffName: 'Staff Member'
-        });
-      }
-    }
+    const timeSlots = allPossibleTimeSlots.map(timeString => {
+      const [hour, minute] = timeString.split(':').map(Number);
+      const slotTimeInMinutes = hour * 60 + minute;
+      
+      // If today, check if time slot is in the past
+      const isPast = isToday && slotTimeInMinutes <= currentTimeInMinutes;
+      
+      // Bu saat rezerve edilmiş mi kontrol et
+      const isBooked = bookedTimes.has(timeString);
+      
+      // Available only if not booked AND not in the past
+      const isAvailable = !isBooked && !isPast;
+      
+      return {
+        time: timeString,
+        available: isAvailable,
+        staffId: staffId,
+        staffName: 'Staff Member'
+      };
+    });
 
     return NextResponse.json({
       success: true,

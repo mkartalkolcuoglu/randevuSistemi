@@ -51,7 +51,7 @@ export default function RandevuPage({ params }: PageProps) {
   const { data: tenant, isLoading: tenantLoading } = useTenant(slug);
   const { data: services, isLoading: servicesLoading } = useServices(slug);
   const { data: staff, isLoading: staffLoading } = useStaff(slug);
-  const { data: availableSlots } = useAvailableSlots(selectedService, selectedDate, selectedStaff);
+  const { data: availableSlots } = useAvailableSlots(selectedService, selectedDate, selectedStaff, slug);
   const createAppointmentMutation = useCreateAppointment();
 
   // Generate next 14 days for date selection

@@ -126,6 +126,7 @@ model Settings {
   businessPhone    String?
   businessEmail    String?
   workingHours     String?  // JSON string
+  appointmentTimeInterval Int? @default(30) @map("appointment_time_interval") // Appointment time slot interval in minutes (5, 10, 15, 20, 30, 45, 60)
   notificationSettings String? // JSON string
   paymentSettings  String?  // JSON string
   themeSettings    String?  // JSON string for colors, fonts, etc.
