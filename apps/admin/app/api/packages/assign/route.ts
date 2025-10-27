@@ -1,11 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
+import { checkApiPermission } from '../../../../lib/api-auth';
 
 const prisma = new PrismaClient();
 
 // POST - Assign package to customer
 export async function POST(request: NextRequest) {
   try {
+    // Check permission (assigning package requires create permission)
+    const permissionCheck = await checkApiPermission(request, 'packages', 'create');
+    if (!permissionCheck.authorized) {
+      return permissionCheck.error!;
+    }
+
     const body = await request.json();
     const { packageId, customerId, tenantId, staffId, paymentType, expiresAt } = body;
 

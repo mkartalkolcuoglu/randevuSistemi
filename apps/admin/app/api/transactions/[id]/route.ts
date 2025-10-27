@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
+import { checkApiPermission } from '../../../../lib/api-auth';
 
 const prisma = new PrismaClient();
 
@@ -39,6 +40,12 @@ export async function PUT(
   { params }: { params: { id: string } }
 ) {
   try {
+    // Check permission
+    const permissionCheck = await checkApiPermission(request, 'kasa', 'update');
+    if (!permissionCheck.authorized) {
+      return permissionCheck.error!;
+    }
+
     const data = await request.json();
 
     // Get old transaction to handle stock changes
@@ -137,6 +144,12 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
+    // Check permission
+    const permissionCheck = await checkApiPermission(request, 'kasa', 'delete');
+    if (!permissionCheck.authorized) {
+      return permissionCheck.error!;
+    }
+
     // Get transaction to restore stock if it's a sale
     const transaction = await prisma.transaction.findUnique({
       where: { id: params.id }

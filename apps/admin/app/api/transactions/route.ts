@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
+import { checkApiPermission } from '../../../lib/api-auth';
 
 const prisma = new PrismaClient();
 
@@ -81,6 +82,12 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    // Check permission
+    const permissionCheck = await checkApiPermission(request, 'kasa', 'create');
+    if (!permissionCheck.authorized) {
+      return permissionCheck.error!;
+    }
+
     const data = await request.json();
 
     // Validate required fields

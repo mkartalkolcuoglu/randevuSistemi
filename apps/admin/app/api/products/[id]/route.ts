@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { prisma } from '../../../../lib/prisma';
+import { checkApiPermission } from '../../../../lib/api-auth';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -14,6 +15,12 @@ export async function OPTIONS() {
 
 export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    // Check permission
+    const permissionCheck = await checkApiPermission(request, 'stock', 'update');
+    if (!permissionCheck.authorized) {
+      return permissionCheck.error!;
+    }
+
     const { id } = await params;
     
     // Session'dan tenant ID'yi al
@@ -110,6 +117,12 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
 
 export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    // Check permission
+    const permissionCheck = await checkApiPermission(request, 'stock', 'delete');
+    if (!permissionCheck.authorized) {
+      return permissionCheck.error!;
+    }
+
     const { id } = await params;
     
     // Session'dan tenant ID'yi al

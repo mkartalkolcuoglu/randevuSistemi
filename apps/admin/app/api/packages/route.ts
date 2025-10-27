@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
+import { checkApiPermission } from '../../../lib/api-auth';
 
 const prisma = new PrismaClient();
 
@@ -49,6 +50,12 @@ export async function GET(request: NextRequest) {
 // POST - Create a new package
 export async function POST(request: NextRequest) {
   try {
+    // Check permission
+    const permissionCheck = await checkApiPermission(request, 'packages', 'create');
+    if (!permissionCheck.authorized) {
+      return permissionCheck.error!;
+    }
+
     const body = await request.json();
     const { tenantId, name, description, price, items } = body;
 
@@ -104,6 +111,12 @@ export async function POST(request: NextRequest) {
 // PUT - Update a package
 export async function PUT(request: NextRequest) {
   try {
+    // Check permission
+    const permissionCheck = await checkApiPermission(request, 'packages', 'update');
+    if (!permissionCheck.authorized) {
+      return permissionCheck.error!;
+    }
+
     const body = await request.json();
     const { id, name, description, price, items, isActive } = body;
 
@@ -163,6 +176,12 @@ export async function PUT(request: NextRequest) {
 // DELETE - Delete a package
 export async function DELETE(request: NextRequest) {
   try {
+    // Check permission
+    const permissionCheck = await checkApiPermission(request, 'packages', 'delete');
+    if (!permissionCheck.authorized) {
+      return permissionCheck.error!;
+    }
+
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
 
