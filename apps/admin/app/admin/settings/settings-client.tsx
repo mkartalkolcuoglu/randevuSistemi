@@ -59,47 +59,17 @@ export default function SettingsClient({ user }: SettingsClientProps) {
     try {
       setLoading(true);
       
-      // Önce mevcut tenant info'yu al (slug için)
-      const currentTenantResponse = await fetch('/api/tenant-info?t=' + Date.now());
-      const currentTenantData = await currentTenantResponse.json();
-      
-      let tenantResponse, tenantData;
-      
-      if (currentTenantData.success && currentTenantData.data?.slug) {
-        // Slug varsa, web API'sini kullan (doğru data için)
-        const slug = currentTenantData.data.slug;
-        console.log('Using slug:', slug);
-        tenantResponse = await fetch(`https://randevu-sistemi-web.vercel.app/api/tenant-settings/${slug}?t=` + Date.now());
-        tenantData = await tenantResponse.json();
-      } else {
-        // Fallback: admin API kullan
-        console.log('Fallback to admin API');
-        tenantResponse = currentTenantResponse;
-        tenantData = currentTenantData;
-      }
+      // ✅ ALWAYS use Admin API (same database where settings are saved)
+      console.log('📥 Loading settings from Admin API...');
+      const tenantResponse = await fetch('/api/tenant-info?t=' + Date.now());
+      const tenantData = await tenantResponse.json();
       
       console.log('Load Settings Response:', tenantData);
-      
-      // Debug: Web API'nin hangi field'ları döndürdüğünü kontrol et
-      if (tenantData.success && tenantData.data) {
-        console.log('🔍 Available fields in response:');
-        console.log('- Root level:', Object.keys(tenantData.data));
-        if (tenantData.data.tenant) {
-          console.log('- Tenant level:', Object.keys(tenantData.data.tenant));
-        }
-        
-        // Eksik field'ları kontrol et
-        const checkFields = ['ownerName', 'username', 'password'];
-        checkFields.forEach(field => {
-          const rootValue = tenantData.data[field];
-          const tenantValue = tenantData.data.tenant?.[field];
-          console.log(`- ${field}: root=${rootValue}, tenant=${tenantValue}`);
-        });
-      }
       
       if (tenantResponse.ok) {
         if (tenantData.success && tenantData.data) {
           const tenant = tenantData.data;
+          console.log('✅ Loaded tenant from Admin API:', tenant.businessName);
           
           // Debug: Check tenant.theme size
           if (tenant.theme) {
@@ -122,45 +92,6 @@ export default function SettingsClient({ user }: SettingsClientProps) {
                   }
                 }
               });
-            }
-          }
-          
-          // Web API'den gelen data farklı structure'da olabilir
-          const isWebApiData = tenant.tenant && typeof tenant.tenant === 'object';
-          const businessData = isWebApiData ? tenant.tenant : tenant;
-          
-          console.log('Data structure detected:', isWebApiData ? 'Web API' : 'Admin API');
-          console.log('Business data:', businessData);
-          
-          // Eğer web API'den kritik field'lar eksikse, admin API'den tamamla
-          let finalData = { ...tenant };
-          
-          if (isWebApiData) {
-            const missingFields = ['ownerName', 'username'];
-            const hasMissingFields = missingFields.some(field => 
-              !businessData[field] && !tenant[field]
-            );
-            
-            if (hasMissingFields) {
-              console.log('🔄 Missing critical fields, fetching from admin API...');
-              try {
-                // Admin API'den eksik field'ları al
-                const adminResponse = await fetch('/api/tenant-info?admin-fields=true&t=' + Date.now());
-                const adminData = await adminResponse.json();
-                
-                if (adminData.success && adminData.data) {
-                  console.log('✅ Got admin data for missing fields');
-                  finalData = {
-                    ...tenant,
-                    // Admin API'den eksik field'ları ekle
-                    ownerName: adminData.data.ownerName || tenant.ownerName || '',
-                    username: adminData.data.username || tenant.username || '',
-                    // Diğer field'lar web API'den gelsin
-                  };
-                }
-              } catch (error) {
-                console.warn('⚠️ Could not fetch admin data:', error);
-              }
             }
           }
           
@@ -193,24 +124,24 @@ export default function SettingsClient({ user }: SettingsClientProps) {
           
           setSettings(prev => ({
             ...prev,
-            // Business info mapping
-            businessName: businessData.businessName || finalData.businessName || '',
-            businessType: businessData.businessType || finalData.businessType || 'salon',
-            businessDescription: businessData.businessDescription || finalData.businessDescription || '',
-            businessAddress: businessData.businessAddress || businessData.address || finalData.address || '',
+            // Business info from Admin API
+            businessName: tenant.businessName || '',
+            businessType: tenant.businessType || 'salon',
+            businessDescription: tenant.businessDescription || '',
+            businessAddress: tenant.address || '',
             
-            // Owner info mapping - admin API'den tamamlanmış data kullan
-            ownerName: finalData.ownerName || businessData.ownerName || '',
-            ownerEmail: businessData.businessEmail || businessData.ownerEmail || finalData.ownerEmail || '',
-            phone: businessData.businessPhone || businessData.phone || finalData.phone || '',
+            // Owner info from Admin API
+            ownerName: tenant.ownerName || '',
+            ownerEmail: tenant.ownerEmail || '',
+            phone: tenant.phone || '',
             
-            // Login info mapping - admin API'den tamamlanmış data kullan
-            username: finalData.username || businessData.username || '',
+            // Login info from Admin API
+            username: tenant.username || '',
             password: '', // Güvenlik için şifreyi boş göster
             
             // Other data
             workingHours: workingHoursData || prev.workingHours,
-            appointmentTimeInterval: finalData.appointmentTimeInterval || tenant.appointmentTimeInterval || 30, // Default: 30 dakika
+            appointmentTimeInterval: tenant.appointmentTimeInterval || 30, // Default: 30 dakika
             themeSettings: themeData,
             location: locationData
           }));
