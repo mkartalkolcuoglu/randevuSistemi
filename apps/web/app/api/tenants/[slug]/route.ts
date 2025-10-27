@@ -35,8 +35,8 @@ export async function GET(
         businessType: true,
         status: true,
         workingHours: true, // ✅ Added for working hours functionality
-        createdAt: true,
-        updatedAt: true
+        createdAt: true
+        // Note: Web DB Tenant model doesn't have updatedAt field
       }
     });
     
