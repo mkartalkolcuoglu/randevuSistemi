@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, Button } from '@repo/ui';
+import { Card, CardContent, CardHeader, CardTitle, Button, Tabs, TabsList, TabsTrigger, TabsContent } from '@repo/ui';
 import { Save, Palette, Building2, User, Key, Clock, Upload, ArrowLeft, MapPin, Settings } from 'lucide-react';
 import AdminHeader from '../admin-header';
 import type { ClientUser } from '../../../lib/client-permissions';
@@ -489,26 +489,56 @@ export default function SettingsClient({ user }: SettingsClientProps) {
       <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
         <div className="px-4 py-6 sm:px-0">
           {/* Header */}
-          <div className="flex justify-between items-center mb-6">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900 flex items-center">
-                <Settings className="w-8 h-8 mr-3" />
+              <h1 className="text-2xl md:text-3xl font-bold text-gray-900 flex items-center">
+                <Settings className="w-6 h-6 md:w-8 md:h-8 mr-2 md:mr-3" />
                 İşletme Ayarları
               </h1>
-              <p className="text-gray-600 mt-2">İşletmenizin genel ayarlarını düzenleyin</p>
+              <p className="text-sm md:text-base text-gray-600 mt-2">İşletmenizin genel ayarlarını düzenleyin</p>
             </div>
             
             <Button 
               onClick={saveSettings}
               disabled={saving}
-              className="bg-green-600 hover:bg-green-700 text-white"
+              className="bg-green-600 hover:bg-green-700 text-white w-full sm:w-auto"
             >
               <Save className="w-4 h-4 mr-2" />
               {saving ? 'Kaydediliyor...' : 'Ayarları Kaydet'}
             </Button>
           </div>
 
-      {/* Tema Ayarları */}
+      {/* Tab Panel */}
+      <Tabs defaultValue="theme" className="w-full">
+        <TabsList className="grid w-full grid-cols-3 md:grid-cols-6 gap-1 h-auto mb-6">
+          <TabsTrigger value="theme" className="flex flex-col md:flex-row items-center gap-1 py-2 px-2 text-xs md:text-sm">
+            <Palette className="w-4 h-4" />
+            <span>Tema</span>
+          </TabsTrigger>
+          <TabsTrigger value="business" className="flex flex-col md:flex-row items-center gap-1 py-2 px-2 text-xs md:text-sm">
+            <Building2 className="w-4 h-4" />
+            <span>İşletme</span>
+          </TabsTrigger>
+          <TabsTrigger value="owner" className="flex flex-col md:flex-row items-center gap-1 py-2 px-2 text-xs md:text-sm">
+            <User className="w-4 h-4" />
+            <span>Yönetici</span>
+          </TabsTrigger>
+          <TabsTrigger value="login" className="flex flex-col md:flex-row items-center gap-1 py-2 px-2 text-xs md:text-sm">
+            <Key className="w-4 h-4" />
+            <span>Giriş</span>
+          </TabsTrigger>
+          <TabsTrigger value="location" className="flex flex-col md:flex-row items-center gap-1 py-2 px-2 text-xs md:text-sm">
+            <MapPin className="w-4 h-4" />
+            <span>Konum</span>
+          </TabsTrigger>
+          <TabsTrigger value="hours" className="flex flex-col md:flex-row items-center gap-1 py-2 px-2 text-xs md:text-sm">
+            <Clock className="w-4 h-4" />
+            <span>Çalışma</span>
+          </TabsTrigger>
+        </TabsList>
+
+        {/* Tema Ayarları */}
+        <TabsContent value="theme">
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center">
@@ -634,8 +664,10 @@ export default function SettingsClient({ user }: SettingsClientProps) {
           </div>
         </CardContent>
       </Card>
+        </TabsContent>
 
-      {/* İşletme Bilgileri */}
+        {/* İşletme Bilgileri */}
+        <TabsContent value="business">
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center">
@@ -701,8 +733,10 @@ export default function SettingsClient({ user }: SettingsClientProps) {
           </div>
         </CardContent>
       </Card>
+        </TabsContent>
 
-      {/* Yönetici Bilgileri */}
+        {/* Yönetici Bilgileri */}
+        <TabsContent value="owner">
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center">
@@ -753,8 +787,10 @@ export default function SettingsClient({ user }: SettingsClientProps) {
           </div>
         </CardContent>
       </Card>
+        </TabsContent>
 
-      {/* Giriş Bilgileri */}
+        {/* Giriş Bilgileri */}
+        <TabsContent value="login">
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center">
@@ -793,8 +829,10 @@ export default function SettingsClient({ user }: SettingsClientProps) {
           </div>
         </CardContent>
       </Card>
+        </TabsContent>
 
-      {/* Konum Ayarları */}
+        {/* Konum Ayarları */}
+        <TabsContent value="location">
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center">
@@ -930,8 +968,10 @@ export default function SettingsClient({ user }: SettingsClientProps) {
           </div>
         </CardContent>
       </Card>
+        </TabsContent>
 
-      {/* Çalışma Saatleri */}
+        {/* Çalışma Saatleri + Randevu Ayarları */}
+        <TabsContent value="hours" className="space-y-6">
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center">
@@ -1066,13 +1106,15 @@ export default function SettingsClient({ user }: SettingsClientProps) {
           </div>
         </CardContent>
       </Card>
+        </TabsContent>
+      </Tabs>
 
       {/* Kaydet Butonu */}
-      <div className="flex justify-end">
+      <div className="flex justify-center mt-6">
         <Button
           onClick={saveSettings}
           disabled={saving}
-          className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3"
+          className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 w-full sm:w-auto"
         >
           <Save className="w-4 h-4 mr-2" />
           {saving ? 'Kaydediliyor...' : 'Tüm Değişiklikleri Kaydet'}
