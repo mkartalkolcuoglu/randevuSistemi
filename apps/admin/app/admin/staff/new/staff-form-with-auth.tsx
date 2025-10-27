@@ -158,16 +158,16 @@ export default function StaffAuthForm({ onAuthDataChange, initialAuthData }: Sta
             </div>
 
             <div>
-              <Label htmlFor="password">Şifre *</Label>
+              <Label htmlFor="password">Şifre {initialAuthData?.username ? '' : '*'}</Label>
               <div className="relative mt-1">
                 <Input
                   id="password"
                   type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={(e) => handlePasswordChange(e.target.value)}
-                  placeholder="En az 6 karakter"
+                  placeholder={initialAuthData?.username ? "Boş bırakılırsa eski şifre korunur" : "En az 6 karakter"}
                   className="pr-10"
-                  required
+                  required={!initialAuthData?.username}
                 />
                 <button
                   type="button"

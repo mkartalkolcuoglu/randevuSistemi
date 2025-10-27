@@ -190,13 +190,24 @@ export default function EditStaffPage() {
     }
 
     try {
+      // Prepare auth data - exclude empty password
+      const authDataToSend = authData ? {
+        username: authData.username,
+        canLogin: authData.canLogin,
+        permissions: authData.permissions,
+        // Only include password if it's not empty
+        ...(authData.password && authData.password.trim() !== '' ? { password: authData.password } : {})
+      } : {};
+
       const submitData = {
         ...formData,
         experience: parseInt(formData.experience) || 0,
         rating: parseFloat(formData.rating) || 0,
         salary: parseFloat(formData.salary) || 0,
-        ...(authData || {}) // Merge auth data
+        ...authDataToSend // Merge auth data (without empty password)
       };
+
+      console.log('💾 Submitting data:', { ...submitData, password: submitData.password ? '***' : 'not included' });
 
       const response = await fetch(`/api/staff/${params.id}`, {
         method: 'PUT',
