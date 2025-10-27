@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '../../../lib/prisma';
 import bcrypt from 'bcryptjs';
+import { checkApiPermission } from '../../../lib/api-auth';
 
 export async function GET(request: NextRequest) {
   try {
@@ -141,6 +142,12 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    // Check permission
+    const permissionCheck = await checkApiPermission(request, 'staff', 'create');
+    if (!permissionCheck.authorized) {
+      return permissionCheck.error!;
+    }
+
     const data = await request.json();
     console.log('📝 Creating staff with data:', {
       firstName: data.firstName,

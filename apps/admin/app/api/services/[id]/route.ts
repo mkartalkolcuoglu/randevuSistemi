@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '../../../../lib/prisma';
+import { checkApiPermission } from '../../../../lib/api-auth';
 
 export async function GET(
   request: NextRequest,
@@ -37,6 +38,12 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    // Check permission
+    const permissionCheck = await checkApiPermission(request, 'services', 'update');
+    if (!permissionCheck.authorized) {
+      return permissionCheck.error!;
+    }
+
     const { id } = await params;
     const data = await request.json();
     
@@ -71,6 +78,12 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    // Check permission
+    const permissionCheck = await checkApiPermission(request, 'services', 'delete');
+    if (!permissionCheck.authorized) {
+      return permissionCheck.error!;
+    }
+
     const { id } = await params;
     
     // Check if service has any appointments
