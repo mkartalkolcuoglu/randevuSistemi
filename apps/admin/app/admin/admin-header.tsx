@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@repo/ui';
-import { LogOut, User, Home, Calendar, Users, Briefcase, Package, Settings, Wallet, Gift, Clock, BarChart3 } from 'lucide-react';
+import { LogOut, User, Home, Calendar, Users, Briefcase, Package, Settings, Wallet, Gift, Clock, BarChart3, Menu, X } from 'lucide-react';
 import Link from 'next/link';
 import type { ClientUser } from '../../lib/client-permissions';
 import { canAccessPage } from '../../lib/client-permissions';
@@ -18,6 +18,7 @@ export default function AdminHeader({ user }: AdminHeaderProps) {
   const [remainingDays, setRemainingDays] = useState<number | null>(null);
   const [subscriptionPlan, setSubscriptionPlan] = useState<string | null>(null);
   const [showUnauthorizedAlert, setShowUnauthorizedAlert] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const router = useRouter();
 
   // Check for permission_denied error in URL
@@ -151,62 +152,75 @@ export default function AdminHeader({ user }: AdminHeaderProps) {
       )}
 
       <header className="bg-white border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-6 py-4">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 sm:py-4">
           <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-4">
-            {/* System Logo */}
-            <img 
-              src="https://i.hizliresim.com/ic4kc72.png" 
-              alt="Randevu Sistemi Logo" 
-              className="h-10 w-auto"
-            />
-            <span className="text-gray-300">|</span>
-            <h1 className="text-xl font-bold text-gray-900">Admin Panel</h1>
-            <span className="text-gray-300">|</span>
-            <span className="text-gray-600">{user.businessName}</span>
-          </div>
+            {/* Left: Logo + Title (Mobile Optimized) */}
+            <div className="flex items-center space-x-2 sm:space-x-4 min-w-0 flex-1">
+              <img 
+                src="https://i.hizliresim.com/ic4kc72.png" 
+                alt="Randevu Sistemi Logo" 
+                className="h-8 sm:h-10 w-auto flex-shrink-0"
+              />
+              <span className="hidden sm:inline text-gray-300">|</span>
+              <h1 className="text-sm sm:text-xl font-bold text-gray-900 hidden sm:block">Admin Panel</h1>
+              <span className="hidden lg:inline text-gray-300">|</span>
+              <span className="text-xs sm:text-sm text-gray-600 truncate hidden lg:block max-w-[200px]">{user.businessName}</span>
+            </div>
           
-          <div className="flex items-center space-x-4">
-            {/* Subscription Badge - Always show */}
-            <div className={`flex items-center space-x-2 px-3 py-1.5 rounded-full border ${getBadgeColor()} text-xs font-medium`}>
-              <Clock className="w-4 h-4" />
-              <div className="flex flex-col">
-                <span className="font-semibold">
-                  {remainingDays === null 
-                    ? 'Paket Bilgisi Yok' 
-                    : remainingDays <= 0 
-                      ? 'Abonelik Süresi Doldu' 
-                      : `${remainingDays} Gün Kaldı`
-                  }
-                </span>
-                {getPlanName() && (
-                  <span className="text-[10px] opacity-75">
-                    {getPlanName()} Paket
+            {/* Right: Actions (Mobile Optimized) */}
+            <div className="flex items-center space-x-2 sm:space-x-4 flex-shrink-0">
+              {/* Subscription Badge - Desktop only */}
+              <div className={`hidden md:flex items-center space-x-2 px-3 py-1.5 rounded-full border ${getBadgeColor()} text-xs font-medium`}>
+                <Clock className="w-4 h-4" />
+                <div className="flex flex-col">
+                  <span className="font-semibold">
+                    {remainingDays === null 
+                      ? 'Paket Bilgisi Yok' 
+                      : remainingDays <= 0 
+                        ? 'Abonelik Süresi Doldu' 
+                        : `${remainingDays} Gün Kaldı`
+                    }
                   </span>
-                )}
+                  {getPlanName() && (
+                    <span className="text-[10px] opacity-75">
+                      {getPlanName()} Paket
+                    </span>
+                  )}
+                </div>
               </div>
-            </div>
 
-            <div className="flex items-center space-x-2 text-sm text-gray-600">
-              <User className="w-4 h-4" />
-              <span>{user.ownerName}</span>
+              {/* User Name - Desktop only */}
+              <div className="hidden md:flex items-center space-x-2 text-sm text-gray-600">
+                <User className="w-4 h-4" />
+                <span>{user.ownerName}</span>
+              </div>
+              
+              {/* Logout Button - Desktop */}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleLogout}
+                disabled={isLoggingOut}
+                className="hidden sm:flex items-center space-x-2"
+              >
+                <LogOut className="w-4 h-4" />
+                <span className="hidden lg:inline">{isLoggingOut ? 'Çıkış yapılıyor...' : 'Çıkış'}</span>
+              </Button>
+
+              {/* Mobile Menu Toggle */}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                className="sm:hidden"
+              >
+                {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+              </Button>
             </div>
-            
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleLogout}
-              disabled={isLoggingOut}
-              className="flex items-center space-x-2"
-            >
-              <LogOut className="w-4 h-4" />
-              <span>{isLoggingOut ? 'Çıkış yapılıyor...' : 'Çıkış'}</span>
-            </Button>
           </div>
-        </div>
         
-        {/* Navigation Menu - With Permission Filtering */}
-        <nav className="mt-4">
+        {/* Desktop Navigation Menu */}
+        <nav className="mt-4 hidden sm:block">
           <div className="flex space-x-1 flex-wrap gap-y-2">
             {canAccessPage(user, 'dashboard') && (
               <Link href="/admin">
@@ -290,6 +304,143 @@ export default function AdminHeader({ user }: AdminHeaderProps) {
             )}
           </div>
         </nav>
+
+        {/* Mobile Navigation Menu */}
+        {mobileMenuOpen && (
+          <nav className="sm:hidden mt-4 pb-4 border-t border-gray-200 pt-4">
+            {/* User Info - Mobile only */}
+            <div className="mb-4 px-2">
+              <div className="flex items-center space-x-3 mb-3 pb-3 border-b border-gray-200">
+                <User className="w-5 h-5 text-gray-600" />
+                <div>
+                  <p className="text-sm font-medium text-gray-900">{user.ownerName}</p>
+                  <p className="text-xs text-gray-500 truncate max-w-[200px]">{user.businessName}</p>
+                </div>
+              </div>
+
+              {/* Subscription Info - Mobile */}
+              <div className={`flex items-center space-x-2 px-3 py-2 rounded-lg border ${getBadgeColor()} text-xs`}>
+                <Clock className="w-4 h-4 flex-shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <p className="font-semibold truncate">
+                    {remainingDays === null 
+                      ? 'Paket Bilgisi Yok' 
+                      : remainingDays <= 0 
+                        ? 'Abonelik Süresi Doldu' 
+                        : `${remainingDays} Gün Kaldı`
+                    }
+                  </p>
+                  {getPlanName() && (
+                    <p className="text-[10px] opacity-75">
+                      {getPlanName()} Paket
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Menu Items */}
+            <div className="space-y-1">
+              {canAccessPage(user, 'dashboard') && (
+                <Link href="/admin" onClick={() => setMobileMenuOpen(false)}>
+                  <Button variant="ghost" size="sm" className="w-full justify-start text-gray-600 hover:text-gray-900 hover:bg-gray-100">
+                    <Home className="w-5 h-5 mr-3" />
+                    Dashboard
+                  </Button>
+                </Link>
+              )}
+              {canAccessPage(user, 'appointments') && (
+                <Link href="/admin/appointments" onClick={() => setMobileMenuOpen(false)}>
+                  <Button variant="ghost" size="sm" className="w-full justify-start text-gray-600 hover:text-gray-900 hover:bg-gray-100">
+                    <Calendar className="w-5 h-5 mr-3" />
+                    Randevular
+                  </Button>
+                </Link>
+              )}
+              {canAccessPage(user, 'customers') && (
+                <Link href="/admin/customers" onClick={() => setMobileMenuOpen(false)}>
+                  <Button variant="ghost" size="sm" className="w-full justify-start text-gray-600 hover:text-gray-900 hover:bg-gray-100">
+                    <Users className="w-5 h-5 mr-3" />
+                    Müşteriler
+                  </Button>
+                </Link>
+              )}
+              {canAccessPage(user, 'services') && (
+                <Link href="/admin/services" onClick={() => setMobileMenuOpen(false)}>
+                  <Button variant="ghost" size="sm" className="w-full justify-start text-gray-600 hover:text-gray-900 hover:bg-gray-100">
+                    <Briefcase className="w-5 h-5 mr-3" />
+                    Hizmetler
+                  </Button>
+                </Link>
+              )}
+              {canAccessPage(user, 'staff') && (
+                <Link href="/admin/staff" onClick={() => setMobileMenuOpen(false)}>
+                  <Button variant="ghost" size="sm" className="w-full justify-start text-gray-600 hover:text-gray-900 hover:bg-gray-100">
+                    <User className="w-5 h-5 mr-3" />
+                    Personel
+                  </Button>
+                </Link>
+              )}
+              {canAccessPage(user, 'stock') && (
+                <Link href="/admin/stock" onClick={() => setMobileMenuOpen(false)}>
+                  <Button variant="ghost" size="sm" className="w-full justify-start text-gray-600 hover:text-gray-900 hover:bg-gray-100">
+                    <Package className="w-5 h-5 mr-3" />
+                    Stok
+                  </Button>
+                </Link>
+              )}
+              {canAccessPage(user, 'packages') && (
+                <Link href="/admin/packages" onClick={() => setMobileMenuOpen(false)}>
+                  <Button variant="ghost" size="sm" className="w-full justify-start text-gray-600 hover:text-gray-900 hover:bg-gray-100">
+                    <Gift className="w-5 h-5 mr-3" />
+                    Paketler
+                  </Button>
+                </Link>
+              )}
+              {canAccessPage(user, 'kasa') && (
+                <Link href="/admin/kasa" onClick={() => setMobileMenuOpen(false)}>
+                  <Button variant="ghost" size="sm" className="w-full justify-start text-gray-600 hover:text-gray-900 hover:bg-gray-100">
+                    <Wallet className="w-5 h-5 mr-3" />
+                    Kasa
+                  </Button>
+                </Link>
+              )}
+              {canAccessPage(user, 'reports') && (
+                <Link href="/admin/reports" onClick={() => setMobileMenuOpen(false)}>
+                  <Button variant="ghost" size="sm" className="w-full justify-start text-gray-600 hover:text-gray-900 hover:bg-gray-100">
+                    <BarChart3 className="w-5 h-5 mr-3" />
+                    Raporlar
+                  </Button>
+                </Link>
+              )}
+              {canAccessPage(user, 'settings') && (
+                <Link href="/admin/settings" onClick={() => setMobileMenuOpen(false)}>
+                  <Button variant="ghost" size="sm" className="w-full justify-start text-gray-600 hover:text-gray-900 hover:bg-gray-100">
+                    <Settings className="w-5 h-5 mr-3" />
+                    Ayarlar
+                  </Button>
+                </Link>
+              )}
+
+              {/* Logout - Mobile */}
+              <div className="pt-4 mt-4 border-t border-gray-200">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    handleLogout();
+                  }}
+                  disabled={isLoggingOut}
+                  className="w-full justify-start text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
+                >
+                  <LogOut className="w-5 h-5 mr-3" />
+                  {isLoggingOut ? 'Çıkış yapılıyor...' : 'Çıkış Yap'}
+                </Button>
+              </div>
+            </div>
+          </nav>
+        )}
       </div>
     </header>
     </>
