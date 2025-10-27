@@ -35,8 +35,8 @@ export async function GET(
         businessDescription: true,
         workingHours: true, // ⭐ Critical: workingHours from Admin DB
         theme: true,
-        createdAt: true,
-        updatedAt: true
+        createdAt: true
+        // Note: Tenant model doesn't have updatedAt field in Admin DB
       }
     });
     
@@ -62,8 +62,7 @@ export async function GET(
       businessDescription: tenant.businessDescription || '',
       workingHours: tenant.workingHours || null, // ⭐ This is the critical field
       theme: tenant.theme || null,
-      createdAt: tenant.createdAt?.toISOString() || new Date().toISOString(),
-      updatedAt: tenant.updatedAt?.toISOString() || new Date().toISOString()
+      createdAt: tenant.createdAt?.toISOString() || new Date().toISOString()
     };
     
     return NextResponse.json({
