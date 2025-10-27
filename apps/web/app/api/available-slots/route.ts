@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
-import { generateTimeSlots } from '../../../lib/time-slots';
+import { generateTimeSlots, parseWorkingHours, getWorkingHoursForDay } from '../../../lib/time-slots';
 
 const prisma = new PrismaClient();
 
@@ -29,17 +29,22 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    // Get tenant settings for appointmentTimeInterval
+    // Get tenant settings for appointmentTimeInterval and workingHours
     let appointmentTimeInterval = 30; // Default
+    let workingHours = parseWorkingHours(null); // Default
     
     if (tenantSlug) {
       try {
         const tenant = await prisma.tenant.findUnique({
           where: { slug: tenantSlug },
-          select: { id: true }
+          select: { id: true, workingHours: true }
         });
         
         if (tenant) {
+          // Parse working hours
+          workingHours = parseWorkingHours(tenant.workingHours);
+          
+          // Get settings for time interval
           const settings = await prisma.settings.findUnique({
             where: { tenantId: tenant.id },
             select: { appointmentTimeInterval: true }
@@ -47,13 +52,33 @@ export async function GET(request: NextRequest) {
           
           if (settings?.appointmentTimeInterval) {
             appointmentTimeInterval = settings.appointmentTimeInterval;
-            console.log('⚙️ Using time interval:', appointmentTimeInterval, 'minutes for tenant:', tenantSlug);
           }
+          
+          console.log('⚙️ Settings loaded:', { interval: appointmentTimeInterval, workingHours });
         }
       } catch (error) {
-        console.error('Error fetching settings, using default interval:', error);
+        console.error('Error fetching settings, using defaults:', error);
       }
     }
+    
+    // Check if the selected day is a working day
+    const dayHours = getWorkingHoursForDay(date, workingHours);
+    
+    if (!dayHours) {
+      console.log('❌ Selected date is not a working day (closed)');
+      return NextResponse.json({
+        success: true,
+        data: {
+          date,
+          slots: [],
+          message: 'Bu gün işletme kapalı'
+        }
+      }, { headers: corsHeaders });
+    }
+    
+    // Parse start and end hours for the day
+    const [startHour] = dayHours.start.split(':').map(Number);
+    const [endHour] = dayHours.end.split(':').map(Number);
     
     // Bu staff için bu tarihte var olan randevuları getir
     const existingAppointments = await prisma.appointment.findMany({
@@ -101,8 +126,8 @@ export async function GET(request: NextRequest) {
     const currentMinute = turkeyTime.getMinutes();
     const currentTimeInMinutes = currentHour * 60 + currentMinute;
     
-    // Generate time slots dynamically based on tenant settings
-    const allPossibleTimeSlots = generateTimeSlots(9, 17, appointmentTimeInterval);
+    // Generate time slots dynamically based on tenant settings and working hours
+    const allPossibleTimeSlots = generateTimeSlots(startHour, endHour, appointmentTimeInterval);
     
     const timeSlots = allPossibleTimeSlots.map(timeString => {
       const [hour, minute] = timeString.split(':').map(Number);

@@ -17,6 +17,7 @@ import {
 import { useTenant, useServices, useStaff, useAvailableSlots, useCreateAppointment } from '../../../lib/api-hooks';
 import { format, addDays } from 'date-fns';
 import { tr } from 'date-fns/locale';
+import { parseWorkingHours, isWorkingDay } from '../../../lib/time-slots';
 
 interface PageProps {
   params: Promise<{ slug: string }>;
@@ -54,13 +55,20 @@ export default function RandevuPage({ params }: PageProps) {
   const { data: availableSlots } = useAvailableSlots(selectedService, selectedDate, selectedStaff, slug);
   const createAppointmentMutation = useCreateAppointment();
 
+  // Parse working hours from tenant data
+  const workingHours = parseWorkingHours(tenant?.workingHours);
+  
   // Generate next 14 days for date selection
   const availableDates = Array.from({ length: 14 }, (_, i) => {
     const date = addDays(new Date(), i);
+    const dateStr = format(date, 'yyyy-MM-dd');
+    const isClosed = !isWorkingDay(dateStr, workingHours);
+    
     return {
-      date: format(date, 'yyyy-MM-dd'),
+      date: dateStr,
       display: format(date, 'dd MMM, EEEE', { locale: tr }),
-      isToday: i === 0
+      isToday: i === 0,
+      isClosed: isClosed
     };
   });
 
@@ -570,18 +578,26 @@ export default function RandevuPage({ params }: PageProps) {
             <Button
               key={dateOption.date}
               variant={selectedDate === dateOption.date ? "default" : "outline"}
-              className={`p-3 h-auto flex flex-col transition-all duration-200 transform hover:scale-105 ${
+              className={`p-3 h-auto flex flex-col transition-all duration-200 ${
+                dateOption.isClosed 
+                  ? 'opacity-50 cursor-not-allowed bg-gray-100' 
+                  : 'transform hover:scale-105'
+              } ${
                 selectedDate === dateOption.date 
                   ? 'bg-blue-600 text-white shadow-lg' 
-                  : 'hover:bg-blue-50 hover:border-blue-300'
+                  : dateOption.isClosed 
+                    ? 'hover:bg-gray-100' 
+                    : 'hover:bg-blue-50 hover:border-blue-300'
               } ${
                 dateOption.isToday ? 'border-blue-500' : ''
               }`}
-              onClick={() => setSelectedDate(dateOption.date)}
+              onClick={() => !dateOption.isClosed && setSelectedDate(dateOption.date)}
+              disabled={dateOption.isClosed}
             >
               <Calendar className="w-4 h-4 mb-1" />
               <span className="text-sm font-medium">{dateOption.display}</span>
-              {dateOption.isToday && <span className="text-xs text-blue-600">Bugün</span>}
+              {dateOption.isToday && !dateOption.isClosed && <span className="text-xs text-blue-600">Bugün</span>}
+              {dateOption.isClosed && <span className="text-xs text-red-600 font-semibold">KAPALI</span>}
             </Button>
           ))}
         </div>
