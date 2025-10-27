@@ -34,6 +34,7 @@ export async function GET(
         ownerEmail: true,
         businessType: true,
         status: true,
+        workingHours: true, // ✅ Added for working hours functionality
         createdAt: true,
         updatedAt: true
       }
@@ -61,6 +62,7 @@ export async function GET(
       contactEmail: tenant.ownerEmail || '',
       contactPhone: tenant.phone || '',
       address: tenant.address || '',
+      workingHours: tenant.workingHours || null, // ✅ Include working hours (JSON string from DB)
       isActive: tenant.status === 'active',
       createdAt: tenant.createdAt?.toISOString() || new Date().toISOString(),
       updatedAt: tenant.updatedAt?.toISOString() || new Date().toISOString()

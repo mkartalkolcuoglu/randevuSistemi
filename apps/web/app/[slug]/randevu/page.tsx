@@ -601,8 +601,13 @@ export default function RandevuPage({ params }: PageProps) {
               } ${
                 dateOption.isToday ? 'border-blue-500' : ''
               }`}
-              onClick={() => !dateOption.isClosed && setSelectedDate(dateOption.date)}
+              onClick={() => {
+                if (!dateOption.isClosed) {
+                  setSelectedDate(dateOption.date);
+                }
+              }}
               disabled={dateOption.isClosed}
+              style={{ pointerEvents: dateOption.isClosed ? 'none' : 'auto' }}
             >
               <Calendar className="w-4 h-4 mb-1" />
               <span className="text-sm font-medium">{dateOption.display}</span>

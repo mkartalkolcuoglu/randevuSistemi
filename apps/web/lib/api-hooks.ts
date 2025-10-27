@@ -6,6 +6,13 @@ export interface Tenant {
   name: string;
   slug: string;
   description?: string;
+  workingHours?: string | null; // JSON string from database
+  contactPhone?: string;
+  contactEmail?: string;
+  address?: string;
+  isActive?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface Service {
