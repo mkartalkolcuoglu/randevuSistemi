@@ -41,7 +41,37 @@ export async function GET(
     });
     
     console.log('🔍 Found tenant:', tenant);
-    console.log('🕒 CRITICAL: tenant.workingHours from DB:', tenant?.workingHours, typeof tenant?.workingHours);
+    console.log('🕒 CRITICAL: tenant.workingHours from DB (Web DB):', tenant?.workingHours, typeof tenant?.workingHours);
+    
+    // ✅ CRITICAL FIX: If workingHours is empty in Web DB, fetch from Admin API
+    let finalWorkingHours = tenant?.workingHours;
+    
+    if (!finalWorkingHours && tenant) {
+      console.log('⚠️ workingHours empty in Web DB, fetching from Admin API...');
+      try {
+        const adminApiUrl = `https://randevu-sistemi-admin.vercel.app/api/public/tenant/${slug}`;
+        console.log('📡 Fetching from Admin API:', adminApiUrl);
+        
+        const adminResponse = await fetch(adminApiUrl, {
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          cache: 'no-store'
+        });
+        
+        if (adminResponse.ok) {
+          const adminData = await adminResponse.json();
+          if (adminData.success && adminData.data?.workingHours) {
+            finalWorkingHours = adminData.data.workingHours;
+            console.log('✅ Got workingHours from Admin API:', typeof finalWorkingHours);
+          }
+        } else {
+          console.warn('⚠️ Admin API returned:', adminResponse.status);
+        }
+      } catch (error) {
+        console.error('❌ Error fetching from Admin API:', error);
+      }
+    }
     
     if (!tenant) {
       console.log('❌ Tenant not found for slug:', slug);
@@ -63,11 +93,13 @@ export async function GET(
       contactEmail: tenant.ownerEmail || '',
       contactPhone: tenant.phone || '',
       address: tenant.address || '',
-      workingHours: tenant.workingHours || null, // ✅ Include working hours (JSON string from DB)
+      workingHours: finalWorkingHours || null, // ✅ Include working hours (from Web DB or Admin API fallback)
       isActive: tenant.status === 'active',
       createdAt: tenant.createdAt?.toISOString() || new Date().toISOString(),
       updatedAt: tenant.updatedAt?.toISOString() || new Date().toISOString()
     };
+    
+    console.log('📦 Final tenantData.workingHours:', finalWorkingHours ? 'HAS DATA ✅' : 'EMPTY ❌');
     
     return NextResponse.json({
       success: true,
