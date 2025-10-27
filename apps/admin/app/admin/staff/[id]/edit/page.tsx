@@ -107,23 +107,33 @@ export default function EditStaffPage() {
         });
 
         // Load auth data
+        console.log('📊 Raw staff data:', {
+          username: staffData.username,
+          canLogin: staffData.canLogin,
+          permissions: staffData.permissions
+        });
+
         let parsedPermissions = {};
         if (staffData.permissions) {
           try {
             parsedPermissions = typeof staffData.permissions === 'string' 
               ? JSON.parse(staffData.permissions) 
               : staffData.permissions;
-          } catch {
-            console.error('Failed to parse permissions');
+            console.log('✅ Parsed permissions:', parsedPermissions);
+          } catch (e) {
+            console.error('❌ Failed to parse permissions:', e);
           }
         }
 
-        setAuthData({
+        const loadedAuthData = {
           username: staffData.username || '',
           password: '', // Never load existing password
           canLogin: staffData.canLogin || false,
           permissions: parsedPermissions as StaffPermissions
-        });
+        };
+
+        console.log('🔐 Setting authData:', loadedAuthData);
+        setAuthData(loadedAuthData);
       } else {
         console.error('Staff not found');
         router.push('/admin/staff');
@@ -475,15 +485,18 @@ export default function EditStaffPage() {
 
             {/* Authentication & Permissions Section */}
             <div className="mt-8">
-              <StaffAuthForm 
-                onAuthDataChange={setAuthData}
-                initialAuthData={authData || {
-                  username: '',
-                  password: '',
-                  canLogin: false,
-                  permissions: {}
-                }}
-              />
+              {!loading && (
+                <StaffAuthForm 
+                  key={authData?.username || 'new'}
+                  onAuthDataChange={setAuthData}
+                  initialAuthData={authData || {
+                    username: '',
+                    password: '',
+                    canLogin: false,
+                    permissions: {}
+                  }}
+                />
+              )}
             </div>
 
             <div className="space-y-2 mt-8">

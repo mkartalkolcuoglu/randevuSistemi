@@ -26,13 +26,14 @@ export default function StaffAuthForm({ onAuthDataChange, initialAuthData }: Sta
 
   // Update state when initialAuthData changes (for edit mode)
   useEffect(() => {
-    if (initialAuthData) {
+    if (initialAuthData && initialAuthData.username) {
+      console.log('📝 Loading auth data:', initialAuthData);
       setCanLogin(initialAuthData.canLogin || false);
       setUsername(initialAuthData.username || '');
       // Don't set password - keep it empty for security
       setPermissions(initialAuthData.permissions || DEFAULT_STAFF_PERMISSIONS);
     }
-  }, [initialAuthData]);
+  }, [initialAuthData?.username, initialAuthData?.canLogin, JSON.stringify(initialAuthData?.permissions)]);
 
   const handleCanLoginChange = (checked: boolean) => {
     setCanLogin(checked);
