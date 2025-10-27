@@ -64,8 +64,15 @@ export async function GET(
 
       const tenantId = tenant.id;
 
+      // Fetch settings for appointmentTimeInterval
+      const settings = await prisma.settings.findUnique({
+        where: { tenantId: tenantId },
+        select: { appointmentTimeInterval: true }
+      });
+
       // Tenant'ın doğrudan theme ve workingHours bilgilerini kullan
       const parsedSettings = {
+        appointmentTimeInterval: settings?.appointmentTimeInterval || 30, // Add this
         tenant: {
           id: tenant.id,
           name: tenant.businessName,

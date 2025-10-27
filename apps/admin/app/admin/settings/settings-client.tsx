@@ -210,7 +210,7 @@ export default function SettingsClient({ user }: SettingsClientProps) {
             
             // Other data
             workingHours: workingHoursData || prev.workingHours,
-            appointmentTimeInterval: tenant.appointmentTimeInterval || 30, // Default: 30 dakika
+            appointmentTimeInterval: finalData.appointmentTimeInterval || tenant.appointmentTimeInterval || 30, // Default: 30 dakika
             themeSettings: themeData,
             location: locationData
           }));
