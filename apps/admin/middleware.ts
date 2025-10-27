@@ -24,6 +24,7 @@ export function middleware(request: NextRequest) {
     '/api/auth/login', 
     '/api/appointments', 
     '/api/customer-packages/check',  // Allow web app to check customer packages
+    '/api/public/tenant',  // ✅ Allow web app to fetch tenant data from Admin DB
     '/api/tenants/sync', 
     '/favicon.ico', 
     '/_next'
