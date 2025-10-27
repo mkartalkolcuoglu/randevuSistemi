@@ -139,11 +139,8 @@ export async function GET(request: NextRequest) {
       // Bu saat rezerve edilmiş mi kontrol et
       const isBooked = bookedTimes.has(timeString);
       
-      // Lunch break: 12:00-13:00 (720-780 minutes)
-      const isLunchBreak = slotTimeInMinutes >= 720 && slotTimeInMinutes < 780;
-      
-      // Available only if not booked AND not in the past AND not lunch break
-      const isAvailable = !isBooked && !isPast && !isLunchBreak;
+      // Available only if not booked AND not in the past
+      const isAvailable = !isBooked && !isPast;
       
       return {
         time: timeString,
