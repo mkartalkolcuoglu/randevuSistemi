@@ -41,6 +41,7 @@ export async function GET(
     });
     
     console.log('🔍 Found tenant:', tenant);
+    console.log('🕒 CRITICAL: tenant.workingHours from DB:', tenant?.workingHours, typeof tenant?.workingHours);
     
     if (!tenant) {
       console.log('❌ Tenant not found for slug:', slug);
