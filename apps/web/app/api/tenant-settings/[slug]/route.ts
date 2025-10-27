@@ -64,15 +64,24 @@ export async function GET(
 
       const tenantId = tenant.id;
 
-      // Fetch settings for appointmentTimeInterval
-      const settings = await prisma.settings.findUnique({
-        where: { tenantId: tenantId },
-        select: { appointmentTimeInterval: true }
-      });
+      // Fetch settings for appointmentTimeInterval (gracefully handle if Settings table doesn't exist)
+      let appointmentTimeInterval = 30; // Default
+      try {
+        const settings = await prisma.settings.findUnique({
+          where: { tenantId: tenantId },
+          select: { appointmentTimeInterval: true }
+        });
+        if (settings?.appointmentTimeInterval) {
+          appointmentTimeInterval = settings.appointmentTimeInterval;
+        }
+      } catch (settingsError) {
+        console.warn('Settings table not available, using default appointmentTimeInterval:', settingsError.message);
+        // Continue with default value
+      }
 
       // Tenant'ın doğrudan theme ve workingHours bilgilerini kullan
       const parsedSettings = {
-        appointmentTimeInterval: settings?.appointmentTimeInterval || 30, // Add this
+        appointmentTimeInterval: appointmentTimeInterval,
         tenant: {
           id: tenant.id,
           name: tenant.businessName,
