@@ -11,7 +11,7 @@ interface StaffAuthFormProps {
     username: string;
     password: string;
     canLogin: boolean;
-    permissions: StaffPermissions;
+    permissions: StaffPermissions | null; // Can be null if no permissions set yet
   };
 }
 
@@ -20,18 +20,32 @@ export default function StaffAuthForm({ onAuthDataChange, initialAuthData }: Sta
   const [username, setUsername] = useState(initialAuthData?.username || '');
   const [password, setPassword] = useState(''); // Never pre-fill password for security
   const [showPassword, setShowPassword] = useState(false);
-  const [permissions, setPermissions] = useState<StaffPermissions>(
-    initialAuthData?.permissions || DEFAULT_STAFF_PERMISSIONS
-  );
+  
+  // Use DEFAULT_STAFF_PERMISSIONS if no permissions provided or if permissions are empty
+  const getInitialPermissions = () => {
+    if (!initialAuthData?.permissions) return DEFAULT_STAFF_PERMISSIONS;
+    
+    const hasAnyPermission = Object.keys(initialAuthData.permissions).length > 0;
+    return hasAnyPermission ? initialAuthData.permissions : DEFAULT_STAFF_PERMISSIONS;
+  };
+  
+  const [permissions, setPermissions] = useState<StaffPermissions>(getInitialPermissions());
 
   // Update state when initialAuthData changes (for edit mode)
   useEffect(() => {
-    if (initialAuthData && initialAuthData.username) {
+    if (initialAuthData) {
       console.log('📝 Loading auth data:', initialAuthData);
       setCanLogin(initialAuthData.canLogin || false);
       setUsername(initialAuthData.username || '');
       // Don't set password - keep it empty for security
-      setPermissions(initialAuthData.permissions || DEFAULT_STAFF_PERMISSIONS);
+      
+      // Use default permissions if none provided or empty
+      const permissionsToUse = (!initialAuthData.permissions || Object.keys(initialAuthData.permissions).length === 0)
+        ? DEFAULT_STAFF_PERMISSIONS
+        : initialAuthData.permissions;
+      
+      console.log('📋 Using permissions:', permissionsToUse);
+      setPermissions(permissionsToUse);
     }
   }, [initialAuthData?.username, initialAuthData?.canLogin, JSON.stringify(initialAuthData?.permissions)]);
 

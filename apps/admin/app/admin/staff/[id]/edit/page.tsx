@@ -113,13 +113,17 @@ export default function EditStaffPage() {
           permissions: staffData.permissions
         });
 
-        let parsedPermissions = {};
+        let parsedPermissions = null;
         if (staffData.permissions) {
           try {
-            parsedPermissions = typeof staffData.permissions === 'string' 
+            const parsed = typeof staffData.permissions === 'string' 
               ? JSON.parse(staffData.permissions) 
               : staffData.permissions;
-            console.log('✅ Parsed permissions:', parsedPermissions);
+            // Only use parsed permissions if they're not empty
+            if (parsed && Object.keys(parsed).length > 0) {
+              parsedPermissions = parsed;
+              console.log('✅ Parsed permissions:', parsedPermissions);
+            }
           } catch (e) {
             console.error('❌ Failed to parse permissions:', e);
           }
@@ -129,7 +133,7 @@ export default function EditStaffPage() {
           username: staffData.username || '',
           password: '', // Never load existing password
           canLogin: staffData.canLogin || false,
-          permissions: parsedPermissions as StaffPermissions
+          permissions: parsedPermissions // null if no permissions (StaffAuthForm will use defaults)
         };
 
         console.log('🔐 Setting authData:', loadedAuthData);
