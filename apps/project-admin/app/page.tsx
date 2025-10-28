@@ -16,7 +16,8 @@ import {
   Activity,
   Settings,
   BarChart3,
-  Zap
+  Zap,
+  Package
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 
@@ -66,6 +67,7 @@ export default function ProjectAdminDashboard() {
 
   const quickActions = [
     { title: "Aboneler", icon: Building2, href: "/project-admin/tenants", color: "bg-blue-500" },
+    { title: "Paketler", icon: Package, href: "/project-admin/packages", color: "bg-indigo-500" },
     { title: "Entegrasyonlar", icon: Globe, href: "/project-admin/integrations", color: "bg-green-500" },
     { title: "Destek Sistemi", icon: LifeBuoy, href: "/project-admin/support", color: "bg-purple-500" },
     { title: "SLA Takibi", icon: Shield, href: "/project-admin/sla", color: "bg-orange-500" },
@@ -183,6 +185,16 @@ export default function ProjectAdminDashboard() {
                   <Building2 className="w-8 h-8 text-blue-600 mb-4" />
                   <h3 className="text-lg font-semibold text-gray-900 mb-2">Aboneler</h3>
                   <p className="text-sm text-gray-600">Tenant yönetimi, aktivasyon ve deaktivasyonlar</p>
+                </CardContent>
+              </Card>
+            </Link>
+
+            <Link href="/project-admin/packages">
+              <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+                <CardContent className="p-6">
+                  <Package className="w-8 h-8 text-indigo-600 mb-4" />
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">Abonelik Paketleri</h3>
+                  <p className="text-sm text-gray-600">Ücretlendirme paketleri ve özellikleri yönetimi</p>
                 </CardContent>
               </Card>
             </Link>
