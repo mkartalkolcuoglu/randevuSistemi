@@ -242,7 +242,7 @@ export default function ${tenant.businessName.replace(/[^a-zA-Z0-9]/g, '')}Landi
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <p>&copy; 2024 {businessInfo.name}. Tüm hakları saklıdır.</p>
           <p className="text-gray-400 mt-2">
-            <a href="/" className="hover:text-white">Randevu Sistemi</a> ile güçlendirilmiştir.
+            <a href="/" className="hover:text-white">Net Randevu</a> ile güçlendirilmiştir.
           </p>
         </div>
       </footer>

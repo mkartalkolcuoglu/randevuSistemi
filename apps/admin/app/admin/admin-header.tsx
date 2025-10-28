@@ -158,7 +158,7 @@ export default function AdminHeader({ user }: AdminHeaderProps) {
             <div className="flex items-center space-x-2 sm:space-x-4 min-w-0 flex-1">
               <img 
                 src="https://i.hizliresim.com/ic4kc72.png" 
-                alt="Randevu Sistemi Logo" 
+                alt="Net Randevu Logo" 
                 className="h-8 sm:h-10 w-auto flex-shrink-0"
               />
               <span className="hidden sm:inline text-gray-300">|</span>

@@ -49,7 +49,7 @@ export default function LoginPage() {
             <div className="flex justify-center mb-4">
               <img 
                 src="https://i.hizliresim.com/ic4kc72.png" 
-                alt="Randevu Sistemi Logo" 
+                alt="Net Randevu Logo" 
                 className="h-16 w-auto"
               />
             </div>

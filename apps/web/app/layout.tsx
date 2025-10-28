@@ -10,10 +10,10 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Randevu Sistemi - Modern Randevu Yönetimi",
+  title: "Net Randevu - Modern Randevu Yönetimi",
   description: "Profesyonel randevu sistemi ile işletmenizi dijitalleştirin",
   keywords: "randevu, appointment, booking, rezervasyon, sistem",
-  authors: [{ name: "Randevu Sistemi" }],
+  authors: [{ name: "Net Randevu" }],
 };
 
 export const viewport = {

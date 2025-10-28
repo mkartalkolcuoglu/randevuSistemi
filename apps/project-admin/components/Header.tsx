@@ -32,7 +32,7 @@ export function Header() {
             {/* System Logo */}
             <img 
               src="https://i.hizliresim.com/ic4kc72.png" 
-              alt="Randevu Sistemi Logo" 
+              alt="Net Randevu Logo" 
               className="h-10 w-auto"
             />
             <span className="text-gray-300">|</span>

@@ -209,7 +209,7 @@ export default function RegisterPage() {
           <div className="flex justify-between items-center py-4">
             <Link href="/" className="flex items-center space-x-2">
               <div className="w-8 h-8 bg-gradient-to-br from-green-400 to-blue-500 rounded-lg"></div>
-              <span className="text-xl font-bold text-gray-900">Randevu Sistemi</span>
+              <span className="text-xl font-bold text-gray-900">Net Randevu</span>
             </Link>
             <Link href="/" className="text-gray-600 hover:text-gray-900 flex items-center">
               <ArrowLeft className="w-4 h-4 mr-2" />

@@ -397,7 +397,7 @@ export default function TenantPage() {
               © {new Date().getFullYear()} {tenant?.businessName}. Tüm hakları saklıdır.
             </p>
             <p style={{ fontSize: '0.8rem', opacity: 0.75, marginTop: '10px' }}>
-              Bu site Randevu Sistemi tarafından desteklenmektedir.
+              Bu site Net Randevu tarafından desteklenmektedir.
             </p>
           </div>
         </div>

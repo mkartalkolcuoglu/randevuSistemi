@@ -33,7 +33,7 @@ export default function Home() {
           <div className="flex justify-between items-center py-4">
             <div className="flex items-center space-x-2">
               <div className="w-8 h-8 bg-gradient-to-br from-green-400 to-blue-500 rounded-lg"></div>
-              <span className="text-xl font-bold text-gray-900">Randevu Sistemi</span>
+              <span className="text-xl font-bold text-gray-900">Net Randevu</span>
             </div>
             <nav className="hidden md:flex space-x-8">
               <a href="#features" className="text-gray-600 hover:text-gray-900 transition">Özellikler</a>
@@ -518,7 +518,7 @@ export default function Home() {
             <div>
               <div className="flex items-center space-x-2 mb-4">
                 <div className="w-8 h-8 bg-gradient-to-br from-green-400 to-blue-500 rounded-lg"></div>
-                <span className="text-xl font-bold">Randevu Sistemi</span>
+                <span className="text-xl font-bold">Net Randevu</span>
               </div>
               <p className="text-gray-400">
                 Modern işletmeler için tasarlanmış randevu yönetim platformu.
@@ -550,7 +550,7 @@ export default function Home() {
             </div>
           </div>
           <div className="border-t border-gray-800 pt-8 text-center text-gray-400">
-            <p>© 2025 Randevu Sistemi. Tüm hakları saklıdır.</p>
+            <p>© 2025 Net Randevu. Tüm hakları saklıdır.</p>
           </div>
         </div>
       </footer>
