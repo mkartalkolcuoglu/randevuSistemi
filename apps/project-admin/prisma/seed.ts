@@ -10,6 +10,18 @@ async function main() {
   await prisma.integration.deleteMany()
   await prisma.supportTicket.deleteMany()
   await prisma.slaMetric.deleteMany()
+  await prisma.admin.deleteMany()
+
+  // Create admin user
+  await prisma.admin.create({
+    data: {
+      id: "admin-1",
+      username: "admin",
+      password: "0192023a7bbd73250516f069df18b500", // MD5 hash of "admin123"
+    }
+  })
+  
+  console.log('✅ Created admin user: admin/admin123')
 
   // Create tenants
   await prisma.tenant.createMany({
