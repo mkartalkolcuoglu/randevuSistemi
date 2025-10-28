@@ -203,18 +203,18 @@ export default function PackagesClient({ tenantId, user }: PackagesClientProps) 
     <div className="min-h-screen bg-gray-50">
       <AdminHeader user={user} />
       
-      <div className="max-w-7xl mx-auto px-6 py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
         {/* Header */}
-        <div className="flex justify-between items-center mb-8">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">Paketler</h1>
-            <p className="text-gray-600 mt-2">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
+          <div className="min-w-0 flex-1">
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Paketler</h1>
+            <p className="text-sm sm:text-base text-gray-600 mt-2">
               Hizmet ve ürün paketleri oluşturun ve müşterilere atayın
             </p>
           </div>
           <Button
             onClick={handleCreatePackage}
-            className="bg-blue-600 hover:bg-blue-700 text-white"
+            className="bg-blue-600 hover:bg-blue-700 text-white w-full sm:w-auto flex-shrink-0"
           >
             <Plus className="w-4 h-4 mr-2" />
             Yeni Paket Oluştur

@@ -281,10 +281,10 @@ export default function KasaClient({ tenantId, user }: KasaClientProps) {
         ) : (
           <div className="space-y-6">
             {/* Header */}
-            <div className="flex justify-between items-center">
-              <div>
-                <h1 className="text-3xl font-bold text-gray-900">Kasa Yönetimi</h1>
-                <p className="text-gray-600 mt-1">Gelir, gider ve satışlarınızı yönetin</p>
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+              <div className="min-w-0 flex-1">
+                <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Kasa Yönetimi</h1>
+                <p className="text-sm sm:text-base text-gray-600 mt-1">Gelir, gider ve satışlarınızı yönetin</p>
               </div>
             </div>
 

@@ -182,27 +182,27 @@ export default function AppointmentsClient({ initialAppointments, tenantId, user
   return (
     <div className="min-h-screen bg-gray-50">
       <AdminHeader user={user} />
-      <div className="max-w-7xl mx-auto p-6">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
         {/* Header */}
         <div className="mb-8">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">Randevu Yönetimi</h1>
-              <p className="text-gray-600">Randevuları görüntüleyin ve yönetin</p>
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="min-w-0 flex-1">
+              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Randevu Yönetimi</h1>
+              <p className="text-sm sm:text-base text-gray-600">Randevuları görüntüleyin ve yönetin</p>
             </div>
-            <div className="flex gap-3">
-              <Link href="/admin/appointments/calendar">
+            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 w-full sm:w-auto">
+              <Link href="/admin/appointments/calendar" className="w-full sm:w-auto">
                 <Button 
                   variant="outline"
-                  className="border-2"
+                  className="border-2 w-full sm:w-auto"
                 >
                   <Calendar className="w-4 h-4 mr-2" />
                   Takvim Görünümü
                 </Button>
               </Link>
               {hasPermission(user, 'appointments', 'create') && (
-                <Link href="/admin/appointments/new">
-                  <Button className="bg-blue-600 hover:bg-blue-700 text-white">
+                <Link href="/admin/appointments/new" className="w-full sm:w-auto">
+                  <Button className="bg-blue-600 hover:bg-blue-700 text-white w-full sm:w-auto">
                     <Plus className="w-4 h-4 mr-2" />
                     Yeni Randevu
                   </Button>

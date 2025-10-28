@@ -199,17 +199,17 @@ export default function CustomersClient({ initialCustomers, tenantId, user }: Cu
       
       <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
         <div className="px-4 py-6 sm:px-0">
-          <div className="flex justify-between items-center mb-6">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900 flex items-center">
-                <User className="w-8 h-8 mr-3" />
-                Müşteri Yönetimi
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+            <div className="min-w-0 flex-1">
+              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 flex items-center">
+                <User className="w-6 h-6 sm:w-8 sm:h-8 mr-2 sm:mr-3 flex-shrink-0" />
+                <span className="truncate">Müşteri Yönetimi</span>
               </h1>
-              <p className="text-gray-600 mt-2">Müşterilerinizi görüntüleyin ve yönetin</p>
+              <p className="text-sm sm:text-base text-gray-600 mt-2">Müşterilerinizi görüntüleyin ve yönetin</p>
             </div>
             
-            <Link href="/admin/customers/new">
-              <Button className="bg-blue-600 hover:bg-blue-700 text-white">
+            <Link href="/admin/customers/new" className="w-full sm:w-auto flex-shrink-0">
+              <Button className="bg-blue-600 hover:bg-blue-700 text-white w-full sm:w-auto">
                 <Plus className="w-4 h-4 mr-2" />
                 Yeni Müşteri Ekle
               </Button>

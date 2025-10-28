@@ -214,18 +214,18 @@ export default function StockClient({ initialProducts, tenantId, user }: StockCl
       
       <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
         <div className="px-4 py-6 sm:px-0">
-          <div className="flex justify-between items-center mb-6">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900 flex items-center">
-                <Package className="w-8 h-8 mr-3" />
-                Stok Yönetimi
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+            <div className="min-w-0 flex-1">
+              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 flex items-center">
+                <Package className="w-6 h-6 sm:w-8 sm:h-8 mr-2 sm:mr-3 flex-shrink-0" />
+                <span className="truncate">Stok Yönetimi</span>
               </h1>
-              <p className="text-gray-600 mt-2">Ürünlerinizi ekleyin, düzenleyin ve stok durumlarını takip edin</p>
+              <p className="text-sm sm:text-base text-gray-600 mt-2">Ürünlerinizi ekleyin, düzenleyin ve stok durumlarını takip edin</p>
             </div>
             
             <Button 
               onClick={() => setShowAddForm(true)}
-              className="bg-blue-600 hover:bg-blue-700 text-white"
+              className="bg-blue-600 hover:bg-blue-700 text-white w-full sm:w-auto flex-shrink-0"
             >
               <Plus className="w-4 h-4 mr-2" />
               Yeni Ürün Ekle

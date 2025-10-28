@@ -201,21 +201,21 @@ export default function ReportsClient({ user }: ReportsClientProps) {
         <div className="px-4 py-6 sm:px-0">
           {/* Header */}
           <div className="mb-8">
-            <div className="flex items-center justify-between">
-              <div>
-                <h1 className="text-3xl font-bold text-gray-900 flex items-center">
-                  <BarChart3 className="w-8 h-8 mr-3" />
-                  Raporlar ve Analizler
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div className="min-w-0 flex-1">
+                <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 flex items-center">
+                  <BarChart3 className="w-6 h-6 sm:w-8 sm:h-8 mr-2 sm:mr-3 flex-shrink-0" />
+                  <span className="truncate">Raporlar ve Analizler</span>
                 </h1>
-                <p className="text-gray-600 mt-2">İşletmenizin performansını izleyin ve analiz edin</p>
+                <p className="text-sm sm:text-base text-gray-600 mt-2">İşletmenizin performansını izleyin ve analiz edin</p>
               </div>
               
-              <div className="flex space-x-3">
-                <Button variant="outline" className="flex items-center" onClick={handleFilter}>
+              <div className="flex flex-col sm:flex-row gap-2 sm:space-x-3 w-full sm:w-auto">
+                <Button variant="outline" className="flex items-center justify-center w-full sm:w-auto" onClick={handleFilter}>
                   <Filter className="w-4 h-4 mr-2" />
                   Filtrele
                 </Button>
-                <Button className="bg-green-600 hover:bg-green-700 text-white flex items-center" onClick={handleDownloadReport}>
+                <Button className="bg-green-600 hover:bg-green-700 text-white flex items-center justify-center w-full sm:w-auto" onClick={handleDownloadReport}>
                   <Download className="w-4 h-4 mr-2" />
                   Rapor İndir
                 </Button>
