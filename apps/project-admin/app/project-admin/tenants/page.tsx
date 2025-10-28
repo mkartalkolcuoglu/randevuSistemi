@@ -430,7 +430,7 @@ export default function TenantsManagement() {
                               <Edit className="w-4 h-4" />
                             </Button>
                           </Link>
-                          <Link href={`https://randevu-sistemi-web.vercel.app/${tenant.slug}`} target="_blank">
+                          <Link href={`https://netrandevu.com/${tenant.slug}`} target="_blank">
                             <Button variant="outline" size="sm">
                               <Globe className="w-4 h-4" />
                             </Button>

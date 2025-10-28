@@ -170,8 +170,8 @@ export default function RegisterPage() {
           businessName: businessName,
           username: username,
           slug: slug,
-          loginUrl: `https://randevu-sistemi-admin.vercel.app/login`,
-          tenantUrl: `https://randevu-sistemi-web.vercel.app/${slug}`
+          loginUrl: `https://admin.netrandevu.com/login`,
+          tenantUrl: `https://netrandevu.com/${slug}`
         });
         setCurrentStep('success');
       } else {

@@ -49,7 +49,7 @@ export async function GET(
     if (!finalWorkingHours && tenant) {
       console.log('⚠️ workingHours empty in Web DB, fetching from Admin API...');
       try {
-        const adminApiUrl = `https://randevu-sistemi-admin.vercel.app/api/public/tenant/${slug}`;
+        const adminApiUrl = `https://admin.netrandevu.com/api/public/tenant/${slug}`;
         console.log('📡 Fetching from Admin API:', adminApiUrl);
         
         const adminResponse = await fetch(adminApiUrl, {

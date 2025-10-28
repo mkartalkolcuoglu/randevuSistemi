@@ -167,7 +167,7 @@ export default function RandevuPage({ params }: PageProps) {
     try {
       console.log('📞 Checking packages for phone:', phoneNumber, 'slug:', slug);
       
-      const response = await fetch(`https://randevu-sistemi-admin.vercel.app/api/customer-packages/check`, {
+      const response = await fetch(`https://admin.netrandevu.com/api/customer-packages/check`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
