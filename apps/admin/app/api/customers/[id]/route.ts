@@ -218,6 +218,29 @@ export async function DELETE(
     const { id } = await params;
     
     try {
+      // Check if customer has active appointments
+      const activeAppointments = await prisma.appointment.findMany({
+        where: {
+          customerId: id,
+          tenantId,
+          status: {
+            in: ['scheduled', 'confirmed']
+          }
+        }
+      });
+
+      if (activeAppointments.length > 0) {
+        return NextResponse.json(
+          { 
+            success: false, 
+            error: 'Bu müşterinin aktif randevuları bulunmaktadır',
+            details: `${activeAppointments.length} adet aktif randevu var. Müşteri silinmeden önce randevuları iptal etmeniz gerekmektedir.`,
+            activeAppointmentsCount: activeAppointments.length
+          },
+          { status: 409 } // 409 Conflict
+        );
+      }
+
       await prisma.customer.delete({
         where: {
           id,

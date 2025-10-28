@@ -59,6 +59,12 @@ export default function CustomersClient({ initialCustomers, tenantId, user }: Cu
             return;
           }
           
+          // Check for active appointments (409 Conflict)
+          if (response.status === 409) {
+            alert(`⚠️ Müşteri Silinemez!\n\n${errorData.error}\n\n${errorData.details || ''}\n\nLütfen önce aktif randevuları iptal edin veya tamamlayın.`);
+            return;
+          }
+          
           throw new Error(errorData.error || 'Silme işlemi başarısız');
         }
       } catch (error) {
