@@ -213,30 +213,30 @@ export default function AppointmentsClient({ initialAppointments, tenantId, user
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-8">
           <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center">
-                <div className="p-2 bg-blue-100 rounded-lg">
-                  <Calendar className="w-6 h-6 text-blue-600" />
+            <CardContent className="p-4 sm:p-6">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center">
+                <div className="p-2 bg-blue-100 rounded-lg mb-2 sm:mb-0">
+                  <Calendar className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" />
                 </div>
-                <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-600">Toplam Randevu</p>
-                  <p className="text-2xl font-bold text-gray-900">{filteredAppointments.length}</p>
+                <div className="sm:ml-4">
+                  <p className="text-xs sm:text-sm font-medium text-gray-600">Toplam Randevu</p>
+                  <p className="text-xl sm:text-2xl font-bold text-gray-900">{filteredAppointments.length}</p>
                 </div>
               </div>
             </CardContent>
           </Card>
           
           <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center">
-                <div className="p-2 bg-green-100 rounded-lg">
-                  <Clock className="w-6 h-6 text-green-600" />
+            <CardContent className="p-4 sm:p-6">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center">
+                <div className="p-2 bg-green-100 rounded-lg mb-2 sm:mb-0">
+                  <Clock className="w-5 h-5 sm:w-6 sm:h-6 text-green-600" />
                 </div>
-                <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-600">Planlandı</p>
-                  <p className="text-2xl font-bold text-gray-900">
+                <div className="sm:ml-4">
+                  <p className="text-xs sm:text-sm font-medium text-gray-600">Planlandı</p>
+                  <p className="text-xl sm:text-2xl font-bold text-gray-900">
                     {filteredAppointments.filter(a => a.status === 'scheduled').length}
                   </p>
                 </div>
@@ -245,14 +245,14 @@ export default function AppointmentsClient({ initialAppointments, tenantId, user
           </Card>
           
           <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center">
-                <div className="p-2 bg-yellow-100 rounded-lg">
-                  <User className="w-6 h-6 text-yellow-600" />
+            <CardContent className="p-4 sm:p-6">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center">
+                <div className="p-2 bg-yellow-100 rounded-lg mb-2 sm:mb-0">
+                  <User className="w-5 h-5 sm:w-6 sm:h-6 text-yellow-600" />
                 </div>
-                <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-600">Beklemede</p>
-                  <p className="text-2xl font-bold text-gray-900">
+                <div className="sm:ml-4">
+                  <p className="text-xs sm:text-sm font-medium text-gray-600">Beklemede</p>
+                  <p className="text-xl sm:text-2xl font-bold text-gray-900">
                     {filteredAppointments.filter(a => a.status === 'pending').length}
                   </p>
                 </div>
@@ -261,14 +261,14 @@ export default function AppointmentsClient({ initialAppointments, tenantId, user
           </Card>
           
           <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center">
-                <div className="p-2 bg-red-100 rounded-lg">
-                  <Trash2 className="w-6 h-6 text-red-600" />
+            <CardContent className="p-4 sm:p-6">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center">
+                <div className="p-2 bg-red-100 rounded-lg mb-2 sm:mb-0">
+                  <Trash2 className="w-5 h-5 sm:w-6 sm:h-6 text-red-600" />
                 </div>
-                <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-600">İptal Edildi</p>
-                  <p className="text-2xl font-bold text-gray-900">
+                <div className="sm:ml-4">
+                  <p className="text-xs sm:text-sm font-medium text-gray-600">İptal Edildi</p>
+                  <p className="text-xl sm:text-2xl font-bold text-gray-900">
                     {filteredAppointments.filter(a => a.status === 'cancelled').length}
                   </p>
                 </div>

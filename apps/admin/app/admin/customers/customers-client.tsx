@@ -217,26 +217,30 @@ export default function CustomersClient({ initialCustomers, tenantId, user }: Cu
           </div>
 
           {/* İstatistikler */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+          <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-6">
             <Card>
-              <CardContent className="p-6">
-                <div className="flex items-center">
-                  <User className="h-8 w-8 text-blue-600" />
-                  <div className="ml-4">
-                    <p className="text-sm font-medium text-gray-500">Toplam Müşteri</p>
-                    <p className="text-2xl font-bold text-gray-900">{totalCustomers}</p>
+              <CardContent className="p-4 sm:p-6">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center">
+                  <div className="p-2 bg-blue-100 rounded-lg mb-2 sm:mb-0">
+                    <User className="h-5 w-5 sm:h-6 sm:w-6 text-blue-600" />
+                  </div>
+                  <div className="sm:ml-4">
+                    <p className="text-xs sm:text-sm font-medium text-gray-500">Toplam Müşteri</p>
+                    <p className="text-xl sm:text-2xl font-bold text-gray-900">{totalCustomers}</p>
                   </div>
                 </div>
               </CardContent>
             </Card>
             
             <Card>
-              <CardContent className="p-6">
-                <div className="flex items-center">
-                  <Calendar className="h-8 w-8 text-green-600" />
-                  <div className="ml-4">
-                    <p className="text-sm font-medium text-gray-500">Bu Ay Yeni</p>
-                    <p className="text-2xl font-bold text-gray-900">
+              <CardContent className="p-4 sm:p-6">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center">
+                  <div className="p-2 bg-green-100 rounded-lg mb-2 sm:mb-0">
+                    <Calendar className="h-5 w-5 sm:h-6 sm:w-6 text-green-600" />
+                  </div>
+                  <div className="sm:ml-4">
+                    <p className="text-xs sm:text-sm font-medium text-gray-500">Bu Ay Yeni</p>
+                    <p className="text-xl sm:text-2xl font-bold text-gray-900">
                       {customers.filter(c => {
                         const customerDate = new Date(c.createdAt);
                         const now = new Date();
@@ -250,12 +254,14 @@ export default function CustomersClient({ initialCustomers, tenantId, user }: Cu
             </Card>
             
             <Card>
-              <CardContent className="p-6">
-                <div className="flex items-center">
-                  <Mail className="h-8 w-8 text-purple-600" />
-                  <div className="ml-4">
-                    <p className="text-sm font-medium text-gray-500">E-posta Olan</p>
-                    <p className="text-2xl font-bold text-gray-900">
+              <CardContent className="p-4 sm:p-6">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center">
+                  <div className="p-2 bg-purple-100 rounded-lg mb-2 sm:mb-0">
+                    <Mail className="h-5 w-5 sm:h-6 sm:w-6 text-purple-600" />
+                  </div>
+                  <div className="sm:ml-4">
+                    <p className="text-xs sm:text-sm font-medium text-gray-500">E-posta Olan</p>
+                    <p className="text-xl sm:text-2xl font-bold text-gray-900">
                       {customers.filter(c => c.email).length}
                     </p>
                   </div>
@@ -264,12 +270,14 @@ export default function CustomersClient({ initialCustomers, tenantId, user }: Cu
             </Card>
             
             <Card>
-              <CardContent className="p-6">
-                <div className="flex items-center">
-                  <Phone className="h-8 w-8 text-orange-600" />
-                  <div className="ml-4">
-                    <p className="text-sm font-medium text-gray-500">Telefon Olan</p>
-                    <p className="text-2xl font-bold text-gray-900">
+              <CardContent className="p-4 sm:p-6">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center">
+                  <div className="p-2 bg-orange-100 rounded-lg mb-2 sm:mb-0">
+                    <Phone className="h-5 w-5 sm:h-6 sm:w-6 text-orange-600" />
+                  </div>
+                  <div className="sm:ml-4">
+                    <p className="text-xs sm:text-sm font-medium text-gray-500">Telefon Olan</p>
+                    <p className="text-xl sm:text-2xl font-bold text-gray-900">
                       {customers.filter(c => c.phone).length}
                     </p>
                   </div>

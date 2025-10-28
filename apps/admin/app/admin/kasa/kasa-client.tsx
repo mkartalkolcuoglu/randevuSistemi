@@ -340,50 +340,50 @@ export default function KasaClient({ tenantId, user }: KasaClientProps) {
       </Card>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6">
         <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Toplam Gelir</p>
-                <p className="text-3xl font-bold text-green-600 mt-2">
+          <CardContent className="p-4 sm:p-6">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center sm:justify-between">
+              <div className="mb-2 sm:mb-0">
+                <p className="text-xs sm:text-sm font-medium text-gray-600">Toplam Gelir</p>
+                <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-green-600 mt-1 sm:mt-2">
                   ₺{summary.income.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
                 </p>
               </div>
-              <div className="p-3 bg-green-100 rounded-full">
-                <TrendingUp className="w-8 h-8 text-green-600" />
+              <div className="p-2 sm:p-3 bg-green-100 rounded-full">
+                <TrendingUp className="w-5 h-5 sm:w-6 sm:h-6 lg:w-8 lg:h-8 text-green-600" />
               </div>
             </div>
           </CardContent>
         </Card>
 
         <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Toplam Gider</p>
-                <p className="text-3xl font-bold text-red-600 mt-2">
+          <CardContent className="p-4 sm:p-6">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center sm:justify-between">
+              <div className="mb-2 sm:mb-0">
+                <p className="text-xs sm:text-sm font-medium text-gray-600">Toplam Gider</p>
+                <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-red-600 mt-1 sm:mt-2">
                   ₺{summary.expense.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
                 </p>
               </div>
-              <div className="p-3 bg-red-100 rounded-full">
-                <TrendingDown className="w-8 h-8 text-red-600" />
+              <div className="p-2 sm:p-3 bg-red-100 rounded-full">
+                <TrendingDown className="w-5 h-5 sm:w-6 sm:h-6 lg:w-8 lg:h-8 text-red-600" />
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Net Kâr</p>
-                <p className="text-3xl font-bold text-blue-600 mt-2">
+        <Card className="col-span-2 md:col-span-1">
+          <CardContent className="p-4 sm:p-6">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center sm:justify-between">
+              <div className="mb-2 sm:mb-0">
+                <p className="text-xs sm:text-sm font-medium text-gray-600">Net Kâr</p>
+                <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-blue-600 mt-1 sm:mt-2">
                   ₺{summary.profit.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
                 </p>
               </div>
-              <div className="p-3 bg-blue-100 rounded-full">
-                <DollarSign className="w-8 h-8 text-blue-600" />
+              <div className="p-2 sm:p-3 bg-blue-100 rounded-full">
+                <DollarSign className="w-5 h-5 sm:w-6 sm:h-6 lg:w-8 lg:h-8 text-blue-600" />
               </div>
             </div>
           </CardContent>
