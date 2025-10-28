@@ -52,8 +52,8 @@ async function main() {
           sunday: { start: '10:00', end: '16:00', closed: true }
         }),
         theme: JSON.stringify({
-          primaryColor: '#EC4899',
-          secondaryColor: '#BE185D',
+               primaryColor: '#163974',
+               secondaryColor: '#0F2A52',
           logo: '',
           headerImage: ''
         })
@@ -84,8 +84,8 @@ async function main() {
           sunday: { start: '10:00', end: '16:00', closed: true }
         }),
         theme: JSON.stringify({
-          primaryColor: '#059669',
-          secondaryColor: '#ecfdf5',
+          primaryColor: '#163974',
+          secondaryColor: '#0F2A52',
           logo: '',
           headerImage: ''
         })
@@ -116,8 +116,8 @@ async function main() {
           sunday: { start: '10:00', end: '16:00', closed: true }
         }),
         theme: JSON.stringify({
-          primaryColor: '#dc2626',
-          secondaryColor: '#fef2f2',
+          primaryColor: '#163974',
+          secondaryColor: '#0F2A52',
           logo: '',
           headerImage: ''
         })
@@ -148,8 +148,8 @@ async function main() {
           sunday: { start: '09:00', end: '18:00', closed: false }
         }),
         theme: JSON.stringify({
-          primaryColor: '#7c3aed',
-          secondaryColor: '#f5f3ff',
+          primaryColor: '#163974',
+          secondaryColor: '#0F2A52',
           logo: '',
           headerImage: ''
         })

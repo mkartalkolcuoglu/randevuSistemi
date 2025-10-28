@@ -44,7 +44,7 @@ export default function EditTenantPage({ params }: EditTenantPageProps) {
       sunday: { start: '10:00', end: '16:00', closed: true }
     },
     theme: {
-      primaryColor: '#EC4899',
+      primaryColor: '#163974',
       secondaryColor: '#f3f4f6',
       logo: '',
       headerImage: ''
@@ -134,7 +134,7 @@ export default function EditTenantPage({ params }: EditTenantPageProps) {
               }
               // Default theme
               return {
-                primaryColor: '#EC4899',
+                primaryColor: '#163974',
                 secondaryColor: '#f3f4f6',
                 logo: '',
                 headerImage: ''
@@ -142,7 +142,7 @@ export default function EditTenantPage({ params }: EditTenantPageProps) {
             } catch (error) {
               console.error('Error parsing theme:', error);
               return {
-                primaryColor: '#EC4899',
+                primaryColor: '#163974',
                 secondaryColor: '#f3f4f6',
                 logo: '',
                 headerImage: ''

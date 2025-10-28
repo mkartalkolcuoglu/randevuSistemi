@@ -62,8 +62,8 @@ export async function GET() {
             taxRate: 18
           }),
           themeSettings: JSON.stringify({
-            primaryColor: '#EC4899',
-            secondaryColor: '#BE185D',
+            primaryColor: '#163974',
+            secondaryColor: '#0F2A52',
             accentColor: '#F97316',
             fontFamily: 'Inter',
             borderRadius: 'medium'

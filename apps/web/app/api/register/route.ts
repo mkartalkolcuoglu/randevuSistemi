@@ -110,8 +110,8 @@ export async function POST(request: NextRequest) {
         sunday: { start: '10:00', end: '16:00', closed: true }
       },
       theme: {
-        primaryColor: '#EC4899',
-        secondaryColor: '#f3f4f6',
+        primaryColor: '#163974',
+        secondaryColor: '#0F2A52',
         logo: '',
         headerImage: ''
       }

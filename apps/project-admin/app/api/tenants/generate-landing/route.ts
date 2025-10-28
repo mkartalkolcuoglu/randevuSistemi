@@ -62,8 +62,8 @@ export default function ${tenant.businessName.replace(/[^a-zA-Z0-9]/g, '')}Landi
     address: "${tenant.address || 'Adres bilgisi güncelleniyor...'}",
     phone: "${tenant.phone || ''}",
     slug: "${tenant.slug}",
-    primaryColor: "${tenant.theme?.primaryColor || '#EC4899'}",
-    secondaryColor: "${tenant.theme?.secondaryColor || '#BE185D'}",
+    primaryColor: "${tenant.theme?.primaryColor || '#163974'}",
+    secondaryColor: "${tenant.theme?.secondaryColor || '#0F2A52'}",
     logo: "${tenant.theme?.logo || ''}",
     headerImage: "${tenant.theme?.headerImage || ''}"
   };
@@ -277,7 +277,7 @@ export default function AppointmentPage() {
   const businessInfo = {
     name: "${tenant.businessName}",
     slug: "${tenant.slug}",
-    primaryColor: "${tenant.theme?.primaryColor || '#EC4899'}"
+    primaryColor: "${tenant.theme?.primaryColor || '#163974'}"
   };
 
   // Mock services - gerçek implementasyonda API'den gelecek

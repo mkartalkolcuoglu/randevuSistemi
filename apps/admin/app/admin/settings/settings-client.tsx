@@ -18,8 +18,8 @@ export default function SettingsClient({ user }: SettingsClientProps) {
   const [settings, setSettings] = useState({
     // Tema ayarları
     themeSettings: {
-      primaryColor: '#EC4899',
-      secondaryColor: '#BE185D',
+      primaryColor: '#163974',
+      secondaryColor: '#0F2A52',
       logo: '',
       headerImage: ''
     },

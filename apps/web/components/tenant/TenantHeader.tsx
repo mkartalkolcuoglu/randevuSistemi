@@ -39,7 +39,7 @@ interface TenantHeaderProps {
 
 export default function TenantHeader({ tenant }: TenantHeaderProps) {
   const pathname = usePathname();
-  const primaryColor = tenant.primaryColor || '#EC4899';
+  const primaryColor = tenant.primaryColor || '#163974';
   const isRandevuPage = pathname?.includes('/randevu');
 
 
