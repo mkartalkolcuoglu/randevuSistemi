@@ -32,7 +32,11 @@ export default function Home() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-4">
             <div className="flex items-center space-x-2">
-              <div className="w-8 h-8 bg-gradient-to-br from-green-400 to-blue-500 rounded-lg"></div>
+              <img 
+                src="https://i.hizliresim.com/4a00l8g.png" 
+                alt="Net Randevu Logo" 
+                className="h-10 w-auto"
+              />
               <span className="text-xl font-bold text-gray-900">Net Randevu</span>
             </div>
             <nav className="hidden md:flex space-x-8">
@@ -42,7 +46,7 @@ export default function Home() {
             </nav>
             <div className="flex items-center space-x-4">
               <Link href="/register">
-                <Button className="bg-gradient-to-r from-green-400 to-blue-500 text-white hover:shadow-lg transition">
+                <Button className="bg-[#163974] hover:bg-[#0F2A52] text-white hover:shadow-lg transition">
                   Ücretsiz Başla
                 </Button>
               </Link>
@@ -53,15 +57,15 @@ export default function Home() {
 
       {/* Hero Section */}
       <section className="relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-green-50 via-blue-50 to-purple-50 opacity-70"></div>
+        <div className="absolute inset-0 bg-gradient-to-br from-blue-50 via-indigo-50 to-blue-100 opacity-70"></div>
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 md:py-32">
           <div className="text-center">
-            <div className="inline-block mb-4 px-4 py-2 bg-green-100 rounded-full">
-              <span className="text-green-700 font-medium text-sm">✨ Modern İşletmeler İçin</span>
+            <div className="inline-block mb-4 px-4 py-2 bg-blue-100 rounded-full">
+              <span className="text-[#163974] font-medium text-sm">✨ Modern İşletmeler İçin</span>
             </div>
             <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold text-gray-900 mb-6 leading-tight">
               Randevularınızı<br />
-              <span className="bg-gradient-to-r from-green-400 to-blue-500 bg-clip-text text-transparent">
+              <span className="bg-gradient-to-r from-[#163974] to-[#0F2A52] bg-clip-text text-transparent">
                 Dijitalleştirin
               </span>
             </h1>
@@ -71,7 +75,7 @@ export default function Home() {
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
               <Link href="/register">
-                <Button size="lg" className="text-lg px-8 py-6 bg-gradient-to-r from-green-400 to-blue-500 text-white hover:shadow-xl transition">
+                <Button size="lg" className="text-lg px-8 py-6 bg-[#163974] hover:bg-[#0F2A52] text-white hover:shadow-xl transition">
                   <Calendar className="w-5 h-5 mr-2" />
                   15 Gün Ücretsiz Dene
                 </Button>

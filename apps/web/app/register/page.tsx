@@ -208,7 +208,11 @@ export default function RegisterPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-4">
             <Link href="/" className="flex items-center space-x-2">
-              <div className="w-8 h-8 bg-gradient-to-br from-green-400 to-blue-500 rounded-lg"></div>
+              <img 
+                src="https://i.hizliresim.com/4a00l8g.png" 
+                alt="Net Randevu Logo" 
+                className="h-10 w-auto"
+              />
               <span className="text-xl font-bold text-gray-900">Net Randevu</span>
             </Link>
             <Link href="/" className="text-gray-600 hover:text-gray-900 flex items-center">
@@ -222,11 +226,11 @@ export default function RegisterPage() {
       <div className="max-w-5xl mx-auto px-4 py-12">
         {/* Hero Text */}
         <div className="text-center mb-12">
-          <div className="inline-block mb-4 px-4 py-2 bg-green-100 rounded-full">
-            <span className="text-green-700 font-medium text-sm">✨ 15 Gün Ücretsiz Deneme</span>
+          <div className="inline-block mb-4 px-4 py-2 bg-blue-100 rounded-full">
+            <span className="text-[#163974] font-medium text-sm">✨ 15 Gün Ücretsiz Deneme</span>
           </div>
           <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
-            İşletmenizi <span className="bg-gradient-to-r from-green-400 to-blue-500 bg-clip-text text-transparent">Kaydedin</span>
+            İşletmenizi <span className="bg-gradient-to-r from-[#163974] to-[#0F2A52] bg-clip-text text-transparent">Kaydedin</span>
           </h1>
           <p className="text-xl text-gray-600 max-w-2xl mx-auto">
             Birkaç adımda sisteme katılın ve dijital dönüşümü başlatın
