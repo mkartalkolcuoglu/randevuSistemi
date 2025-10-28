@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Button, Card, CardContent, CardHeader, CardTitle, Input } from '../../components/ui';
+import { Button, Card, CardContent, CardHeader, CardTitle, Input, formatPhone, normalizePhone, PHONE_PLACEHOLDER, PHONE_MAX_LENGTH } from '../../components/ui';
 import { ArrowLeft, ArrowRight, Building2, User, Mail, Phone, MapPin, Lock, Check, CreditCard, Calendar } from 'lucide-react';
 
 type Step = 'info' | 'package' | 'payment' | 'success';
@@ -391,9 +391,13 @@ export default function RegisterPage() {
                     <Input
                       type="tel"
                       name="phone"
-                      value={formData.phone}
-                      onChange={handleInputChange}
-                      placeholder="05XX XXX XX XX"
+                      value={formatPhone(formData.phone)}
+                      onChange={(e) => {
+                        const normalized = normalizePhone(e.target.value);
+                        handleInputChange({ target: { name: 'phone', value: normalized } } as any);
+                      }}
+                      placeholder={PHONE_PLACEHOLDER}
+                      maxLength={PHONE_MAX_LENGTH}
                       required
                     />
                   </div>

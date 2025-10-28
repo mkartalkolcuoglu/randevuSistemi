@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Button, Input, Label, Textarea, Card, CardContent, CardHeader, CardTitle } from '@repo/ui';
+import { Button, Input, Label, Textarea, Card, CardContent, CardHeader, CardTitle, formatPhone, normalizePhone, PHONE_PLACEHOLDER, PHONE_MAX_LENGTH } from '@repo/ui';
 import { ChevronLeft, Save } from 'lucide-react';
 import Link from 'next/link';
 
@@ -142,8 +142,10 @@ export default function NewCustomerPage() {
                           <Input
                             id="phone"
                             type="tel"
-                            value={formData.phone}
-                            onChange={(e) => handleInputChange('phone', e.target.value)}
+                            value={formatPhone(formData.phone)}
+                            onChange={(e) => handleInputChange('phone', normalizePhone(e.target.value))}
+                            placeholder={PHONE_PLACEHOLDER}
+                            maxLength={PHONE_MAX_LENGTH}
                             required
                           />
                         </div>
