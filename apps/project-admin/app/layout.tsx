@@ -8,7 +8,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Project Admin - Randevu Sistemi",
+  title: "Yönetim Paneli - Net Randevu",
   description: "Platform yönetim paneli - aboneler, entegrasyonlar ve sistem yönetimi",
   keywords: "project, admin, platform, yönetim, aboneler, entegrasyon",
 };

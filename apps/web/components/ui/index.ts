@@ -1,5 +1,6 @@
 // Component utility functions
 export { cn } from './utils';
+export * from './phone-utils';
 
 // Re-export all components
 export * from './alert';
