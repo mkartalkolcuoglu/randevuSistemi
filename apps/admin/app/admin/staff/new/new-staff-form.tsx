@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Button, Input, Label, Textarea, Card, CardContent, CardHeader, CardTitle, Switch } from '@repo/ui';
+import { Button, Input, Label, Textarea, Card, CardContent, CardHeader, CardTitle, Switch, formatPhone, normalizePhone, PHONE_PLACEHOLDER, PHONE_MAX_LENGTH } from '@repo/ui';
 import { ChevronLeft, Save, Plus, X } from 'lucide-react';
 import Link from 'next/link';
 import StaffAuthForm from './staff-form-with-auth';
@@ -250,8 +250,10 @@ export default function NewStaffForm({ user }: NewStaffFormProps) {
                           <Input
                             id="phone"
                             type="tel"
-                            value={formData.phone}
-                            onChange={(e) => handleInputChange('phone', e.target.value)}
+                            value={formatPhone(formData.phone)}
+                            onChange={(e) => handleInputChange('phone', normalizePhone(e.target.value))}
+                            placeholder={PHONE_PLACEHOLDER}
+                            maxLength={PHONE_MAX_LENGTH}
                             required
                           />
                         </div>

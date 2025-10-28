@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, Button, Tabs, TabsList, TabsTrigger, TabsContent } from '@repo/ui';
+import { Card, CardContent, CardHeader, CardTitle, Button, Tabs, TabsList, TabsTrigger, TabsContent, formatPhone, normalizePhone, PHONE_PLACEHOLDER, PHONE_MAX_LENGTH } from '@repo/ui';
 import { Save, Palette, Building2, User, Key, Clock, Upload, ArrowLeft, MapPin, Settings } from 'lucide-react';
 import AdminHeader from '../admin-header';
 import type { ClientUser } from '../../../lib/client-permissions';
@@ -779,10 +779,11 @@ export default function SettingsClient({ user }: SettingsClientProps) {
             </label>
             <input
               type="tel"
-              value={settings.phone}
-              onChange={(e) => setSettings(prev => ({ ...prev, phone: e.target.value }))}
+              value={formatPhone(settings.phone)}
+              onChange={(e) => setSettings(prev => ({ ...prev, phone: normalizePhone(e.target.value) }))}
+              placeholder={PHONE_PLACEHOLDER}
+              maxLength={PHONE_MAX_LENGTH}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="+90 555 123 4567"
             />
           </div>
         </CardContent>
