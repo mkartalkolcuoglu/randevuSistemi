@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, use } from 'react';
-import { Button, Card, CardContent, CardHeader, CardTitle } from '../../../components/ui';
+import { Button, Card, CardContent, CardHeader, CardTitle, formatPhone, normalizePhone, PHONE_PLACEHOLDER, PHONE_MAX_LENGTH } from '../../../components/ui';
 import { 
   ArrowLeft,
   ArrowRight, 
@@ -330,9 +330,10 @@ export default function RandevuPage({ params }: PageProps) {
                 <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                 <input
                   type="tel"
-                  value={phoneNumber}
+                  value={formatPhone(phoneNumber)}
                   onChange={(e) => {
-                    setPhoneNumber(e.target.value);
+                    const normalized = normalizePhone(e.target.value);
+                    setPhoneNumber(normalized);
                     // Reset check state when phone changes
                     setPhoneChecked(false);
                     setExistingCustomer(null);
@@ -717,10 +718,14 @@ export default function RandevuPage({ params }: PageProps) {
           </label>
           <input
             type="tel"
-            value={customerInfo.phone}
-            onChange={(e) => setCustomerInfo(prev => ({ ...prev, phone: e.target.value }))}
+            value={formatPhone(customerInfo.phone)}
+            onChange={(e) => {
+              const normalized = normalizePhone(e.target.value);
+              setCustomerInfo(prev => ({ ...prev, phone: normalized }));
+            }}
             className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none transition-all duration-200 hover:border-blue-300"
-            placeholder="0555 123 45 67"
+            placeholder={PHONE_PLACEHOLDER}
+            maxLength={PHONE_MAX_LENGTH}
           />
         </div>
 
