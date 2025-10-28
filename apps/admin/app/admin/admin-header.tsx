@@ -157,7 +157,7 @@ export default function AdminHeader({ user }: AdminHeaderProps) {
             {/* Left: Logo + Title (Mobile Optimized) */}
             <div className="flex items-center space-x-2 sm:space-x-4 min-w-0 flex-1">
               <img 
-                src="https://i.hizliresim.com/ic4kc72.png" 
+                src="https://i.hizliresim.com/4a00l8g.png" 
                 alt="Net Randevu Logo" 
                 className="h-8 sm:h-10 w-auto flex-shrink-0"
               />

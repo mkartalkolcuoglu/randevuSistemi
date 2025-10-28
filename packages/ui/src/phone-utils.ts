@@ -80,7 +80,7 @@ export function validatePhone(phone: string): boolean {
 export const PHONE_PLACEHOLDER = '555 555 55 55';
 
 /**
- * Telefon için max length (formatlanmış hali: "555 555 55 55" = 13 karakter)
+ * Telefon için max length (formatlanmış hali: "555 555 55 55" = 13 karakter + buffer)
  */
-export const PHONE_MAX_LENGTH = 13;
+export const PHONE_MAX_LENGTH = 15;
 

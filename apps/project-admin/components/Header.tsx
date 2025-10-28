@@ -31,7 +31,7 @@ export function Header() {
           <div className="flex items-center space-x-4">
             {/* System Logo */}
             <img 
-              src="https://i.hizliresim.com/ic4kc72.png" 
+              src="https://i.hizliresim.com/4a00l8g.png" 
               alt="Net Randevu Logo" 
               className="h-10 w-auto"
             />
