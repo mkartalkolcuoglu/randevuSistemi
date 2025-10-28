@@ -142,58 +142,58 @@ export default async function AdminDashboard() {
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-8">
           <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center">
-                <div className="p-2 bg-blue-100 rounded-lg">
-                  <Calendar className="w-6 h-6 text-blue-600" />
+            <CardContent className="p-4 sm:p-6">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center">
+                <div className="p-2 bg-blue-100 rounded-lg mb-2 sm:mb-0">
+                  <Calendar className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" />
                 </div>
-                <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-600">Toplam Randevu</p>
-                  <p className="text-2xl font-bold text-gray-900">{dashboardData.totalAppointments}</p>
+                <div className="sm:ml-4">
+                  <p className="text-xs sm:text-sm font-medium text-gray-600">Toplam Randevu</p>
+                  <p className="text-xl sm:text-2xl font-bold text-gray-900">{dashboardData.totalAppointments}</p>
                 </div>
               </div>
             </CardContent>
           </Card>
           
           <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center">
-                <div className="p-2 bg-green-100 rounded-lg">
-                  <Clock className="w-6 h-6 text-green-600" />
+            <CardContent className="p-4 sm:p-6">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center">
+                <div className="p-2 bg-green-100 rounded-lg mb-2 sm:mb-0">
+                  <Clock className="w-5 h-5 sm:w-6 sm:h-6 text-green-600" />
                 </div>
-                <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-600">Bugün</p>
-                  <p className="text-2xl font-bold text-gray-900">{dashboardData.todayAppointments}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center">
-                <div className="p-2 bg-purple-100 rounded-lg">
-                  <Users className="w-6 h-6 text-purple-600" />
-                </div>
-                <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-600">Müşteriler</p>
-                  <p className="text-2xl font-bold text-gray-900">{dashboardData.totalCustomers}</p>
+                <div className="sm:ml-4">
+                  <p className="text-xs sm:text-sm font-medium text-gray-600">Bu Ay Yeni</p>
+                  <p className="text-xl sm:text-2xl font-bold text-gray-900">{dashboardData.todayAppointments}</p>
                 </div>
               </div>
             </CardContent>
           </Card>
           
           <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center">
-                <div className="p-2 bg-yellow-100 rounded-lg">
-                  <DollarSign className="w-6 h-6 text-yellow-600" />
+            <CardContent className="p-4 sm:p-6">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center">
+                <div className="p-2 bg-purple-100 rounded-lg mb-2 sm:mb-0">
+                  <User className="w-5 h-5 sm:w-6 sm:h-6 text-purple-600" />
                 </div>
-                <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-600">Aylık Gelir</p>
-                  <p className="text-2xl font-bold text-gray-900">{dashboardData.monthlyRevenue}₺</p>
+                <div className="sm:ml-4">
+                  <p className="text-xs sm:text-sm font-medium text-gray-600">E-posta Olan</p>
+                  <p className="text-xl sm:text-2xl font-bold text-gray-900">{dashboardData.totalCustomers}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardContent className="p-4 sm:p-6">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center">
+                <div className="p-2 bg-orange-100 rounded-lg mb-2 sm:mb-0">
+                  <Users className="w-5 h-5 sm:w-6 sm:h-6 text-orange-600" />
+                </div>
+                <div className="sm:ml-4">
+                  <p className="text-xs sm:text-sm font-medium text-gray-600">Telefon Olan</p>
+                  <p className="text-xl sm:text-2xl font-bold text-gray-900">{dashboardData.monthlyRevenue}₺</p>
                 </div>
               </div>
             </CardContent>
