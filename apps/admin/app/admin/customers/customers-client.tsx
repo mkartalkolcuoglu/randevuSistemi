@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { Button, Input, Card, CardContent, CardHeader, CardTitle, Badge } from '@repo/ui';
-import { Plus, Search, Edit, Trash2, Phone, Mail, Calendar, User } from 'lucide-react';
+import { Button, Input, Card, CardContent, CardHeader, CardTitle, Badge, AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@repo/ui';
+import { Plus, Search, Edit, Trash2, Phone, Mail, Calendar, User, AlertCircle, CheckCircle } from 'lucide-react';
 import Link from 'next/link';
 import AdminHeader from '../admin-header';
 import { DataTable, Column } from '../../../components/DataTable';
@@ -19,6 +19,13 @@ export default function CustomersClient({ initialCustomers, tenantId, user }: Cu
   const [customers, setCustomers] = useState(initialCustomers);
   const [loading, setLoading] = useState(false);
   const [totalCustomers, setTotalCustomers] = useState(0);
+  
+  // Modal states
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [customerToDelete, setCustomerToDelete] = useState<string | null>(null);
+  const [errorModalOpen, setErrorModalOpen] = useState(false);
+  const [errorMessage, setErrorMessage] = useState({ title: '', description: '' });
+  const [successModalOpen, setSuccessModalOpen] = useState(false);
 
   useEffect(() => {
     fetchCustomers();
@@ -40,37 +47,58 @@ export default function CustomersClient({ initialCustomers, tenantId, user }: Cu
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (confirm('Bu müşteriyi silmek istediğinizden emin misiniz?')) {
-      try {
-        const response = await fetch(`/api/customers/${id}`, {
-          method: 'DELETE',
-        });
+  const handleDeleteClick = (id: string) => {
+    setCustomerToDelete(id);
+    setDeleteModalOpen(true);
+  };
 
-        if (response.ok) {
-          alert('Müşteri başarıyla silindi!');
-          await fetchCustomers();
-        } else {
-          const errorData = await response.json();
-          
-          // Check for permission denied error
-          if (response.status === 403 && errorData.code === 'INSUFFICIENT_PERMISSIONS') {
-            alert('⛔ Yetki Hatası: Müşteri silme yetkiniz bulunmamaktadır.\n\nLütfen yöneticiniz ile iletişime geçin.');
-            return;
-          }
-          
-          // Check for active appointments (409 Conflict)
-          if (response.status === 409) {
-            alert(`⚠️ Müşteri Silinemez!\n\n${errorData.error}\n\n${errorData.details || ''}\n\nLütfen önce aktif randevuları iptal edin veya tamamlayın.`);
-            return;
-          }
-          
-          throw new Error(errorData.error || 'Silme işlemi başarısız');
+  const handleDeleteConfirm = async () => {
+    if (!customerToDelete) return;
+    
+    setDeleteModalOpen(false);
+    
+    try {
+      const response = await fetch(`/api/customers/${customerToDelete}`, {
+        method: 'DELETE',
+      });
+
+      if (response.ok) {
+        setSuccessModalOpen(true);
+        await fetchCustomers();
+      } else {
+        const errorData = await response.json();
+        
+        // Check for permission denied error
+        if (response.status === 403 && errorData.code === 'INSUFFICIENT_PERMISSIONS') {
+          setErrorMessage({
+            title: '⛔ Yetki Hatası',
+            description: 'Müşteri silme yetkiniz bulunmamaktadır. Lütfen yöneticiniz ile iletişime geçin.'
+          });
+          setErrorModalOpen(true);
+          return;
         }
-      } catch (error) {
-        console.error('Error deleting customer:', error);
-        alert('Müşteri silinirken bir hata oluştu.');
+        
+        // Check for active appointments (409 Conflict)
+        if (response.status === 409) {
+          setErrorMessage({
+            title: '⚠️ Müşteri Silinemez',
+            description: `${errorData.error}\n\n${errorData.details || ''}\n\nLütfen önce aktif randevuları iptal edin veya tamamlayın.`
+          });
+          setErrorModalOpen(true);
+          return;
+        }
+        
+        throw new Error(errorData.error || 'Silme işlemi başarısız');
       }
+    } catch (error) {
+      console.error('Error deleting customer:', error);
+      setErrorMessage({
+        title: '❌ Hata',
+        description: 'Müşteri silinirken bir hata oluştu. Lütfen tekrar deneyin.'
+      });
+      setErrorModalOpen(true);
+    } finally {
+      setCustomerToDelete(null);
     }
   };
 
@@ -175,7 +203,7 @@ export default function CustomersClient({ initialCustomers, tenantId, user }: Cu
           <Button
             variant="outline"
             size="sm"
-            onClick={() => handleDelete(customer.id)}
+            onClick={() => handleDeleteClick(customer.id)}
             className="text-red-600 hover:bg-red-50"
           >
             <Trash2 className="w-4 h-4" />
@@ -345,6 +373,72 @@ export default function CustomersClient({ initialCustomers, tenantId, user }: Cu
           </Card>
         </div>
       </main>
+
+      {/* Delete Confirmation Modal */}
+      <AlertDialog open={deleteModalOpen} onOpenChange={setDeleteModalOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertCircle className="w-5 h-5 text-red-500" />
+              Müşteri Silme Onayı
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-base">
+              Bu müşteriyi silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setCustomerToDelete(null)}>
+              İptal
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteConfirm}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              Evet, Sil
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Error Modal */}
+      <AlertDialog open={errorModalOpen} onOpenChange={setErrorModalOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertCircle className="w-5 h-5 text-red-500" />
+              {errorMessage.title}
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-base whitespace-pre-line">
+              {errorMessage.description}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction onClick={() => setErrorModalOpen(false)}>
+              Tamam
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Success Modal */}
+      <AlertDialog open={successModalOpen} onOpenChange={setSuccessModalOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <CheckCircle className="w-5 h-5 text-green-500" />
+              Başarılı
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-base">
+              Müşteri başarıyla silindi.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction onClick={() => setSuccessModalOpen(false)}>
+              Tamam
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
