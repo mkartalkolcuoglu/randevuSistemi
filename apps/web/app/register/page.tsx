@@ -1,10 +1,10 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Button, Card, CardContent, CardHeader, CardTitle, Input, formatPhone, normalizePhone, PHONE_PLACEHOLDER, PHONE_MAX_LENGTH } from '../../components/ui';
-import { ArrowLeft, ArrowRight, Building2, User, Mail, Phone, MapPin, Lock, Check, CreditCard, Calendar } from 'lucide-react';
+import { Button, Card, CardContent, CardHeader, CardTitle, Input, formatPhone, normalizePhone, PHONE_PLACEHOLDER, PHONE_MAX_LENGTH, Badge } from '../../components/ui';
+import { ArrowLeft, ArrowRight, Building2, User, Mail, Phone, MapPin, Lock, Check, CreditCard, Calendar, Star } from 'lucide-react';
 
 type Step = 'info' | 'package' | 'payment' | 'success';
 
@@ -26,7 +26,20 @@ interface FormData {
   confirmPassword: string;
   
   // Subscription
-  subscriptionPlan: 'trial' | 'monthly' | 'yearly';
+  subscriptionPlan: string; // slug of selected package
+}
+
+interface SubscriptionPackage {
+  id: string;
+  name: string;
+  slug: string;
+  durationDays: number;
+  price: number;
+  description: string | null;
+  isActive: boolean;
+  isFeatured: boolean;
+  displayOrder: number;
+  features: string | null;
 }
 
 export default function RegisterPage() {
@@ -35,6 +48,8 @@ export default function RegisterPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [credentials, setCredentials] = useState<any>(null);
+  const [packages, setPackages] = useState<SubscriptionPackage[]>([]);
+  const [packagesLoading, setPackagesLoading] = useState(true);
   
   const [formData, setFormData] = useState<FormData>({
     businessName: '',
@@ -47,8 +62,36 @@ export default function RegisterPage() {
     username: '',
     password: '',
     confirmPassword: '',
-    subscriptionPlan: 'trial'
+    subscriptionPlan: '' // will be set after packages load
   });
+
+  // Fetch packages on mount
+  useEffect(() => {
+    fetchPackages();
+  }, []);
+
+  const fetchPackages = async () => {
+    try {
+      setPackagesLoading(true);
+      const response = await fetch('https://yonetim.netrandevu.com/api/packages');
+      if (response.ok) {
+        const data = await response.json();
+        const activePackages = data.data.filter((pkg: SubscriptionPackage) => pkg.isActive);
+        setPackages(activePackages);
+        
+        // Set default selection to first package (usually trial)
+        if (activePackages.length > 0) {
+          setFormData(prev => ({ ...prev, subscriptionPlan: activePackages[0].slug }));
+        }
+      } else {
+        console.error('Failed to fetch packages');
+      }
+    } catch (error) {
+      console.error('Error fetching packages:', error);
+    } finally {
+      setPackagesLoading(false);
+    }
+  };
 
   const [paymentData, setPaymentData] = useState({
     cardNumber: '',
@@ -128,8 +171,9 @@ export default function RegisterPage() {
         setCurrentStep('package');
       }
     } else if (currentStep === 'package') {
-      // If trial, skip payment
-      if (formData.subscriptionPlan === 'trial') {
+      const selectedPkg = getSelectedPackage();
+      // If free package, skip payment
+      if (selectedPkg && selectedPkg.price === 0) {
         handleSubmit();
       } else {
         setCurrentStep('payment');
@@ -185,20 +229,29 @@ export default function RegisterPage() {
     }
   };
 
+  const getSelectedPackage = () => {
+    return packages.find(pkg => pkg.slug === formData.subscriptionPlan);
+  };
+
   const getPlanPrice = () => {
-    switch (formData.subscriptionPlan) {
-      case 'trial': return '₺0';
-      case 'monthly': return '₺299';
-      case 'yearly': return '₺899';
-    }
+    const pkg = getSelectedPackage();
+    if (!pkg) return '₺0';
+    return pkg.price === 0 ? 'Ücretsiz' : `₺${pkg.price.toFixed(0)}`;
   };
 
   const getPlanName = () => {
-    switch (formData.subscriptionPlan) {
-      case 'trial': return 'Deneme (15 gün)';
-      case 'monthly': return 'Aylık (30 gün)';
-      case 'yearly': return 'Yıllık (365 gün)';
-    }
+    const pkg = getSelectedPackage();
+    if (!pkg) return 'Paket Seçilmedi';
+    return `${pkg.name} (${pkg.durationDays} gün)`;
+  };
+  
+  const getPackageColor = (slug: string) => {
+    const colors: Record<string, { border: string; bg: string; text: string }> = {
+      'trial': { border: 'border-blue-600', bg: 'bg-blue-50', text: 'text-blue-600' },
+      'monthly': { border: 'border-green-600', bg: 'bg-green-50', text: 'text-green-600' },
+      'yearly': { border: 'border-purple-600', bg: 'bg-purple-50', text: 'text-purple-600' },
+    };
+    return colors[slug] || { border: 'border-gray-600', bg: 'bg-gray-50', text: 'text-gray-600' };
   };
 
   return (
@@ -469,127 +522,78 @@ export default function RegisterPage() {
           <Card className="shadow-xl border-2">
             <CardHeader>
               <CardTitle>Paket Seçimi</CardTitle>
+              <p className="text-sm text-gray-600 mt-2">Size en uygun paketi seçin ve hemen başlayın</p>
             </CardHeader>
             <CardContent className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {/* Trial */}
-                <div
-                  className={`border-2 rounded-lg p-6 cursor-pointer transition-all ${
-                    formData.subscriptionPlan === 'trial'
-                      ? 'border-blue-600 bg-blue-50'
-                      : 'border-gray-300 hover:border-blue-400'
-                  }`}
-                  onClick={() => setFormData(prev => ({ ...prev, subscriptionPlan: 'trial' }))}
-                >
-                  <div className="text-center">
-                    <h3 className="text-xl font-bold text-gray-900 mb-2">Deneme</h3>
-                    <div className="text-3xl font-bold text-blue-600 mb-4">₺0</div>
-                    <p className="text-sm text-gray-600 mb-4">15 gün ücretsiz</p>
-                    <ul className="text-left text-sm text-gray-600 space-y-2">
-                      <li className="flex items-start">
-                        <Check className="w-4 h-4 text-green-600 mr-2 mt-0.5 flex-shrink-0" />
-                        <span>50 randevu/ay</span>
-                      </li>
-                      <li className="flex items-start">
-                        <Check className="w-4 h-4 text-green-600 mr-2 mt-0.5 flex-shrink-0" />
-                        <span>Temel özellikler</span>
-                      </li>
-                      <li className="flex items-start">
-                        <Check className="w-4 h-4 text-green-600 mr-2 mt-0.5 flex-shrink-0" />
-                        <span>Email desteği</span>
-                      </li>
-                    </ul>
-                  </div>
-                  {formData.subscriptionPlan === 'trial' && (
-                    <div className="mt-4 text-center">
-                      <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-600 text-white">
-                        <Check className="w-4 h-4 mr-1" />
-                        Seçildi
-                      </span>
-                    </div>
-                  )}
+              {packagesLoading ? (
+                <div className="text-center py-12">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+                  <p className="mt-4 text-gray-600">Paketler yükleniyor...</p>
                 </div>
+              ) : packages.length === 0 ? (
+                <div className="text-center py-12 text-gray-500">
+                  <p>Aktif paket bulunamadı</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {packages.map((pkg) => {
+                    const colors = getPackageColor(pkg.slug);
+                    const isSelected = formData.subscriptionPlan === pkg.slug;
+                    const features = pkg.features ? JSON.parse(pkg.features) : [];
 
-                {/* Monthly */}
-                <div
-                  className={`border-2 rounded-lg p-6 cursor-pointer transition-all relative ${
-                    formData.subscriptionPlan === 'monthly'
-                      ? 'border-green-600 bg-green-50'
-                      : 'border-gray-300 hover:border-green-400'
-                  }`}
-                  onClick={() => setFormData(prev => ({ ...prev, subscriptionPlan: 'monthly' }))}
-                >
-                  <div className="absolute top-0 right-0 bg-green-600 text-white text-xs px-3 py-1 rounded-bl-lg rounded-tr-lg">
-                    Popüler
-                  </div>
-                  <div className="text-center">
-                    <h3 className="text-xl font-bold text-gray-900 mb-2">Aylık</h3>
-                    <div className="text-3xl font-bold text-green-600 mb-1">₺299</div>
-                    <p className="text-sm text-gray-600 mb-4">aylık</p>
-                    <ul className="text-left text-sm text-gray-600 space-y-2">
-                      <li className="flex items-start">
-                        <Check className="w-4 h-4 text-green-600 mr-2 mt-0.5 flex-shrink-0" />
-                        <span>Sınırsız randevu</span>
-                      </li>
-                      <li className="flex items-start">
-                        <Check className="w-4 h-4 text-green-600 mr-2 mt-0.5 flex-shrink-0" />
-                        <span>Tüm özellikler</span>
-                      </li>
-                      <li className="flex items-start">
-                        <Check className="w-4 h-4 text-green-600 mr-2 mt-0.5 flex-shrink-0" />
-                        <span>Öncelikli destek</span>
-                      </li>
-                    </ul>
-                  </div>
-                  {formData.subscriptionPlan === 'monthly' && (
-                    <div className="mt-4 text-center">
-                      <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-600 text-white">
-                        <Check className="w-4 h-4 mr-1" />
-                        Seçildi
-                      </span>
-                    </div>
-                  )}
-                </div>
+                    return (
+                      <div
+                        key={pkg.id}
+                        className={`border-2 rounded-lg p-6 cursor-pointer transition-all relative ${
+                          isSelected
+                            ? `${colors.border} ${colors.bg}`
+                            : 'border-gray-300 hover:border-gray-400'
+                        }`}
+                        onClick={() => setFormData(prev => ({ ...prev, subscriptionPlan: pkg.slug }))}
+                      >
+                        {pkg.isFeatured && (
+                          <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
+                            <Badge className="bg-gradient-to-r from-yellow-400 to-orange-500 text-white flex items-center gap-1 px-3 py-1">
+                              <Star className="w-3 h-3 fill-current" />
+                              {pkg.slug === 'yearly' ? 'En Çok Tercih Edilen' : 'Öne Çıkan'}
+                            </Badge>
+                          </div>
+                        )}
+                        
+                        <div className="text-center">
+                          <h3 className="text-xl font-bold text-gray-900 mb-2">{pkg.name}</h3>
+                          <div className={`text-3xl font-bold ${colors.text} mb-2`}>
+                            {pkg.price === 0 ? 'Ücretsiz' : `₺${pkg.price.toFixed(0)}`}
+                          </div>
+                          <p className="text-sm text-gray-600 mb-4">{pkg.durationDays} gün geçerli</p>
+                          
+                          {pkg.description && (
+                            <p className="text-xs text-gray-500 mb-4 italic">{pkg.description}</p>
+                          )}
 
-                {/* Yearly */}
-                <div
-                  className={`border-2 rounded-lg p-6 cursor-pointer transition-all ${
-                    formData.subscriptionPlan === 'yearly'
-                      ? 'border-purple-600 bg-purple-50'
-                      : 'border-gray-300 hover:border-purple-400'
-                  }`}
-                  onClick={() => setFormData(prev => ({ ...prev, subscriptionPlan: 'yearly' }))}
-                >
-                  <div className="text-center">
-                    <h3 className="text-xl font-bold text-gray-900 mb-2">Yıllık</h3>
-                    <div className="text-3xl font-bold text-purple-600 mb-1">₺899</div>
-                    <p className="text-sm text-gray-600 mb-1">yıllık</p>
-                    <p className="text-xs text-green-600 font-semibold mb-4">%75 tasarruf!</p>
-                    <ul className="text-left text-sm text-gray-600 space-y-2">
-                      <li className="flex items-start">
-                        <Check className="w-4 h-4 text-green-600 mr-2 mt-0.5 flex-shrink-0" />
-                        <span>Sınırsız randevu</span>
-                      </li>
-                      <li className="flex items-start">
-                        <Check className="w-4 h-4 text-green-600 mr-2 mt-0.5 flex-shrink-0" />
-                        <span>Tüm özellikler</span>
-                      </li>
-                      <li className="flex items-start">
-                        <Check className="w-4 h-4 text-green-600 mr-2 mt-0.5 flex-shrink-0" />
-                        <span>7/24 destek</span>
-                      </li>
-                    </ul>
-                  </div>
-                  {formData.subscriptionPlan === 'yearly' && (
-                    <div className="mt-4 text-center">
-                      <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-purple-600 text-white">
-                        <Check className="w-4 h-4 mr-1" />
-                        Seçildi
-                      </span>
-                    </div>
-                  )}
+                          <ul className="text-left text-sm text-gray-600 space-y-2">
+                            {features.map((feature: string, idx: number) => (
+                              <li key={idx} className="flex items-start">
+                                <Check className="w-4 h-4 text-green-600 mr-2 mt-0.5 flex-shrink-0" />
+                                <span>{feature}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+
+                        {isSelected && (
+                          <div className="mt-4 text-center">
+                            <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${colors.border.replace('border-', 'bg-')} text-white`}>
+                              <Check className="w-4 h-4 mr-1" />
+                              Seçildi
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
-              </div>
+              )}
 
               <div className="flex justify-between pt-4">
                 <Button variant="outline" onClick={() => setCurrentStep('info')} size="lg">
@@ -599,10 +603,10 @@ export default function RegisterPage() {
                 <Button 
                   onClick={handleNext} 
                   size="lg" 
-                  disabled={loading}
+                  disabled={loading || packagesLoading}
                   className="bg-gradient-to-r from-green-400 to-blue-500 text-white hover:shadow-xl transition disabled:opacity-50"
                 >
-                  {loading ? 'İşleniyor...' : formData.subscriptionPlan === 'trial' ? 'Kayıt Ol' : 'Ödemeye Geç'}
+                  {loading ? 'İşleniyor...' : getSelectedPackage()?.price === 0 ? 'Kayıt Ol' : 'Ödemeye Geç'}
                   <ArrowRight className="w-4 h-4 ml-2" />
                 </Button>
               </div>
