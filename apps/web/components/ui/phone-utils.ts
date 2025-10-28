@@ -1,7 +1,7 @@
 /**
  * Telefon numarası utility fonksiyonları
  * Standart format: 5xxxxxxxxx (10 haneli, 0 yok)
- * Display format: 5xx xxx xx xx
+ * Display format: 555 555 55 55 (3-3-2-2)
  */
 
 /**
@@ -25,27 +25,35 @@ export function normalizePhone(phone: string): string {
 /**
  * Telefonu formatla (UI için)
  * Girdi: "5551234567"
- * Çıktı: "555 123 45 67"
+ * Çıktı: "555 555 55 55"
  */
 export function formatPhone(phone: string): string {
   if (!phone) return '';
   
   const normalized = normalizePhone(phone);
   
-  // 5xx xxx xx xx formatı
+  // 555 555 55 55 formatı (3-3-2-2)
   if (normalized.length >= 10) {
     return `${normalized.slice(0, 3)} ${normalized.slice(3, 6)} ${normalized.slice(6, 8)} ${normalized.slice(8, 10)}`;
   }
   
-  // Henüz tam girilmemiş
+  // Henüz tam girilmemiş - kademeli format
+  if (normalized.length > 8) {
+    // 8+ karakter: "555 555 55 5"
+    return `${normalized.slice(0, 3)} ${normalized.slice(3, 6)} ${normalized.slice(6, 8)} ${normalized.slice(8)}`;
+  }
+  
   if (normalized.length > 6) {
+    // 7-8 karakter: "555 555 55"
     return `${normalized.slice(0, 3)} ${normalized.slice(3, 6)} ${normalized.slice(6)}`;
   }
   
   if (normalized.length > 3) {
+    // 4-6 karakter: "555 555"
     return `${normalized.slice(0, 3)} ${normalized.slice(3)}`;
   }
   
+  // 1-3 karakter: "555"
   return normalized;
 }
 
@@ -69,10 +77,10 @@ export function validatePhone(phone: string): boolean {
 /**
  * Telefon için placeholder
  */
-export const PHONE_PLACEHOLDER = '5xx xxx xx xx';
+export const PHONE_PLACEHOLDER = '555 555 55 55';
 
 /**
- * Telefon için max length (formatlanmış hali: "555 123 45 67" = 13 karakter)
+ * Telefon için max length (formatlanmış hali: "555 555 55 55" = 13 karakter)
  */
 export const PHONE_MAX_LENGTH = 13;
 
