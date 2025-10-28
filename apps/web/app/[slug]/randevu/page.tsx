@@ -341,8 +341,8 @@ export default function RandevuPage({ params }: PageProps) {
                     setHasPackages(false);
                   }}
                   className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-lg"
-                  placeholder="5XX XXX XX XX"
-                  maxLength={11}
+                  placeholder={PHONE_PLACEHOLDER}
+                  maxLength={PHONE_MAX_LENGTH}
                 />
               </div>
               <p className="text-xs text-gray-500 mt-2">
