@@ -20,7 +20,7 @@ export default function SettingsClient({ user }: SettingsClientProps) {
     themeSettings: {
       primaryColor: '#163974',
       secondaryColor: '#0F2A52',
-      logo: '',
+      logo: 'https://i.hizliresim.com/4a00l8g.png',
       headerImage: ''
     },
     // İşletme bilgileri

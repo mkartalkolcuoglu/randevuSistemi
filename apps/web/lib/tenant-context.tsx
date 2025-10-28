@@ -70,7 +70,7 @@ export const TenantProvider = ({ children, initialTenant }: TenantProviderProps)
     slug: 'demo-salon',
     name: 'Demo Güzellik Salonu',
     description: 'Uzman kadromuz ile güzellik ve bakım hizmetleri',
-    logo: '/demo-logo.png',
+    logo: 'https://i.hizliresim.com/4a00l8g.png',
     primaryColor: '#163974',
     secondaryColor: '#0F2A52',
     settings: {

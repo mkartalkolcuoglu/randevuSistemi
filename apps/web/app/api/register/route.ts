@@ -112,7 +112,7 @@ export async function POST(request: NextRequest) {
       theme: {
         primaryColor: '#163974',
         secondaryColor: '#0F2A52',
-        logo: '',
+        logo: 'https://i.hizliresim.com/4a00l8g.png',
         headerImage: ''
       }
     };
