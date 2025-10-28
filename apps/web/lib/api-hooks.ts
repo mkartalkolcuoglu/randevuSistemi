@@ -304,9 +304,6 @@ export function useAvailableSlots(serviceId: string, date: string, staffId?: str
         const timeSlots = [];
         for (let hour = 9; hour <= 17; hour++) {
           for (let minute = 0; minute < 60; minute += 30) {
-            // Skip lunch break
-            if (hour === 12) continue;
-            
             const timeString = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
             timeSlots.push({
               time: timeString,
