@@ -391,24 +391,24 @@ export default function KasaClient({ tenantId, user }: KasaClientProps) {
       </div>
 
       {/* Action Buttons */}
-      <div className="flex gap-4">
+      <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
         <Button
           onClick={() => setShowSaleModal(true)}
-          className="bg-green-600 hover:bg-green-700"
+          className="bg-green-600 hover:bg-green-700 w-full sm:w-auto"
         >
           <ShoppingCart className="w-4 h-4 mr-2" />
           Satış Ekle
         </Button>
         <Button
           onClick={() => setShowIncomeModal(true)}
-          className="bg-blue-600 hover:bg-blue-700"
+          className="bg-blue-600 hover:bg-blue-700 w-full sm:w-auto"
         >
           <Plus className="w-4 h-4 mr-2" />
           Gelir Ekle
         </Button>
         <Button
           onClick={() => setShowExpenseModal(true)}
-          className="bg-red-600 hover:bg-red-700"
+          className="bg-red-600 hover:bg-red-700 w-full sm:w-auto"
         >
           <Plus className="w-4 h-4 mr-2" />
           Gider Ekle
