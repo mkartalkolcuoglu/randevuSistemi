@@ -219,14 +219,40 @@ export default function RegisterPage() {
         const businessName = data.data.businessName || formData.businessName;
         const username = data.data.username || formData.username;
         
-        setCredentials({
+        const credentialsData = {
           businessName: businessName,
           username: username,
           slug: slug,
           loginUrl: `https://admin.netrandevu.com/login`,
           tenantUrl: `https://netrandevu.com/${slug}`
-        });
+        };
+        
+        setCredentials(credentialsData);
         setCurrentStep('success');
+        
+        // Send welcome email (non-blocking)
+        try {
+          await fetch('/api/send-welcome-email', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              businessName: businessName,
+              slug: slug,
+              username: username,
+              password: formData.password,
+              ownerName: formData.ownerName,
+              ownerEmail: formData.ownerEmail,
+              adminPanelUrl: credentialsData.loginUrl,
+              landingPageUrl: credentialsData.tenantUrl
+            }),
+          });
+          console.log('✅ Welcome email sent successfully');
+        } catch (emailError) {
+          console.error('⚠️ Email send failed (non-blocking):', emailError);
+          // Don't show error to user - email is not critical
+        }
       } else {
         setError(data.error || 'Kayıt oluşturulurken hata oluştu');
       }
@@ -705,8 +731,8 @@ export default function RegisterPage() {
               </div>
 
               {/* Demo Payment Notice */}
-              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                <p className="text-sm text-yellow-800">
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <p className="text-sm text-blue-800">
                   <strong>Demo Mod:</strong> Bu bir demo ödeme sayfasıdır. Gerçek ödeme alınmayacaktır.
                   Herhangi bir kart bilgisi girebilirsiniz.
                 </p>
@@ -806,12 +832,15 @@ export default function RegisterPage() {
         {currentStep === 'success' && credentials && (
           <Card className="shadow-2xl border-2">
             <CardContent className="p-8 text-center">
-              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Check className="w-8 h-8 text-green-600" />
+              <div className="w-20 h-20 bg-gradient-to-br from-green-400 to-blue-500 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg">
+                <Check className="w-10 h-10 text-white" />
               </div>
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">Kayıt Başarılı!</h2>
-              <p className="text-gray-600 mb-6">
-                İşletmeniz başarıyla oluşturuldu. Aşağıdaki bilgileri not alınız.
+              <h2 className="text-3xl font-bold text-gray-900 mb-3">🎉 Kayıt Başarılı!</h2>
+              <p className="text-gray-600 mb-2">
+                İşletmeniz başarıyla oluşturuldu.
+              </p>
+              <p className="text-sm text-gray-500 mb-6">
+                ✉️ Giriş bilgileriniz <strong>{formData.ownerEmail}</strong> adresine gönderildi.
               </p>
 
               {/* Credentials Box */}
@@ -865,10 +894,10 @@ export default function RegisterPage() {
                 </div>
               </div>
 
-              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
-                <p className="text-sm text-yellow-800">
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+                <p className="text-sm text-blue-800">
                   ⚠️ <strong>Önemli:</strong> Bu bilgileri güvenli bir yere kaydediniz. 
-                  Bu bilgiler daha sonra email adresinize gönderilecektir.
+                  Giriş bilgileriniz email adresinize gönderildi. Lütfen gelen kutunuzu (ve spam klasörünüzü) kontrol edin.
                 </p>
               </div>
 
