@@ -25,10 +25,24 @@ import {
 } from 'lucide-react';
 import { useState, useEffect, useCallback } from 'react';
 
+interface SubscriptionPackage {
+  id: string;
+  name: string;
+  slug: string;
+  durationDays: number;
+  price: number;
+  description: string | null;
+  isActive: boolean;
+  isFeatured: boolean;
+  displayOrder: number;
+  features: string | null;
+}
+
 export default function TenantsManagement() {
   const [mounted, setMounted] = useState(false);
   const [tenants, setTenants] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [packages, setPackages] = useState<SubscriptionPackage[]>([]);
   const [stats, setStats] = useState({
     totalTenants: 0,
     activeTenants: 0,
@@ -105,6 +119,19 @@ export default function TenantsManagement() {
     }
   }, [searchTerm, statusFilter, planFilter]);
 
+  // Fetch packages
+  const fetchPackages = useCallback(async () => {
+    try {
+      const response = await fetch('/api/packages');
+      if (response.ok) {
+        const data = await response.json();
+        setPackages(data.data || []);
+      }
+    } catch (error) {
+      console.error('Error fetching packages:', error);
+    }
+  }, []);
+
   // Fetch tenants from API
   useEffect(() => {
     setMounted(true);
@@ -113,8 +140,9 @@ export default function TenantsManagement() {
   useEffect(() => {
     if (mounted) {
       fetchTenants();
+      fetchPackages();
     }
-  }, [mounted, fetchTenants]);
+  }, [mounted, fetchTenants, fetchPackages]);
   
   if (!mounted) {
     return <div>Loading...</div>;
@@ -166,17 +194,29 @@ export default function TenantsManagement() {
     );
   };
 
-  const getPlanBadge = (plan: string) => {
-    const planColors = {
-      'Trial': 'bg-gray-100 text-gray-800',
-      'Standard': 'bg-blue-100 text-blue-800',
-      'Premium': 'bg-purple-100 text-purple-800',
-      'Enterprise': 'bg-yellow-100 text-yellow-800'
-    };
+  const getPlanBadge = (subscriptionPlanSlug: string) => {
+    // Find package by slug
+    const packageData = packages.find(pkg => pkg.slug === subscriptionPlanSlug);
+    
+    // If package found, use its name; otherwise fallback to slug or "Standard"
+    const displayName = packageData?.name || subscriptionPlanSlug || 'Standard';
+    
+    // Color based on price or featured status
+    let color = 'bg-blue-100 text-blue-800'; // Default
+    
+    if (packageData) {
+      if (packageData.price === 0) {
+        color = 'bg-gray-100 text-gray-800'; // Free/Trial
+      } else if (packageData.isFeatured) {
+        color = 'bg-purple-100 text-purple-800'; // Featured
+      } else if (packageData.price > 1000) {
+        color = 'bg-yellow-100 text-yellow-800'; // Premium/Expensive
+      }
+    }
 
     return (
-      <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${planColors[plan as keyof typeof planColors] || planColors.Standard}`}>
-        {plan}
+      <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${color}`}>
+        {displayName}
       </span>
     );
   };
@@ -379,7 +419,7 @@ export default function TenantsManagement() {
                         </div>
                       </td>
                       <td className="py-4 px-4">
-                        {getPlanBadge(tenant.plan)}
+                        {getPlanBadge(tenant.subscriptionPlan || tenant.plan)}
                       </td>
                       <td className="py-4 px-4">
                         {getStatusBadge(tenant.status)}
@@ -472,7 +512,9 @@ export default function TenantsManagement() {
                         </div>
                         <div>
                           <div className="font-medium text-gray-900">{tenant.businessName}</div>
-                          <div className="text-sm text-gray-500">{tenant.plan}</div>
+                          <div className="text-sm text-gray-500">
+                            {packages.find(pkg => pkg.slug === (tenant.subscriptionPlan || tenant.plan))?.name || tenant.plan || 'Standard'}
+                          </div>
                         </div>
                       </div>
                       <div className="text-right">
@@ -498,7 +540,9 @@ export default function TenantsManagement() {
                     <div key={tenant.id} className="flex items-center justify-between p-3 bg-yellow-50 rounded-lg">
                       <div>
                         <div className="font-medium text-gray-900">{tenant.businessName}</div>
-                        <div className="text-sm text-gray-600">{tenant.plan} Plan</div>
+                        <div className="text-sm text-gray-600">
+                          {packages.find(pkg => pkg.slug === (tenant.subscriptionPlan || tenant.plan))?.name || tenant.plan || 'Standard'} Plan
+                        </div>
                       </div>
                       <div className="text-right">
                         <div className="text-sm font-medium text-yellow-800">Aylık</div>
