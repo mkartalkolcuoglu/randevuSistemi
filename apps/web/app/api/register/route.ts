@@ -20,7 +20,7 @@ async function getUniqueSlug(baseSlug: string): Promise<string> {
   let counter = 1;
   
   // Get project-admin URL from environment or use default
-  const projectAdminUrl = process.env.PROJECT_ADMIN_URL || 'https://randevu-sistemi-project-admin.vercel.app';
+  const projectAdminUrl = process.env.PROJECT_ADMIN_URL || 'https://yonetim.netrandevu.com';
   
   while (true) {
     // Check if slug exists in project-admin database
@@ -120,7 +120,7 @@ export async function POST(request: NextRequest) {
     console.log('📤 Creating tenant in project-admin...');
 
     // Get project-admin URL from environment or use default
-    const projectAdminUrl = process.env.PROJECT_ADMIN_URL || 'https://randevu-sistemi-project-admin.vercel.app';
+    const projectAdminUrl = process.env.PROJECT_ADMIN_URL || 'https://yonetim.netrandevu.com';
 
     // Call project-admin API to create tenant
     const createResponse = await fetch(`${projectAdminUrl}/api/tenants`, {
