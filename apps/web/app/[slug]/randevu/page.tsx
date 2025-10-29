@@ -165,21 +165,30 @@ export default function RandevuPage({ params }: PageProps) {
 
   const checkCustomerPackages = async () => {
     setCheckingPackages(true);
+    setIsBlacklisted(false); // Reset blacklist status
+    
     try {
       console.log('📞 Checking packages and blacklist for phone:', phoneNumber, 'slug:', slug);
       
       // First, check if customer is blacklisted
-      const blacklistResponse = await fetch(`https://admin.netrandevu.com/api/public/check-blacklist?phone=${encodeURIComponent(phoneNumber)}&tenantSlug=${slug}`);
-      if (blacklistResponse.ok) {
-        const blacklistData = await blacklistResponse.json();
-        if (blacklistData.isBlacklisted) {
-          console.log('🚫 Customer is blacklisted');
-          setIsBlacklisted(true);
-          setCheckingPackages(false);
-          return; // Stop here, don't check packages
+      try {
+        const blacklistResponse = await fetch(`https://admin.netrandevu.com/api/public/check-blacklist?phone=${encodeURIComponent(phoneNumber)}&tenantSlug=${slug}`);
+        if (blacklistResponse.ok) {
+          const blacklistData = await blacklistResponse.json();
+          if (blacklistData.isBlacklisted) {
+            console.log('🚫 Customer is blacklisted');
+            setIsBlacklisted(true);
+            return; // Stop here, don't check packages
+          } else {
+            console.log('✅ Customer is not blacklisted');
+          }
         }
+      } catch (blacklistError) {
+        console.error('⚠️ Blacklist check failed, continuing:', blacklistError);
+        // Continue to package check if blacklist check fails
       }
       
+      // Continue with package check
       const response = await fetch(`https://admin.netrandevu.com/api/customer-packages/check`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
