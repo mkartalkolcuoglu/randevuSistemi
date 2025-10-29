@@ -50,6 +50,8 @@ export default function AppointmentsClient({ initialAppointments, tenantId, user
         return 'bg-red-100 text-red-800';
       case 'pending':
         return 'bg-yellow-100 text-yellow-800';
+      case 'no_show':
+        return 'bg-orange-100 text-orange-800';
       default:
         return 'bg-gray-100 text-gray-800';
     }
@@ -67,6 +69,8 @@ export default function AppointmentsClient({ initialAppointments, tenantId, user
         return 'İptal Edildi';
       case 'pending':
         return 'Beklemede';
+      case 'no_show':
+        return 'Gelmedi ve Bilgi Vermedi';
       default:
         return status;
     }
@@ -322,6 +326,7 @@ export default function AppointmentsClient({ initialAppointments, tenantId, user
                         <option value="pending">Beklemede</option>
                         <option value="completed">Tamamlandı</option>
                         <option value="cancelled">İptal Edildi</option>
+                        <option value="no_show">Gelmedi ve Bilgi Vermedi</option>
                       </select>
                     </div>
                     <div className="flex-1 sm:max-w-xs">

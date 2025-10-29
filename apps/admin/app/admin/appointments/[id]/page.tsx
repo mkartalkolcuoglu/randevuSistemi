@@ -185,6 +185,8 @@ export default function AppointmentDetailPage() {
         return 'bg-blue-100 text-blue-800';
       case 'cancelled':
         return 'bg-red-100 text-red-800';
+      case 'no_show':
+        return 'bg-orange-100 text-orange-800';
       default:
         return 'bg-gray-100 text-gray-800';
     }
@@ -200,6 +202,8 @@ export default function AppointmentDetailPage() {
         return 'Tamamlandı';
       case 'cancelled':
         return 'İptal Edildi';
+      case 'no_show':
+        return 'Gelmedi ve Bilgi Vermedi';
       default:
         return 'Bilinmiyor';
     }
@@ -441,6 +445,7 @@ export default function AppointmentDetailPage() {
                   <option value="confirmed">Onaylandı</option>
                   <option value="completed">Tamamlandı</option>
                   <option value="cancelled">İptal Edildi</option>
+                  <option value="no_show">Gelmedi ve Bilgi Vermedi</option>
                 </select>
               </div>
 

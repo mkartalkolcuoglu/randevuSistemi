@@ -140,6 +140,8 @@ export default async function AdminDashboard() {
         return 'bg-red-100 text-red-800';
       case 'pending':
         return 'bg-yellow-100 text-yellow-800';
+      case 'no_show':
+        return 'bg-orange-100 text-orange-800';
       default:
         return 'bg-gray-100 text-gray-800';
     }
@@ -157,6 +159,8 @@ export default async function AdminDashboard() {
         return 'İptal Edildi';
       case 'pending':
         return 'Beklemede';
+      case 'no_show':
+        return 'Gelmedi ve Bilgi Vermedi';
       default:
         return status;
     }
