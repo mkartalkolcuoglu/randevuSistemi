@@ -6,6 +6,19 @@ import { ArrowLeft, Building2, Save, Trash2 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
+interface SubscriptionPackage {
+  id: string;
+  name: string;
+  slug: string;
+  durationDays: number;
+  price: number;
+  description: string | null;
+  isActive: boolean;
+  isFeatured: boolean;
+  displayOrder: number;
+  features: string | null;
+}
+
 interface EditTenantPageProps {
   params: Promise<{ id: string }>;
 }
@@ -18,6 +31,9 @@ export default function EditTenantPage({ params }: EditTenantPageProps) {
   const [deleting, setDeleting] = useState(false);
   const [logoPreview, setLogoPreview] = useState<string>('');
   const [headerPreview, setHeaderPreview] = useState<string>('');
+  const [packages, setPackages] = useState<SubscriptionPackage[]>([]);
+  const [packagesLoading, setPackagesLoading] = useState(true);
+  
   const [formData, setFormData] = useState({
     businessName: '',
     slug: '',
@@ -31,7 +47,7 @@ export default function EditTenantPage({ params }: EditTenantPageProps) {
     address: '',
     businessType: 'salon',
     businessDescription: '',
-    subscriptionPlan: 'trial',
+    subscriptionPlan: '',
     subscriptionStart: '',
     subscriptionEnd: '',
     workingHours: {
@@ -58,7 +74,27 @@ export default function EditTenantPage({ params }: EditTenantPageProps) {
       fetchTenant(resolvedParams.id);
     }
     loadParams();
+    fetchPackages();
   }, [params]);
+
+  const fetchPackages = async () => {
+    try {
+      setPackagesLoading(true);
+      const response = await fetch('/api/packages');
+      
+      if (response.ok) {
+        const data = await response.json();
+        const activePackages = data.data.filter((pkg: SubscriptionPackage) => pkg.isActive);
+        setPackages(activePackages);
+      } else {
+        console.error('Failed to fetch packages');
+      }
+    } catch (error) {
+      console.error('Error fetching packages:', error);
+    } finally {
+      setPackagesLoading(false);
+    }
+  };
 
   const fetchTenant = async (id: string) => {
     try {
@@ -183,32 +219,23 @@ export default function EditTenantPage({ params }: EditTenantPageProps) {
     
     // If subscription plan changes, recalculate end date
     if (name === 'subscriptionPlan') {
-      const now = new Date();
-      let daysToAdd = 15; // Default trial
+      const selectedPackage = packages.find(pkg => pkg.slug === value);
       
-      switch (value) {
-        case 'trial':
-          daysToAdd = 15;
-          break;
-        case 'monthly':
-          daysToAdd = 30;
-          break;
-        case 'yearly':
-          daysToAdd = 365;
-          break;
+      if (selectedPackage) {
+        const now = new Date();
+        const endDate = new Date(now.getTime() + selectedPackage.durationDays * 24 * 60 * 60 * 1000);
+        
+        console.log('Subscription plan changed to:', value);
+        console.log('Package duration:', selectedPackage.durationDays, 'days');
+        console.log('New end date:', endDate.toISOString());
+        
+        setFormData(prev => ({
+          ...prev,
+          subscriptionPlan: value,
+          subscriptionStart: now.toISOString(),
+          subscriptionEnd: endDate.toISOString()
+        }));
       }
-      
-      const endDate = new Date(now.getTime() + daysToAdd * 24 * 60 * 60 * 1000);
-      
-      console.log('Subscription plan changed to:', value);
-      console.log('New end date:', endDate.toISOString());
-      
-      setFormData(prev => ({
-        ...prev,
-        subscriptionPlan: value,
-        subscriptionStart: now.toISOString(),
-        subscriptionEnd: endDate.toISOString()
-      }));
     } else {
       setFormData(prev => ({
         ...prev,
@@ -587,16 +614,28 @@ export default function EditTenantPage({ params }: EditTenantPageProps) {
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Abonelik Paketi
                   </label>
-                  <select
-                    name="subscriptionPlan"
-                    value={formData.subscriptionPlan}
-                    onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="trial">Deneme (15 gün)</option>
-                    <option value="monthly">Aylık (30 gün)</option>
-                    <option value="yearly">Yıllık (365 gün)</option>
-                  </select>
+                  {packagesLoading ? (
+                    <div className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-500">
+                      Paketler yükleniyor...
+                    </div>
+                  ) : packages.length === 0 ? (
+                    <div className="w-full px-3 py-2 border border-red-300 rounded-md bg-red-50 text-red-600 text-sm">
+                      Aktif paket bulunamadı. Lütfen önce paket oluşturun.
+                    </div>
+                  ) : (
+                    <select
+                      name="subscriptionPlan"
+                      value={formData.subscriptionPlan}
+                      onChange={handleInputChange}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      {packages.map((pkg) => (
+                        <option key={pkg.id} value={pkg.slug}>
+                          {pkg.name} ({pkg.durationDays} gün) - {pkg.price === 0 ? 'Ücretsiz' : `₺${pkg.price}`}
+                        </option>
+                      ))}
+                    </select>
+                  )}
                   {formData.subscriptionStart && (
                     <p className="mt-2 text-xs text-gray-600">
                       Başlangıç: {new Date(formData.subscriptionStart).toLocaleDateString('tr-TR')}
