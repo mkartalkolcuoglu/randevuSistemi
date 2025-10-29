@@ -206,6 +206,28 @@ export default function CustomerDetailPage() {
                   </div>
                 </div>
                 <div>
+                  <label className="text-sm font-medium text-gray-600">Gelmedi Sayısı</label>
+                  <div className="mt-1">
+                    <Badge className="bg-orange-100 text-orange-800">
+                      {customer.noShowCount || 0} defa
+                    </Badge>
+                  </div>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-600">Kara Liste Durumu</label>
+                  <div className="mt-1">
+                    {customer.isBlacklisted ? (
+                      <Badge className="bg-red-100 text-red-800">
+                        🚫 Kara Listede
+                      </Badge>
+                    ) : (
+                      <Badge className="bg-green-100 text-green-800">
+                        ✓ Aktif
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+                <div>
                   <label className="text-sm font-medium text-gray-600">Cinsiyet</label>
                   <p>{customer.gender || 'Belirtilmemiş'}</p>
                 </div>

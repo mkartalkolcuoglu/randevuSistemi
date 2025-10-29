@@ -20,6 +20,7 @@ export default function NewAppointmentPage() {
   const [allTimeSlots, setAllTimeSlots] = useState<string[]>([]);
   const [timeInterval, setTimeInterval] = useState<number>(30); // Default: 30 minutes
   const [workingHours, setWorkingHours] = useState<WorkingHours | null>(null);
+  const [blacklistWarning, setBlacklistWarning] = useState<string | null>(null);
 
   // Form state
   const [formData, setFormData] = useState({
@@ -202,6 +203,20 @@ export default function NewAppointmentPage() {
     }));
     setCustomerSearch(`${customer.firstName} ${customer.lastName}`);
     setShowCustomerDropdown(false);
+
+    // Check if customer is blacklisted
+    if (customer.isBlacklisted) {
+      setBlacklistWarning(
+        `⚠️ UYARI: Bu müşteri kara listede! (${customer.noShowCount || 0} defa gelmedi) ` +
+        `Randevu oluşturabilirsiniz ancak dikkatli olun.`
+      );
+    } else if (customer.noShowCount > 0) {
+      setBlacklistWarning(
+        `⚠️ DİKKAT: Bu müşteri ${customer.noShowCount} defa randevusuna gelmedi.`
+      );
+    } else {
+      setBlacklistWarning(null);
+    }
   };
 
   const handleCustomerSearchChange = (value: string) => {
@@ -271,6 +286,13 @@ export default function NewAppointmentPage() {
           </CardTitle>
         </CardHeader>
         <CardContent>
+          {/* Blacklist Warning */}
+          {blacklistWarning && (
+            <div className="mb-6 p-4 bg-red-50 border-l-4 border-red-500 rounded-r">
+              <p className="text-red-800 font-medium">{blacklistWarning}</p>
+            </div>
+          )}
+
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Customer Selection with Autocomplete */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

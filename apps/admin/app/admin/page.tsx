@@ -49,7 +49,12 @@ async function getDashboardData(tenantId: string, userType: string, staffId?: st
       where: { tenantId: tenantId }
     });
 
+    // Blacklisted customers count
+    const blacklistedCustomers = customers.filter(c => c.isBlacklisted);
+    const blacklistedCount = blacklistedCustomers.length;
+
     console.log('📊 [Dashboard] Found', appointments.length, 'appointments and', customers.length, 'customers');
+    console.log('🚫 [Dashboard] Blacklisted customers:', blacklistedCount);
 
     // Calculate stats
     const totalAppointments = appointments.length;
@@ -92,6 +97,8 @@ async function getDashboardData(tenantId: string, userType: string, staffId?: st
       thisMonthAppointments,
       completedAppointments,
       totalCustomers: customers.length,
+      blacklistedCount,
+      blacklistedCustomers: blacklistedCustomers.slice(0, 5), // Last 5 blacklisted customers
       monthlyRevenue,
       recentAppointments,
       appointmentsByStatus: {
@@ -109,6 +116,8 @@ async function getDashboardData(tenantId: string, userType: string, staffId?: st
       thisMonthAppointments: 0,
       completedAppointments: 0,
       totalCustomers: 0,
+      blacklistedCount: 0,
+      blacklistedCustomers: [],
       monthlyRevenue: 0,
       recentAppointments: [],
       appointmentsByStatus: {
@@ -176,6 +185,35 @@ export default async function AdminDashboard() {
           <h1 className="text-3xl font-bold text-gray-900">Hoş Geldiniz, {user.ownerName}</h1>
           <p className="text-gray-600">{user.businessName} yönetim paneli</p>
         </div>
+
+        {/* Blacklist Warning */}
+        {dashboardData.blacklistedCount > 0 && (
+          <div className="mb-6 p-4 bg-red-50 border-l-4 border-red-500 rounded-r shadow-sm">
+            <div className="flex items-start">
+              <AlertTriangle className="w-5 h-5 text-red-600 mr-3 mt-0.5" />
+              <div className="flex-1">
+                <h3 className="text-sm font-semibold text-red-800">
+                  Kara Listede {dashboardData.blacklistedCount} Müşteri Var
+                </h3>
+                <p className="text-sm text-red-700 mt-1">
+                  Randevularına gelmeyen müşterileri kara liste sayfasından görüntüleyebilirsiniz.
+                </p>
+                {dashboardData.blacklistedCustomers && dashboardData.blacklistedCustomers.length > 0 && (
+                  <div className="mt-2 text-xs text-red-600">
+                    Son kara listeye alınanlar: {dashboardData.blacklistedCustomers.map((c: any) => 
+                      `${c.firstName} ${c.lastName}`
+                    ).join(', ')}
+                  </div>
+                )}
+                <Link href="/admin/blacklist" className="inline-block mt-3">
+                  <Button size="sm" variant="outline" className="text-red-700 border-red-300 hover:bg-red-100">
+                    Kara Listeyi Görüntüle
+                  </Button>
+                </Link>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Stats Cards */}
         <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-8">

@@ -36,6 +36,7 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '20');
     const search = searchParams.get('search') || '';
     const status = searchParams.get('status') || 'all';
+    const blacklisted = searchParams.get('blacklisted'); // 'true' for blacklisted only
 
     try {
       // Build where clause
@@ -52,6 +53,11 @@ export async function GET(request: NextRequest) {
       
       if (status !== 'all') {
         where.status = status;
+      }
+
+      // Filter by blacklist status
+      if (blacklisted === 'true') {
+        where.isBlacklisted = true;
       }
 
       // Get total count

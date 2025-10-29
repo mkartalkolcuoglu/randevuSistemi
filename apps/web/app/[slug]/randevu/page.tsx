@@ -235,6 +235,26 @@ export default function RandevuPage({ params }: PageProps) {
       return;
     }
 
+    // Check if customer is blacklisted
+    if (customerInfo.phone) {
+      try {
+        const checkResponse = await fetch(`https://admin.netrandevu.com/api/public/check-blacklist?phone=${encodeURIComponent(customerInfo.phone)}&tenantSlug=${slug}`);
+        if (checkResponse.ok) {
+          const checkData = await checkResponse.json();
+          if (checkData.isBlacklisted) {
+            alert(
+              'Bu telefon numarası için randevu oluşturulamıyor.\n\n' +
+              'Lütfen işletme ile iletişime geçin.'
+            );
+            return;
+          }
+        }
+      } catch (error) {
+        console.error('Kara liste kontrolü başarısız:', error);
+        // Continue anyway if check fails
+      }
+    }
+
     try {
       const selectedServiceData = services?.find(s => s.id === selectedService);
       const appointmentData = {
