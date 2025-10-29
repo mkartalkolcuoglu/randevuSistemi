@@ -49,8 +49,8 @@ async function getDashboardData(tenantId: string, userType: string, staffId?: st
       where: { tenantId: tenantId }
     });
 
-    // Blacklisted customers count
-    const blacklistedCustomers = customers.filter(c => c.isBlacklisted);
+    // Blacklisted customers count (safely check for isBlacklisted field)
+    const blacklistedCustomers = customers.filter(c => c.isBlacklisted === true) || [];
     const blacklistedCount = blacklistedCustomers.length;
 
     console.log('📊 [Dashboard] Found', appointments.length, 'appointments and', customers.length, 'customers');
@@ -187,7 +187,7 @@ export default async function AdminDashboard() {
         </div>
 
         {/* Blacklist Warning */}
-        {dashboardData.blacklistedCount > 0 && (
+        {dashboardData?.blacklistedCount > 0 && (
           <div className="mb-6 p-4 bg-red-50 border-l-4 border-red-500 rounded-r shadow-sm">
             <div className="flex items-start">
               <AlertTriangle className="w-5 h-5 text-red-600 mr-3 mt-0.5" />
@@ -198,7 +198,7 @@ export default async function AdminDashboard() {
                 <p className="text-sm text-red-700 mt-1">
                   Randevularına gelmeyen müşterileri kara liste sayfasından görüntüleyebilirsiniz.
                 </p>
-                {dashboardData.blacklistedCustomers && dashboardData.blacklistedCustomers.length > 0 && (
+                {dashboardData?.blacklistedCustomers?.length > 0 && (
                   <div className="mt-2 text-xs text-red-600">
                     Son kara listeye alınanlar: {dashboardData.blacklistedCustomers.map((c: any) => 
                       `${c.firstName} ${c.lastName}`
