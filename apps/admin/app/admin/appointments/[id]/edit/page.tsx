@@ -226,26 +226,41 @@ export default function EditAppointmentPage() {
     setIsLoading(true);
 
     try {
+      // Find service and staff details to include names and price
+      const selectedService = services.find(s => s.id === formData.serviceId);
+      const selectedStaff = staff.find(st => st.id === formData.staffId);
+
+      const dataToSend = {
+        ...formData,
+        serviceName: selectedService?.name || '',
+        staffName: selectedStaff ? `${selectedStaff.firstName} ${selectedStaff.lastName}` : '',
+        price: selectedService?.price || 0
+      };
+
+      console.log('📤 Sending update:', dataToSend);
+
       const response = await fetch(`/api/appointments/${params.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(formData)
+        body: JSON.stringify(dataToSend)
       });
 
       if (!response.ok) {
-        throw new Error('Network response was not ok');
+        const errorData = await response.json();
+        console.error('❌ Update failed:', errorData);
+        throw new Error(errorData.error || 'Network response was not ok');
       }
 
       const result = await response.json();
-      console.log('Appointment updated:', result);
+      console.log('✅ Appointment updated:', result);
       
       alert('Randevu başarıyla güncellendi!');
       router.push(`/admin/appointments/${params.id}`);
     } catch (error) {
       console.error('Error updating appointment:', error);
-      alert('Randevu güncellenirken bir hata oluştu.');
+      alert('Randevu güncellenirken bir hata oluştu: ' + (error instanceof Error ? error.message : 'Bilinmeyen hata'));
     } finally {
       setIsLoading(false);
     }
