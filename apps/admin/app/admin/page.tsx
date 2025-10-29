@@ -53,11 +53,22 @@ async function getDashboardData(tenantId: string, userType: string, staffId?: st
 
     // Calculate stats
     const totalAppointments = appointments.length;
+    
+    // Today's appointments
     const todayAppointments = appointments.filter((app) => {
       const today = new Date().toISOString().split('T')[0];
       return app.date === today;
     }).length;
     
+    // This month's appointments
+    const thisMonthAppointments = appointments.filter((app) => {
+      const appointmentDate = new Date(app.date);
+      const now = new Date();
+      return appointmentDate.getMonth() === now.getMonth() && 
+             appointmentDate.getFullYear() === now.getFullYear();
+    }).length;
+    
+    // Monthly revenue (exclude package usage)
     const monthlyRevenue = appointments
       .filter((app) => {
         const appointmentDate = new Date(app.date);
@@ -68,11 +79,18 @@ async function getDashboardData(tenantId: string, userType: string, staffId?: st
       })
       .reduce((sum, app) => sum + (Number(app.price) || 0), 0);
 
+    // Completed appointments count
+    const completedAppointments = appointments.filter((app) => 
+      app.status === 'completed' || app.status === 'confirmed'
+    ).length;
+
     const recentAppointments = appointments.slice(0, 5);
 
     return {
       totalAppointments,
       todayAppointments,
+      thisMonthAppointments,
+      completedAppointments,
       totalCustomers: customers.length,
       monthlyRevenue,
       recentAppointments,
@@ -88,6 +106,8 @@ async function getDashboardData(tenantId: string, userType: string, staffId?: st
     return {
       totalAppointments: 0,
       todayAppointments: 0,
+      thisMonthAppointments: 0,
+      completedAppointments: 0,
       totalCustomers: 0,
       monthlyRevenue: 0,
       recentAppointments: [],
@@ -176,8 +196,8 @@ export default async function AdminDashboard() {
                   <Clock className="w-5 h-5 sm:w-6 sm:h-6 text-green-600" />
                 </div>
                 <div className="sm:ml-4">
-                  <p className="text-xs sm:text-sm font-medium text-gray-600">Bu Ay Yeni</p>
-                  <p className="text-xl sm:text-2xl font-bold text-gray-900">{dashboardData.todayAppointments}</p>
+                  <p className="text-xs sm:text-sm font-medium text-gray-600">Bu Ay</p>
+                  <p className="text-xl sm:text-2xl font-bold text-gray-900">{dashboardData.thisMonthAppointments}</p>
                 </div>
               </div>
             </CardContent>
@@ -187,11 +207,11 @@ export default async function AdminDashboard() {
             <CardContent className="p-4 sm:p-6">
               <div className="flex flex-col sm:flex-row items-start sm:items-center">
                 <div className="p-2 bg-purple-100 rounded-lg mb-2 sm:mb-0">
-                  <User className="w-5 h-5 sm:w-6 sm:h-6 text-purple-600" />
+                  <CheckCircle className="w-5 h-5 sm:w-6 sm:h-6 text-purple-600" />
                 </div>
                 <div className="sm:ml-4">
-                  <p className="text-xs sm:text-sm font-medium text-gray-600">E-posta Olan</p>
-                  <p className="text-xl sm:text-2xl font-bold text-gray-900">{dashboardData.totalCustomers}</p>
+                  <p className="text-xs sm:text-sm font-medium text-gray-600">Tamamlanan</p>
+                  <p className="text-xl sm:text-2xl font-bold text-gray-900">{dashboardData.completedAppointments}</p>
                 </div>
               </div>
             </CardContent>
@@ -201,11 +221,11 @@ export default async function AdminDashboard() {
             <CardContent className="p-4 sm:p-6">
               <div className="flex flex-col sm:flex-row items-start sm:items-center">
                 <div className="p-2 bg-orange-100 rounded-lg mb-2 sm:mb-0">
-                  <Users className="w-5 h-5 sm:w-6 sm:h-6 text-orange-600" />
+                  <DollarSign className="w-5 h-5 sm:w-6 sm:h-6 text-orange-600" />
                 </div>
                 <div className="sm:ml-4">
-                  <p className="text-xs sm:text-sm font-medium text-gray-600">Telefon Olan</p>
-                  <p className="text-xl sm:text-2xl font-bold text-gray-900">{dashboardData.monthlyRevenue}₺</p>
+                  <p className="text-xs sm:text-sm font-medium text-gray-600">Bu Ay Gelir</p>
+                  <p className="text-xl sm:text-2xl font-bold text-gray-900">{dashboardData.monthlyRevenue.toLocaleString('tr-TR')}₺</p>
                 </div>
               </div>
             </CardContent>
