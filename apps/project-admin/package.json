@@ -5,8 +5,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack --port 3002",
-    "build": "prisma generate && next build",
-    "vercel-build": "prisma db push --skip-generate && prisma generate && npm run db:seed || true && next build",
+    "build": "prisma db push --skip-generate && prisma generate && npm run db:seed || true && next build",
     "start": "next start",
     "lint": "next lint --max-warnings 0",
     "check-types": "tsc --noEmit",

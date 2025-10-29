@@ -5,7 +5,7 @@ import { LogOut } from 'lucide-react';
 import { Button } from '@repo/ui';
 import { useState } from 'react';
 
-export function Header() {
+export default function Header() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
 
