@@ -1,6 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '../../../lib/prisma';
 
+// CORS headers for cross-origin requests
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+};
+
+// OPTIONS handler for CORS preflight
+export async function OPTIONS() {
+  return NextResponse.json({}, { headers: corsHeaders });
+}
+
 // GET - List all packages
 export async function GET() {
   try {
@@ -11,12 +23,12 @@ export async function GET() {
     return NextResponse.json({
       success: true,
       data: packages
-    });
+    }, { headers: corsHeaders });
   } catch (error) {
     console.error('Error fetching packages:', error);
     return NextResponse.json(
       { success: false, error: 'Failed to fetch packages' },
-      { status: 500 }
+      { status: 500, headers: corsHeaders }
     );
   }
 }
@@ -70,12 +82,12 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       data: newPackage
-    });
+    }, { headers: corsHeaders });
   } catch (error) {
     console.error('Error creating package:', error);
     return NextResponse.json(
       { success: false, error: 'Failed to create package' },
-      { status: 500 }
+      { status: 500, headers: corsHeaders }
     );
   }
 }
