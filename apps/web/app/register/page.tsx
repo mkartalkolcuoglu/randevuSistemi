@@ -535,7 +535,7 @@ export default function RegisterPage() {
                   <p>Aktif paket bulunamadı</p>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   {packages.map((pkg) => {
                     const colors = getPackageColor(pkg.slug);
                     const isSelected = formData.subscriptionPlan === pkg.slug;
@@ -544,58 +544,116 @@ export default function RegisterPage() {
                     return (
                       <div
                         key={pkg.id}
-                        className={`border-2 rounded-lg p-6 cursor-pointer transition-all relative ${
+                        className={`border-2 rounded-xl p-8 cursor-pointer transition-all relative shadow-sm hover:shadow-lg ${
                           isSelected
-                            ? `${colors.border} ${colors.bg}`
-                            : 'border-gray-300 hover:border-gray-400'
+                            ? `${colors.border} ${colors.bg} scale-105`
+                            : 'border-gray-200 hover:border-gray-300'
                         }`}
                         onClick={() => setFormData(prev => ({ ...prev, subscriptionPlan: pkg.slug }))}
                       >
                         {pkg.isFeatured && (
-                          <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
-                            <Badge className="bg-gradient-to-r from-yellow-400 to-orange-500 text-white flex items-center gap-1 px-3 py-1">
-                              <Star className="w-3 h-3 fill-current" />
-                              {pkg.slug === 'yearly' ? 'En Çok Tercih Edilen' : 'Öne Çıkan'}
+                          <div className="absolute -top-3 right-4">
+                            <Badge className="bg-purple-600 text-white px-3 py-1 text-xs font-semibold">
+                              %20 İNDİRİM
                             </Badge>
                           </div>
                         )}
                         
-                        <div className="text-center">
-                          <h3 className="text-xl font-bold text-gray-900 mb-2">{pkg.name}</h3>
-                          <div className={`text-3xl font-bold ${colors.text} mb-2`}>
-                            {pkg.price === 0 ? 'Ücretsiz' : `₺${pkg.price.toFixed(0)}`}
+                        <div>
+                          {/* Header */}
+                          <div className="text-center mb-6">
+                            <h3 className="text-xl font-bold text-gray-900 mb-3">{pkg.name}</h3>
+                            
+                            {isSelected && (
+                              <div className="flex justify-center mb-3">
+                                <Check className="w-6 h-6 text-blue-600" />
+                              </div>
+                            )}
+                            
+                            <div className="mb-2">
+                              <span className={`text-4xl font-bold ${colors.text}`}>
+                                {pkg.price === 0 ? 'Ücretsiz' : `₺${pkg.price.toFixed(0)}`}
+                              </span>
+                            </div>
+                            
+                            <p className="text-sm text-gray-500">
+                              {pkg.durationDays === 15 ? '15 Gün' : pkg.durationDays === 30 ? 'Aylık' : 'Yıllık'}
+                              {pkg.price > 0 && pkg.durationDays === 365 && (
+                                <span className="line-through text-gray-400 ml-2">₺{pkg.price + 599}</span>
+                              )}
+                            </p>
                           </div>
-                          <p className="text-sm text-gray-600 mb-4">{pkg.durationDays} gün geçerli</p>
-                          
-                          {pkg.description && (
-                            <p className="text-xs text-gray-500 mb-4 italic">{pkg.description}</p>
-                          )}
 
-                          <ul className="text-left text-sm text-gray-600 space-y-2">
+                          {/* Features */}
+                          <ul className="space-y-3 mb-6">
                             {features.map((feature: string, idx: number) => (
-                              <li key={idx} className="flex items-start">
-                                <Check className="w-4 h-4 text-green-600 mr-2 mt-0.5 flex-shrink-0" />
+                              <li key={idx} className="flex items-start text-sm text-gray-700">
+                                <Check className="w-4 h-4 text-green-500 mr-2 mt-0.5 flex-shrink-0" />
                                 <span>{feature}</span>
                               </li>
                             ))}
                           </ul>
-                        </div>
 
-                        {isSelected && (
-                          <div className="mt-4 text-center">
-                            <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${colors.border.replace('border-', 'bg-')} text-white`}>
-                              <Check className="w-4 h-4 mr-1" />
-                              Seçildi
-                            </span>
-                          </div>
-                        )}
+                          {/* Additional Info */}
+                          {pkg.price === 0 && (
+                            <div className="text-xs text-gray-500 border-t pt-4 space-y-1">
+                              <p className="flex items-start">
+                                <Check className="w-3 h-3 text-gray-400 mr-1 mt-0.5" />
+                                <span>Tüm özelliklere erişim</span>
+                              </p>
+                              <p className="flex items-start">
+                                <Check className="w-3 h-3 text-gray-400 mr-1 mt-0.5" />
+                                <span>15 gün sonra otomatik pasif olur</span>
+                              </p>
+                              <p className="flex items-start">
+                                <Check className="w-3 h-3 text-gray-400 mr-1 mt-0.5" />
+                                <span>Kredi kartı gerekmez</span>
+                              </p>
+                            </div>
+                          )}
+
+                          {pkg.durationDays === 30 && (
+                            <div className="text-xs text-gray-500 border-t pt-4 space-y-1">
+                              <p className="flex items-start">
+                                <Check className="w-3 h-3 text-gray-400 mr-1 mt-0.5" />
+                                <span>30 gün geçerli</span>
+                              </p>
+                              <p className="flex items-start">
+                                <Check className="w-3 h-3 text-gray-400 mr-1 mt-0.5" />
+                                <span>Dilediğiniz zaman iptal</span>
+                              </p>
+                            </div>
+                          )}
+
+                          {pkg.durationDays === 365 && (
+                            <div className="text-xs text-gray-500 border-t pt-4 space-y-1">
+                              <p className="flex items-start">
+                                <Check className="w-3 h-3 text-gray-400 mr-1 mt-0.5" />
+                                <span>1 yıl geçerli</span>
+                              </p>
+                              <p className="flex items-start">
+                                <Check className="w-3 h-3 text-gray-400 mr-1 mt-0.5" />
+                                <span>2 ay bedava!</span>
+                              </p>
+                            </div>
+                          )}
+                        </div>
                       </div>
                     );
                   })}
                 </div>
               )}
 
-              <div className="flex justify-between pt-4">
+              {/* Informational Note */}
+              {!packagesLoading && packages.length > 0 && (
+                <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mt-6">
+                  <p className="text-sm text-amber-800">
+                    <strong>Not:</strong> Paket süresi dolduğunda tenant otomatik olarak pasif hale gelecektir.
+                  </p>
+                </div>
+              )}
+
+              <div className="flex justify-between pt-6">
                 <Button variant="outline" onClick={() => setCurrentStep('info')} size="lg">
                   <ArrowLeft className="w-4 h-4 mr-2" />
                   Geri
