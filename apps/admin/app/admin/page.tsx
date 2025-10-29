@@ -23,21 +23,33 @@ import AdminHeader from './admin-header';
 const prisma = new PrismaClient();
 
 // Server-side data fetching functions
-async function getDashboardData(tenantId: string) {
+async function getDashboardData(tenantId: string, userType: string, staffId?: string) {
   try {
-    console.log('📊 Fetching dashboard data for tenant:', tenantId);
+    console.log('📊 [Dashboard] Fetching data for tenant:', tenantId);
+    console.log('👤 [Dashboard] User type:', userType);
+    console.log('🆔 [Dashboard] Staff ID:', staffId);
+
+    // Build where clause for appointments
+    const appointmentWhere: any = { tenantId: tenantId };
+    
+    // If user is staff, only show their appointments
+    if (userType === 'staff' && staffId) {
+      appointmentWhere.staffId = staffId;
+      console.log('📌 [Dashboard] Filtering appointments by staffId:', staffId);
+    }
 
     // Get real data from PostgreSQL database using Prisma
     const appointments = await prisma.appointment.findMany({
-      where: { tenantId: tenantId },
+      where: appointmentWhere,
       orderBy: { createdAt: 'desc' }
     });
 
+    // Customers query - show all for tenant (staff can see all customers)
     const customers = await prisma.customer.findMany({
       where: { tenantId: tenantId }
     });
 
-    console.log('📊 Found', appointments.length, 'appointments and', customers.length, 'customers');
+    console.log('📊 [Dashboard] Found', appointments.length, 'appointments and', customers.length, 'customers');
 
     // Calculate stats
     const totalAppointments = appointments.length;
@@ -94,7 +106,7 @@ async function getDashboardData(tenantId: string) {
 export default async function AdminDashboard() {
   // Require authentication and get user data
   const user = await requireAuth();
-  const dashboardData = await getDashboardData(user.id);
+  const dashboardData = await getDashboardData(user.tenantId, user.userType, user.staffId);
 
   const getStatusColor = (status: string) => {
     switch (status) {
