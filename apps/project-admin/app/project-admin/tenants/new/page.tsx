@@ -1,16 +1,32 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button, Input, Label, Textarea, Card, CardContent, CardHeader, CardTitle } from '@repo/ui';
 import { ChevronLeft, Save, Palette, Clock, Building2, User, Key, Package } from 'lucide-react';
 import Link from 'next/link';
+
+interface SubscriptionPackage {
+  id: string;
+  name: string;
+  slug: string;
+  durationDays: number;
+  price: number;
+  description: string | null;
+  isActive: boolean;
+  isFeatured: boolean;
+  displayOrder: number;
+  features: string | null;
+}
 
 export default function NewTenantPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [logoPreview, setLogoPreview] = useState<string>('');
   const [headerPreview, setHeaderPreview] = useState<string>('');
+  const [packages, setPackages] = useState<SubscriptionPackage[]>([]);
+  const [packagesLoading, setPackagesLoading] = useState(true);
+  
   const [formData, setFormData] = useState({
     businessName: '',
     slug: '',
@@ -22,7 +38,7 @@ export default function NewTenantPage() {
     address: '',
     businessType: 'salon', // Default
     businessDescription: '',
-    subscriptionPlan: 'trial', // Default to trial
+    subscriptionPlan: '', // Will be set after packages load
     workingHours: {
       monday: { start: '09:00', end: '18:00', closed: false },
       tuesday: { start: '09:00', end: '18:00', closed: false },
@@ -39,6 +55,35 @@ export default function NewTenantPage() {
       headerImage: '',
     },
   });
+
+  // Fetch packages on mount
+  useEffect(() => {
+    fetchPackages();
+  }, []);
+
+  const fetchPackages = async () => {
+    try {
+      setPackagesLoading(true);
+      const response = await fetch('/api/packages');
+      
+      if (response.ok) {
+        const data = await response.json();
+        const activePackages = data.data.filter((pkg: SubscriptionPackage) => pkg.isActive);
+        setPackages(activePackages);
+        
+        // Set default selection to first package
+        if (activePackages.length > 0) {
+          setFormData(prev => ({ ...prev, subscriptionPlan: activePackages[0].slug }));
+        }
+      } else {
+        console.error('Failed to fetch packages');
+      }
+    } catch (error) {
+      console.error('Error fetching packages:', error);
+    } finally {
+      setPackagesLoading(false);
+    }
+  };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -148,23 +193,18 @@ export default function NewTenantPage() {
     e.preventDefault();
     setLoading(true);
     try {
-      // Calculate subscription dates based on selected plan
+      // Calculate subscription dates based on selected package
       const now = new Date();
-      let subscriptionEnd: Date;
+      const selectedPackage = packages.find(pkg => pkg.slug === formData.subscriptionPlan);
       
-      switch (formData.subscriptionPlan) {
-        case 'trial':
-          subscriptionEnd = new Date(now.getTime() + 15 * 24 * 60 * 60 * 1000); // 15 days
-          break;
-        case 'monthly':
-          subscriptionEnd = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000); // 30 days
-          break;
-        case 'yearly':
-          subscriptionEnd = new Date(now.getTime() + 365 * 24 * 60 * 60 * 1000); // 365 days
-          break;
-        default:
-          subscriptionEnd = new Date(now.getTime() + 15 * 24 * 60 * 60 * 1000); // Default to trial
+      if (!selectedPackage) {
+        alert('Lütfen bir paket seçin!');
+        setLoading(false);
+        return;
       }
+      
+      // Calculate end date using package's durationDays
+      const subscriptionEnd = new Date(now.getTime() + selectedPackage.durationDays * 24 * 60 * 60 * 1000);
 
       // Prepare tenant data with subscription info
       const tenantData = {
@@ -346,123 +386,75 @@ export default function NewTenantPage() {
               <CardTitle className="flex items-center"><Package className="w-5 h-5 mr-2" /> Paket Seçimi</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {/* Trial Package */}
-                <div 
-                  className={`border-2 rounded-lg p-4 cursor-pointer transition-all ${
-                    formData.subscriptionPlan === 'trial' 
-                      ? 'border-blue-600 bg-blue-50' 
-                      : 'border-gray-300 hover:border-blue-400'
-                  }`}
-                  onClick={() => setFormData((prev) => ({ ...prev, subscriptionPlan: 'trial' }))}
-                >
-                  <div className="flex items-center justify-between mb-3">
-                    <h3 className="text-lg font-bold text-gray-900">Deneme</h3>
-                    {formData.subscriptionPlan === 'trial' && (
-                      <span className="text-blue-600 font-bold">✓</span>
-                    )}
-                  </div>
-                  <div className="mb-3">
-                    <p className="text-3xl font-bold text-gray-900">Ücretsiz</p>
-                    <p className="text-sm text-gray-600">15 Gün</p>
-                  </div>
-                  <ul className="space-y-2 text-sm text-gray-600">
-                    <li className="flex items-start">
-                      <span className="mr-2">✓</span>
-                      <span>Tüm özelliklere erişim</span>
-                    </li>
-                    <li className="flex items-start">
-                      <span className="mr-2">✓</span>
-                      <span>15 gün sonra otomatik pasif olur</span>
-                    </li>
-                    <li className="flex items-start">
-                      <span className="mr-2">✓</span>
-                      <span>Kredi kartı gerekmez</span>
-                    </li>
-                  </ul>
+              {packagesLoading ? (
+                <div className="text-center py-12">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+                  <p className="mt-4 text-gray-600">Paketler yükleniyor...</p>
                 </div>
-
-                {/* Monthly Package */}
-                <div 
-                  className={`border-2 rounded-lg p-4 cursor-pointer transition-all ${
-                    formData.subscriptionPlan === 'monthly' 
-                      ? 'border-green-600 bg-green-50' 
-                      : 'border-gray-300 hover:border-green-400'
-                  }`}
-                  onClick={() => setFormData((prev) => ({ ...prev, subscriptionPlan: 'monthly' }))}
-                >
-                  <div className="flex items-center justify-between mb-3">
-                    <h3 className="text-lg font-bold text-gray-900">Aylık Paket</h3>
-                    {formData.subscriptionPlan === 'monthly' && (
-                      <span className="text-green-600 font-bold">✓</span>
-                    )}
-                  </div>
-                  <div className="mb-3">
-                    <p className="text-3xl font-bold text-gray-900">₺299</p>
-                    <p className="text-sm text-gray-600">Aylık</p>
-                  </div>
-                  <ul className="space-y-2 text-sm text-gray-600">
-                    <li className="flex items-start">
-                      <span className="mr-2">✓</span>
-                      <span>Tüm özelliklere erişim</span>
-                    </li>
-                    <li className="flex items-start">
-                      <span className="mr-2">✓</span>
-                      <span>30 gün geçerli</span>
-                    </li>
-                    <li className="flex items-start">
-                      <span className="mr-2">✓</span>
-                      <span>Dilediğiniz zaman iptal</span>
-                    </li>
-                  </ul>
+              ) : packages.length === 0 ? (
+                <div className="text-center py-12 text-gray-500">
+                  <p>Aktif paket bulunamadı. Lütfen önce paket oluşturun.</p>
+                  <Link href="/project-admin/packages/new" className="text-blue-600 hover:underline mt-2 inline-block">
+                    Yeni Paket Oluştur →
+                  </Link>
                 </div>
+              ) : (
+                <>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {packages.map((pkg) => {
+                      const isSelected = formData.subscriptionPlan === pkg.slug;
+                      const features = pkg.features ? JSON.parse(pkg.features) : [];
+                      
+                      return (
+                        <div 
+                          key={pkg.id}
+                          className={`border-2 rounded-lg p-4 cursor-pointer transition-all relative ${
+                            isSelected
+                              ? 'border-blue-600 bg-blue-50' 
+                              : 'border-gray-300 hover:border-blue-400'
+                          }`}
+                          onClick={() => setFormData((prev) => ({ ...prev, subscriptionPlan: pkg.slug }))}
+                        >
+                          {pkg.isFeatured && (
+                            <div className="absolute -top-3 right-3 bg-purple-600 text-white text-xs font-bold px-2 py-1 rounded">
+                              ÖNE ÇIKAN
+                            </div>
+                          )}
+                          <div className="flex items-center justify-between mb-3">
+                            <h3 className="text-lg font-bold text-gray-900">{pkg.name}</h3>
+                            {isSelected && (
+                              <span className="text-blue-600 font-bold">✓</span>
+                            )}
+                          </div>
+                          <div className="mb-3">
+                            <p className="text-3xl font-bold text-gray-900">
+                              {pkg.price === 0 ? 'Ücretsiz' : `₺${pkg.price.toFixed(0)}`}
+                            </p>
+                            <p className="text-sm text-gray-600">{pkg.durationDays} Gün</p>
+                          </div>
+                          {pkg.description && (
+                            <p className="text-sm text-gray-600 mb-3">{pkg.description}</p>
+                          )}
+                          <ul className="space-y-2 text-sm text-gray-600">
+                            {features.map((feature: string, idx: number) => (
+                              <li key={idx} className="flex items-start">
+                                <span className="mr-2">✓</span>
+                                <span>{feature}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      );
+                    })}
+                  </div>
 
-                {/* Yearly Package */}
-                <div 
-                  className={`border-2 rounded-lg p-4 cursor-pointer transition-all relative ${
-                    formData.subscriptionPlan === 'yearly' 
-                      ? 'border-purple-600 bg-purple-50' 
-                      : 'border-gray-300 hover:border-purple-400'
-                  }`}
-                  onClick={() => setFormData((prev) => ({ ...prev, subscriptionPlan: 'yearly' }))}
-                >
-                  <div className="absolute -top-3 right-3 bg-purple-600 text-white text-xs font-bold px-2 py-1 rounded">
-                    %20 İNDİRİM
-                  </div>
-                  <div className="flex items-center justify-between mb-3">
-                    <h3 className="text-lg font-bold text-gray-900">Yıllık Paket</h3>
-                    {formData.subscriptionPlan === 'yearly' && (
-                      <span className="text-purple-600 font-bold">✓</span>
-                    )}
-                  </div>
-                  <div className="mb-3">
-                    <p className="text-3xl font-bold text-gray-900">₺2.869</p>
-                    <p className="text-sm text-gray-600">
-                      Yıllık <span className="line-through text-gray-400">₺3.588</span>
+                  <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                    <p className="text-sm text-yellow-800">
+                      <strong>Not:</strong> Paket süresi dolduğunda tenant otomatik olarak pasif hale gelecektir.
                     </p>
                   </div>
-                  <ul className="space-y-2 text-sm text-gray-600">
-                    <li className="flex items-start">
-                      <span className="mr-2">✓</span>
-                      <span>Tüm özelliklere erişim</span>
-                    </li>
-                    <li className="flex items-start">
-                      <span className="mr-2">✓</span>
-                      <span>1 yıl geçerli</span>
-                    </li>
-                    <li className="flex items-start">
-                      <span className="mr-2">✓</span>
-                      <span>2 ay bedava!</span>
-                    </li>
-                  </ul>
-                </div>
-              </div>
-
-              <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-                <p className="text-sm text-yellow-800">
-                  <strong>Not:</strong> Paket süresi dolduğunda tenant otomatik olarak pasif hale gelecektir.
-                </p>
-              </div>
+                </>
+              )}
             </CardContent>
           </Card>
 
