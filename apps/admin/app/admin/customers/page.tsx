@@ -1,11 +1,9 @@
 import { requireAuth, requirePageAccess } from '../../../lib/auth-utils';
 import CustomersClient from './customers-client';
 import UnauthorizedAccess from '../../../components/UnauthorizedAccess';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../../../lib/prisma';
 
 export const dynamic = 'force-dynamic';
-
-const prisma = new PrismaClient();
 
 async function getCustomers(tenantId: string) {
   try {
@@ -17,8 +15,6 @@ async function getCustomers(tenantId: string) {
   } catch (error) {
     console.error('Error fetching customers:', error);
     return [];
-  } finally {
-    await prisma.$disconnect();
   }
 }
 
