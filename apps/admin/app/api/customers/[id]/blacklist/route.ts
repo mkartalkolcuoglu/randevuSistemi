@@ -4,10 +4,10 @@ import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 
 /**
- * DELETE /api/customers/[id]/blacklist
+ * PUT /api/customers/[id]/blacklist
  * Remove customer from blacklist (keep no-show count)
  */
-export async function DELETE(
+export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
@@ -43,5 +43,17 @@ export async function DELETE(
   } finally {
     await prisma.$disconnect();
   }
+}
+
+/**
+ * DELETE /api/customers/[id]/blacklist
+ * Remove customer from blacklist (keep no-show count)
+ * Alias for PUT for backward compatibility
+ */
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  return PUT(request, { params });
 }
 
