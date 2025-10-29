@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Button, Input, Card, CardContent, CardHeader, CardTitle, Badge, AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@repo/ui';
-import { Plus, Search, Edit, Trash2, Phone, Mail, Calendar, User, AlertCircle, CheckCircle } from 'lucide-react';
+import { Plus, Search, Edit, Trash2, Phone, Mail, Calendar, User, AlertCircle, CheckCircle, AlertTriangle, XCircle } from 'lucide-react';
 import Link from 'next/link';
 import AdminHeader from '../admin-header';
 import { DataTable, Column } from '../../../components/DataTable';
@@ -16,6 +16,7 @@ interface CustomersClientProps {
 
 export default function CustomersClient({ initialCustomers, tenantId, user }: CustomersClientProps) {
   const [statusFilter, setStatusFilter] = useState('all');
+  const [blacklistFilter, setBlacklistFilter] = useState('all'); // 'all', 'blacklisted', 'active'
   const [customers, setCustomers] = useState(initialCustomers);
   const [loading, setLoading] = useState(false);
   const [totalCustomers, setTotalCustomers] = useState(0);
@@ -26,15 +27,23 @@ export default function CustomersClient({ initialCustomers, tenantId, user }: Cu
   const [errorModalOpen, setErrorModalOpen] = useState(false);
   const [errorMessage, setErrorMessage] = useState({ title: '', description: '' });
   const [successModalOpen, setSuccessModalOpen] = useState(false);
+  const [removeBlacklistModalOpen, setRemoveBlacklistModalOpen] = useState(false);
+  const [customerToRemoveFromBlacklist, setCustomerToRemoveFromBlacklist] = useState<string | null>(null);
 
   useEffect(() => {
     fetchCustomers();
-  }, []);
+  }, [blacklistFilter]);
 
   const fetchCustomers = async () => {
     try {
       setLoading(true);
-      const response = await fetch('/api/customers');
+      let url = '/api/customers';
+      if (blacklistFilter === 'blacklisted') {
+        url += '?blacklisted=true';
+      } else if (blacklistFilter === 'active') {
+        url += '?blacklisted=false';
+      }
+      const response = await fetch(url);
       if (response.ok) {
         const data = await response.json();
         setCustomers(data.data || []);
@@ -50,6 +59,44 @@ export default function CustomersClient({ initialCustomers, tenantId, user }: Cu
   const handleDeleteClick = (id: string) => {
     setCustomerToDelete(id);
     setDeleteModalOpen(true);
+  };
+
+  const handleRemoveFromBlacklistClick = (id: string) => {
+    setCustomerToRemoveFromBlacklist(id);
+    setRemoveBlacklistModalOpen(true);
+  };
+
+  const handleRemoveFromBlacklistConfirm = async () => {
+    if (!customerToRemoveFromBlacklist) return;
+    
+    setRemoveBlacklistModalOpen(false);
+    
+    try {
+      const response = await fetch(`/api/customers/${customerToRemoveFromBlacklist}/blacklist`, {
+        method: 'PUT',
+      });
+
+      if (response.ok) {
+        setSuccessModalOpen(true);
+        await fetchCustomers();
+      } else {
+        const errorData = await response.json();
+        setErrorMessage({
+          title: '❌ Hata',
+          description: errorData.error || 'Kara listeden çıkarma işlemi başarısız oldu.'
+        });
+        setErrorModalOpen(true);
+      }
+    } catch (error) {
+      console.error('Error removing from blacklist:', error);
+      setErrorMessage({
+        title: '❌ Hata',
+        description: 'Kara listeden çıkarılırken bir hata oluştu. Lütfen tekrar deneyin.'
+      });
+      setErrorModalOpen(true);
+    } finally {
+      setCustomerToRemoveFromBlacklist(null);
+    }
   };
 
   const handleDeleteConfirm = async () => {
@@ -187,6 +234,45 @@ export default function CustomersClient({ initialCustomers, tenantId, user }: Cu
       render: (customer) => getStatusBadge(customer.status)
     },
     {
+      key: 'blacklist',
+      label: 'Kara Liste',
+      sortable: true,
+      getValue: (customer) => customer.isBlacklisted ? 1 : 0,
+      render: (customer) => {
+        if (customer.isBlacklisted) {
+          return (
+            <div className="flex items-center">
+              <Badge className="bg-red-100 text-red-800 flex items-center gap-1">
+                <AlertTriangle className="w-3 h-3" />
+                Kara Listede
+              </Badge>
+              {customer.noShowCount > 0 && (
+                <span className="ml-2 text-xs text-red-600">
+                  ({customer.noShowCount} gelmedi)
+                </span>
+              )}
+            </div>
+          );
+        }
+        if (customer.noShowCount > 0) {
+          return (
+            <div className="flex items-center">
+              <Badge className="bg-yellow-100 text-yellow-800 flex items-center gap-1">
+                <AlertCircle className="w-3 h-3" />
+                {customer.noShowCount} Gelmedi
+              </Badge>
+            </div>
+          );
+        }
+        return (
+          <Badge className="bg-green-100 text-green-800 flex items-center gap-1">
+            <CheckCircle className="w-3 h-3" />
+            Temiz
+          </Badge>
+        );
+      }
+    },
+    {
       key: 'actions',
       label: 'İşlemler',
       render: (customer) => (
@@ -200,6 +286,17 @@ export default function CustomersClient({ initialCustomers, tenantId, user }: Cu
               <Edit className="w-4 h-4" />
             </Button>
           </Link>
+          {customer.isBlacklisted && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handleRemoveFromBlacklistClick(customer.id)}
+              className="text-green-600 hover:bg-green-50"
+              title="Kara Listeden Çıkar"
+            >
+              <CheckCircle className="w-4 h-4" />
+            </Button>
+          )}
           <Button
             variant="outline"
             size="sm"
@@ -251,7 +348,7 @@ export default function CustomersClient({ initialCustomers, tenantId, user }: Cu
           </div>
 
           {/* İstatistikler */}
-          <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-6">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 sm:gap-6 mb-6">
             <Card>
               <CardContent className="p-4 sm:p-6">
                 <div className="flex flex-col sm:flex-row items-start sm:items-center">
@@ -318,24 +415,57 @@ export default function CustomersClient({ initialCustomers, tenantId, user }: Cu
                 </div>
               </CardContent>
             </Card>
+            
+            <Card>
+              <CardContent className="p-4 sm:p-6">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center">
+                  <div className="p-2 bg-red-100 rounded-lg mb-2 sm:mb-0">
+                    <AlertTriangle className="h-5 w-5 sm:h-6 sm:w-6 text-red-600" />
+                  </div>
+                  <div className="sm:ml-4">
+                    <p className="text-xs sm:text-sm font-medium text-gray-500">Kara Listede</p>
+                    <p className="text-xl sm:text-2xl font-bold text-gray-900">
+                      {customers.filter(c => c.isBlacklisted === true).length}
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           </div>
 
-          {/* Status Filter */}
+          {/* Filters */}
           <Card className="mb-6">
             <CardContent className="p-6">
-              <div className="w-full md:w-64">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Durum Filtresi
-                </label>
-                <select
-                  value={statusFilter}
-                  onChange={(e) => setStatusFilter(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                >
-                  <option value="all">Tüm Durumlar</option>
-                  <option value="active">Aktif</option>
-                  <option value="inactive">Pasif</option>
-                </select>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Durum Filtresi
+                  </label>
+                  <select
+                    value={statusFilter}
+                    onChange={(e) => setStatusFilter(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    <option value="all">Tüm Durumlar</option>
+                    <option value="active">Aktif</option>
+                    <option value="inactive">Pasif</option>
+                  </select>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Kara Liste Filtresi
+                  </label>
+                  <select
+                    value={blacklistFilter}
+                    onChange={(e) => setBlacklistFilter(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    <option value="all">Tümü</option>
+                    <option value="active">Sadece Aktif Müşteriler</option>
+                    <option value="blacklisted">Sadece Kara Listedekiler</option>
+                  </select>
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -373,6 +503,36 @@ export default function CustomersClient({ initialCustomers, tenantId, user }: Cu
           </Card>
         </div>
       </main>
+
+      {/* Remove from Blacklist Confirmation Modal */}
+      <AlertDialog open={removeBlacklistModalOpen} onOpenChange={setRemoveBlacklistModalOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <CheckCircle className="w-5 h-5 text-green-500" />
+              Kara Listeden Çıkarma Onayı
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-base">
+              Bu müşteriyi kara listeden çıkarmak istediğinizden emin misiniz?
+              <br /><br />
+              <span className="text-yellow-600 font-medium">
+                ⚠️ Not: Gelmedi sayacı sıfırlanmayacak. Sadece kara liste durumu kaldırılacak.
+              </span>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setCustomerToRemoveFromBlacklist(null)}>
+              İptal
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleRemoveFromBlacklistConfirm}
+              className="bg-green-600 hover:bg-green-700"
+            >
+              Evet, Çıkar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Delete Confirmation Modal */}
       <AlertDialog open={deleteModalOpen} onOpenChange={setDeleteModalOpen}>

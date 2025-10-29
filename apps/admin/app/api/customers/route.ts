@@ -58,6 +58,8 @@ export async function GET(request: NextRequest) {
       // Filter by blacklist status
       if (blacklisted === 'true') {
         where.isBlacklisted = true;
+      } else if (blacklisted === 'false') {
+        where.isBlacklisted = false;
       }
 
       // Get total count
