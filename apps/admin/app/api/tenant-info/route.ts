@@ -51,7 +51,7 @@ export async function GET() {
       );
     }
 
-    // Also fetch settings (for appointmentTimeInterval)
+    // Also fetch settings (for appointmentTimeInterval and blacklistThreshold)
     const settings = await prisma.settings.findUnique({
       where: { tenantId: tenantId }
     });
@@ -59,7 +59,8 @@ export async function GET() {
     // Merge tenant and settings data
     const mergedData = {
       ...tenant,
-      appointmentTimeInterval: settings?.appointmentTimeInterval || 30
+      appointmentTimeInterval: settings?.appointmentTimeInterval || 30,
+      blacklistThreshold: settings?.blacklistThreshold || 3
     };
 
     // Return full tenant info (including theme, workingHours, subscription, etc.)
@@ -159,18 +160,24 @@ export async function PUT(request: Request) {
       data: updateData
     });
 
-    // Also update or create settings (for appointmentTimeInterval)
-    if (data.appointmentTimeInterval !== undefined) {
+    // Also update or create settings (for appointmentTimeInterval and blacklistThreshold)
+    if (data.appointmentTimeInterval !== undefined || data.blacklistThreshold !== undefined) {
       const existingSettings = await prisma.settings.findUnique({
         where: { tenantId: tenantId }
       });
 
+      const settingsData: any = {};
+      if (data.appointmentTimeInterval !== undefined) {
+        settingsData.appointmentTimeInterval = parseInt(data.appointmentTimeInterval);
+      }
+      if (data.blacklistThreshold !== undefined) {
+        settingsData.blacklistThreshold = parseInt(data.blacklistThreshold);
+      }
+
       if (existingSettings) {
         await prisma.settings.update({
           where: { tenantId: tenantId },
-          data: {
-            appointmentTimeInterval: parseInt(data.appointmentTimeInterval)
-          }
+          data: settingsData
         });
       } else {
         // Create settings if they don't exist
@@ -178,7 +185,7 @@ export async function PUT(request: Request) {
           data: {
             tenantId: tenantId,
             businessName: data.businessName || updatedTenant.businessName,
-            appointmentTimeInterval: parseInt(data.appointmentTimeInterval)
+            ...settingsData
           }
         });
       }
@@ -190,7 +197,8 @@ export async function PUT(request: Request) {
       success: true,
       data: {
         ...updatedTenant,
-        appointmentTimeInterval: data.appointmentTimeInterval || 30
+        appointmentTimeInterval: data.appointmentTimeInterval || 30,
+        blacklistThreshold: data.blacklistThreshold || 3
       }
     });
 

@@ -102,6 +102,15 @@ export async function PUT(
       await deductFromPackage(updatedAppointment);
     }
 
+    // If status changed to "no_show", increment customer's no-show count and check blacklist
+    const isNoShow = data.status === 'no_show';
+    const wasNoShow = oldAppointment?.status === 'no_show';
+    
+    if (isNoShow && !wasNoShow && updatedAppointment.customerPhone) {
+      console.log(`🚫 Status changed to no_show - checking blacklist for customer: ${updatedAppointment.customerPhone}`);
+      await handleNoShowBlacklist(updatedAppointment);
+    }
+
     return NextResponse.json({
       success: true,
       message: 'Appointment updated successfully',
@@ -115,6 +124,73 @@ export async function PUT(
     );
   } finally {
     await prisma.$disconnect();
+  }
+}
+
+async function handleNoShowBlacklist(appointment: any) {
+  try {
+    console.log('🚫 [BLACKLIST] Processing no-show for appointment:', appointment.id);
+    console.log('🚫 [BLACKLIST] Customer phone:', appointment.customerPhone);
+    console.log('🚫 [BLACKLIST] Tenant ID:', appointment.tenantId);
+
+    // Find customer by phone and tenant (phone can be shared across tenants)
+    const customer = await prisma.customer.findFirst({
+      where: {
+        tenantId: appointment.tenantId,
+        phone: appointment.customerPhone
+      }
+    });
+
+    if (!customer) {
+      console.log('⚠️ [BLACKLIST] Customer not found - might be a walk-in or deleted customer');
+      return;
+    }
+
+    console.log('👤 [BLACKLIST] Found customer:', customer.id, `(${customer.firstName} ${customer.lastName})`);
+    console.log('📊 [BLACKLIST] Current no-show count:', customer.noShowCount);
+
+    // Increment no-show count
+    const newNoShowCount = customer.noShowCount + 1;
+    console.log('📈 [BLACKLIST] New no-show count will be:', newNoShowCount);
+
+    // Get blacklist threshold from settings
+    const settings = await prisma.settings.findUnique({
+      where: { tenantId: appointment.tenantId }
+    });
+
+    const threshold = settings?.blacklistThreshold || 3;
+    console.log('⚙️ [BLACKLIST] Blacklist threshold:', threshold);
+
+    // Check if should be blacklisted
+    const shouldBlacklist = newNoShowCount >= threshold;
+    console.log('🔍 [BLACKLIST] Should blacklist?', shouldBlacklist, `(${newNoShowCount} >= ${threshold})`);
+
+    // Update customer
+    const updateData: any = {
+      noShowCount: newNoShowCount
+    };
+
+    if (shouldBlacklist && !customer.isBlacklisted) {
+      updateData.isBlacklisted = true;
+      updateData.blacklistedAt = new Date();
+      console.log('🚨 [BLACKLIST] Customer will be BLACKLISTED!');
+    }
+
+    await prisma.customer.update({
+      where: { id: customer.id },
+      data: updateData
+    });
+
+    if (shouldBlacklist && !customer.isBlacklisted) {
+      console.log('✅ [BLACKLIST] Customer successfully blacklisted:', customer.id);
+      console.log(`🚨 [BLACKLIST] ${customer.firstName} ${customer.lastName} (${customer.phone}) has been blacklisted after ${newNoShowCount} no-shows`);
+    } else {
+      console.log(`✅ [BLACKLIST] No-show count updated to ${newNoShowCount} for ${customer.firstName} ${customer.lastName}`);
+    }
+
+  } catch (error) {
+    console.error('❌ [BLACKLIST] Error handling no-show blacklist:', error);
+    // Don't throw - we don't want to fail the appointment update if blacklist logic fails
   }
 }
 

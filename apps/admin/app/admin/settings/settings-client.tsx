@@ -47,6 +47,7 @@ export default function SettingsClient({ user }: SettingsClientProps) {
     },
     // Randevu ayarları
     appointmentTimeInterval: 30, // dakika cinsinden
+    blacklistThreshold: 3, // Kara liste eşiği (kaç defa gelmedi)
     // Konum ayarları
     location: {
       latitude: '',
@@ -142,6 +143,7 @@ export default function SettingsClient({ user }: SettingsClientProps) {
             // Other data
             workingHours: workingHoursData || prev.workingHours,
             appointmentTimeInterval: tenant.appointmentTimeInterval || 30, // Default: 30 dakika
+            blacklistThreshold: tenant.blacklistThreshold || 3, // Default: 3 defa gelmedi
             themeSettings: themeData,
             location: locationData
           }));
@@ -1072,6 +1074,31 @@ export default function SettingsClient({ user }: SettingsClientProps) {
             </select>
             <p className="text-xs text-gray-500 mt-1">
               Seçilen aralık, tüm randevu sayfalarında kullanılacaktır.
+            </p>
+          </div>
+
+          <div className="space-y-2">
+            <label className="block text-sm font-medium text-gray-700">
+              Kara Liste Eşiği
+            </label>
+            <select
+              value={settings.blacklistThreshold}
+              onChange={(e) => setSettings(prev => ({ ...prev, blacklistThreshold: parseInt(e.target.value) }))}
+              className="w-full md:w-64 px-4 py-2.5 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base font-medium"
+            >
+              <option value={1}>1 defa</option>
+              <option value={2}>2 defa</option>
+              <option value={3}>3 defa</option>
+              <option value={4}>4 defa</option>
+              <option value={5}>5 defa</option>
+              <option value={6}>6 defa</option>
+              <option value={7}>7 defa</option>
+              <option value={8}>8 defa</option>
+              <option value={9}>9 defa</option>
+              <option value={10}>10 defa</option>
+            </select>
+            <p className="text-xs text-gray-500 mt-1">
+              Müşteri kaç defa "Gelmedi ve Bilgi Vermedi" durumuna sahip olursa kara listeye alınsın?
             </p>
           </div>
 
