@@ -11,64 +11,9 @@ async function main() {
   await prisma.supportTicket.deleteMany()
   await prisma.slaMetric.deleteMany()
   await prisma.admin.deleteMany()
-  await prisma.subscriptionPackage.deleteMany()
-
-  // Create subscription packages
-  await prisma.subscriptionPackage.createMany({
-    data: [
-      {
-        name: '15 Günlük Deneme',
-        slug: 'trial',
-        durationDays: 15,
-        price: 0,
-        isActive: true,
-        isFeatured: false,
-        displayOrder: 1,
-        description: 'Sistemi 15 gün boyunca ücretsiz deneyin',
-        features: JSON.stringify([
-          'Sınırsız randevu',
-          'Temel özellikler',
-          'Email desteği'
-        ])
-      },
-      {
-        name: 'Aylık Paket',
-        slug: 'monthly',
-        durationDays: 30,
-        price: 299,
-        isActive: true,
-        isFeatured: false,
-        displayOrder: 2,
-        description: 'Aylık abonelik ile tüm özelliklere erişin',
-        features: JSON.stringify([
-          'Sınırsız randevu',
-          'Tüm özellikler',
-          'Öncelikli destek',
-          'Detaylı raporlar'
-        ])
-      },
-      {
-        name: 'Yıllık Paket',
-        slug: 'yearly',
-        durationDays: 365,
-        price: 2999,
-        isActive: true,
-        isFeatured: true, // Öne çıkan paket (en çok tercih edilen)
-        displayOrder: 3,
-        description: 'Yıllık öde, %20 tasarruf et!',
-        features: JSON.stringify([
-          'Sınırsız randevu',
-          'Tüm premium özellikler',
-          '7/24 destek',
-          'Detaylı raporlar',
-          'Özel entegrasyonlar',
-          '%20 indirim'
-        ])
-      }
-    ]
-  })
-
-  console.log('✅ Created 3 subscription packages')
+  // Note: Subscription packages are managed via Project Admin UI
+  // No default packages are seeded - admin creates them manually
+  console.log('ℹ️  Subscription packages should be created via Project Admin UI')
 
   // Create admin user
   await prisma.admin.create({
