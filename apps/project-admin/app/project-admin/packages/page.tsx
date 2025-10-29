@@ -16,7 +16,6 @@ import {
 } from '../../../components/ui/alert-dialog';
 import { Plus, Edit, Trash2, Star, ChevronUp, ChevronDown, Package } from 'lucide-react';
 import Link from 'next/link';
-import Header from '../../../components/Header';
 
 interface SubscriptionPackage {
   id: string;
@@ -124,9 +123,7 @@ export default function PackagesPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50">
-        <Header />
-        <div className="flex items-center justify-center min-h-screen">
+      <div className="flex items-center justify-center min-h-screen">
           <div className="text-center">
             <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900"></div>
             <p className="mt-4 text-gray-600">Paketler yükleniyor...</p>
@@ -137,10 +134,7 @@ export default function PackagesPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <Header />
-
-      <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+    <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
         <div className="px-4 py-6 sm:px-0">
           <div className="flex justify-between items-center mb-6">
             <div>
@@ -299,7 +293,7 @@ export default function PackagesPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </main>
   );
 }
 

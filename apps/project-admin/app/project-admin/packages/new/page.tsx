@@ -10,7 +10,6 @@ import { Switch } from '../../../../components/ui/switch';
 import { ArrowLeft, Save, Plus, X } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import Header from '../../../../components/Header';
 
 export default function NewPackagePage() {
   const router = useRouter();
@@ -95,10 +94,7 @@ export default function NewPackagePage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <Header />
-
-      <main className="max-w-4xl mx-auto py-6 sm:px-6 lg:px-8">
+    <main className="max-w-4xl mx-auto py-6 sm:px-6 lg:px-8">
         <div className="px-4 py-6 sm:px-0">
           <div className="mb-6">
             <Link href="/project-admin/packages">
@@ -283,8 +279,7 @@ export default function NewPackagePage() {
             </Card>
           </form>
         </div>
-      </main>
-    </div>
+    </main>
   );
 }
 

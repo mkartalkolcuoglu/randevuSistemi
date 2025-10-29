@@ -10,7 +10,6 @@ import { Switch } from '../../../../../components/ui/switch';
 import { ArrowLeft, Save, Plus, X } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import Header from '../../../../../components/Header';
 
 export default function EditPackagePage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
@@ -116,9 +115,7 @@ export default function EditPackagePage({ params }: { params: Promise<{ id: stri
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50">
-        <Header />
-        <div className="flex items-center justify-center min-h-screen">
+      <div className="flex items-center justify-center min-h-screen">
           <div className="text-center">
             <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900"></div>
             <p className="mt-4 text-gray-600">Paket yükleniyor...</p>
@@ -129,10 +126,7 @@ export default function EditPackagePage({ params }: { params: Promise<{ id: stri
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <Header />
-
-      <main className="max-w-4xl mx-auto py-6 sm:px-6 lg:px-8">
+    <main className="max-w-4xl mx-auto py-6 sm:px-6 lg:px-8">
         <div className="px-4 py-6 sm:px-0">
           <div className="mb-6">
             <Link href="/project-admin/packages">
@@ -317,8 +311,7 @@ export default function EditPackagePage({ params }: { params: Promise<{ id: stri
             </Card>
           </form>
         </div>
-      </main>
-    </div>
+    </main>
   );
 }
 
