@@ -172,16 +172,26 @@ export default function RandevuPage({ params }: PageProps) {
       
       // First, check if customer is blacklisted
       try {
-        const blacklistResponse = await fetch(`https://admin.netrandevu.com/api/public/check-blacklist?phone=${encodeURIComponent(phoneNumber)}&tenantSlug=${slug}`);
+        const blacklistUrl = `https://admin.netrandevu.com/api/public/check-blacklist?phone=${encodeURIComponent(phoneNumber)}&tenantSlug=${slug}`;
+        console.log('🔍 Calling blacklist API:', blacklistUrl);
+        
+        const blacklistResponse = await fetch(blacklistUrl);
+        console.log('📡 Blacklist API response status:', blacklistResponse.status);
+        
         if (blacklistResponse.ok) {
           const blacklistData = await blacklistResponse.json();
-          if (blacklistData.isBlacklisted) {
-            console.log('🚫 Customer is blacklisted');
+          console.log('📊 Blacklist API data:', blacklistData);
+          console.log('🔎 isBlacklisted value:', blacklistData.isBlacklisted, 'type:', typeof blacklistData.isBlacklisted);
+          
+          if (blacklistData.isBlacklisted === true) {
+            console.log('🚫 Customer is blacklisted - SHOWING WARNING');
             setIsBlacklisted(true);
             return; // Stop here, don't check packages
           } else {
-            console.log('✅ Customer is not blacklisted');
+            console.log('✅ Customer is not blacklisted, continuing...');
           }
+        } else {
+          console.error('❌ Blacklist API returned error:', blacklistResponse.status);
         }
       } catch (blacklistError) {
         console.error('⚠️ Blacklist check failed, continuing:', blacklistError);
