@@ -27,6 +27,7 @@ export default function CustomersClient({ initialCustomers, tenantId, user }: Cu
   const [errorModalOpen, setErrorModalOpen] = useState(false);
   const [errorMessage, setErrorMessage] = useState({ title: '', description: '' });
   const [successModalOpen, setSuccessModalOpen] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('İşlem başarıyla tamamlandı.');
   const [removeBlacklistModalOpen, setRemoveBlacklistModalOpen] = useState(false);
   const [customerToRemoveFromBlacklist, setCustomerToRemoveFromBlacklist] = useState<string | null>(null);
 
@@ -77,6 +78,7 @@ export default function CustomersClient({ initialCustomers, tenantId, user }: Cu
       });
 
       if (response.ok) {
+        setSuccessMessage('Müşteri kara listeden başarıyla çıkarıldı.');
         setSuccessModalOpen(true);
         await fetchCustomers();
       } else {
@@ -110,6 +112,7 @@ export default function CustomersClient({ initialCustomers, tenantId, user }: Cu
       });
 
       if (response.ok) {
+        setSuccessMessage('Müşteri başarıyla silindi.');
         setSuccessModalOpen(true);
         await fetchCustomers();
       } else {
@@ -589,7 +592,7 @@ export default function CustomersClient({ initialCustomers, tenantId, user }: Cu
               Başarılı
             </AlertDialogTitle>
             <AlertDialogDescription className="text-base">
-              Müşteri başarıyla silindi.
+              {successMessage}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
