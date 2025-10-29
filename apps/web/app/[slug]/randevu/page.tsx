@@ -37,6 +37,7 @@ export default function RandevuPage({ params }: PageProps) {
   const [showPackageChoice, setShowPackageChoice] = useState<boolean>(false);
   const [checkingPackages, setCheckingPackages] = useState<boolean>(false);
   const [phoneChecked, setPhoneChecked] = useState<boolean>(false);
+  const [isBlacklisted, setIsBlacklisted] = useState<boolean>(false);
   const [selectedService, setSelectedService] = useState<string>('');
   const [selectedStaff, setSelectedStaff] = useState<string>('');
   const [selectedDate, setSelectedDate] = useState<string>('');
@@ -123,8 +124,8 @@ export default function RandevuPage({ params }: PageProps) {
   const canProceedToNext = () => {
     switch (currentStep) {
       case 'phone': 
-        // Can proceed if phone is valid AND not checking AND (customer info loaded OR new customer)
-        return phoneNumber.length >= 10 && !checkingPackages;
+        // Can proceed if phone is valid AND not checking AND not blacklisted
+        return phoneNumber.length >= 10 && !checkingPackages && !isBlacklisted;
       case 'service': return !!selectedService;
       case 'staff': return !!selectedStaff;
       case 'datetime': return !!selectedDate && !!selectedTime;
@@ -165,7 +166,19 @@ export default function RandevuPage({ params }: PageProps) {
   const checkCustomerPackages = async () => {
     setCheckingPackages(true);
     try {
-      console.log('📞 Checking packages for phone:', phoneNumber, 'slug:', slug);
+      console.log('📞 Checking packages and blacklist for phone:', phoneNumber, 'slug:', slug);
+      
+      // First, check if customer is blacklisted
+      const blacklistResponse = await fetch(`https://admin.netrandevu.com/api/public/check-blacklist?phone=${encodeURIComponent(phoneNumber)}&tenantSlug=${slug}`);
+      if (blacklistResponse.ok) {
+        const blacklistData = await blacklistResponse.json();
+        if (blacklistData.isBlacklisted) {
+          console.log('🚫 Customer is blacklisted');
+          setIsBlacklisted(true);
+          setCheckingPackages(false);
+          return; // Stop here, don't check packages
+        }
+      }
       
       const response = await fetch(`https://admin.netrandevu.com/api/customer-packages/check`, {
         method: 'POST',
@@ -359,6 +372,7 @@ export default function RandevuPage({ params }: PageProps) {
                     setExistingCustomer(null);
                     setCustomerPackages([]);
                     setHasPackages(false);
+                    setIsBlacklisted(false);
                   }}
                   className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-lg"
                   placeholder={PHONE_PLACEHOLDER}
@@ -392,7 +406,42 @@ export default function RandevuPage({ params }: PageProps) {
         </CardContent>
       </Card>
 
-      {existingCustomer && !checkingPackages && (
+      {/* Blacklist Warning */}
+      {isBlacklisted && !checkingPackages && (
+        <Card className="bg-red-50 border-red-300 border-2">
+          <CardContent className="p-6">
+            <div className="flex items-start">
+              <AlertCircle className="w-8 h-8 text-red-600 mr-4 flex-shrink-0 mt-1" />
+              <div className="w-full">
+                <h3 className="text-xl font-bold text-red-900 mb-3">
+                  Randevu Alamazsınız
+                </h3>
+                <p className="text-red-800 mb-4">
+                  Şu anda randevu alamıyorsunuz. Lütfen firma yetkilisi ile görüşme yapınız.
+                </p>
+                {tenant?.businessPhone && (
+                  <div className="bg-white rounded-lg p-4 border border-red-200">
+                    <div className="flex items-center">
+                      <Phone className="w-5 h-5 text-red-600 mr-3" />
+                      <div>
+                        <p className="text-sm text-gray-600 mb-1">İletişim:</p>
+                        <a 
+                          href={`tel:${tenant.businessPhone}`}
+                          className="text-lg font-semibold text-red-700 hover:text-red-900 underline"
+                        >
+                          {tenant.businessPhone}
+                        </a>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {existingCustomer && !checkingPackages && !isBlacklisted && (
         <Card className={hasPackages ? "bg-green-50 border-green-200" : "bg-blue-50 border-blue-200"}>
           <CardContent className="p-6">
             <div className="flex items-start">
