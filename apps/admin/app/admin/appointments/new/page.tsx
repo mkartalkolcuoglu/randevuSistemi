@@ -433,6 +433,7 @@ export default function NewAppointmentPage() {
                   <option value="confirmed">Onaylandı</option>
                   <option value="completed">Tamamlandı</option>
                   <option value="cancelled">İptal Edildi</option>
+                  <option value="no_show">Gelmedi ve Bilgi Vermedi</option>
                 </select>
               </div>
             </div>
