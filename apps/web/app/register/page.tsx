@@ -74,20 +74,29 @@ export default function RegisterPage() {
     try {
       setPackagesLoading(true);
       const response = await fetch('https://yonetim.netrandevu.com/api/packages');
+      console.log('📦 Packages API Response Status:', response.status);
+      
       if (response.ok) {
         const data = await response.json();
+        console.log('📦 Packages API Data:', data);
+        
         const activePackages = data.data.filter((pkg: SubscriptionPackage) => pkg.isActive);
+        console.log('📦 Active Packages:', activePackages);
+        
         setPackages(activePackages);
         
         // Set default selection to first package (usually trial)
         if (activePackages.length > 0) {
           setFormData(prev => ({ ...prev, subscriptionPlan: activePackages[0].slug }));
+          console.log('✅ Default package selected:', activePackages[0].slug);
+        } else {
+          console.warn('⚠️ No active packages found!');
         }
       } else {
-        console.error('Failed to fetch packages');
+        console.error('❌ Failed to fetch packages, status:', response.status);
       }
     } catch (error) {
-      console.error('Error fetching packages:', error);
+      console.error('❌ Error fetching packages:', error);
     } finally {
       setPackagesLoading(false);
     }
