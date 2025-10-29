@@ -5,19 +5,30 @@ import UnauthorizedAccess from '../../../components/UnauthorizedAccess';
 export const dynamic = 'force-dynamic';
 
 // Server Component - server-side data fetch with tenant filtering
-async function getAppointments(tenantId: string) {
+async function getAppointments(tenantId: string, userType: string, staffId?: string) {
   try {
     // Use Prisma directly instead of fetching from API
     const { PrismaClient } = await import('@prisma/client');
     const prisma = new PrismaClient();
     
     console.log('🔍 Fetching appointments for tenant:', tenantId);
+    console.log('👤 User type:', userType);
+    console.log('🆔 Staff ID:', staffId);
     
     try {
+      // Build where clause
+      const where: any = {
+        tenantId: tenantId
+      };
+      
+      // If user is staff, only show their appointments
+      if (userType === 'staff' && staffId) {
+        where.staffId = staffId;
+        console.log('📌 Filtering by staffId:', staffId);
+      }
+      
       const appointments = await prisma.appointment.findMany({
-        where: {
-          tenantId: tenantId
-        },
+        where,
         orderBy: [
           { date: 'desc' },
           { time: 'desc' }
@@ -48,7 +59,7 @@ export default async function AppointmentsPage() {
     return <UnauthorizedAccess />;
   }
   
-  const appointments = await getAppointments(user.id);
+  const appointments = await getAppointments(user.tenantId, user.userType, user.staffId);
 
-  return <AppointmentsClient initialAppointments={appointments} tenantId={user.id} user={user} />;
+  return <AppointmentsClient initialAppointments={appointments} tenantId={user.tenantId} user={user} />;
 }

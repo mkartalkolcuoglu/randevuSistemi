@@ -5,39 +5,44 @@ import CalendarClient from './calendar-client';
 
 export const dynamic = 'force-dynamic';
 
-async function getAppointments(tenantId: string) {
+async function getAppointments(tenantId: string, userType: string, staffId?: string) {
   try {
-    const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
-    const cookieStore = await cookies();
-    const token = cookieStore.get('auth_token');
-
-    const response = await fetch(`${baseUrl}/api/appointments?tenantId=${tenantId}`, {
-      headers: {
-        'Cookie': `auth_token=${token?.value}`
-      },
-      cache: 'no-store'
-    });
-
-    if (!response.ok) {
-      console.error('Failed to fetch appointments');
-      return [];
-    }
-
-    const data = await response.json();
+    // Use Prisma directly for consistent data fetching
+    const { PrismaClient } = await import('@prisma/client');
+    const prisma = new PrismaClient();
     
-    // Ensure we return an array
-    if (Array.isArray(data)) {
-      return data;
-    } else if (data && typeof data === 'object' && Array.isArray(data.appointments)) {
-      return data.appointments;
-    } else if (data && typeof data === 'object' && Array.isArray(data.data)) {
-      return data.data;
-    }
+    console.log('📅 [Calendar] Fetching appointments for tenant:', tenantId);
+    console.log('👤 [Calendar] User type:', userType);
+    console.log('🆔 [Calendar] Staff ID:', staffId);
     
-    console.error('Unexpected data format:', data);
-    return [];
+    try {
+      // Build where clause
+      const where: any = {
+        tenantId: tenantId
+      };
+      
+      // If user is staff, only show their appointments
+      if (userType === 'staff' && staffId) {
+        where.staffId = staffId;
+        console.log('📌 [Calendar] Filtering by staffId:', staffId);
+      }
+      
+      const appointments = await prisma.appointment.findMany({
+        where,
+        orderBy: [
+          { date: 'asc' },
+          { time: 'asc' }
+        ]
+      });
+      
+      console.log('📊 [Calendar] Found', appointments.length, 'appointments');
+      
+      return appointments;
+    } finally {
+      await prisma.$disconnect();
+    }
   } catch (error) {
-    console.error('Error fetching appointments:', error);
+    console.error('❌ [Calendar] Error fetching appointments:', error);
     return [];
   }
 }
@@ -50,7 +55,7 @@ export default async function CalendarPage() {
     redirect('/login');
   }
 
-  const appointments = await getAppointments(user.tenantId);
+  const appointments = await getAppointments(user.tenantId, user.userType, user.staffId);
 
   return <CalendarClient initialAppointments={appointments} tenantId={user.tenantId} user={user} />;
 }
