@@ -1,8 +1,26 @@
 import { requireAuth, requirePageAccess } from '../../../lib/auth-utils';
 import CustomersClient from './customers-client';
 import UnauthorizedAccess from '../../../components/UnauthorizedAccess';
+import { PrismaClient } from '@prisma/client';
 
 export const dynamic = 'force-dynamic';
+
+const prisma = new PrismaClient();
+
+async function getCustomers(tenantId: string) {
+  try {
+    const customers = await prisma.customer.findMany({
+      where: { tenantId },
+      orderBy: { createdAt: 'desc' }
+    });
+    return customers;
+  } catch (error) {
+    console.error('Error fetching customers:', error);
+    return [];
+  } finally {
+    await prisma.$disconnect();
+  }
+}
 
 export default async function CustomersPage() {
   try {
@@ -15,7 +33,8 @@ export default async function CustomersPage() {
       return <UnauthorizedAccess />;
     }
 
-    return <CustomersClient initialCustomers={[]} tenantId={user.id} user={user} />;
+    const customers = await getCustomers(user.tenantId);
+    return <CustomersClient initialCustomers={customers} tenantId={user.tenantId} user={user} />;
   } catch (error) {
     console.error('Error in CustomersPage:', error);
     return (
