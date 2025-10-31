@@ -2,21 +2,10 @@
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
-import { useState, ReactNode, useEffect } from 'react';
-import { AlertProvider, setGlobalAlertContext, useAlert } from '../components/ui';
+import { useState, ReactNode } from 'react';
 
 interface ProvidersProps {
   children: ReactNode;
-}
-
-function AlertContextInitializer() {
-  const alertContext = useAlert();
-  
-  useEffect(() => {
-    setGlobalAlertContext(alertContext);
-  }, [alertContext]);
-  
-  return null;
 }
 
 export function Providers({ children }: ProvidersProps) {
@@ -40,11 +29,8 @@ export function Providers({ children }: ProvidersProps) {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <AlertProvider>
-        <AlertContextInitializer />
-        {children}
-        <ReactQueryDevtools initialIsOpen={false} />
-      </AlertProvider>
+      {children}
+      <ReactQueryDevtools initialIsOpen={false} />
     </QueryClientProvider>
   );
 }
