@@ -140,6 +140,22 @@ export async function POST(request: NextRequest) {
     console.log('✅ Appointment created with ID:', appointment.id);
     console.log('📦 PackageInfo saved:', appointment.packageInfo ? 'Yes' : 'No');
     
+    // Create notification for new appointment (non-blocking)
+    console.log('🔔 [WEB-APPOINTMENT] Creating notification for tenantId:', tenant.id);
+    prisma.notification.create({
+      data: {
+        tenantId: tenant.id,
+        type: 'new_appointment',
+        title: 'Yeni Randevu',
+        message: `${appointment.customerName} - ${appointment.serviceName} (${appointment.date} ${appointment.time})`,
+        link: `/admin/appointments/${appointment.id}`
+      }
+    }).then(notification => {
+      console.log('🔔 [WEB-APPOINTMENT] Notification created:', notification.id);
+    }).catch(error => {
+      console.error('🔔 [WEB-APPOINTMENT] Failed to create notification:', error);
+    });
+    
     console.log('✅ Appointment created successfully:', appointment.id);
     
     return NextResponse.json({
