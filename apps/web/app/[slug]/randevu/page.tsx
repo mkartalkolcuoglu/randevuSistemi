@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, use } from 'react';
-import { Button, Card, CardContent, CardHeader, CardTitle, formatPhone, normalizePhone, PHONE_PLACEHOLDER, PHONE_MAX_LENGTH } from '../../../components/ui';
+import { Button, Card, CardContent, CardHeader, CardTitle, formatPhone, normalizePhone, PHONE_PLACEHOLDER, PHONE_MAX_LENGTH, Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '../../../components/ui';
 import { 
   ArrowLeft,
   ArrowRight, 
@@ -48,6 +48,8 @@ export default function RandevuPage({ params }: PageProps) {
     phone: '',
     notes: ''
   });
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [appointmentId, setAppointmentId] = useState<string>('');
 
   // API Hooks
   const { data: tenant, isLoading: tenantLoading } = useTenant(slug);
@@ -313,8 +315,9 @@ export default function RandevuPage({ params }: PageProps) {
       console.log('📤 Gönderilen randevu verisi:', appointmentData);
       const appointment = await createAppointmentMutation.mutateAsync(appointmentData);
 
-      // Redirect to success page or show success message
-      alert(`Randevunuz başarıyla oluşturuldu!\n\nRandevu ID: ${appointment.id}\n\nRandevu detaylarınız e-posta adresinize gönderildi.`);
+      // Show success modal
+      setAppointmentId(appointment.id);
+      setShowSuccessModal(true);
       
       // Reset form
       setCurrentStep('service');
@@ -1065,6 +1068,59 @@ export default function RandevuPage({ params }: PageProps) {
           )}
         </div>
       </div>
+
+      {/* Success Modal */}
+      <Dialog open={showSuccessModal} onOpenChange={setShowSuccessModal}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-green-100">
+              <Check className="h-6 w-6 text-green-600" />
+            </div>
+            <DialogTitle className="text-center text-xl">Randevunuz Oluşturuldu!</DialogTitle>
+            <DialogDescription className="text-center">
+              Randevunuz başarıyla kaydedildi. Randevu bilgileriniz aşağıdadır.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="rounded-lg bg-gray-50 p-4 space-y-2">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-gray-600">Randevu No:</span>
+                <span className="font-semibold text-gray-900">{appointmentId}</span>
+              </div>
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-gray-600">Tarih:</span>
+                <span className="font-semibold text-gray-900">
+                  {selectedDate && format(new Date(selectedDate), 'dd MMMM yyyy', { locale: tr })}
+                </span>
+              </div>
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-gray-600">Saat:</span>
+                <span className="font-semibold text-gray-900">{selectedTime}</span>
+              </div>
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-gray-600">Hizmet:</span>
+                <span className="font-semibold text-gray-900">
+                  {services?.find(s => s.id === selectedService)?.name}
+                </span>
+              </div>
+            </div>
+            <p className="text-sm text-gray-600 text-center">
+              Randevu saatinizden önce size hatırlatma yapılacaktır.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button 
+              onClick={() => {
+                setShowSuccessModal(false);
+                setAppointmentId('');
+              }}
+              className="w-full"
+            >
+              Tamam
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
