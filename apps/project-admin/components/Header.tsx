@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter, usePathname } from 'next/navigation';
-import { LogOut, Building2, Package, BarChart3 } from 'lucide-react';
+import { LogOut, Building2, Package, BarChart3, FileText } from 'lucide-react';
 import { Button } from '@repo/ui';
 import { useState } from 'react';
 import Link from 'next/link';
@@ -29,6 +29,7 @@ export default function Header() {
   const navItems = [
     { href: '/project-admin/tenants', label: 'Aboneler', icon: Building2 },
     { href: '/project-admin/packages', label: 'Paketler', icon: Package },
+    { href: '/project-admin/pages', label: 'Sayfalar', icon: FileText },
     { href: '/project-admin/reports', label: 'Raporlar', icon: BarChart3 },
   ];
 
