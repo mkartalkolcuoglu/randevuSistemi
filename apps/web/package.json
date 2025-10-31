@@ -6,14 +6,14 @@
   "scripts": {
     "dev": "next dev --turbopack --port 3000",
     "build": "prisma generate && next build",
-    "vercel-build": "cd ../.. && turbo run build --filter=web && cd apps/web",
+    "vercel-build": "prisma generate && next build",
     "postinstall": "prisma generate",
     "start": "next start",
     "lint": "next lint --max-warnings 0",
     "check-types": "tsc --noEmit"
   },
   "dependencies": {
-    "@repo/ui": "workspace:*",
+    "@repo/ui": "file:../../packages/ui",
     "@prisma/client": "^6.16.3",
     "@radix-ui/react-alert-dialog": "^1.0.5",
     "@radix-ui/react-avatar": "^1.0.4",
