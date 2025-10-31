@@ -3,7 +3,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { useState, ReactNode, useEffect } from 'react';
-import { AlertProvider, setGlobalAlertContext, useAlert } from '@repo/ui';
+import { AlertProvider, setGlobalAlertContext, useAlert } from '../components/ui';
 
 interface ProvidersProps {
   children: ReactNode;
