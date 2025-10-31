@@ -88,11 +88,6 @@ export default function Home() {
               <a href="#features" className="text-gray-600 hover:text-gray-900 transition">Özellikler</a>
               <a href="#pricing" className="text-gray-600 hover:text-gray-900 transition">Fiyatlar</a>
               <a href="#faq" className="text-gray-600 hover:text-gray-900 transition">SSS</a>
-              {pages.map((page) => (
-                <Link key={page.id} href={`/${page.slug}`} className="text-gray-600 hover:text-gray-900 transition">
-                  {page.title}
-                </Link>
-              ))}
             </nav>
             <div className="flex items-center space-x-4">
               <Link href="/register">

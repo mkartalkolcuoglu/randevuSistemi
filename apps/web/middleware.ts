@@ -1,7 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+// Statik route'lar (tenant değil, özel sayfalar)
+const STATIC_ROUTES = [
+  'register',
+  'test',
+  'hakkimizda',
+  'gizlilik',
+  'kvkk',
+  'kariyer',
+  'iletisim',
+  'kullanim-kosullari',
+  '_next',
+  'favicon.ico',
+];
+
 export function middleware(request: NextRequest) {
-  const host = request.headers.get('host') || '';
   const url = request.nextUrl.clone();
 
   // Ana sayfa kontrolü
@@ -11,6 +24,12 @@ export function middleware(request: NextRequest) {
 
   // API routes'ları geç
   if (url.pathname.startsWith('/api/')) {
+    return NextResponse.next();
+  }
+
+  // Statik route kontrolü (CMS pages dahil)
+  const firstSegment = url.pathname.split('/')[1];
+  if (STATIC_ROUTES.includes(firstSegment)) {
     return NextResponse.next();
   }
 
