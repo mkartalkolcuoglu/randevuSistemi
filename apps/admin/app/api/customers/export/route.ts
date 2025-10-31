@@ -26,22 +26,36 @@ export async function GET(request: NextRequest) {
     });
 
     // Format data for Excel
-    const excelData = customers.map(customer => ({
-      'Ad': customer.firstName || '',
-      'Soyad': customer.lastName || '',
-      'Telefon': customer.phone || '',
-      'E-posta': customer.email || '',
-      'Doğum Tarihi': customer.birthDate 
-        ? format(new Date(customer.birthDate), 'dd.MM.yyyy')
-        : '',
-      'Cinsiyet': customer.gender === 'male' ? 'Erkek' 
-                : customer.gender === 'female' ? 'Kadın'
-                : customer.gender === 'other' ? 'Diğer'
-                : '',
-      'Adres': customer.address || '',
-      'Not': customer.notes || '',
-      'Kara Liste': customer.isBlacklisted ? 'Evet' : 'Hayır',
-    }));
+    const excelData = customers.map(customer => {
+      // Handle both Turkish and English gender values
+      let genderDisplay = '';
+      if (customer.gender) {
+        const genderLower = customer.gender.toLowerCase();
+        if (genderLower === 'male' || genderLower === 'erkek') {
+          genderDisplay = 'Erkek';
+        } else if (genderLower === 'female' || genderLower === 'kadın') {
+          genderDisplay = 'Kadın';
+        } else if (genderLower === 'other' || genderLower === 'diğer') {
+          genderDisplay = 'Diğer';
+        } else {
+          genderDisplay = customer.gender; // Keep original if unknown
+        }
+      }
+      
+      return {
+        'Ad': customer.firstName || '',
+        'Soyad': customer.lastName || '',
+        'Telefon': customer.phone || '',
+        'E-posta': customer.email || '',
+        'Doğum Tarihi': customer.birthDate 
+          ? format(new Date(customer.birthDate), 'dd.MM.yyyy')
+          : '',
+        'Cinsiyet': genderDisplay,
+        'Adres': customer.address || '',
+        'Not': customer.notes || '',
+        'Kara Liste': customer.isBlacklisted ? 'Evet' : 'Hayır',
+      };
+    });
 
     // Create workbook and worksheet
     const wb = XLSX.utils.book_new();

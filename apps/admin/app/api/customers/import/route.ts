@@ -178,13 +178,17 @@ export async function POST(request: NextRequest) {
           }
         }
 
-        // Parse gender
-        let gender: 'male' | 'female' | 'other' | null = null;
+        // Parse gender - store in Turkish to match form behavior
+        let gender: string | null = null;
         if (row['Cinsiyet'] && row['Cinsiyet'].trim()) {
           const genderStr = row['Cinsiyet'].trim().toLowerCase();
-          if (genderStr === 'erkek') gender = 'male';
-          else if (genderStr === 'kadın') gender = 'female';
-          else if (genderStr === 'diğer') gender = 'other';
+          if (genderStr === 'erkek' || genderStr === 'male') {
+            gender = 'Erkek';
+          } else if (genderStr === 'kadın' || genderStr === 'female') {
+            gender = 'Kadın';
+          } else if (genderStr === 'diğer' || genderStr === 'other') {
+            gender = 'Diğer';
+          }
         }
 
         // Parse blacklist status
@@ -196,7 +200,7 @@ export async function POST(request: NextRequest) {
             firstName: row['Ad'].trim(),
             lastName: row['Soyad'].trim(),
             phone: cleanPhone,
-            email: row['E-posta']?.trim() || null,
+            email: row['E-posta']?.trim() || '', // Email is required in schema, use empty string if not provided
             birthDate: birthDate,
             gender: gender,
             address: row['Adres']?.trim() || null,
