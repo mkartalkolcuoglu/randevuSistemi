@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle, Button, Badge, Input } from '@repo/ui';
-import { Plus, Search, Calendar, Clock, User, Edit, Trash2, ArrowLeft } from 'lucide-react';
+import { Plus, Search, Calendar, Clock, User, Edit, Trash2, ArrowLeft, MessageCircle } from 'lucide-react';
 import AdminHeader from '../admin-header';
 import { DataTable, Column } from '../../../components/DataTable';
 import type { ClientUser } from '../../../lib/client-permissions';
@@ -35,6 +35,35 @@ export default function AppointmentsClient({ initialAppointments, tenantId, user
         console.error('Error deleting appointment:', error);
         alert('Randevu silinirken hata oluştu');
       }
+    }
+  };
+
+  const handleSendWhatsApp = async (id: string) => {
+    if (!confirm('WhatsApp onay mesajı gönderilsin mi?')) return;
+    
+    try {
+      console.log('📱 Sending WhatsApp for appointment:', id);
+      const response = await fetch('/api/whatsapp/send-confirmation', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ appointmentId: id }),
+      });
+
+      const data = await response.json();
+      console.log('📱 WhatsApp response:', data);
+
+      if (response.ok) {
+        alert('✅ WhatsApp mesajı başarıyla gönderildi!');
+        // Refresh appointments to show updated whatsappSent status
+        window.location.reload();
+      } else {
+        alert(`❌ Hata: ${data.error || 'WhatsApp mesajı gönderilemedi'}\n\nDetay: ${data.details || ''}`);
+      }
+    } catch (error) {
+      console.error('❌ WhatsApp send error:', error);
+      alert('❌ WhatsApp mesajı gönderilirken hata oluştu');
     }
   };
 
@@ -154,6 +183,21 @@ export default function AppointmentsClient({ initialAppointments, tenantId, user
       label: 'İşlemler',
       render: (apt) => (
         <div className="flex items-center space-x-2" onClick={(e) => e.stopPropagation()}>
+          {/* WhatsApp Button */}
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              handleSendWhatsApp(apt.id);
+            }}
+            className="text-green-600 hover:text-green-700 hover:bg-green-50"
+            title="WhatsApp Gönder"
+          >
+            <MessageCircle className="w-4 h-4" />
+          </Button>
+          
           {hasPermission(user, 'appointments', 'update') && (
             <Link href={`/admin/appointments/${apt.id}/edit`}>
               <Button variant="outline" size="sm" onClick={(e) => e.stopPropagation()}>
