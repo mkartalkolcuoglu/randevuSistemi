@@ -26,6 +26,7 @@ export default function Home() {
     appointments: 0
   });
   const [packages, setPackages] = useState<any[]>([]);
+  const [pages, setPages] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -34,9 +35,10 @@ export default function Home() {
 
   const fetchData = async () => {
     try {
-      // Fetch real stats and packages
-      const [packagesRes] = await Promise.all([
-        fetch(`${process.env.NEXT_PUBLIC_PROJECT_ADMIN_URL || 'http://localhost:3002'}/api/packages`)
+      // Fetch real stats, packages, and pages from our own API
+      const [packagesRes, pagesRes] = await Promise.all([
+        fetch('/api/packages'),
+        fetch('/api/pages')
       ]);
 
       if (packagesRes.ok) {
@@ -46,10 +48,17 @@ export default function Home() {
         }
       }
 
+      if (pagesRes.ok) {
+        const pagesData = await pagesRes.json();
+        if (pagesData.success) {
+          setPages(pagesData.data);
+        }
+      }
+
       // Calculate stats (these would come from project-admin API in real scenario)
       setStats({
-        tenants: packages.length > 0 ? Math.floor(Math.random() * 100) + 50 : 50,
-        appointments: packages.length > 0 ? Math.floor(Math.random() * 10000) + 5000 : 5000
+        tenants: 50 + Math.floor(Math.random() * 50),
+        appointments: 5000 + Math.floor(Math.random() * 5000)
       });
     } catch (error) {
       console.error('Error fetching landing data:', error);
@@ -75,6 +84,11 @@ export default function Home() {
               <a href="#features" className="text-gray-600 hover:text-gray-900 transition">Özellikler</a>
               <a href="#pricing" className="text-gray-600 hover:text-gray-900 transition">Fiyatlar</a>
               <a href="#faq" className="text-gray-600 hover:text-gray-900 transition">SSS</a>
+              {pages.map((page) => (
+                <Link key={page.id} href={`/${page.slug}`} className="text-gray-600 hover:text-gray-900 transition">
+                  {page.title}
+                </Link>
+              ))}
             </nav>
             <div className="flex items-center space-x-4">
               <Link href="/register">
@@ -547,8 +561,13 @@ export default function Home() {
             <div>
               <h3 className="font-semibold mb-4">Şirket</h3>
               <ul className="space-y-2 text-gray-400">
-                <li><Link href="/hakkimizda" className="hover:text-white transition">Hakkımızda</Link></li>
-                <li><Link href="/gizlilik" className="hover:text-white transition">Gizlilik Politikası</Link></li>
+                {pages.map((page) => (
+                  <li key={page.id}>
+                    <Link href={`/${page.slug}`} className="hover:text-white transition">
+                      {page.title}
+                    </Link>
+                  </li>
+                ))}
               </ul>
             </div>
           </div>

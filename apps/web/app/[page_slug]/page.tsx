@@ -5,18 +5,22 @@ import Link from 'next/link';
 import { Button } from '../../components/ui';
 import { ArrowLeft } from 'lucide-react';
 
-export default function AboutPage() {
+export default function DynamicPage({ params }: { params: Promise<{ page_slug: string }> }) {
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState<any>(null);
+  const [slug, setSlug] = useState('');
 
   useEffect(() => {
-    fetchPage();
-  }, []);
+    params.then(p => {
+      setSlug(p.page_slug);
+      fetchPage(p.page_slug);
+    });
+  }, [params]);
 
-  const fetchPage = async () => {
+  const fetchPage = async (pageSlug: string) => {
     try {
       setLoading(true);
-      const response = await fetch('/api/pages/hakkimizda');
+      const response = await fetch(`/api/pages/${pageSlug}`);
       const data = await response.json();
       
       if (data.success && data.data.isActive) {

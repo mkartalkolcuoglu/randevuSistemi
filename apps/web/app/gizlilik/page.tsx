@@ -16,9 +16,7 @@ export default function PrivacyPage() {
   const fetchPage = async () => {
     try {
       setLoading(true);
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_PROJECT_ADMIN_URL || 'http://localhost:3002'}/api/pages/gizlilik`
-      );
+      const response = await fetch('/api/pages/gizlilik');
       const data = await response.json();
       
       if (data.success && data.data.isActive) {
