@@ -100,6 +100,10 @@ export async function PUT(
     if (isCompleted && !wasCompleted) {
       console.log(`✅ Status changed to ${data.status} - checking for package deduction`);
       await deductFromPackage(updatedAppointment);
+      
+      // Create transaction for cash register (kasa)
+      console.log(`💰 Creating transaction for completed appointment: ${updatedAppointment.id}`);
+      await createAppointmentTransaction(updatedAppointment);
     }
 
     // If status changed to "no_show", increment customer's no-show count and check blacklist
@@ -277,6 +281,55 @@ async function deductFromPackage(appointment: any) {
   } catch (error) {
     console.error('Error deducting from package:', error);
     // Don't throw error - package deduction failure shouldn't fail appointment update
+  }
+}
+
+/**
+ * Create transaction for completed appointment
+ */
+async function createAppointmentTransaction(appointment: any) {
+  try {
+    console.log('💰 Creating transaction for appointment:', appointment.id);
+    
+    // Skip if no price
+    if (!appointment.price || appointment.price <= 0) {
+      console.log('ℹ️ No price set for appointment - skipping transaction');
+      return;
+    }
+
+    // Check if transaction already exists for this appointment
+    const existingTransaction = await prisma.transaction.findFirst({
+      where: {
+        appointmentId: appointment.id,
+        type: 'appointment'
+      }
+    });
+
+    if (existingTransaction) {
+      console.log('ℹ️ Transaction already exists for this appointment');
+      return;
+    }
+
+    // Create transaction
+    const transaction = await prisma.transaction.create({
+      data: {
+        tenantId: appointment.tenantId,
+        type: 'appointment',
+        amount: appointment.price,
+        description: `Randevu: ${appointment.serviceName} - ${appointment.customerName}`,
+        paymentType: appointment.paymentType || 'cash',
+        customerId: appointment.customerId || undefined,
+        customerName: appointment.customerName,
+        appointmentId: appointment.id,
+        date: appointment.date,
+        profit: 0 // Appointments don't have cost/profit calculation
+      }
+    });
+
+    console.log('✅ Transaction created successfully:', transaction.id);
+  } catch (error) {
+    console.error('❌ Error creating appointment transaction:', error);
+    // Don't throw error - transaction creation failure shouldn't fail appointment update
   }
 }
 

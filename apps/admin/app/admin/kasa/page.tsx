@@ -14,6 +14,6 @@ export default async function KasaPage() {
     return <UnauthorizedAccess />;
   }
 
-  return <KasaClient tenantId={user.id} user={user} />;
+  return <KasaClient tenantId={user.tenantId} user={user} />;
 }
 

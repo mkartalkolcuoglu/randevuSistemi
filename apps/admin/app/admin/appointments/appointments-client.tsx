@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle, Button, Badge, Input } from '@repo/ui';
-import { Plus, Search, Calendar, Clock, User, Edit, Trash2, ArrowLeft, MessageCircle } from 'lucide-react';
+import { Plus, Search, Calendar, Clock, User, Edit, Trash2, ArrowLeft, MessageCircle, Eye } from 'lucide-react';
 import AdminHeader from '../admin-header';
 import { DataTable, Column } from '../../../components/DataTable';
 import type { ClientUser } from '../../../lib/client-permissions';
@@ -198,9 +198,16 @@ export default function AppointmentsClient({ initialAppointments, tenantId, user
             <MessageCircle className="w-4 h-4" />
           </Button>
           
+          {/* Detail Button */}
+          <Link href={`/admin/appointments/${apt.id}`}>
+            <Button variant="outline" size="sm" onClick={(e) => e.stopPropagation()} title="Detay Görüntüle">
+              <Eye className="w-4 h-4" />
+            </Button>
+          </Link>
+          
           {hasPermission(user, 'appointments', 'update') && (
             <Link href={`/admin/appointments/${apt.id}/edit`}>
-              <Button variant="outline" size="sm" onClick={(e) => e.stopPropagation()}>
+              <Button variant="outline" size="sm" onClick={(e) => e.stopPropagation()} title="Düzenle">
                 <Edit className="w-4 h-4" />
               </Button>
             </Link>
@@ -215,6 +222,7 @@ export default function AppointmentsClient({ initialAppointments, tenantId, user
                 handleDelete(apt.id);
               }}
               className="text-red-600 hover:text-red-700 hover:bg-red-50"
+              title="Sil"
             >
               <Trash2 className="w-4 h-4" />
             </Button>
@@ -431,7 +439,6 @@ export default function AppointmentsClient({ initialAppointments, tenantId, user
                     columns={columns}
                     keyExtractor={(apt) => apt.id}
                     emptyMessage="Arama kriterlerinize uygun randevu bulunamadı"
-                    onRowClick={(apt) => window.location.href = `/admin/appointments/${apt.id}`}
                   />
                 </div>
               </>
