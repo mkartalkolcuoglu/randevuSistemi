@@ -300,6 +300,19 @@ export async function POST(request: NextRequest) {
 
       console.log('✅ Appointment created:', newAppointment.id, 'with package:', data.usePackageForService);
 
+      // Create notification for new appointment (non-blocking)
+      prisma.notification.create({
+        data: {
+          tenantId: tenant.id,
+          type: 'new_appointment',
+          title: 'Yeni Randevu',
+          message: `${data.customerName} - ${data.serviceName} (${data.date} ${data.time})`,
+          link: `/admin/appointments/${newAppointment.id}`
+        }
+      }).catch(error => {
+        console.error('⚠️ Failed to create notification:', error);
+      });
+
       return NextResponse.json({
         success: true,
         message: 'Appointment created successfully',
@@ -384,6 +397,19 @@ export async function POST(request: NextRequest) {
     });
 
     console.log('✅ Admin appointment created:', newAppointment.id);
+
+    // Create notification for new appointment (non-blocking)
+    prisma.notification.create({
+      data: {
+        tenantId: customer.tenantId,
+        type: 'new_appointment',
+        title: 'Yeni Randevu',
+        message: `${customer.firstName} ${customer.lastName} - ${service.name} (${data.date} ${data.time})`,
+        link: `/admin/appointments/${newAppointment.id}`
+      }
+    }).catch(error => {
+      console.error('⚠️ Failed to create notification:', error);
+    });
 
     return NextResponse.json({
       success: true,

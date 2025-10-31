@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@repo/ui';
-import { LogOut, User, Home, Calendar, Users, Briefcase, Package, Settings, Wallet, Gift, Clock, BarChart3, Menu, X } from 'lucide-react';
+import { LogOut, User, Home, Calendar, Users, Briefcase, Package, Settings, Wallet, Gift, Clock, BarChart3, Menu, X, Bell } from 'lucide-react';
 import Link from 'next/link';
 import type { ClientUser } from '../../lib/client-permissions';
 import { canAccessPage } from '../../lib/client-permissions';
@@ -19,6 +19,9 @@ export default function AdminHeader({ user }: AdminHeaderProps) {
   const [subscriptionPlan, setSubscriptionPlan] = useState<string | null>(null);
   const [showUnauthorizedAlert, setShowUnauthorizedAlert] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [showNotifications, setShowNotifications] = useState(false);
   const router = useRouter();
 
   // Check for permission_denied error in URL
@@ -75,6 +78,48 @@ export default function AdminHeader({ user }: AdminHeaderProps) {
 
     fetchTenantInfo();
   }, []);
+
+  // Fetch notifications
+  useEffect(() => {
+    const fetchNotifications = async () => {
+      try {
+        const response = await fetch(`/api/notifications?tenantId=${user.tenantId}`);
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success) {
+            setNotifications(data.data);
+            setUnreadCount(data.data.filter((n: any) => !n.read).length);
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching notifications:', error);
+      }
+    };
+
+    fetchNotifications();
+    
+    // Poll every 30 seconds
+    const interval = setInterval(fetchNotifications, 30000);
+    
+    return () => clearInterval(interval);
+  }, [user.tenantId]);
+
+  // Mark notification as read
+  const markAsRead = async (notificationId: string) => {
+    try {
+      await fetch(`/api/notifications/${notificationId}/read`, {
+        method: 'PUT'
+      });
+      
+      // Update local state
+      setNotifications(prev => 
+        prev.map(n => n.id === notificationId ? { ...n, read: true } : n)
+      );
+      setUnreadCount(prev => Math.max(0, prev - 1));
+    } catch (error) {
+      console.error('Error marking notification as read:', error);
+    }
+  };
 
   // Get badge color based on remaining days
   const getBadgeColor = () => {
@@ -193,6 +238,77 @@ export default function AdminHeader({ user }: AdminHeaderProps) {
               <div className="hidden md:flex items-center space-x-2 text-sm text-gray-600">
                 <User className="w-4 h-4" />
                 <span>{user.ownerName}</span>
+              </div>
+
+              {/* Notification Bell */}
+              <div className="relative">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowNotifications(!showNotifications)}
+                  className="relative"
+                >
+                  <Bell className="w-4 h-4" />
+                  {unreadCount > 0 && (
+                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold">
+                      {unreadCount > 9 ? '9+' : unreadCount}
+                    </span>
+                  )}
+                </Button>
+
+                {/* Notification Dropdown */}
+                {showNotifications && (
+                  <div className="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-lg border border-gray-200 z-50 max-h-96 overflow-y-auto">
+                    <div className="p-3 border-b border-gray-200 bg-gray-50">
+                      <h3 className="font-semibold text-gray-900">Bildirimler</h3>
+                      {unreadCount > 0 && (
+                        <p className="text-xs text-gray-600 mt-1">{unreadCount} okunmamış bildirim</p>
+                      )}
+                    </div>
+                    
+                    {notifications.length === 0 ? (
+                      <div className="p-4 text-center text-gray-500 text-sm">
+                        Henüz bildirim yok
+                      </div>
+                    ) : (
+                      <div className="divide-y divide-gray-100">
+                        {notifications.map((notification) => (
+                          <div
+                            key={notification.id}
+                            className={`p-3 hover:bg-gray-50 cursor-pointer transition-colors ${
+                              !notification.read ? 'bg-blue-50' : ''
+                            }`}
+                            onClick={() => {
+                              markAsRead(notification.id);
+                              if (notification.link) {
+                                router.push(notification.link);
+                                setShowNotifications(false);
+                              }
+                            }}
+                          >
+                            <div className="flex items-start space-x-2">
+                              <Calendar className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-medium text-gray-900">
+                                  {notification.title}
+                                </p>
+                                <p className="text-xs text-gray-600 mt-1">
+                                  {notification.message}
+                                </p>
+                                <p className="text-xs text-gray-400 mt-1">
+                                  {new Date(notification.createdAt).toLocaleString('tr-TR')}
+                                </p>
+                              </div>
+                              {!notification.read && (
+                                <div className="w-2 h-2 bg-blue-600 rounded-full flex-shrink-0 mt-1"></div>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
               
               {/* Logout Button - Desktop */}
