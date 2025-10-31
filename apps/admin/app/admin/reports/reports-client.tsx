@@ -13,8 +13,25 @@ import {
   FileText,
   Filter,
   ArrowUpRight,
-  ArrowDownRight
+  ArrowDownRight,
+  Package,
+  Star
 } from 'lucide-react';
+import {
+  BarChart,
+  Bar,
+  LineChart,
+  Line,
+  PieChart,
+  Pie,
+  Cell,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer
+} from 'recharts';
 import AdminHeader from '../admin-header';
 import type { ClientUser } from '../../../lib/client-permissions';
 
@@ -37,6 +54,10 @@ export default function ReportsClient({ user }: ReportsClientProps) {
       avgBookingValue: 0
     }
   });
+  const [monthlyData, setMonthlyData] = useState<any[]>([]);
+  const [servicesData, setServicesData] = useState<any[]>([]);
+  const [staffPerformance, setStaffPerformance] = useState<any[]>([]);
+  const [appointmentsByStatus, setAppointmentsByStatus] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showFilterModal, setShowFilterModal] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -52,30 +73,35 @@ export default function ReportsClient({ user }: ReportsClientProps) {
     try {
       setLoading(true);
       
-      // Fetch appointments, customers, services data
-      const [appointmentsRes, customersRes, servicesRes] = await Promise.all([
+      // Fetch appointments, customers, services, staff data
+      const [appointmentsRes, customersRes, servicesRes, staffRes] = await Promise.all([
         fetch('/api/appointments'),
         fetch('/api/customers'),
-        fetch('/api/services')
+        fetch('/api/services'),
+        fetch('/api/staff')
       ]);
 
       const appointments = await appointmentsRes.json();
       const customers = await customersRes.json();
       const services = await servicesRes.json();
+      const staff = await staffRes.json();
 
-      // Calculate this month's data
+      // Calculate this month's and last month's data
       const now = new Date();
       const firstDayThisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
       const firstDayLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
       const lastDayLastMonth = new Date(now.getFullYear(), now.getMonth(), 0);
 
       if (appointments.success && appointments.data) {
-        const thisMonthAppointments = appointments.data.filter((apt: any) => {
+        const allAppointments = appointments.data;
+
+        // This month vs last month
+        const thisMonthAppointments = allAppointments.filter((apt: any) => {
           const aptDate = new Date(apt.createdAt);
           return aptDate >= firstDayThisMonth && apt.status !== 'cancelled';
         });
 
-        const lastMonthAppointments = appointments.data.filter((apt: any) => {
+        const lastMonthAppointments = allAppointments.filter((apt: any) => {
           const aptDate = new Date(apt.createdAt);
           return aptDate >= firstDayLastMonth && aptDate <= lastDayLastMonth && apt.status !== 'cancelled';
         });
@@ -107,6 +133,78 @@ export default function ReportsClient({ user }: ReportsClientProps) {
             avgBookingValue: lastMonthAppointments.length > 0 ? lastMonthRevenue / lastMonthAppointments.length : 0
           }
         });
+
+        // Generate monthly data for last 6 months
+        const monthNames = ['Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran', 'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'];
+        const last6Months = [];
+        for (let i = 5; i >= 0; i--) {
+          const monthDate = new Date(now.getFullYear(), now.getMonth() - i, 1);
+          const nextMonthDate = new Date(now.getFullYear(), now.getMonth() - i + 1, 1);
+          
+          const monthAppointments = allAppointments.filter((apt: any) => {
+            const aptDate = new Date(apt.createdAt);
+            return aptDate >= monthDate && aptDate < nextMonthDate && apt.status !== 'cancelled';
+          });
+
+          const monthRevenue = monthAppointments.reduce((sum: number, apt: any) => sum + (apt.price || 0), 0);
+          
+          last6Months.push({
+            month: monthNames[monthDate.getMonth()],
+            gelir: monthRevenue,
+            randevu: monthAppointments.length
+          });
+        }
+        setMonthlyData(last6Months);
+
+        // Services data (top 5 most booked)
+        if (services.success && services.data) {
+          const serviceStats = services.data.map((service: any) => {
+            const serviceAppointments = allAppointments.filter((apt: any) => 
+              apt.serviceId === service.id && apt.status !== 'cancelled'
+            );
+            return {
+              name: service.name,
+              randevular: serviceAppointments.length,
+              gelir: serviceAppointments.reduce((sum: number, apt: any) => sum + (apt.price || 0), 0)
+            };
+          }).sort((a: any, b: any) => b.randevular - a.randevular).slice(0, 5);
+          
+          setServicesData(serviceStats);
+        }
+
+        // Staff performance
+        if (staff.success && staff.data) {
+          const staffStats = staff.data.map((member: any) => {
+            const staffAppointments = allAppointments.filter((apt: any) => 
+              apt.staffId === member.id && apt.status === 'completed'
+            );
+            return {
+              name: `${member.firstName} ${member.lastName}`,
+              randevular: staffAppointments.length,
+              gelir: staffAppointments.reduce((sum: number, apt: any) => sum + (apt.price || 0), 0)
+            };
+          }).filter((s: any) => s.randevular > 0)
+            .sort((a: any, b: any) => b.gelir - a.gelir);
+          
+          setStaffPerformance(staffStats);
+        }
+
+        // Appointments by status
+        const statusMap: any = {
+          'completed': { name: 'Tamamlandı', value: 0, color: '#10B981' },
+          'confirmed': { name: 'Onaylandı', value: 0, color: '#3B82F6' },
+          'scheduled': { name: 'Planlandı', value: 0, color: '#F59E0B' },
+          'cancelled': { name: 'İptal', value: 0, color: '#EF4444' },
+          'no_show': { name: 'Gelmedi', value: 0, color: '#6B7280' }
+        };
+
+        allAppointments.forEach((apt: any) => {
+          if (statusMap[apt.status]) {
+            statusMap[apt.status].value++;
+          }
+        });
+
+        setAppointmentsByStatus(Object.values(statusMap).filter((s: any) => s.value > 0));
       }
     } catch (error) {
       console.error('Error fetching report data:', error);
@@ -123,18 +221,18 @@ export default function ReportsClient({ user }: ReportsClientProps) {
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('tr-TR', {
       style: 'currency',
-      currency: 'TRY'
+      currency: 'TRY',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
     }).format(amount);
-  };
-
-  // Button handlers
-  const handleFilter = () => {
-    setShowFilterModal(true);
   };
 
   const handleDownloadReport = () => {
     // Create CSV data
     const csvData = [
+      ['Net Randevu - Performans Raporu'],
+      ['Oluşturulma Tarihi: ' + new Date().toLocaleDateString('tr-TR')],
+      [],
       ['Metrik', 'Bu Ay', 'Geçen Ay', 'Değişim %'],
       ['Gelir', formatCurrency(reportData.thisMonth.revenue), formatCurrency(reportData.lastMonth.revenue), 
        calculatePercentageChange(reportData.thisMonth.revenue, reportData.lastMonth.revenue).toFixed(1) + '%'],
@@ -143,7 +241,15 @@ export default function ReportsClient({ user }: ReportsClientProps) {
       ['Yeni Müşteriler', reportData.thisMonth.customers.toString(), reportData.lastMonth.customers.toString(),
        calculatePercentageChange(reportData.thisMonth.customers, reportData.lastMonth.customers).toFixed(1) + '%'],
       ['Ortalama Randevu Değeri', formatCurrency(reportData.thisMonth.avgBookingValue), formatCurrency(reportData.lastMonth.avgBookingValue),
-       calculatePercentageChange(reportData.thisMonth.avgBookingValue, reportData.lastMonth.avgBookingValue).toFixed(1) + '%']
+       calculatePercentageChange(reportData.thisMonth.avgBookingValue, reportData.lastMonth.avgBookingValue).toFixed(1) + '%'],
+      [],
+      ['En Popüler Hizmetler'],
+      ['Hizmet', 'Randevu Sayısı', 'Toplam Gelir'],
+      ...servicesData.map(s => [s.name, s.randevular.toString(), formatCurrency(s.gelir)]),
+      [],
+      ['Personel Performansı'],
+      ['Personel', 'Tamamlanan Randevu', 'Toplam Gelir'],
+      ...staffPerformance.map(s => [s.name, s.randevular.toString(), formatCurrency(s.gelir)])
     ];
 
     const csvContent = csvData.map(row => row.join(',')).join('\n');
@@ -155,28 +261,6 @@ export default function ReportsClient({ user }: ReportsClientProps) {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-  };
-
-  const handleDetailedReport = () => {
-    alert('Detaylı rapor özelliği yakında eklenecek. Bu rapor tüm verilerin Excel formatında dışa aktarılmasını sağlayacak.');
-  };
-
-  const handleExportData = () => {
-    // Same as download report for now
-    handleDownloadReport();
-  };
-
-  const handleDateRange = () => {
-    setShowDatePicker(!showDatePicker);
-  };
-
-  const applyDateFilter = () => {
-    if (startDate && endDate) {
-      alert(`Tarih aralığı: ${startDate} - ${endDate}\n\nBu özellik yakında aktif olacak.`);
-      setShowDatePicker(false);
-    } else {
-      alert('Lütfen başlangıç ve bitiş tarihlerini seçin.');
-    }
   };
 
   if (loading) {
@@ -210,12 +294,8 @@ export default function ReportsClient({ user }: ReportsClientProps) {
                 <p className="text-sm sm:text-base text-gray-600 mt-2">İşletmenizin performansını izleyin ve analiz edin</p>
               </div>
               
-              <div className="flex flex-col sm:flex-row gap-2 sm:space-x-3 w-full sm:w-auto">
-                <Button variant="outline" className="flex items-center justify-center w-full sm:w-auto" onClick={handleFilter}>
-                  <Filter className="w-4 h-4 mr-2" />
-                  Filtrele
-                </Button>
-                <Button className="bg-green-600 hover:bg-green-700 text-white flex items-center justify-center w-full sm:w-auto" onClick={handleDownloadReport}>
+              <div className="flex gap-2 w-full sm:w-auto">
+                <Button className="bg-green-600 hover:bg-green-700 text-white flex items-center justify-center flex-1 sm:flex-initial" onClick={handleDownloadReport}>
                   <Download className="w-4 h-4 mr-2" />
                   Rapor İndir
                 </Button>
@@ -352,113 +432,206 @@ export default function ReportsClient({ user }: ReportsClientProps) {
 
           {/* Charts Section */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+            {/* Monthly Revenue Trend */}
             <Card>
               <CardHeader>
-                <CardTitle>Aylık Gelir Trendi</CardTitle>
+                <CardTitle>Son 6 Ay Gelir Trendi</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="h-64 flex items-center justify-center text-gray-500">
-                  <div className="text-center">
-                    <BarChart3 className="w-16 h-16 mx-auto mb-4 text-gray-400" />
-                    <p>Grafik özelliği yakında eklenecek</p>
-                  </div>
-                </div>
+                <ResponsiveContainer width="100%" height={300}>
+                  <LineChart data={monthlyData}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="month" />
+                    <YAxis />
+                    <Tooltip formatter={(value: number) => formatCurrency(value)} />
+                    <Legend />
+                    <Line type="monotone" dataKey="gelir" stroke="#3B82F6" strokeWidth={2} name="Gelir" />
+                  </LineChart>
+                </ResponsiveContainer>
               </CardContent>
             </Card>
 
+            {/* Appointment Status Distribution */}
             <Card>
               <CardHeader>
-                <CardTitle>Popüler Hizmetler</CardTitle>
+                <CardTitle>Randevu Durumları</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="h-64 flex items-center justify-center text-gray-500">
-                  <div className="text-center">
-                    <BarChart3 className="w-16 h-16 mx-auto mb-4 text-gray-400" />
-                    <p>Grafik özelliği yakında eklenecek</p>
+                <ResponsiveContainer width="100%" height={300}>
+                  <PieChart>
+                    <Pie
+                      data={appointmentsByStatus}
+                      cx="50%"
+                      cy="50%"
+                      labelLine={false}
+                      label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                      outerRadius={80}
+                      fill="#8884d8"
+                      dataKey="value"
+                    >
+                      {appointmentsByStatus.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <Tooltip />
+                  </PieChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+
+            {/* Top Services */}
+            <Card>
+              <CardHeader>
+                <CardTitle>En Popüler Hizmetler (Top 5)</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ResponsiveContainer width="100%" height={300}>
+                  <BarChart data={servicesData}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="name" />
+                    <YAxis />
+                    <Tooltip />
+                    <Legend />
+                    <Bar dataKey="randevular" fill="#10B981" name="Randevu Sayısı" />
+                  </BarChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+
+            {/* Staff Performance */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Personel Performansı</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {staffPerformance.length > 0 ? (
+                  <ResponsiveContainer width="100%" height={300}>
+                    <BarChart data={staffPerformance}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="name" />
+                      <YAxis />
+                      <Tooltip formatter={(value: number, name: string) => 
+                        name === 'gelir' ? formatCurrency(value) : value
+                      } />
+                      <Legend />
+                      <Bar dataKey="gelir" fill="#F59E0B" name="Gelir" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="h-[300px] flex items-center justify-center text-gray-500">
+                    <div className="text-center">
+                      <Users className="w-12 h-12 mx-auto mb-2 text-gray-400" />
+                      <p>Henüz tamamlanmış randevu yok</p>
+                    </div>
                   </div>
-                </div>
+                )}
               </CardContent>
             </Card>
           </div>
 
-          {/* Quick Actions */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Hızlı İşlemler</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <Button variant="outline" className="h-16 flex flex-col items-center justify-center" onClick={handleDetailedReport}>
-                  <FileText className="w-6 h-6 mb-2" />
-                  Detaylı Rapor
-                </Button>
-                <Button variant="outline" className="h-16 flex flex-col items-center justify-center" onClick={handleExportData}>
-                  <Download className="w-6 h-6 mb-2" />
-                  Veri Dışa Aktar
-                </Button>
-                <Button variant="outline" className="h-16 flex flex-col items-center justify-center" onClick={handleDateRange}>
-                  <Calendar className="w-6 h-6 mb-2" />
-                  Tarih Aralığı Seç
-                </Button>
-              </div>
-
-              {/* Date Picker Modal */}
-              {showDatePicker && (
-                <div className="mt-4 p-4 border border-gray-200 rounded-lg bg-gray-50">
-                  <h3 className="font-semibold mb-3">Tarih Aralığı Seçin</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Başlangıç Tarihi
-                      </label>
-                      <input
-                        type="date"
-                        value={startDate}
-                        onChange={(e) => setStartDate(e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Bitiş Tarihi
-                      </label>
-                      <input
-                        type="date"
-                        value={endDate}
-                        onChange={(e) => setEndDate(e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
-                      />
-                    </div>
-                  </div>
-                  <div className="flex gap-2 justify-end">
-                    <Button variant="outline" onClick={() => setShowDatePicker(false)}>
-                      İptal
-                    </Button>
-                    <Button onClick={applyDateFilter} className="bg-blue-600 hover:bg-blue-700 text-white">
-                      Uygula
-                    </Button>
-                  </div>
+          {/* Top Services Table */}
+          {servicesData.length > 0 && (
+            <Card className="mb-8">
+              <CardHeader>
+                <CardTitle>Hizmet Detayları</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Hizmet
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Randevu Sayısı
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Toplam Gelir
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Ortalama Gelir
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {servicesData.map((service, index) => (
+                        <tr key={index}>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="flex items-center">
+                              <Star className="w-4 h-4 text-yellow-400 mr-2" />
+                              <div className="text-sm font-medium text-gray-900">{service.name}</div>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {service.randevular}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                            {formatCurrency(service.gelir)}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {formatCurrency(service.randevular > 0 ? service.gelir / service.randevular : 0)}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
-              )}
+              </CardContent>
+            </Card>
+          )}
 
-              {/* Filter Modal */}
-              {showFilterModal && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-                  <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
-                    <h2 className="text-xl font-bold mb-4">Filtre Seçenekleri</h2>
-                    <p className="text-gray-600 mb-6">
-                      Filtreleme özelliği yakında eklenecek. Bu özellik sayesinde raporları tarih aralığı, personel, hizmet türü ve daha fazlasına göre filtreleyebileceksiniz.
-                    </p>
-                    <div className="flex justify-end">
-                      <Button onClick={() => setShowFilterModal(false)} className="bg-blue-600 hover:bg-blue-700 text-white">
-                        Tamam
-                      </Button>
-                    </div>
-                  </div>
+          {/* Staff Performance Table */}
+          {staffPerformance.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Personel Detayları</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Personel
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Tamamlanan Randevu
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Toplam Gelir
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Ortalama Randevu Değeri
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {staffPerformance.map((member, index) => (
+                        <tr key={index}>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="flex items-center">
+                              <Users className="w-4 h-4 text-blue-400 mr-2" />
+                              <div className="text-sm font-medium text-gray-900">{member.name}</div>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {member.randevular}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                            {formatCurrency(member.gelir)}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {formatCurrency(member.randevular > 0 ? member.gelir / member.randevular : 0)}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
-              )}
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          )}
         </div>
       </main>
     </div>
