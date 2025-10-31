@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
 import { checkApiPermission } from '../../../lib/api-auth';
-
-const prisma = new PrismaClient();
+import { prisma } from '../../../lib/prisma';
 
 // CORS headers
 const corsHeaders = {
@@ -428,7 +426,5 @@ export async function POST(request: NextRequest) {
       { success: false, error: `Randevu oluşturulurken hata oluştu: ${error instanceof Error ? error.message : 'Unknown error'}` },
       { status: 500, headers: corsHeaders }
     );
-  } finally {
-    await prisma.$disconnect();
   }
 }
