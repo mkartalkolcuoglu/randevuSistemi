@@ -51,7 +51,7 @@ export async function GET() {
       );
     }
 
-    // Also fetch settings (for appointmentTimeInterval and blacklistThreshold)
+    // Also fetch settings (for WhatsApp, appointmentTimeInterval, and blacklistThreshold)
     const settings = await prisma.settings.findUnique({
       where: { tenantId: tenantId }
     });
@@ -60,7 +60,13 @@ export async function GET() {
     const mergedData = {
       ...tenant,
       appointmentTimeInterval: settings?.appointmentTimeInterval || 30,
-      blacklistThreshold: settings?.blacklistThreshold || 3
+      blacklistThreshold: settings?.blacklistThreshold || 3,
+      // Include settings data for reference (useful for debugging)
+      _settings: {
+        businessPhone: settings?.businessPhone,
+        businessAddress: settings?.businessAddress,
+        businessEmail: settings?.businessEmail
+      }
     };
 
     // Return full tenant info (including theme, workingHours, subscription, etc.)
@@ -160,35 +166,41 @@ export async function PUT(request: Request) {
       data: updateData
     });
 
-    // Also update or create settings (for appointmentTimeInterval and blacklistThreshold)
-    if (data.appointmentTimeInterval !== undefined || data.blacklistThreshold !== undefined) {
-      const existingSettings = await prisma.settings.findUnique({
-        where: { tenantId: tenantId }
+    // Also update or create settings (for WhatsApp, appointmentTimeInterval, and blacklistThreshold)
+    const existingSettings = await prisma.settings.findUnique({
+      where: { tenantId: tenantId }
+    });
+
+    const settingsData: any = {
+      businessName: data.businessName || updatedTenant.businessName,
+      businessPhone: data.phone || null, // ✅ WhatsApp için telefon
+      businessAddress: data.businessAddress || null, // ✅ WhatsApp için adres
+      businessEmail: data.ownerEmail || null,
+    };
+    
+    if (data.appointmentTimeInterval !== undefined) {
+      settingsData.appointmentTimeInterval = parseInt(data.appointmentTimeInterval);
+    }
+    if (data.blacklistThreshold !== undefined) {
+      settingsData.blacklistThreshold = parseInt(data.blacklistThreshold);
+    }
+    if (data.workingHours) {
+      settingsData.workingHours = JSON.stringify(data.workingHours);
+    }
+
+    if (existingSettings) {
+      await prisma.settings.update({
+        where: { tenantId: tenantId },
+        data: settingsData
       });
-
-      const settingsData: any = {};
-      if (data.appointmentTimeInterval !== undefined) {
-        settingsData.appointmentTimeInterval = parseInt(data.appointmentTimeInterval);
-      }
-      if (data.blacklistThreshold !== undefined) {
-        settingsData.blacklistThreshold = parseInt(data.blacklistThreshold);
-      }
-
-      if (existingSettings) {
-        await prisma.settings.update({
-          where: { tenantId: tenantId },
-          data: settingsData
-        });
-      } else {
-        // Create settings if they don't exist
-        await prisma.settings.create({
-          data: {
-            tenantId: tenantId,
-            businessName: data.businessName || updatedTenant.businessName,
-            ...settingsData
-          }
-        });
-      }
+    } else {
+      // Create settings if they don't exist
+      await prisma.settings.create({
+        data: {
+          tenantId: tenantId,
+          ...settingsData
+        }
+      });
     }
 
     console.log('✅ Tenant settings updated successfully');
