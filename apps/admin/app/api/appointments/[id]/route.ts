@@ -111,6 +111,22 @@ export async function PUT(
       await handleNoShowBlacklist(updatedAppointment);
     }
 
+    // If status changed to "confirmed", send WhatsApp confirmation (non-blocking)
+    const isConfirmed = data.status === 'confirmed';
+    const wasConfirmed = oldAppointment?.status === 'confirmed';
+    
+    if (isConfirmed && !wasConfirmed && !updatedAppointment.whatsappSent) {
+      console.log(`📱 Status changed to confirmed - sending WhatsApp notification`);
+      // Send WhatsApp in background (don't wait for it)
+      fetch(`${request.nextUrl.origin}/api/whatsapp/send-confirmation`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ appointmentId: id })
+      }).catch(error => {
+        console.error('⚠️ WhatsApp send failed (non-blocking):', error);
+      });
+    }
+
     return NextResponse.json({
       success: true,
       message: 'Appointment updated successfully',

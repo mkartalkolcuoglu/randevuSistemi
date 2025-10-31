@@ -1,6 +1,8 @@
 {
-  "buildCommand": "cd ../.. && npx turbo run build --filter=admin",
-  "installCommand": "npm install --legacy-peer-deps",
-  "framework": "nextjs"
+  "crons": [
+    {
+      "path": "/api/whatsapp/check-reminders",
+      "schedule": "*/10 * * * *"
+    }
+  ]
 }
-

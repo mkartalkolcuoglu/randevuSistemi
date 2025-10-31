@@ -20,7 +20,8 @@ export default function NewCustomerPage() {
     gender: '',
     address: '',
     notes: '',
-    status: 'active'
+    status: 'active',
+    whatsappNotifications: true
   });
 
   const handleInputChange = (field: string, value: any) => {
@@ -226,6 +227,29 @@ export default function NewCustomerPage() {
                       onChange={(e) => handleInputChange('notes', e.target.value)}
                       className="min-h-32"
                     />
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Bildirim Tercihleri</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex items-center space-x-2">
+                      <input
+                        type="checkbox"
+                        id="whatsappNotifications"
+                        checked={formData.whatsappNotifications}
+                        onChange={(e) => handleInputChange('whatsappNotifications', e.target.checked)}
+                        className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
+                      />
+                      <label htmlFor="whatsappNotifications" className="text-sm font-medium text-gray-700 cursor-pointer">
+                        📱 WhatsApp ile randevu bildirimleri alsın
+                      </label>
+                    </div>
+                    <p className="text-xs text-gray-500 mt-2 ml-6">
+                      Randevu onayları ve hatırlatmalar WhatsApp üzerinden gönderilecektir.
+                    </p>
                   </CardContent>
                 </Card>
 
