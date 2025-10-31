@@ -32,7 +32,8 @@
     "sqlite3": "^5.1.7",
     "tailwindcss": "^3.3.5",
     "tailwindcss-animate": "^1.0.7",
-    "tsx": "^4.20.5"
+    "tsx": "^4.20.5",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@repo/eslint-config": "*",

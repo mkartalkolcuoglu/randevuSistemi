@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Button, Input, Card, CardContent, CardHeader, CardTitle, Badge, AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@repo/ui';
-import { Plus, Search, Edit, Trash2, Phone, Mail, Calendar, User, AlertCircle, CheckCircle, AlertTriangle, XCircle } from 'lucide-react';
+import { Plus, Search, Edit, Trash2, Phone, Mail, Calendar, User, AlertCircle, CheckCircle, AlertTriangle, XCircle, Download, Upload, FileSpreadsheet } from 'lucide-react';
 import Link from 'next/link';
 import AdminHeader from '../admin-header';
 import { DataTable, Column } from '../../../components/DataTable';
@@ -30,6 +30,12 @@ export default function CustomersClient({ initialCustomers, tenantId, user }: Cu
   const [successMessage, setSuccessMessage] = useState('İşlem başarıyla tamamlandı.');
   const [removeBlacklistModalOpen, setRemoveBlacklistModalOpen] = useState(false);
   const [customerToRemoveFromBlacklist, setCustomerToRemoveFromBlacklist] = useState<string | null>(null);
+  
+  // Import modal states
+  const [importModalOpen, setImportModalOpen] = useState(false);
+  const [importFile, setImportFile] = useState<File | null>(null);
+  const [importing, setImporting] = useState(false);
+  const [importErrors, setImportErrors] = useState<any[]>([]);
 
   useEffect(() => {
     fetchCustomers();
@@ -98,6 +104,75 @@ export default function CustomersClient({ initialCustomers, tenantId, user }: Cu
       setErrorModalOpen(true);
     } finally {
       setCustomerToRemoveFromBlacklist(null);
+    }
+  };
+
+  const handleDownloadTemplate = () => {
+    window.open('/api/customers/export-template', '_blank');
+  };
+
+  const handleExport = () => {
+    window.open('/api/customers/export', '_blank');
+  };
+
+  const handleImportClick = () => {
+    setImportFile(null);
+    setImportErrors([]);
+    setImportModalOpen(true);
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setImportFile(file);
+      setImportErrors([]);
+    }
+  };
+
+  const handleImport = async () => {
+    if (!importFile) return;
+
+    setImporting(true);
+    setImportErrors([]);
+
+    try {
+      const formData = new FormData();
+      formData.append('file', importFile);
+
+      const response = await fetch('/api/customers/import', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setImportModalOpen(false);
+        setSuccessMessage(data.message || 'Müşteriler başarıyla içe aktarıldı');
+        setSuccessModalOpen(true);
+        await fetchCustomers();
+      } else {
+        if (data.validationErrors) {
+          setImportErrors(data.validationErrors);
+        } else {
+          setErrorMessage({
+            title: '❌ İçe Aktarma Hatası',
+            description: data.error || 'Müşteriler içe aktarılırken hata oluştu'
+          });
+          setErrorModalOpen(true);
+          setImportModalOpen(false);
+        }
+      }
+    } catch (error) {
+      console.error('Import error:', error);
+      setErrorMessage({
+        title: '❌ Hata',
+        description: 'Dosya yüklenirken bir hata oluştu. Lütfen tekrar deneyin.'
+      });
+      setErrorModalOpen(true);
+      setImportModalOpen(false);
+    } finally {
+      setImporting(false);
     }
   };
 
@@ -342,12 +417,41 @@ export default function CustomersClient({ initialCustomers, tenantId, user }: Cu
               <p className="text-sm sm:text-base text-gray-600 mt-2">Müşterilerinizi görüntüleyin ve yönetin</p>
             </div>
             
-            <Link href="/admin/customers/new" className="w-full sm:w-auto flex-shrink-0">
-              <Button className="bg-blue-600 hover:bg-blue-700 text-white w-full sm:w-auto">
-                <Plus className="w-4 h-4 mr-2" />
-                Yeni Müşteri Ekle
+            <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+              <Button 
+                onClick={handleDownloadTemplate}
+                variant="outline"
+                className="border-gray-300 text-gray-700 hover:bg-gray-50 w-full sm:w-auto"
+              >
+                <FileSpreadsheet className="w-4 h-4 mr-2" />
+                Şablon İndir
               </Button>
-            </Link>
+              
+              <Button 
+                onClick={handleExport}
+                variant="outline"
+                className="border-green-300 text-green-700 hover:bg-green-50 w-full sm:w-auto"
+              >
+                <Download className="w-4 h-4 mr-2" />
+                Dışa Aktar
+              </Button>
+              
+              <Button 
+                onClick={handleImportClick}
+                variant="outline"
+                className="border-blue-300 text-blue-700 hover:bg-blue-50 w-full sm:w-auto"
+              >
+                <Upload className="w-4 h-4 mr-2" />
+                İçe Aktar
+              </Button>
+              
+              <Link href="/admin/customers/new" className="w-full sm:w-auto flex-shrink-0">
+                <Button className="bg-blue-600 hover:bg-blue-700 text-white w-full sm:w-auto">
+                  <Plus className="w-4 h-4 mr-2" />
+                  Yeni Müşteri Ekle
+                </Button>
+              </Link>
+            </div>
           </div>
 
           {/* İstatistikler */}
@@ -599,6 +703,98 @@ export default function CustomersClient({ initialCustomers, tenantId, user }: Cu
             <AlertDialogAction onClick={() => setSuccessModalOpen(false)}>
               Tamam
             </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Import Modal */}
+      <AlertDialog open={importModalOpen} onOpenChange={setImportModalOpen}>
+        <AlertDialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <Upload className="w-5 h-5 text-blue-500" />
+              Müşteri İçe Aktarma
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-base space-y-4">
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <h4 className="font-semibold text-blue-900 mb-2">📋 Nasıl İçe Aktarılır?</h4>
+                <ol className="list-decimal list-inside space-y-1 text-sm text-blue-800">
+                  <li>Önce "Şablon İndir" butonuna tıklayarak Excel şablonunu indirin</li>
+                  <li>Şablonu doldurun (örnek satırı silebilirsiniz)</li>
+                  <li>Doldurduğunuz dosyayı aşağıdan seçin ve "İçe Aktar" butonuna tıklayın</li>
+                </ol>
+              </div>
+
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-gray-700">
+                  Excel Dosyası Seçin (.xlsx)
+                </label>
+                <input
+                  type="file"
+                  accept=".xlsx,.xls"
+                  onChange={handleFileChange}
+                  className="block w-full text-sm text-gray-500
+                    file:mr-4 file:py-2 file:px-4
+                    file:rounded-md file:border-0
+                    file:text-sm file:font-semibold
+                    file:bg-blue-50 file:text-blue-700
+                    hover:file:bg-blue-100
+                    cursor-pointer"
+                />
+                {importFile && (
+                  <p className="text-sm text-green-600 flex items-center gap-1">
+                    <CheckCircle className="w-4 h-4" />
+                    Seçilen dosya: {importFile.name}
+                  </p>
+                )}
+              </div>
+
+              {importErrors.length > 0 && (
+                <div className="bg-red-50 border border-red-200 rounded-lg p-4 max-h-60 overflow-y-auto">
+                  <h4 className="font-semibold text-red-900 mb-2 flex items-center gap-2">
+                    <XCircle className="w-5 h-5" />
+                    Doğrulama Hataları ({importErrors.length} satır)
+                  </h4>
+                  <div className="space-y-3">
+                    {importErrors.map((error, index) => (
+                      <div key={index} className="bg-white rounded p-3 text-sm">
+                        <p className="font-semibold text-red-800 mb-1">
+                          Satır {error.row}:
+                        </p>
+                        <ul className="list-disc list-inside space-y-1 text-red-700">
+                          {error.errors.map((err: string, errIndex: number) => (
+                            <li key={errIndex}>{err}</li>
+                          ))}
+                        </ul>
+                        <div className="mt-2 text-xs text-gray-600 bg-gray-50 p-2 rounded">
+                          <strong>Veri:</strong> {error.data['Ad']} {error.data['Soyad']} - {error.data['Telefon']}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={importing}>İptal</AlertDialogCancel>
+            <Button
+              onClick={handleImport}
+              disabled={!importFile || importing}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              {importing ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  İçe Aktarılıyor...
+                </>
+              ) : (
+                <>
+                  <Upload className="w-4 h-4 mr-2" />
+                  İçe Aktar
+                </>
+              )}
+            </Button>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
