@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, use } from 'react';
-import { Button, Card, CardContent, CardHeader, CardTitle, formatPhone, normalizePhone, PHONE_PLACEHOLDER, PHONE_MAX_LENGTH } from '../../../components/ui';
+import { Button, Card, CardContent, CardHeader, CardTitle, formatPhone, normalizePhone, PHONE_PLACEHOLDER, PHONE_MAX_LENGTH, useAlert } from '../../../components/ui';
 import { 
   ArrowLeft,
   ArrowRight, 
@@ -27,6 +27,7 @@ type StepType = 'phone' | 'service' | 'staff' | 'datetime' | 'customer' | 'confi
 
 export default function RandevuPage({ params }: PageProps) {
   const { slug } = use(params);
+  const { showAlert } = useAlert();
   const [currentStep, setCurrentStep] = useState<StepType>('phone');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [customerPackages, setCustomerPackages] = useState<any[]>([]);
@@ -274,9 +275,9 @@ export default function RandevuPage({ params }: PageProps) {
         if (checkResponse.ok) {
           const checkData = await checkResponse.json();
           if (checkData.isBlacklisted) {
-            alert(
-              'Bu telefon numarası için randevu oluşturulamıyor.\n\n' +
-              'Lütfen işletme ile iletişime geçin.'
+            await showAlert(
+              'Bu telefon numarası için randevu oluşturulamıyor.\n\nLütfen işletme ile iletişime geçin.',
+              'Randevu Oluşturulamıyor'
             );
             return;
           }
@@ -317,7 +318,10 @@ export default function RandevuPage({ params }: PageProps) {
       const appointment = await createAppointmentMutation.mutateAsync(appointmentData);
 
       // Redirect to success page or show success message
-      alert(`Randevunuz başarıyla oluşturuldu! Randevu ID: ${appointment.id}`);
+      await showAlert(
+        `Randevunuz başarıyla oluşturuldu!\n\nRandevu ID: ${appointment.id}\n\nRandevu detaylarınız e-posta adresinize gönderildi.`,
+        '✅ Başarılı'
+      );
       
       // Reset form
       setCurrentStep('service');
@@ -330,7 +334,10 @@ export default function RandevuPage({ params }: PageProps) {
     } catch (error) {
       console.error('Randevu oluşturma hatası:', error);
       const errorMessage = error instanceof Error ? error.message : 'Bilinmeyen hata';
-      alert(`Randevu oluşturulurken hata: ${errorMessage}`);
+      await showAlert(
+        `Randevu oluşturulurken bir hata oluştu:\n\n${errorMessage}\n\nLütfen tekrar deneyin veya işletme ile iletişime geçin.`,
+        '❌ Hata'
+      );
     }
   };
 
