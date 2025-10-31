@@ -43,22 +43,23 @@ model Staff {
 }
 
 model Customer {
-  id             String    @id @default(cuid())
-  tenantId       String
-  firstName      String
-  lastName       String
-  email          String
-  phone          String?
-  birthDate      DateTime?
-  gender         String?
-  address        String?
-  notes          String?
-  status         String    @default("active")
-  noShowCount    Int       @default(0) @map("no_show_count")
-  isBlacklisted  Boolean   @default(false) @map("is_blacklisted")
-  blacklistedAt  DateTime? @map("blacklisted_at")
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
+  id                    String    @id @default(cuid())
+  tenantId              String
+  firstName             String
+  lastName              String
+  email                 String
+  phone                 String?
+  birthDate             DateTime?
+  gender                String?
+  address               String?
+  notes                 String?
+  status                String    @default("active")
+  noShowCount           Int       @default(0) @map("no_show_count")
+  isBlacklisted         Boolean   @default(false) @map("is_blacklisted")
+  blacklistedAt         DateTime? @map("blacklisted_at")
+  whatsappNotifications Boolean   @default(true) @map("whatsapp_notifications") // WhatsApp bildirim tercihi
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
   
   customerPackages CustomerPackage[]
   
@@ -82,26 +83,30 @@ model Service {
 }
 
 model Appointment {
-  id           String   @id @default(cuid())
-  tenantId     String
-  customerId   String
-  customerName String
-  customerPhone String?
-  customerEmail String?
-  serviceId    String
-  serviceName  String
-  staffId      String
-  staffName    String
-  date         String
-  time         String
-  status       String   @default("scheduled")
-  notes        String?
-  price        Float?
-  duration     Int?     // in minutes
-  paymentType  String   @default("cash")
-  packageInfo  String?  @db.Text // JSON string containing package usage info
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id                  String    @id @default(cuid())
+  tenantId            String
+  customerId          String
+  customerName        String
+  customerPhone       String?
+  customerEmail       String?
+  serviceId           String
+  serviceName         String
+  staffId             String
+  staffName           String
+  date                String
+  time                String
+  status              String    @default("scheduled")
+  notes               String?
+  price               Float?
+  duration            Int?      // in minutes
+  paymentType         String    @default("cash")
+  packageInfo         String?   @db.Text // JSON string containing package usage info
+  whatsappSent        Boolean   @default(false) @map("whatsapp_sent") // Onay mesajı gönderildi mi
+  whatsappSentAt      DateTime? @map("whatsapp_sent_at") // Onay mesajı gönderilme zamanı
+  reminderSent        Boolean   @default(false) @map("reminder_sent") // Hatırlatma gönderildi mi
+  reminderSentAt      DateTime? @map("reminder_sent_at") // Hatırlatma gönderilme zamanı
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
   
   @@map("appointments")
 }
