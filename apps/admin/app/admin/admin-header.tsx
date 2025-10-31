@@ -152,6 +152,20 @@ export default function AdminHeader({ user }: AdminHeaderProps) {
     }
   };
 
+  // Close notifications dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      // Check if click is outside notification dropdown
+      if (showNotifications && !target.closest('.notification-dropdown') && !target.closest('.notification-button')) {
+        setShowNotifications(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showNotifications]);
+
   // Get badge color based on remaining days
   const getBadgeColor = () => {
     if (remainingDays === null) return 'bg-gray-100 text-gray-800';
@@ -277,7 +291,7 @@ export default function AdminHeader({ user }: AdminHeaderProps) {
                   variant="outline"
                   size="sm"
                   onClick={() => setShowNotifications(!showNotifications)}
-                  className="relative"
+                  className="relative notification-button"
                 >
                   <Bell className="w-4 h-4" />
                   {unreadCount > 0 && (
@@ -289,7 +303,7 @@ export default function AdminHeader({ user }: AdminHeaderProps) {
 
                 {/* Notification Dropdown */}
                 {showNotifications && (
-                  <div className="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-lg border border-gray-200 z-50 max-h-96 overflow-y-auto">
+                  <div className="notification-dropdown absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-lg border border-gray-200 z-50 max-h-96 overflow-y-auto">
                     <div className="p-3 border-b border-gray-200 bg-gray-50">
                       <h3 className="font-semibold text-gray-900">Bildirimler</h3>
                       {unreadCount > 0 && (
@@ -330,9 +344,6 @@ export default function AdminHeader({ user }: AdminHeaderProps) {
                                   {new Date(notification.createdAt).toLocaleString('tr-TR')}
                                 </p>
                               </div>
-                              {!notification.read && (
-                                <div className="w-2 h-2 bg-blue-600 rounded-full flex-shrink-0 mt-1"></div>
-                              )}
                               {/* Dismiss button */}
                               <button
                                 onClick={(e) => dismissNotification(notification.id, e)}
