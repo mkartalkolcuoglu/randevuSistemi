@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@repo/ui';
-import { LogOut, User, Home, Calendar, Users, Briefcase, Package, Settings, Wallet, Gift, Clock, BarChart3, Menu, X, Bell } from 'lucide-react';
+import { LogOut, User, Home, Calendar, Users, Briefcase, Package, Settings, Wallet, Gift, Clock, BarChart3, Menu, X, Bell, XCircle } from 'lucide-react';
 import Link from 'next/link';
 import type { ClientUser } from '../../lib/client-permissions';
 import { canAccessPage } from '../../lib/client-permissions';
@@ -127,6 +127,28 @@ export default function AdminHeader({ user }: AdminHeaderProps) {
       setUnreadCount(prev => Math.max(0, prev - 1));
     } catch (error) {
       console.error('Error marking notification as read:', error);
+    }
+  };
+
+  // Dismiss notification (remove from list)
+  const dismissNotification = async (notificationId: string, event: React.MouseEvent) => {
+    event.stopPropagation(); // Prevent navigation
+    
+    try {
+      // Remove from local state immediately for better UX
+      const notification = notifications.find(n => n.id === notificationId);
+      setNotifications(prev => prev.filter(n => n.id !== notificationId));
+      if (notification && !notification.read) {
+        setUnreadCount(prev => Math.max(0, prev - 1));
+      }
+
+      // Delete from server
+      await fetch(`/api/notifications/${notificationId}`, {
+        method: 'DELETE'
+      });
+    } catch (error) {
+      console.error('Error dismissing notification:', error);
+      // Optionally: Re-fetch notifications if delete failed
     }
   };
 
@@ -284,7 +306,7 @@ export default function AdminHeader({ user }: AdminHeaderProps) {
                         {notifications.map((notification) => (
                           <div
                             key={notification.id}
-                            className={`p-3 hover:bg-gray-50 cursor-pointer transition-colors ${
+                            className={`p-3 hover:bg-gray-50 cursor-pointer transition-colors relative group ${
                               !notification.read ? 'bg-blue-50' : ''
                             }`}
                             onClick={() => {
@@ -297,7 +319,7 @@ export default function AdminHeader({ user }: AdminHeaderProps) {
                           >
                             <div className="flex items-start space-x-2">
                               <Calendar className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
-                              <div className="flex-1 min-w-0">
+                              <div className="flex-1 min-w-0 pr-6">
                                 <p className="text-sm font-medium text-gray-900">
                                   {notification.title}
                                 </p>
@@ -311,6 +333,14 @@ export default function AdminHeader({ user }: AdminHeaderProps) {
                               {!notification.read && (
                                 <div className="w-2 h-2 bg-blue-600 rounded-full flex-shrink-0 mt-1"></div>
                               )}
+                              {/* Dismiss button */}
+                              <button
+                                onClick={(e) => dismissNotification(notification.id, e)}
+                                className="absolute top-2 right-2 p-1 rounded-full hover:bg-gray-200 opacity-0 group-hover:opacity-100 transition-opacity"
+                                title="Kaldır"
+                              >
+                                <XCircle className="w-4 h-4 text-gray-500 hover:text-red-600" />
+                              </button>
                             </div>
                           </div>
                         ))}
