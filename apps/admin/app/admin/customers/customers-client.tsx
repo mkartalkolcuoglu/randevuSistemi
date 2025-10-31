@@ -155,9 +155,11 @@ export default function CustomersClient({ initialCustomers, tenantId, user }: Cu
         if (data.validationErrors) {
           setImportErrors(data.validationErrors);
         } else {
+          // Show detailed error message
+          const errorDetails = data.details ? `\n\nDetay: ${data.details}` : '';
           setErrorMessage({
             title: '❌ İçe Aktarma Hatası',
-            description: data.error || 'Müşteriler içe aktarılırken hata oluştu'
+            description: (data.error || 'Müşteriler içe aktarılırken hata oluştu') + errorDetails
           });
           setErrorModalOpen(true);
           setImportModalOpen(false);
