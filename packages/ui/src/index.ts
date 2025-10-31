@@ -15,6 +15,8 @@ export * from './avatar';
 export * from './dropdown-menu';
 export * from './dialog';
 export * from './alert-dialog';
+export * from './alert-modal';
+export * from './alert-provider';
 export * from './toast';
 export * from './popover';
 export * from './tooltip';
