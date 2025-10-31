@@ -50,9 +50,13 @@ export default function Home() {
 
       if (pagesRes.ok) {
         const pagesData = await pagesRes.json();
+        console.log('Pages data:', pagesData);
         if (pagesData.success) {
           setPages(pagesData.data);
+          console.log('Pages loaded:', pagesData.data.length, 'pages');
         }
+      } else {
+        console.error('Failed to fetch pages:', pagesRes.status);
       }
 
       // Calculate stats (these would come from project-admin API in real scenario)
