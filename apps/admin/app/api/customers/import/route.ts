@@ -82,7 +82,8 @@ export async function POST(request: NextRequest) {
       // Required fields - convert to string first (Excel may store as number)
       const firstName = row['Ad'] ? String(row['Ad']).trim() : '';
       const lastName = row['Soyad'] ? String(row['Soyad']).trim() : '';
-      const phoneRaw = row['Telefon'] ? String(row['Telefon']).trim() : '';
+      // Remove leading apostrophe if present (used to force text format in Excel)
+      const phoneRaw = row['Telefon'] ? String(row['Telefon']).trim().replace(/^'/, '') : '';
 
       if (!firstName) {
         errors.push('Ad zorunludur');
@@ -125,13 +126,24 @@ export async function POST(request: NextRequest) {
       const birthDateStr = row['Doğum Tarihi'] ? String(row['Doğum Tarihi']).trim() : '';
       if (birthDateStr) {
         try {
-          // Try to parse DD.MM.YYYY format
-          const parsed = parse(birthDateStr, 'dd.MM.yyyy', new Date());
+          // Excel may convert dates to serial numbers or different formats
+          // Try multiple date formats
+          let parsed: Date | null = null;
+          
+          // Try DD.MM.YYYY format (e.g., 10.10.1991)
+          parsed = parse(birthDateStr, 'dd.MM.yyyy', new Date());
+          
+          // If invalid, try other common formats
           if (isNaN(parsed.getTime())) {
-            errors.push('Geçersiz doğum tarihi formatı (GG.AA.YYYY olmalı)');
+            // Try YYYY-MM-DD format
+            parsed = parse(birthDateStr, 'yyyy-MM-dd', new Date());
+          }
+          
+          if (isNaN(parsed.getTime())) {
+            errors.push('Geçersiz doğum tarihi formatı (GG.AA.YYYY veya YYYY-MM-DD olmalı)');
           }
         } catch {
-          errors.push('Geçersiz doğum tarihi formatı (GG.AA.YYYY olmalı)');
+          errors.push('Geçersiz doğum tarihi formatı (GG.AA.YYYY veya YYYY-MM-DD olmalı)');
         }
       }
 
@@ -174,7 +186,8 @@ export async function POST(request: NextRequest) {
         // Convert all fields to string first (Excel may store as number)
         const firstName = String(row['Ad']).trim();
         const lastName = String(row['Soyad']).trim();
-        const phoneRaw = String(row['Telefon']).trim();
+        // Remove leading apostrophe if present (used to force text format in Excel)
+        const phoneRaw = String(row['Telefon']).trim().replace(/^'/, '');
         const cleanPhone = phoneRaw.replace(/\D/g, '');
         
         // Parse birth date if provided
@@ -182,7 +195,18 @@ export async function POST(request: NextRequest) {
         const birthDateStr = row['Doğum Tarihi'] ? String(row['Doğum Tarihi']).trim() : '';
         if (birthDateStr) {
           try {
+            // Try DD.MM.YYYY format first
             birthDate = parse(birthDateStr, 'dd.MM.yyyy', new Date());
+            
+            // If invalid, try YYYY-MM-DD format
+            if (isNaN(birthDate.getTime())) {
+              birthDate = parse(birthDateStr, 'yyyy-MM-dd', new Date());
+            }
+            
+            // If still invalid, set to null
+            if (isNaN(birthDate.getTime())) {
+              birthDate = null;
+            }
           } catch {
             birthDate = null;
           }

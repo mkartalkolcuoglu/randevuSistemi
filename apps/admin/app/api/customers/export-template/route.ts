@@ -6,14 +6,25 @@ export async function GET(request: NextRequest) {
     // Create template with headers and example row
     const templateData = [
       {
-        'Ad': 'Örnek',
-        'Soyad': 'Müşteri',
-        'Telefon': '5551234567',
-        'E-posta': 'ornek@email.com',
-        'Doğum Tarihi': '01.01.1990',
+        'Ad': 'Ahmet',
+        'Soyad': 'Yılmaz',
+        'Telefon': "'5551234567",  // Add apostrophe to force text format in Excel
+        'E-posta': 'ahmet@email.com',
+        'Doğum Tarihi': '15.03.1985',
         'Cinsiyet': 'Erkek',
-        'Adres': 'Örnek Mahalle, Örnek Sokak No:1',
-        'Not': 'Örnek not',
+        'Adres': 'Örnek Mahalle, Örnek Sokak No:1, İstanbul',
+        'Not': 'VIP müşteri',
+        'Kara Liste': 'Hayır'
+      },
+      {
+        'Ad': 'Ayşe',
+        'Soyad': 'Demir',
+        'Telefon': "'5559876543",  // Add apostrophe to force text format in Excel
+        'E-posta': 'ayse@email.com',
+        'Doğum Tarihi': '22.07.1990',
+        'Cinsiyet': 'Kadın',
+        'Adres': 'Merkez Mahalle, Atatürk Caddesi No:45, Ankara',
+        'Not': '',
         'Kara Liste': 'Hayır'
       }
     ];
