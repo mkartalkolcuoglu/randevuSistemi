@@ -171,3 +171,17 @@ model Product {
   
   @@map("products")
 }
+
+model Notification {
+  id          String   @id @default(cuid())
+  tenantId    String
+  type        String   // 'new_appointment', 'appointment_cancelled', etc.
+  title       String
+  message     String
+  link        String?  // Link to related page
+  read        Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@map("notifications")
+}
