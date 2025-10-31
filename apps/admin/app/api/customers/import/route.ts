@@ -79,24 +79,28 @@ export async function POST(request: NextRequest) {
       const rowNumber = index + 2; // +2 because Excel starts at 1 and has header row
       const errors: string[] = [];
 
-      // Required fields
-      if (!row['Ad']?.trim()) {
+      // Required fields - convert to string first (Excel may store as number)
+      const firstName = row['Ad'] ? String(row['Ad']).trim() : '';
+      const lastName = row['Soyad'] ? String(row['Soyad']).trim() : '';
+      const phoneRaw = row['Telefon'] ? String(row['Telefon']).trim() : '';
+
+      if (!firstName) {
         errors.push('Ad zorunludur');
       }
-      if (!row['Soyad']?.trim()) {
+      if (!lastName) {
         errors.push('Soyad zorunludur');
       }
-      if (!row['Telefon']?.trim()) {
+      if (!phoneRaw) {
         errors.push('Telefon zorunludur');
       } else {
         // Clean and validate phone
-        const cleanPhone = row['Telefon'].toString().replace(/\D/g, '');
+        const cleanPhone = phoneRaw.replace(/\D/g, '');
         if (cleanPhone.length !== 10) {
           errors.push('Telefon 10 haneli olmalıdır');
         } else {
           // Check for duplicates in Excel
           const duplicateInExcel = data.slice(0, index).find(
-            r => r['Telefon']?.toString().replace(/\D/g, '') === cleanPhone
+            r => r['Telefon'] && String(r['Telefon']).replace(/\D/g, '') === cleanPhone
           );
           if (duplicateInExcel) {
             errors.push(`Bu telefon numarası Excel'de birden fazla kez kullanılmış (Satır ${index + 1} ve önceki satırlar)`);
@@ -109,19 +113,20 @@ export async function POST(request: NextRequest) {
         }
       }
 
-      // Optional field validations
-      if (row['E-posta'] && row['E-posta'].trim()) {
+      // Optional field validations - convert to string first
+      const email = row['E-posta'] ? String(row['E-posta']).trim() : '';
+      if (email) {
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(row['E-posta'].trim())) {
+        if (!emailRegex.test(email)) {
           errors.push('Geçersiz e-posta formatı');
         }
       }
 
-      if (row['Doğum Tarihi'] && row['Doğum Tarihi'].trim()) {
+      const birthDateStr = row['Doğum Tarihi'] ? String(row['Doğum Tarihi']).trim() : '';
+      if (birthDateStr) {
         try {
-          const dateStr = row['Doğum Tarihi'].trim();
           // Try to parse DD.MM.YYYY format
-          const parsed = parse(dateStr, 'dd.MM.yyyy', new Date());
+          const parsed = parse(birthDateStr, 'dd.MM.yyyy', new Date());
           if (isNaN(parsed.getTime())) {
             errors.push('Geçersiz doğum tarihi formatı (GG.AA.YYYY olmalı)');
           }
@@ -130,16 +135,16 @@ export async function POST(request: NextRequest) {
         }
       }
 
-      if (row['Cinsiyet'] && row['Cinsiyet'].trim()) {
-        const gender = row['Cinsiyet'].trim().toLowerCase();
-        if (!['erkek', 'kadın', 'diğer'].includes(gender)) {
+      const genderStr = row['Cinsiyet'] ? String(row['Cinsiyet']).trim().toLowerCase() : '';
+      if (genderStr) {
+        if (!['erkek', 'kadın', 'diğer', 'male', 'female', 'other'].includes(genderStr)) {
           errors.push('Cinsiyet Erkek, Kadın veya Diğer olmalıdır');
         }
       }
 
-      if (row['Kara Liste'] && row['Kara Liste'].trim()) {
-        const blacklist = row['Kara Liste'].trim().toLowerCase();
-        if (!['evet', 'hayır'].includes(blacklist)) {
+      const blacklistStr = row['Kara Liste'] ? String(row['Kara Liste']).trim().toLowerCase() : '';
+      if (blacklistStr) {
+        if (!['evet', 'hayır', 'yes', 'no'].includes(blacklistStr)) {
           errors.push('Kara Liste Evet veya Hayır olmalıdır');
         }
       }
@@ -166,13 +171,18 @@ export async function POST(request: NextRequest) {
     // Import valid rows
     const importedCustomers = await Promise.all(
       validRows.map(async (row) => {
-        const cleanPhone = row['Telefon'].toString().replace(/\D/g, '');
+        // Convert all fields to string first (Excel may store as number)
+        const firstName = String(row['Ad']).trim();
+        const lastName = String(row['Soyad']).trim();
+        const phoneRaw = String(row['Telefon']).trim();
+        const cleanPhone = phoneRaw.replace(/\D/g, '');
         
         // Parse birth date if provided
         let birthDate: Date | null = null;
-        if (row['Doğum Tarihi'] && row['Doğum Tarihi'].trim()) {
+        const birthDateStr = row['Doğum Tarihi'] ? String(row['Doğum Tarihi']).trim() : '';
+        if (birthDateStr) {
           try {
-            birthDate = parse(row['Doğum Tarihi'].trim(), 'dd.MM.yyyy', new Date());
+            birthDate = parse(birthDateStr, 'dd.MM.yyyy', new Date());
           } catch {
             birthDate = null;
           }
@@ -180,8 +190,8 @@ export async function POST(request: NextRequest) {
 
         // Parse gender - store in Turkish to match form behavior
         let gender: string | null = null;
-        if (row['Cinsiyet'] && row['Cinsiyet'].trim()) {
-          const genderStr = row['Cinsiyet'].trim().toLowerCase();
+        const genderStr = row['Cinsiyet'] ? String(row['Cinsiyet']).trim().toLowerCase() : '';
+        if (genderStr) {
           if (genderStr === 'erkek' || genderStr === 'male') {
             gender = 'Erkek';
           } else if (genderStr === 'kadın' || genderStr === 'female') {
@@ -192,22 +202,28 @@ export async function POST(request: NextRequest) {
         }
 
         // Parse blacklist status
-        const isBlacklisted = row['Kara Liste']?.trim().toLowerCase() === 'evet';
+        const blacklistStr = row['Kara Liste'] ? String(row['Kara Liste']).trim().toLowerCase() : '';
+        const isBlacklisted = blacklistStr === 'evet' || blacklistStr === 'yes';
 
         // Generate unique email if not provided (to satisfy unique constraint)
-        const email = row['E-posta']?.trim() || `${cleanPhone}@temp.local`;
+        const emailRaw = row['E-posta'] ? String(row['E-posta']).trim() : '';
+        const email = emailRaw || `${cleanPhone}@temp.local`;
+        
+        // Get optional fields
+        const address = row['Adres'] ? String(row['Adres']).trim() : null;
+        const notes = row['Not'] ? String(row['Not']).trim() : null;
         
         return prisma.customer.create({
           data: {
             tenantId: user.tenantId,
-            firstName: row['Ad'].trim(),
-            lastName: row['Soyad'].trim(),
+            firstName: firstName,
+            lastName: lastName,
             phone: cleanPhone,
             email: email,
             birthDate: birthDate,
             gender: gender,
-            address: row['Adres']?.trim() || null,
-            notes: row['Not']?.trim() || null,
+            address: address,
+            notes: notes,
             isBlacklisted: isBlacklisted,
             blacklistedAt: isBlacklisted ? new Date() : null,
             noShowCount: 0,
