@@ -49,7 +49,12 @@ export default function RandevuPage({ params }: PageProps) {
     notes: ''
   });
   const [showSuccessModal, setShowSuccessModal] = useState(false);
-  const [appointmentId, setAppointmentId] = useState<string>('');
+  const [successAppointment, setSuccessAppointment] = useState<{
+    id: string;
+    date: string;
+    time: string;
+    serviceName: string;
+  } | null>(null);
 
   // API Hooks
   const { data: tenant, isLoading: tenantLoading } = useTenant(slug);
@@ -315,8 +320,15 @@ export default function RandevuPage({ params }: PageProps) {
       console.log('📤 Gönderilen randevu verisi:', appointmentData);
       const appointment = await createAppointmentMutation.mutateAsync(appointmentData);
 
+      // Save appointment details for modal BEFORE resetting
+      setSuccessAppointment({
+        id: appointment.id,
+        date: selectedDate,
+        time: selectedTime,
+        serviceName: selectedServiceData?.name || 'Seçilen Hizmet'
+      });
+      
       // Show success modal
-      setAppointmentId(appointment.id);
       setShowSuccessModal(true);
       
       // Reset form
@@ -1081,38 +1093,38 @@ export default function RandevuPage({ params }: PageProps) {
               Randevunuz başarıyla kaydedildi. Randevu bilgileriniz aşağıdadır.
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="rounded-lg bg-gray-50 p-4 space-y-2">
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-gray-600">Randevu No:</span>
-                <span className="font-semibold text-gray-900">{appointmentId}</span>
+          {successAppointment && (
+            <div className="space-y-4 py-4">
+              <div className="rounded-lg bg-gray-50 p-4 space-y-2">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-gray-600">Randevu No:</span>
+                  <span className="font-semibold text-gray-900">{successAppointment.id}</span>
+                </div>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-gray-600">Tarih:</span>
+                  <span className="font-semibold text-gray-900">
+                    {format(new Date(successAppointment.date), 'dd MMMM yyyy', { locale: tr })}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-gray-600">Saat:</span>
+                  <span className="font-semibold text-gray-900">{successAppointment.time}</span>
+                </div>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-gray-600">Hizmet:</span>
+                  <span className="font-semibold text-gray-900">{successAppointment.serviceName}</span>
+                </div>
               </div>
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-gray-600">Tarih:</span>
-                <span className="font-semibold text-gray-900">
-                  {selectedDate && format(new Date(selectedDate), 'dd MMMM yyyy', { locale: tr })}
-                </span>
-              </div>
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-gray-600">Saat:</span>
-                <span className="font-semibold text-gray-900">{selectedTime}</span>
-              </div>
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-gray-600">Hizmet:</span>
-                <span className="font-semibold text-gray-900">
-                  {services?.find(s => s.id === selectedService)?.name}
-                </span>
-              </div>
+              <p className="text-sm text-gray-600 text-center">
+                Randevu saatinizden önce size hatırlatma yapılacaktır.
+              </p>
             </div>
-            <p className="text-sm text-gray-600 text-center">
-              Randevu saatinizden önce size hatırlatma yapılacaktır.
-            </p>
-          </div>
+          )}
           <DialogFooter>
             <Button 
               onClick={() => {
                 setShowSuccessModal(false);
-                setAppointmentId('');
+                setSuccessAppointment(null);
               }}
               className="w-full"
             >
