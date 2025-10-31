@@ -194,13 +194,16 @@ export async function POST(request: NextRequest) {
         // Parse blacklist status
         const isBlacklisted = row['Kara Liste']?.trim().toLowerCase() === 'evet';
 
+        // Generate unique email if not provided (to satisfy unique constraint)
+        const email = row['E-posta']?.trim() || `${cleanPhone}@temp.local`;
+        
         return prisma.customer.create({
           data: {
             tenantId: user.tenantId,
             firstName: row['Ad'].trim(),
             lastName: row['Soyad'].trim(),
             phone: cleanPhone,
-            email: row['E-posta']?.trim() || '', // Email is required in schema, use empty string if not provided
+            email: email,
             birthDate: birthDate,
             gender: gender,
             address: row['Adres']?.trim() || null,
