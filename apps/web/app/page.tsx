@@ -351,7 +351,7 @@ export default function Home() {
           ) : packages.length > 0 ? (
             <div className={`grid grid-cols-1 md:grid-cols-${Math.min(packages.length, 3)} gap-8 max-w-5xl mx-auto`}>
               {packages.slice(0, 3).map((pkg, index) => {
-                const isPopular = index === 1 && packages.length >= 3;
+                const isPopular = pkg.isPopular || false;
                 return (
                   <Card 
                     key={pkg.id} 
@@ -369,7 +369,7 @@ export default function Home() {
                     <CardContent className="p-8">
                       <h3 className="text-2xl font-bold text-gray-900 mb-2">{pkg.name}</h3>
                       <div className="mb-6">
-                        <span className="text-5xl font-bold text-gray-900">₺{pkg.price}</span>
+                        <span className="text-5xl font-bold text-gray-900">₺{Math.round(pkg.price)}</span>
                         <span className="text-gray-600">
                           /{pkg.durationType === 'monthly' ? 'aylık' : pkg.durationType === 'yearly' ? 'yıllık' : pkg.durationDays + ' gün'}
                         </span>
