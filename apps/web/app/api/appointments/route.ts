@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import { prisma } from '../../../lib/prisma';
 
 // Health check for this endpoint
 export async function GET() {
@@ -178,7 +176,5 @@ export async function POST(request: NextRequest) {
       success: false,
       error: 'Randevu oluşturulurken hata oluştu: ' + (error instanceof Error ? error.message : 'Bilinmeyen hata')
     }, { status: 500 });
-  } finally {
-    await prisma.$disconnect();
   }
 }
