@@ -289,11 +289,18 @@ async function deductFromPackage(appointment: any) {
  */
 async function createAppointmentTransaction(appointment: any) {
   try {
-    console.log('💰 Creating transaction for appointment:', appointment.id);
+    console.log('💰 [TRANSACTION] Starting transaction creation for appointment:', {
+      id: appointment.id,
+      tenantId: appointment.tenantId,
+      price: appointment.price,
+      status: appointment.status,
+      date: appointment.date,
+      customerId: appointment.customerId
+    });
     
     // Skip if no price
     if (!appointment.price || appointment.price <= 0) {
-      console.log('ℹ️ No price set for appointment - skipping transaction');
+      console.log('⚠️ [TRANSACTION] Skipping - No price set:', appointment.price);
       return;
     }
 
@@ -306,9 +313,20 @@ async function createAppointmentTransaction(appointment: any) {
     });
 
     if (existingTransaction) {
-      console.log('ℹ️ Transaction already exists for this appointment');
+      console.log('ℹ️ [TRANSACTION] Transaction already exists:', existingTransaction.id);
       return;
     }
+
+    console.log('📝 [TRANSACTION] Creating new transaction with data:', {
+      tenantId: appointment.tenantId,
+      type: 'appointment',
+      amount: appointment.price,
+      paymentType: appointment.paymentType || 'cash',
+      customerId: appointment.customerId,
+      customerName: appointment.customerName,
+      appointmentId: appointment.id,
+      date: appointment.date
+    });
 
     // Create transaction
     const transaction = await prisma.transaction.create({
@@ -318,7 +336,7 @@ async function createAppointmentTransaction(appointment: any) {
         amount: appointment.price,
         description: `Randevu: ${appointment.serviceName} - ${appointment.customerName}`,
         paymentType: appointment.paymentType || 'cash',
-        customerId: appointment.customerId || undefined,
+        customerId: appointment.customerId,
         customerName: appointment.customerName,
         appointmentId: appointment.id,
         date: appointment.date,
@@ -326,9 +344,18 @@ async function createAppointmentTransaction(appointment: any) {
       }
     });
 
-    console.log('✅ Transaction created successfully:', transaction.id);
+    console.log('✅ [TRANSACTION] Transaction created successfully:', {
+      id: transaction.id,
+      amount: transaction.amount,
+      date: transaction.date,
+      type: transaction.type
+    });
   } catch (error) {
-    console.error('❌ Error creating appointment transaction:', error);
+    console.error('❌ [TRANSACTION] Error creating appointment transaction:', {
+      error: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+      appointmentId: appointment.id
+    });
     // Don't throw error - transaction creation failure shouldn't fail appointment update
   }
 }
