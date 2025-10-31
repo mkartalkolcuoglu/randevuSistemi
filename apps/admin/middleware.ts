@@ -25,6 +25,7 @@ export function middleware(request: NextRequest) {
     '/api/appointments', 
     '/api/customer-packages/check',  // Allow web app to check customer packages
     '/api/public',  // ✅ Allow all public API routes (tenant, check-blacklist, etc.)
+    '/api/whatsapp',  // ✅ Allow WhatsApp API routes (internal use, will check auth in route)
     '/api/tenants/sync', 
     '/favicon.ico', 
     '/_next'
