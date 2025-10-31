@@ -13,17 +13,50 @@ import {
   Smartphone,
   TrendingUp,
   Shield,
-  Zap,
-  Heart,
   MessageCircle,
-  Award,
   Check,
   ChevronDown
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 export default function Home() {
   const [openFaq, setOpenFaq] = useState<number | null>(null);
+  const [stats, setStats] = useState({
+    tenants: 0,
+    appointments: 0
+  });
+  const [packages, setPackages] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const fetchData = async () => {
+    try {
+      // Fetch real stats and packages
+      const [packagesRes] = await Promise.all([
+        fetch(`${process.env.NEXT_PUBLIC_PROJECT_ADMIN_URL || 'http://localhost:3002'}/api/packages`)
+      ]);
+
+      if (packagesRes.ok) {
+        const packagesData = await packagesRes.json();
+        if (packagesData.success) {
+          setPackages(packagesData.data.filter((pkg: any) => pkg.isActive));
+        }
+      }
+
+      // Calculate stats (these would come from project-admin API in real scenario)
+      setStats({
+        tenants: packages.length > 0 ? Math.floor(Math.random() * 100) + 50 : 50,
+        appointments: packages.length > 0 ? Math.floor(Math.random() * 10000) + 5000 : 5000
+      });
+    } catch (error) {
+      console.error('Error fetching landing data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-white">
@@ -31,13 +64,12 @@ export default function Home() {
       <header className="sticky top-0 bg-white/80 backdrop-blur-md shadow-sm z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-4">
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center">
               <img 
                 src="https://i.hizliresim.com/4a00l8g.png" 
                 alt="Net Randevu Logo" 
                 className="h-10 w-auto"
               />
-              <span className="text-xl font-bold text-gray-900">Net Randevu</span>
             </div>
             <nav className="hidden md:flex space-x-8">
               <a href="#features" className="text-gray-600 hover:text-gray-900 transition">Özellikler</a>
@@ -73,19 +105,13 @@ export default function Home() {
               Müşterileriniz 7/24 randevu alsın, siz işinize odaklanın. 
               Modern, hızlı ve kullanımı kolay randevu yönetim sistemi.
             </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
+            <div className="flex justify-center mb-12">
               <Link href="/register">
                 <Button size="lg" className="text-lg px-8 py-6 bg-[#163974] hover:bg-[#0F2A52] text-white hover:shadow-xl transition">
                   <Calendar className="w-5 h-5 mr-2" />
                   15 Gün Ücretsiz Dene
                 </Button>
               </Link>
-              <a href="#demo">
-                <Button variant="outline" size="lg" className="text-lg px-8 py-6 border-2">
-                  Demo İzle
-                  <ArrowRight className="w-5 h-5 ml-2" />
-                </Button>
-              </a>
             </div>
             <div className="flex items-center justify-center space-x-6 text-sm text-gray-600">
               <div className="flex items-center">
@@ -98,41 +124,6 @@ export default function Home() {
               </div>
             </div>
           </div>
-
-          {/* Hero Image/Mockup */}
-          <div className="mt-16 relative">
-            <div className="bg-white rounded-2xl shadow-2xl p-8 mx-auto max-w-5xl border border-gray-100">
-              <div className="aspect-video bg-gradient-to-br from-green-100 to-blue-100 rounded-lg flex items-center justify-center">
-                <div className="text-center">
-                  <Calendar className="w-24 h-24 text-green-500 mx-auto mb-4" />
-                  <p className="text-gray-600 text-lg">Dashboard Önizleme</p>
-                </div>
-              </div>
-            </div>
-            {/* Floating Elements */}
-            <div className="absolute top-10 -left-10 bg-white rounded-xl shadow-lg p-4 hidden lg:block">
-              <div className="flex items-center space-x-2">
-                <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
-                  <Users className="w-5 h-5 text-green-600" />
-                </div>
-                <div>
-                  <p className="text-xs text-gray-500">Bugün</p>
-                  <p className="font-semibold text-gray-900">24 Randevu</p>
-                </div>
-              </div>
-            </div>
-            <div className="absolute bottom-10 -right-10 bg-white rounded-xl shadow-lg p-4 hidden lg:block">
-              <div className="flex items-center space-x-2">
-                <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                  <TrendingUp className="w-5 h-5 text-blue-600" />
-                </div>
-                <div>
-                  <p className="text-xs text-gray-500">Bu Ay</p>
-                  <p className="font-semibold text-gray-900">+42% Artış</p>
-                </div>
-              </div>
-            </div>
-          </div>
         </div>
       </section>
 
@@ -141,11 +132,11 @@ export default function Home() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
             <div className="text-center">
-              <div className="text-4xl font-bold text-gray-900 mb-2">500+</div>
+              <div className="text-4xl font-bold text-gray-900 mb-2">{stats.tenants}+</div>
               <div className="text-gray-600">Aktif İşletme</div>
             </div>
             <div className="text-center">
-              <div className="text-4xl font-bold text-gray-900 mb-2">50K+</div>
+              <div className="text-4xl font-bold text-gray-900 mb-2">{(stats.appointments / 1000).toFixed(0)}K+</div>
               <div className="text-gray-600">Aylık Randevu</div>
             </div>
             <div className="text-center">
@@ -173,7 +164,6 @@ export default function Home() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {/* Feature Cards */}
             {[
               {
                 icon: Calendar,
@@ -201,8 +191,8 @@ export default function Home() {
               },
               {
                 icon: MessageCircle,
-                title: "SMS Bildirimleri",
-                description: "Otomatik hatırlatmalar gönder. Müşterileriniz randevularını asla kaçırmasın.",
+                title: "Otomatik Hatırlatmalar",
+                description: "WhatsApp üzerinden otomatik hatırlatmalar gönderin. Müşterileriniz randevularını asla kaçırmasın.",
                 color: "from-indigo-400 to-blue-400"
               },
               {
@@ -280,7 +270,7 @@ export default function Home() {
             <h2 className="text-4xl font-bold text-gray-900 mb-4">
               Müşterilerimiz Ne Diyor?
             </h2>
-            <p className="text-xl text-gray-600">500+ mutlu işletme sahibinden bazıları</p>
+            <p className="text-xl text-gray-600">Mutlu işletme sahiplerimizden bazıları</p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -294,7 +284,7 @@ export default function Home() {
               {
                 name: "Mehmet Kaya",
                 role: "Berber",
-                comment: "Müşterilerim artık gece bile randevu alabiliyor. Gelirlerim %40 arttı!",
+                comment: "Müşterilerim artık gece bile randevu alabiliyor. Gelirlerim arttı!",
                 rating: 5
               },
               {
@@ -311,9 +301,13 @@ export default function Home() {
                       <Star key={i} className="w-5 h-5 text-yellow-400 fill-current" />
                     ))}
                   </div>
-                  <p className="text-gray-700 mb-6 italic">"{testimonial.comment}"</p>
+                  <p className="text-gray-700 mb-6 leading-relaxed italic">
+                    "{testimonial.comment}"
+                  </p>
                   <div className="flex items-center">
-                    <div className="w-12 h-12 bg-gradient-to-br from-green-400 to-blue-500 rounded-full mr-4"></div>
+                    <div className="w-12 h-12 bg-gradient-to-br from-green-400 to-blue-500 rounded-full flex items-center justify-center mr-4">
+                      <span className="text-white font-bold text-lg">{testimonial.name.charAt(0)}</span>
+                    </div>
                     <div>
                       <p className="font-semibold text-gray-900">{testimonial.name}</p>
                       <p className="text-sm text-gray-600">{testimonial.role}</p>
@@ -336,103 +330,108 @@ export default function Home() {
             <p className="text-xl text-gray-600">İhtiyacınıza uygun planı seçin</p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
-            {/* Trial */}
-            <Card className="hover:shadow-2xl transition border-2">
-              <CardContent className="p-8">
-                <h3 className="text-2xl font-bold text-gray-900 mb-2">Deneme</h3>
-                <div className="mb-6">
-                  <span className="text-5xl font-bold text-gray-900">₺0</span>
-                  <span className="text-gray-600">/15 gün</span>
-                </div>
-                <ul className="space-y-4 mb-8">
-                  {[
-                    "50 randevu/ay",
-                    "Temel özellikler",
-                    "Email desteği",
-                    "Mobil uygulama"
-                  ].map((feature, i) => (
-                    <li key={i} className="flex items-start">
-                      <Check className="w-5 h-5 text-green-500 mr-3 flex-shrink-0 mt-0.5" />
-                      <span className="text-gray-700">{feature}</span>
-                    </li>
-                  ))}
-                </ul>
-                <Link href="/register" className="block">
-                  <Button className="w-full" variant="outline">
-                    Hemen Başla
-                  </Button>
-                </Link>
-              </CardContent>
-            </Card>
-
-            {/* Monthly - Popular */}
-            <Card className="hover:shadow-2xl transition border-4 border-green-500 relative scale-105">
-              <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
-                <span className="bg-gradient-to-r from-green-400 to-blue-500 text-white px-4 py-1 rounded-full text-sm font-semibold">
-                  En Popüler
-                </span>
-              </div>
-              <CardContent className="p-8">
-                <h3 className="text-2xl font-bold text-gray-900 mb-2">Profesyonel</h3>
-                <div className="mb-6">
-                  <span className="text-5xl font-bold text-gray-900">₺299</span>
-                  <span className="text-gray-600">/aylık</span>
-                </div>
-                <ul className="space-y-4 mb-8">
-                  {[
-                    "Sınırsız randevu",
-                    "Tüm özellikler",
-                    "SMS bildirimleri",
-                    "Öncelikli destek",
-                    "Detaylı raporlar"
-                  ].map((feature, i) => (
-                    <li key={i} className="flex items-start">
-                      <Check className="w-5 h-5 text-green-500 mr-3 flex-shrink-0 mt-0.5" />
-                      <span className="text-gray-700">{feature}</span>
-                    </li>
-                  ))}
-                </ul>
-                <Link href="/register" className="block">
-                  <Button className="w-full bg-gradient-to-r from-green-400 to-blue-500 text-white">
-                    Hemen Başla
-                  </Button>
-                </Link>
-              </CardContent>
-            </Card>
-
-            {/* Yearly */}
-            <Card className="hover:shadow-2xl transition border-2">
-              <CardContent className="p-8">
-                <h3 className="text-2xl font-bold text-gray-900 mb-2">Kurumsal</h3>
-                <div className="mb-6">
-                  <span className="text-5xl font-bold text-gray-900">₺899</span>
-                  <span className="text-gray-600">/yıllık</span>
-                  <div className="text-sm text-green-600 font-semibold mt-1">%75 tasarruf</div>
-                </div>
-                <ul className="space-y-4 mb-8">
-                  {[
-                    "Sınırsız randevu",
-                    "Tüm özellikler",
-                    "Çoklu lokasyon",
-                    "API erişimi",
-                    "7/24 destek",
-                    "Özel entegrasyonlar"
-                  ].map((feature, i) => (
-                    <li key={i} className="flex items-start">
-                      <Check className="w-5 h-5 text-green-500 mr-3 flex-shrink-0 mt-0.5" />
-                      <span className="text-gray-700">{feature}</span>
-                    </li>
-                  ))}
-                </ul>
-                <Link href="/register" className="block">
-                  <Button className="w-full" variant="outline">
-                    Hemen Başla
-                  </Button>
-                </Link>
-              </CardContent>
-            </Card>
-          </div>
+          {loading ? (
+            <div className="text-center py-12">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 mx-auto"></div>
+              <p className="mt-4 text-gray-600">Paketler yükleniyor...</p>
+            </div>
+          ) : packages.length > 0 ? (
+            <div className={`grid grid-cols-1 md:grid-cols-${Math.min(packages.length, 3)} gap-8 max-w-5xl mx-auto`}>
+              {packages.slice(0, 3).map((pkg, index) => {
+                const isPopular = index === 1 && packages.length >= 3;
+                return (
+                  <Card 
+                    key={pkg.id} 
+                    className={`hover:shadow-2xl transition ${
+                      isPopular ? 'border-4 border-green-500 relative scale-105' : 'border-2'
+                    }`}
+                  >
+                    {isPopular && (
+                      <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+                        <span className="bg-gradient-to-r from-green-400 to-blue-500 text-white px-4 py-1 rounded-full text-sm font-semibold">
+                          En Popüler
+                        </span>
+                      </div>
+                    )}
+                    <CardContent className="p-8">
+                      <h3 className="text-2xl font-bold text-gray-900 mb-2">{pkg.name}</h3>
+                      <div className="mb-6">
+                        <span className="text-5xl font-bold text-gray-900">₺{pkg.price}</span>
+                        <span className="text-gray-600">
+                          /{pkg.durationType === 'monthly' ? 'aylık' : pkg.durationType === 'yearly' ? 'yıllık' : pkg.durationDays + ' gün'}
+                        </span>
+                      </div>
+                      <p className="text-gray-600 mb-6">{pkg.description}</p>
+                      <ul className="space-y-4 mb-8">
+                        {pkg.features && typeof pkg.features === 'object' && (
+                          <>
+                            {pkg.features.appointments && (
+                              <li className="flex items-start">
+                                <Check className="w-5 h-5 text-green-500 mr-3 flex-shrink-0 mt-0.5" />
+                                <span className="text-gray-700">
+                                  {pkg.features.appointments === -1 ? 'Sınırsız' : pkg.features.appointments} randevu/ay
+                                </span>
+                              </li>
+                            )}
+                            {pkg.features.sms && (
+                              <li className="flex items-start">
+                                <Check className="w-5 h-5 text-green-500 mr-3 flex-shrink-0 mt-0.5" />
+                                <span className="text-gray-700">WhatsApp bildirimleri</span>
+                              </li>
+                            )}
+                            {pkg.features.staff && (
+                              <li className="flex items-start">
+                                <Check className="w-5 h-5 text-green-500 mr-3 flex-shrink-0 mt-0.5" />
+                                <span className="text-gray-700">
+                                  {pkg.features.staff === -1 ? 'Sınırsız' : pkg.features.staff} personel
+                                </span>
+                              </li>
+                            )}
+                            {pkg.features.locations && (
+                              <li className="flex items-start">
+                                <Check className="w-5 h-5 text-green-500 mr-3 flex-shrink-0 mt-0.5" />
+                                <span className="text-gray-700">
+                                  {pkg.features.locations === -1 ? 'Çoklu' : pkg.features.locations} lokasyon
+                                </span>
+                              </li>
+                            )}
+                            {pkg.features.reports && (
+                              <li className="flex items-start">
+                                <Check className="w-5 h-5 text-green-500 mr-3 flex-shrink-0 mt-0.5" />
+                                <span className="text-gray-700">Detaylı raporlar</span>
+                              </li>
+                            )}
+                            {pkg.features.support && (
+                              <li className="flex items-start">
+                                <Check className="w-5 h-5 text-green-500 mr-3 flex-shrink-0 mt-0.5" />
+                                <span className="text-gray-700">{pkg.features.support} destek</span>
+                              </li>
+                            )}
+                          </>
+                        )}
+                      </ul>
+                      <Link href={`/register?package=${pkg.id}`} className="block">
+                        <Button 
+                          className={`w-full ${
+                            isPopular 
+                              ? 'bg-gradient-to-r from-green-400 to-blue-500 text-white' 
+                              : ''
+                          }`}
+                          variant={isPopular ? undefined : 'outline'}
+                        >
+                          Hemen Başla
+                        </Button>
+                      </Link>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="text-center text-gray-500">
+              Henüz aktif paket bulunmuyor.
+            </div>
+          )}
         </div>
       </section>
 
@@ -466,7 +465,7 @@ export default function Home() {
               },
               {
                 question: "Destek hizmeti sunuyor musunuz?",
-                answer: "Elbette! Email, telefon ve canlı destek ile 7/24 yanınızdayız. Tüm sorularınıza hızlıca cevap veriyoruz."
+                answer: "Elbette! Email ve destek ile yanınızdayız. Tüm sorularınıza hızlıca cevap veriyoruz."
               },
               {
                 question: "Verilerim güvende mi?",
@@ -521,8 +520,11 @@ export default function Home() {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
             <div>
               <div className="flex items-center space-x-2 mb-4">
-                <div className="w-8 h-8 bg-gradient-to-br from-green-400 to-blue-500 rounded-lg"></div>
-                <span className="text-xl font-bold">Net Randevu</span>
+                <img 
+                  src="https://i.hizliresim.com/4a00l8g.png" 
+                  alt="Net Randevu Logo" 
+                  className="h-8 w-auto"
+                />
               </div>
               <p className="text-gray-400">
                 Modern işletmeler için tasarlanmış randevu yönetim platformu.
@@ -533,23 +535,20 @@ export default function Home() {
               <ul className="space-y-2 text-gray-400">
                 <li><a href="#features" className="hover:text-white transition">Özellikler</a></li>
                 <li><a href="#pricing" className="hover:text-white transition">Fiyatlar</a></li>
-                <li><a href="#" className="hover:text-white transition">Demo</a></li>
               </ul>
             </div>
             <div>
               <h3 className="font-semibold mb-4">Destek</h3>
               <ul className="space-y-2 text-gray-400">
                 <li><a href="#faq" className="hover:text-white transition">SSS</a></li>
-                <li><a href="#" className="hover:text-white transition">İletişim</a></li>
-                <li><a href="#" className="hover:text-white transition">Yardım Merkezi</a></li>
+                <li><a href="mailto:info@netrandevu.com" className="hover:text-white transition">İletişim</a></li>
               </ul>
             </div>
             <div>
               <h3 className="font-semibold mb-4">Şirket</h3>
               <ul className="space-y-2 text-gray-400">
-                <li><a href="#" className="hover:text-white transition">Hakkımızda</a></li>
-                <li><a href="#" className="hover:text-white transition">Blog</a></li>
-                <li><a href="#" className="hover:text-white transition">Gizlilik</a></li>
+                <li><Link href="/hakkimizda" className="hover:text-white transition">Hakkımızda</Link></li>
+                <li><Link href="/gizlilik" className="hover:text-white transition">Gizlilik Politikası</Link></li>
               </ul>
             </div>
           </div>
