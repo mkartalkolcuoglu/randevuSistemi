@@ -117,7 +117,7 @@ export function generateConfirmationMessage(appointment: {
   message += `📅 *Tarih:* ${date}\n`;
   message += `🕐 *Saat:* ${time}\n`;
   message += `👤 *Personel:* ${staffName}\n`;
-  message += `✂️ *Hizmet:* ${serviceName}\n`;
+  message += `💼 *Hizmet:* ${serviceName}\n`;
   
   if (price) {
     message += `💰 *Ücret:* ${price} TL\n`;
