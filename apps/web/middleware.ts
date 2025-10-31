@@ -7,6 +7,7 @@ const STATIC_ROUTES = [
   'hakkimizda',
   'gizlilik',
   'kvkk',
+  'kvkk-sozlesmesi',
   'kariyer',
   'iletisim',
   'kullanim-kosullari',
