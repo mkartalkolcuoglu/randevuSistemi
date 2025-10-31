@@ -91,7 +91,7 @@ export default function AppointmentsClient({ initialAppointments, tenantId, user
       case 'scheduled':
         return 'Planlandı';
       case 'confirmed':
-        return 'Tamamlandı';
+        return 'Onaylandı';
       case 'completed':
         return 'Tamamlandı';
       case 'cancelled':

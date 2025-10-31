@@ -160,7 +160,7 @@ export default async function AdminDashboard() {
       case 'scheduled':
         return 'Planlandı';
       case 'confirmed':
-        return 'Tamamlandı';
+        return 'Onaylandı';
       case 'completed':
         return 'Tamamlandı';
       case 'cancelled':
