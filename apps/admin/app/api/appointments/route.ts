@@ -301,6 +301,7 @@ export async function POST(request: NextRequest) {
       console.log('✅ Appointment created:', newAppointment.id, 'with package:', data.usePackageForService);
 
       // Create notification for new appointment (non-blocking)
+      console.log('🔔 [APPOINTMENT] Creating notification for tenantId:', tenant.id);
       prisma.notification.create({
         data: {
           tenantId: tenant.id,
@@ -309,8 +310,10 @@ export async function POST(request: NextRequest) {
           message: `${data.customerName} - ${data.serviceName} (${data.date} ${data.time})`,
           link: `/admin/appointments/${newAppointment.id}`
         }
+      }).then(notification => {
+        console.log('🔔 [APPOINTMENT] Notification created:', notification.id);
       }).catch(error => {
-        console.error('⚠️ Failed to create notification:', error);
+        console.error('🔔 [APPOINTMENT] Failed to create notification:', error);
       });
 
       return NextResponse.json({
@@ -399,6 +402,7 @@ export async function POST(request: NextRequest) {
     console.log('✅ Admin appointment created:', newAppointment.id);
 
     // Create notification for new appointment (non-blocking)
+    console.log('🔔 [ADMIN-APPOINTMENT] Creating notification for tenantId:', customer.tenantId);
     prisma.notification.create({
       data: {
         tenantId: customer.tenantId,
@@ -407,8 +411,10 @@ export async function POST(request: NextRequest) {
         message: `${customer.firstName} ${customer.lastName} - ${service.name} (${data.date} ${data.time})`,
         link: `/admin/appointments/${newAppointment.id}`
       }
+    }).then(notification => {
+      console.log('🔔 [ADMIN-APPOINTMENT] Notification created:', notification.id);
     }).catch(error => {
-      console.error('⚠️ Failed to create notification:', error);
+      console.error('🔔 [ADMIN-APPOINTMENT] Failed to create notification:', error);
     });
 
     return NextResponse.json({

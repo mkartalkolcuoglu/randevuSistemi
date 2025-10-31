@@ -9,7 +9,10 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const tenantId = searchParams.get('tenantId');
 
+    console.log('🔔 [API] GET notifications for tenantId:', tenantId);
+
     if (!tenantId) {
+      console.error('🔔 [API] Missing tenantId');
       return NextResponse.json(
         { success: false, error: 'Tenant ID required' },
         { status: 400 }
@@ -22,14 +25,17 @@ export async function GET(request: NextRequest) {
       take: 50 // Last 50 notifications
     });
 
+    console.log('🔔 [API] Found', notifications.length, 'notifications');
+    console.log('🔔 [API] Notifications:', notifications);
+
     return NextResponse.json({
       success: true,
       data: notifications
     });
   } catch (error) {
-    console.error('Error fetching notifications:', error);
+    console.error('🔔 [API] Error fetching notifications:', error);
     return NextResponse.json(
-      { success: false, error: 'Failed to fetch notifications' },
+      { success: false, error: 'Failed to fetch notifications', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     );
   }

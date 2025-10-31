@@ -83,16 +83,25 @@ export default function AdminHeader({ user }: AdminHeaderProps) {
   useEffect(() => {
     const fetchNotifications = async () => {
       try {
+        console.log('🔔 [NOTIFICATIONS] Fetching for tenantId:', user.tenantId);
         const response = await fetch(`/api/notifications?tenantId=${user.tenantId}`);
+        console.log('🔔 [NOTIFICATIONS] Response status:', response.status);
+        
         if (response.ok) {
           const data = await response.json();
+          console.log('🔔 [NOTIFICATIONS] Data received:', data);
+          
           if (data.success) {
             setNotifications(data.data);
-            setUnreadCount(data.data.filter((n: any) => !n.read).length);
+            const unread = data.data.filter((n: any) => !n.read).length;
+            setUnreadCount(unread);
+            console.log('🔔 [NOTIFICATIONS] Total:', data.data.length, 'Unread:', unread);
           }
+        } else {
+          console.error('🔔 [NOTIFICATIONS] Failed:', response.status, response.statusText);
         }
       } catch (error) {
-        console.error('Error fetching notifications:', error);
+        console.error('🔔 [NOTIFICATIONS] Error:', error);
       }
     };
 
