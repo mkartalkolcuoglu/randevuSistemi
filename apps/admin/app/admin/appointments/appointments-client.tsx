@@ -431,6 +431,7 @@ export default function AppointmentsClient({ initialAppointments, tenantId, user
                     columns={columns}
                     keyExtractor={(apt) => apt.id}
                     emptyMessage="Arama kriterlerinize uygun randevu bulunamadı"
+                    onRowClick={(apt) => window.location.href = `/admin/appointments/${apt.id}`}
                   />
                 </div>
               </>
