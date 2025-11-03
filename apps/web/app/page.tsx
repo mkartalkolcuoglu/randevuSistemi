@@ -375,51 +375,98 @@ export default function Home() {
                         </span>
                       </div>
                       <p className="text-gray-600 mb-6">{pkg.description}</p>
-                      <ul className="space-y-4 mb-8">
+                      <ul className="space-y-3 mb-8">
                         {pkg.features && typeof pkg.features === 'object' && (
                           <>
-                            {pkg.features.appointments && (
+                            {/* Randevu Limiti */}
+                            <li className="flex items-start">
+                              <Check className="w-5 h-5 text-green-500 mr-3 flex-shrink-0 mt-0.5" />
+                              <span className="text-gray-700">
+                                {pkg.features.appointments === -1 ? 'Sınırsız' : pkg.features.appointments || '0'} randevu/ay
+                              </span>
+                            </li>
+
+                            {/* SMS/WhatsApp */}
+                            <li className="flex items-start">
+                              <Check className="w-5 h-5 text-green-500 mr-3 flex-shrink-0 mt-0.5" />
+                              <span className="text-gray-700">
+                                {pkg.features.sms ? (
+                                  pkg.features.sms === -1 ? 'Sınırsız SMS/WhatsApp' : `${pkg.features.sms} SMS/WhatsApp`
+                                ) : 'SMS/WhatsApp yok'}
+                              </span>
+                            </li>
+
+                            {/* Personel */}
+                            <li className="flex items-start">
+                              <Check className="w-5 h-5 text-green-500 mr-3 flex-shrink-0 mt-0.5" />
+                              <span className="text-gray-700">
+                                {pkg.features.staff === -1 ? 'Sınırsız' : pkg.features.staff || '1'} personel
+                              </span>
+                            </li>
+
+                            {/* Lokasyon */}
+                            <li className="flex items-start">
+                              <Check className="w-5 h-5 text-green-500 mr-3 flex-shrink-0 mt-0.5" />
+                              <span className="text-gray-700">
+                                {pkg.features.locations === -1 ? 'Çoklu lokasyon' : `${pkg.features.locations || '1'} lokasyon`}
+                              </span>
+                            </li>
+
+                            {/* Hizmet Sayısı */}
+                            {pkg.features.services && (
                               <li className="flex items-start">
                                 <Check className="w-5 h-5 text-green-500 mr-3 flex-shrink-0 mt-0.5" />
                                 <span className="text-gray-700">
-                                  {pkg.features.appointments === -1 ? 'Sınırsız' : pkg.features.appointments} randevu/ay
+                                  {pkg.features.services === -1 ? 'Sınırsız' : pkg.features.services} hizmet
                                 </span>
                               </li>
                             )}
-                            {pkg.features.sms && (
-                              <li className="flex items-start">
-                                <Check className="w-5 h-5 text-green-500 mr-3 flex-shrink-0 mt-0.5" />
-                                <span className="text-gray-700">WhatsApp bildirimleri</span>
-                              </li>
-                            )}
-                            {pkg.features.staff && (
+
+                            {/* Müşteri Sayısı */}
+                            {pkg.features.clients && (
                               <li className="flex items-start">
                                 <Check className="w-5 h-5 text-green-500 mr-3 flex-shrink-0 mt-0.5" />
                                 <span className="text-gray-700">
-                                  {pkg.features.staff === -1 ? 'Sınırsız' : pkg.features.staff} personel
+                                  {pkg.features.clients === -1 ? 'Sınırsız' : pkg.features.clients} müşteri
                                 </span>
                               </li>
                             )}
-                            {pkg.features.locations && (
+
+                            {/* Raporlama */}
+                            <li className="flex items-start">
+                              <Check className="w-5 h-5 text-green-500 mr-3 flex-shrink-0 mt-0.5" />
+                              <span className="text-gray-700">
+                                {pkg.features.reports ? 'Detaylı raporlar' : 'Basit raporlar'}
+                              </span>
+                            </li>
+
+                            {/* Özel Alan Adı */}
+                            {pkg.features.customDomain !== undefined && (
                               <li className="flex items-start">
-                                <Check className="w-5 h-5 text-green-500 mr-3 flex-shrink-0 mt-0.5" />
-                                <span className="text-gray-700">
-                                  {pkg.features.locations === -1 ? 'Çoklu' : pkg.features.locations} lokasyon
+                                <Check className={`w-5 h-5 ${pkg.features.customDomain ? 'text-green-500' : 'text-gray-400'} mr-3 flex-shrink-0 mt-0.5`} />
+                                <span className={pkg.features.customDomain ? 'text-gray-700' : 'text-gray-400'}>
+                                  Özel alan adı
                                 </span>
                               </li>
                             )}
-                            {pkg.features.reports && (
+
+                            {/* API Erişimi */}
+                            {pkg.features.apiAccess !== undefined && (
                               <li className="flex items-start">
-                                <Check className="w-5 h-5 text-green-500 mr-3 flex-shrink-0 mt-0.5" />
-                                <span className="text-gray-700">Detaylı raporlar</span>
+                                <Check className={`w-5 h-5 ${pkg.features.apiAccess ? 'text-green-500' : 'text-gray-400'} mr-3 flex-shrink-0 mt-0.5`} />
+                                <span className={pkg.features.apiAccess ? 'text-gray-700' : 'text-gray-400'}>
+                                  API erişimi
+                                </span>
                               </li>
                             )}
-                            {pkg.features.support && (
-                              <li className="flex items-start">
-                                <Check className="w-5 h-5 text-green-500 mr-3 flex-shrink-0 mt-0.5" />
-                                <span className="text-gray-700">{pkg.features.support} destek</span>
-                              </li>
-                            )}
+
+                            {/* Öncelikli Destek */}
+                            <li className="flex items-start">
+                              <Check className="w-5 h-5 text-green-500 mr-3 flex-shrink-0 mt-0.5" />
+                              <span className="text-gray-700">
+                                {pkg.features.support === 'priority' ? 'Öncelikli' : pkg.features.support === 'standard' ? 'Standart' : 'E-posta'} destek
+                              </span>
+                            </li>
                           </>
                         )}
                       </ul>
