@@ -61,6 +61,14 @@ export default function Home() {
             
             // Log for debugging
             console.log(`Package "${pkg.name}" features:`, features);
+            console.log(`Package "${pkg.name}" features type:`, typeof features, Array.isArray(features) ? 'is Array' : 'is not Array');
+            
+            // If features is an array (old format), convert to object or show warning
+            if (Array.isArray(features)) {
+              console.warn(`Package "${pkg.name}" has array features, expected object. Features:`, features);
+              // Set empty object for now, needs to be fixed in project-admin
+              features = {};
+            }
             
             return {
               ...pkg,
