@@ -43,9 +43,35 @@ export default function Home() {
 
       if (packagesRes.ok) {
         const packagesData = await packagesRes.json();
+        console.log('Packages API response:', packagesData);
         if (packagesData.success) {
-          setPackages(packagesData.data.filter((pkg: any) => pkg.isActive));
+          // Parse features if they're JSON strings
+          const parsedPackages = packagesData.data.map((pkg: any) => {
+            let features = pkg.features;
+            
+            // Parse if string
+            if (typeof features === 'string') {
+              try {
+                features = JSON.parse(features);
+              } catch (e) {
+                console.error('Failed to parse features for package:', pkg.name, e);
+                features = null;
+              }
+            }
+            
+            // Log for debugging
+            console.log(`Package "${pkg.name}" features:`, features);
+            
+            return {
+              ...pkg,
+              features: features || {}
+            };
+          });
+          setPackages(parsedPackages.filter((pkg: any) => pkg.isActive));
+          console.log('Packages loaded:', parsedPackages.length, 'packages');
         }
+      } else {
+        console.error('Failed to fetch packages:', packagesRes.status);
       }
 
       if (pagesRes.ok) {
