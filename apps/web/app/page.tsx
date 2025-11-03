@@ -63,11 +63,11 @@ export default function Home() {
             console.log(`Package "${pkg.name}" features:`, features);
             console.log(`Package "${pkg.name}" features type:`, typeof features, Array.isArray(features) ? 'is Array' : 'is not Array');
             
-            // If features is an array (old format), convert to object or show warning
+            // If features is an array (simple list format from project-admin)
             if (Array.isArray(features)) {
-              console.warn(`Package "${pkg.name}" has array features, expected object. Features:`, features);
-              // Set empty object for now, needs to be fixed in project-admin
-              features = {};
+              console.log(`Package "${pkg.name}" has array features (simple list format)`);
+              // Keep the array as-is, we'll render it differently
+              // Don't convert to empty object
             }
             
             return {
@@ -410,7 +410,20 @@ export default function Home() {
                       </div>
                       <p className="text-gray-600 mb-6">{pkg.description}</p>
                       <ul className="space-y-3 mb-8">
-                        {pkg.features && typeof pkg.features === 'object' && (
+                        {/* Simple list format (array) */}
+                        {Array.isArray(pkg.features) && pkg.features.length > 0 && (
+                          <>
+                            {pkg.features.map((feature: string, idx: number) => (
+                              <li key={idx} className="flex items-start">
+                                <Check className="w-5 h-5 text-green-500 mr-3 flex-shrink-0 mt-0.5" />
+                                <span className="text-gray-700">{feature}</span>
+                              </li>
+                            ))}
+                          </>
+                        )}
+                        
+                        {/* Structured format (object) */}
+                        {!Array.isArray(pkg.features) && pkg.features && typeof pkg.features === 'object' && (
                           <>
                             {/* Randevu Limiti */}
                             <li className="flex items-start">
