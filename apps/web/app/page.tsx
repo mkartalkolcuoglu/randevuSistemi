@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { Button, Card, CardContent } from "../components/ui";
+import { useRouter } from "next/navigation";
+import { Button, Card, CardContent, Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, formatPhone, normalizePhone, PHONE_PLACEHOLDER, PHONE_MAX_LENGTH } from "../components/ui";
 import { 
   Calendar, 
   Users, 
@@ -15,11 +16,13 @@ import {
   Shield,
   MessageCircle,
   Check,
-  ChevronDown
+  ChevronDown,
+  User
 } from "lucide-react";
 import { useState, useEffect } from "react";
 
 export default function Home() {
+  const router = useRouter();
   const [openFaq, setOpenFaq] = useState<number | null>(null);
   const [stats, setStats] = useState({
     tenants: 0,
@@ -28,6 +31,11 @@ export default function Home() {
   const [packages, setPackages] = useState<any[]>([]);
   const [pages, setPages] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  
+  // Kullanıcı girişi modal
+  const [showLoginModal, setShowLoginModal] = useState(false);
+  const [phoneNumber, setPhoneNumber] = useState('');
+  const [phoneError, setPhoneError] = useState('');
 
   useEffect(() => {
     fetchData();
@@ -124,6 +132,14 @@ export default function Home() {
               <a href="#faq" className="text-gray-600 hover:text-gray-900 transition">SSS</a>
             </nav>
             <div className="flex items-center space-x-4">
+              <Button 
+                variant="outline" 
+                className="border-gray-300 text-gray-700 hover:bg-gray-100 transition"
+                onClick={() => setShowLoginModal(true)}
+              >
+                <User className="w-4 h-4 mr-2" />
+                Kullanıcı Girişi
+              </Button>
               <Link href="https://admin.netrandevu.com">
                 <Button variant="outline" className="border-[#163974] text-[#163974] hover:bg-[#163974] hover:text-white transition">
                   İşletme Paneli
@@ -625,6 +641,63 @@ export default function Home() {
           <p className="text-white/80 mt-4 text-sm">Kredi kartı gerektirmez • 5 dakikada kurulum</p>
         </div>
       </section>
+
+      {/* Kullanıcı Girişi Modal */}
+      <Dialog open={showLoginModal} onOpenChange={setShowLoginModal}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Kullanıcı Girişi</DialogTitle>
+            <DialogDescription>
+              Randevularınızı görüntülemek için kayıtlı telefon numaranızı girin.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Telefon Numarası *
+            </label>
+            <input
+              type="tel"
+              value={formatPhone(phoneNumber)}
+              onChange={(e) => {
+                const normalized = normalizePhone(e.target.value);
+                setPhoneNumber(normalized);
+                setPhoneError('');
+              }}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none"
+              placeholder={PHONE_PLACEHOLDER}
+              maxLength={PHONE_MAX_LENGTH}
+            />
+            {phoneError && (
+              <p className="mt-2 text-sm text-red-600">{phoneError}</p>
+            )}
+          </div>
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                setShowLoginModal(false);
+                setPhoneNumber('');
+                setPhoneError('');
+              }}
+            >
+              İptal
+            </Button>
+            <Button 
+              onClick={() => {
+                if (!phoneNumber || phoneNumber.length < 10) {
+                  setPhoneError('Lütfen geçerli bir telefon numarası girin');
+                  return;
+                }
+                // Randevularım sayfasına yönlendir
+                router.push(`/randevularim?phone=${encodeURIComponent(phoneNumber)}`);
+              }}
+              className="bg-[#163974] hover:bg-[#0F2A52]"
+            >
+              Devam Et
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Footer */}
       <footer className="bg-gray-900 text-white py-12">
