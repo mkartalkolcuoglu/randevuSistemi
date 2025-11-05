@@ -3,9 +3,9 @@
 import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Button, Card, CardContent } from '../../components/ui';
-import { ArrowLeft, Calendar, Clock, User, Phone, Mail, X, CheckCircle, AlertCircle, Filter } from 'lucide-react';
-import { format, parseISO, isBefore, addHours, isAfter, startOfToday } from 'date-fns';
+import { Button, Card, CardContent, Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '../../components/ui';
+import { ArrowLeft, Calendar, Clock, User, Phone, Mail, X, CheckCircle, AlertCircle, Filter, Star, MessageSquare } from 'lucide-react';
+import { format, parseISO, isBefore, addHours, isAfter, startOfToday, differenceInDays } from 'date-fns';
 import { tr } from 'date-fns/locale';
 
 interface Appointment {
@@ -40,6 +40,14 @@ function RandevularimContent() {
   const [dateFilter, setDateFilter] = useState<'all' | 'upcoming' | 'past'>('all');
   const [tenantFilter, setTenantFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  
+  // Feedback modal
+  const [showFeedbackModal, setShowFeedbackModal] = useState(false);
+  const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
+  const [rating, setRating] = useState(0);
+  const [hoverRating, setHoverRating] = useState(0);
+  const [comment, setComment] = useState('');
+  const [submittingFeedback, setSubmittingFeedback] = useState(false);
 
   useEffect(() => {
     if (!phoneNumber) {
@@ -78,6 +86,68 @@ function RandevularimContent() {
     
     // Şu anki zaman 6 saat öncesinden önce mi?
     return isBefore(new Date(), sixHoursBefore);
+  };
+
+  const canLeaveFeedback = (appointment: Appointment): boolean => {
+    // Sadece tamamlanmış randevular için
+    if (appointment.status !== 'completed') return false;
+    
+    // Randevu tarihinden 7 gün geçmemeli
+    const appointmentDate = parseISO(appointment.date);
+    const daysPassed = differenceInDays(new Date(), appointmentDate);
+    
+    return daysPassed <= 7;
+  };
+
+  const handleOpenFeedbackModal = (appointment: Appointment) => {
+    setSelectedAppointment(appointment);
+    setRating(0);
+    setHoverRating(0);
+    setComment('');
+    setShowFeedbackModal(true);
+  };
+
+  const handleSubmitFeedback = async () => {
+    if (!selectedAppointment || rating === 0) {
+      alert('Lütfen yıldız puanı verin');
+      return;
+    }
+
+    try {
+      setSubmittingFeedback(true);
+      const response = await fetch('/api/feedbacks', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          appointmentId: selectedAppointment.id,
+          tenantId: selectedAppointment.tenantSlug, // Will need to get actual tenantId
+          customerName: selectedAppointment.customerName,
+          customerPhone: selectedAppointment.customerPhone,
+          rating,
+          comment: comment.trim() || null,
+          serviceName: selectedAppointment.serviceName,
+          staffName: selectedAppointment.staffName,
+          appointmentDate: selectedAppointment.date,
+        }),
+      });
+
+      const data = await response.json();
+      
+      if (data.success) {
+        alert('Geri bildiriminiz için teşekkür ederiz!');
+        setShowFeedbackModal(false);
+        // Randevuları yenile
+        await fetchAppointments();
+      } else {
+        alert(data.error || 'Geri bildirim gönderilemedi');
+      }
+    } catch (err) {
+      alert('Bir hata oluştu. Lütfen tekrar deneyin.');
+    } finally {
+      setSubmittingFeedback(false);
+    }
   };
 
   const handleCancelAppointment = async (appointmentId: string) => {
@@ -411,6 +481,19 @@ function RandevularimContent() {
                           </p>
                         </div>
                         
+                        {/* Feedback Butonu */}
+                        {canLeaveFeedback(appointment) && (
+                          <Button
+                            variant="outline"
+                            className="border-green-300 text-green-600 hover:bg-green-50"
+                            onClick={() => handleOpenFeedbackModal(appointment)}
+                          >
+                            <Star className="w-4 h-4 mr-2" />
+                            Geri Bildirim Bırak
+                          </Button>
+                        )}
+
+                        {/* İptal Butonu */}
                         {canCancel && (
                           <Button
                             variant="outline"
@@ -437,6 +520,12 @@ function RandevularimContent() {
                             İptal süresi geçti<br/>(Randevuya 6 saatten az kaldı)
                           </div>
                         )}
+                        
+                        {appointment.status === 'completed' && !canLeaveFeedback(appointment) && (
+                          <div className="text-xs text-gray-500 text-center">
+                            Geri bildirim süresi doldu<br/>(7 gün geçti)
+                          </div>
+                        )}
                       </div>
                     </div>
                   </CardContent>
@@ -448,6 +537,105 @@ function RandevularimContent() {
           </>
         )}
       </div>
+
+      {/* Feedback Modal */}
+      <Dialog open={showFeedbackModal} onOpenChange={setShowFeedbackModal}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Geri Bildirim</DialogTitle>
+            <DialogDescription>
+              {selectedAppointment?.serviceName} hizmetiniz için geri bildirim bırakın
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="py-4 space-y-6">
+            {/* Yıldız Puanlama */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-3">
+                Puanınız *
+              </label>
+              <div className="flex items-center space-x-2">
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <button
+                    key={star}
+                    type="button"
+                    onClick={() => setRating(star)}
+                    onMouseEnter={() => setHoverRating(star)}
+                    onMouseLeave={() => setHoverRating(0)}
+                    className="transition-transform hover:scale-110"
+                  >
+                    <Star
+                      className={`w-10 h-10 ${
+                        star <= (hoverRating || rating)
+                          ? 'fill-yellow-400 text-yellow-400'
+                          : 'text-gray-300'
+                      }`}
+                    />
+                  </button>
+                ))}
+              </div>
+              {rating > 0 && (
+                <p className="mt-2 text-sm text-gray-600">
+                  {rating === 1 && 'Çok Kötü'}
+                  {rating === 2 && 'Kötü'}
+                  {rating === 3 && 'Orta'}
+                  {rating === 4 && 'İyi'}
+                  {rating === 5 && 'Mükemmel'}
+                </p>
+              )}
+            </div>
+
+            {/* Yorum */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Yorumunuz (Opsiyonel)
+              </label>
+              <textarea
+                value={comment}
+                onChange={(e) => setComment(e.target.value)}
+                rows={4}
+                maxLength={500}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none resize-none"
+                placeholder="Deneyiminizi paylaşın..."
+              />
+              <p className="mt-1 text-xs text-gray-500">
+                {comment.length}/500 karakter
+              </p>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowFeedbackModal(false);
+                setRating(0);
+                setHoverRating(0);
+                setComment('');
+              }}
+            >
+              İptal
+            </Button>
+            <Button
+              onClick={handleSubmitFeedback}
+              disabled={submittingFeedback || rating === 0}
+              className="bg-green-600 hover:bg-green-700"
+            >
+              {submittingFeedback ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  Gönderiliyor...
+                </>
+              ) : (
+                <>
+                  <MessageSquare className="w-4 h-4 mr-2" />
+                  Gönder
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
