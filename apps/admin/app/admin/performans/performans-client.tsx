@@ -86,33 +86,36 @@ export default function PerformansClient({ user }: PerformansClientProps) {
 
   if (loading) {
     return (
-      <>
+      <div className="min-h-screen bg-gray-50">
         <AdminHeader user={user} />
-        <div className="p-8">
-          <div className="flex items-center justify-center h-64">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+            <p className="mt-4 text-gray-600">Yükleniyor...</p>
           </div>
         </div>
-      </>
+      </div>
     );
   }
 
   return (
-    <>
+    <div className="min-h-screen bg-gray-50">
       <AdminHeader user={user} />
-      <div className="p-8">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Performans</h1>
-          <p className="text-gray-600">Müşteri geri bildirimlerini ve değerlendirmelerinizi görüntüleyin</p>
-        </div>
-
-        {/* Error State */}
-        {error && (
-          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-800">
-            {error}
+      
+      <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+        <div className="px-4 py-6 sm:px-0">
+          {/* Header */}
+          <div className="mb-8">
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">Performans</h1>
+            <p className="text-gray-600">Müşteri geri bildirimlerini ve değerlendirmelerinizi görüntüleyin</p>
           </div>
-        )}
+
+          {/* Error State */}
+          {error && (
+            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-800">
+              {error}
+            </div>
+          )}
 
         {/* Stats Cards */}
         {stats && (
@@ -242,8 +245,9 @@ export default function PerformansClient({ user }: PerformansClientProps) {
             </div>
           </div>
         </div>
-      </div>
-    </>
+        </div>
+      </main>
+    </div>
   );
 }
 
