@@ -124,6 +124,11 @@ export default function Home() {
               <a href="#faq" className="text-gray-600 hover:text-gray-900 transition">SSS</a>
             </nav>
             <div className="flex items-center space-x-4">
+              <Link href="https://admin.netrandevu.com">
+                <Button variant="outline" className="border-[#163974] text-[#163974] hover:bg-[#163974] hover:text-white transition">
+                  İşletme Paneli
+                </Button>
+              </Link>
               <Link href="/register">
                 <Button className="bg-[#163974] hover:bg-[#0F2A52] text-white hover:shadow-lg transition">
                   Ücretsiz Başla
