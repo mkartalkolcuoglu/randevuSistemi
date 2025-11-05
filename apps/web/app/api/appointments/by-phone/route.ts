@@ -28,7 +28,7 @@ export async function GET(request: NextRequest) {
 
     console.log(`✅ Found ${appointments.length} appointments for phone ${phone}`);
 
-    // Her randevu için tenant bilgisini ekle
+    // Her randevu için tenant bilgisini ve feedback durumunu ekle
     const appointmentsWithTenant = await Promise.all(
       appointments.map(async (appointment) => {
         try {
@@ -37,17 +37,24 @@ export async function GET(request: NextRequest) {
             select: { businessName: true, slug: true }
           });
 
+          // Feedback kontrolü
+          const feedback = await prisma.feedback.findUnique({
+            where: { appointmentId: appointment.id }
+          });
+
           return {
             ...appointment,
             tenantName: tenant?.businessName || 'Bilinmeyen İşletme',
-            tenantSlug: tenant?.slug || ''
+            tenantSlug: tenant?.slug || '',
+            hasFeedback: !!feedback // Feedback verilmiş mi?
           };
         } catch (error) {
           console.error('Error fetching tenant:', error);
           return {
             ...appointment,
             tenantName: 'Bilinmeyen İşletme',
-            tenantSlug: ''
+            tenantSlug: '',
+            hasFeedback: false
           };
         }
       })

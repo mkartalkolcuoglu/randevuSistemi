@@ -24,6 +24,7 @@ interface Appointment {
   customerEmail: string;
   notes?: string;
   createdAt: string;
+  hasFeedback?: boolean; // Feedback verilmiş mi?
 }
 
 function RandevularimContent() {
@@ -91,6 +92,9 @@ function RandevularimContent() {
   const canLeaveFeedback = (appointment: Appointment): boolean => {
     // Sadece tamamlanmış randevular için
     if (appointment.status !== 'completed') return false;
+    
+    // Zaten feedback verilmişse false
+    if (appointment.hasFeedback) return false;
     
     // Randevu tarihinden 7 gün geçmemeli
     const appointmentDate = parseISO(appointment.date);
@@ -481,15 +485,28 @@ function RandevularimContent() {
                         </div>
                         
                         {/* Feedback Butonu */}
-                        {canLeaveFeedback(appointment) && (
-                          <Button
-                            variant="outline"
-                            className="border-green-300 text-green-600 hover:bg-green-50"
-                            onClick={() => handleOpenFeedbackModal(appointment)}
-                          >
-                            <Star className="w-4 h-4 mr-2" />
-                            Geri Bildirim Bırak
-                          </Button>
+                        {appointment.status === 'completed' && (
+                          <>
+                            {appointment.hasFeedback ? (
+                              <Button
+                                variant="outline"
+                                className="border-gray-300 text-gray-500 cursor-not-allowed"
+                                disabled
+                              >
+                                <CheckCircle className="w-4 h-4 mr-2" />
+                                Feedback Gönderildi
+                              </Button>
+                            ) : canLeaveFeedback(appointment) ? (
+                              <Button
+                                variant="outline"
+                                className="border-green-300 text-green-600 hover:bg-green-50"
+                                onClick={() => handleOpenFeedbackModal(appointment)}
+                              >
+                                <Star className="w-4 h-4 mr-2" />
+                                Geri Bildirim Bırak
+                              </Button>
+                            ) : null}
+                          </>
                         )}
 
                         {/* İptal Butonu */}

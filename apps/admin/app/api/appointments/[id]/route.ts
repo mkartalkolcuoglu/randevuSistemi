@@ -115,6 +115,15 @@ export async function PUT(
       await handleNoShowBlacklist(updatedAppointment);
     }
 
+    // If status changed to "cancelled" and was previously completed/confirmed, refund package usage
+    const isCancelled = data.status === 'cancelled';
+    const wasCancelled = oldAppointment?.status === 'cancelled';
+    
+    if (isCancelled && !wasCancelled && wasCompleted) {
+      console.log(`🔄 Status changed to cancelled from completed/confirmed - refunding package usage`);
+      await refundPackageUsage(updatedAppointment);
+    }
+
     // If status changed to "confirmed", send WhatsApp confirmation (non-blocking)
     const isConfirmed = data.status === 'confirmed';
     const wasConfirmed = oldAppointment?.status === 'confirmed';
@@ -281,6 +290,73 @@ async function deductFromPackage(appointment: any) {
   } catch (error) {
     console.error('Error deducting from package:', error);
     // Don't throw error - package deduction failure shouldn't fail appointment update
+  }
+}
+
+async function refundPackageUsage(appointment: any) {
+  try {
+    console.log('🔄 Refunding package usage for cancelled appointment:', appointment.id);
+    
+    // Check if appointment has packageInfo
+    if (!appointment.packageInfo) {
+      console.log('ℹ️ No package info in appointment - nothing to refund');
+      return;
+    }
+
+    let packageInfo;
+    try {
+      packageInfo = typeof appointment.packageInfo === 'string' 
+        ? JSON.parse(appointment.packageInfo) 
+        : appointment.packageInfo;
+    } catch (e) {
+      console.error('❌ Failed to parse packageInfo:', e);
+      return;
+    }
+
+    console.log('📦 Package info found for refund:', packageInfo);
+
+    // Find the specific usage record
+    const usage = await prisma.customerPackageUsage.findUnique({
+      where: { id: packageInfo.usageId }
+    });
+
+    if (!usage) {
+      console.log('❌ Package usage not found');
+      return;
+    }
+
+    if (usage.usedQuantity <= 0) {
+      console.log('⚠️ Package usage not yet used, nothing to refund');
+      return;
+    }
+
+    // Refund usage (decrease used, increase remaining)
+    await prisma.customerPackageUsage.update({
+      where: { id: usage.id },
+      data: {
+        usedQuantity: usage.usedQuantity - 1,
+        remainingQuantity: usage.remainingQuantity + 1
+      }
+    });
+
+    console.log('✅ Package usage refunded successfully');
+
+    // If package was marked as completed, reactivate it
+    const customerPackage = await prisma.customerPackage.findUnique({
+      where: { id: packageInfo.customerPackageId }
+    });
+
+    if (customerPackage?.status === 'completed') {
+      await prisma.customerPackage.update({
+        where: { id: packageInfo.customerPackageId },
+        data: { status: 'active' }
+      });
+      console.log('🔓 Package reactivated from completed status');
+    }
+
+  } catch (error) {
+    console.error('❌ Error refunding package usage:', error);
+    // Don't throw - we don't want to fail the appointment update if package logic fails
   }
 }
 
