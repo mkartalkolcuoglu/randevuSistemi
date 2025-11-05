@@ -301,3 +301,20 @@ model CustomerPackageUsage {
   
   @@map("customer_package_usage")
 }
+
+model Feedback {
+  id              String   @id @default(cuid())
+  tenantId        String
+  appointmentId   String   @unique // Her randevuya 1 kere feedback
+  customerName    String
+  customerPhone   String
+  rating          Int      // 1-5 yıldız
+  comment         String?  // Opsiyonel yorum
+  serviceName     String
+  staffName       String
+  appointmentDate String
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  @@map("feedbacks")
+}
