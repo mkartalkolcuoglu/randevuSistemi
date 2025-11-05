@@ -110,6 +110,9 @@ export default function RegisterPage() {
     cvv: ''
   });
 
+  // Sözleşme onayı
+  const [agreementsAccepted, setAgreementsAccepted] = useState(false);
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
@@ -170,6 +173,10 @@ export default function RegisterPage() {
       setError('CVV gereklidir');
       return false;
     }
+    if (!agreementsAccepted) {
+      setError('Sözleşmeleri kabul etmeniz gerekmektedir');
+      return false;
+    }
     setError('');
     return true;
   };
@@ -181,8 +188,12 @@ export default function RegisterPage() {
       }
     } else if (currentStep === 'package') {
       const selectedPkg = getSelectedPackage();
-      // If free package, skip payment
+      // If free package, check agreements and submit
       if (selectedPkg && selectedPkg.price === 0) {
+        if (!agreementsAccepted) {
+          setError('Sözleşmeleri kabul etmeniz gerekmektedir');
+          return;
+        }
         handleSubmit();
       } else {
         setCurrentStep('payment');
@@ -688,6 +699,46 @@ export default function RegisterPage() {
                 </div>
               )}
 
+              {/* Sözleşme Onayı - Sadece ücretsiz paket seçiliyse göster */}
+              {getSelectedPackage()?.price === 0 && (
+                <div className="border-2 border-blue-200 bg-blue-50 rounded-lg p-4 mt-6">
+                  <h4 className="font-semibold text-gray-900 mb-3">Sözleşme ve Onaylar</h4>
+                  <label className="flex items-start space-x-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={agreementsAccepted}
+                      onChange={(e) => setAgreementsAccepted(e.target.checked)}
+                      className="mt-1 w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                    />
+                    <span className="text-sm text-gray-700 leading-relaxed">
+                      <a href="/isletme-kullanim-kosullari" target="_blank" className="text-blue-600 hover:underline font-medium">
+                        İşletme Kullanım Koşulları
+                      </a>,{' '}
+                      <a href="/isletme-hizmet-sozlesmesi" target="_blank" className="text-blue-600 hover:underline font-medium">
+                        İşletme Hizmet Sözleşmesi
+                      </a>,{' '}
+                      <a href="/isletme-kvkk-aydinlatma-metni" target="_blank" className="text-blue-600 hover:underline font-medium">
+                        İşletme KVKK Aydınlatma Metni
+                      </a>,{' '}
+                      <a href="/cerez-cookie-politikasi" target="_blank" className="text-blue-600 hover:underline font-medium">
+                        Çerez (Cookie) Politikası
+                      </a> ve{' '}
+                      <a href="/gizlilik-politikasi" target="_blank" className="text-blue-600 hover:underline font-medium">
+                        Gizlilik Politikası
+                      </a>'nı okudum ve kabul ediyorum.
+                    </span>
+                  </label>
+                  
+                  {!agreementsAccepted && (
+                    <div className="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                      <p className="text-sm text-yellow-800">
+                        ⚠️ Kayıt olmak için sözleşmeleri kabul etmeniz gerekmektedir.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
+
               <div className="flex justify-between pt-6">
                 <Button variant="outline" onClick={() => setCurrentStep('info')} size="lg">
                   <ArrowLeft className="w-4 h-4 mr-2" />
@@ -696,7 +747,7 @@ export default function RegisterPage() {
                 <Button 
                   onClick={handleNext} 
                   size="lg" 
-                  disabled={loading || packagesLoading}
+                  disabled={loading || packagesLoading || (getSelectedPackage()?.price === 0 && !agreementsAccepted)}
                   className="bg-gradient-to-r from-green-400 to-blue-500 text-white hover:shadow-xl transition disabled:opacity-50"
                 >
                   {loading ? 'İşleniyor...' : getSelectedPackage()?.price === 0 ? 'Kayıt Ol' : 'Ödemeye Geç'}
@@ -810,6 +861,44 @@ export default function RegisterPage() {
                 </div>
               </div>
 
+              {/* Sözleşme Onayı */}
+              <div className="border-2 border-blue-200 bg-blue-50 rounded-lg p-4">
+                <h4 className="font-semibold text-gray-900 mb-3">Sözleşme ve Onaylar</h4>
+                <label className="flex items-start space-x-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={agreementsAccepted}
+                    onChange={(e) => setAgreementsAccepted(e.target.checked)}
+                    className="mt-1 w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                  />
+                  <span className="text-sm text-gray-700 leading-relaxed">
+                    <a href="/isletme-kullanim-kosullari" target="_blank" className="text-blue-600 hover:underline font-medium">
+                      İşletme Kullanım Koşulları
+                    </a>,{' '}
+                    <a href="/isletme-hizmet-sozlesmesi" target="_blank" className="text-blue-600 hover:underline font-medium">
+                      İşletme Hizmet Sözleşmesi
+                    </a>,{' '}
+                    <a href="/isletme-kvkk-aydinlatma-metni" target="_blank" className="text-blue-600 hover:underline font-medium">
+                      İşletme KVKK Aydınlatma Metni
+                    </a>,{' '}
+                    <a href="/cerez-cookie-politikasi" target="_blank" className="text-blue-600 hover:underline font-medium">
+                      Çerez (Cookie) Politikası
+                    </a> ve{' '}
+                    <a href="/gizlilik-politikasi" target="_blank" className="text-blue-600 hover:underline font-medium">
+                      Gizlilik Politikası
+                    </a>'nı okudum ve kabul ediyorum.
+                  </span>
+                </label>
+                
+                {!agreementsAccepted && (
+                  <div className="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                    <p className="text-sm text-yellow-800">
+                      ⚠️ Kayıt olmak için sözleşmeleri kabul etmeniz gerekmektedir.
+                    </p>
+                  </div>
+                )}
+              </div>
+
               <div className="flex justify-between pt-4">
                 <Button variant="outline" onClick={() => setCurrentStep('package')} size="lg">
                   <ArrowLeft className="w-4 h-4 mr-2" />
@@ -818,7 +907,7 @@ export default function RegisterPage() {
                 <Button 
                   onClick={handleNext} 
                   size="lg" 
-                  disabled={loading}
+                  disabled={loading || !agreementsAccepted}
                   className="bg-gradient-to-r from-green-400 to-blue-500 text-white hover:shadow-xl transition disabled:opacity-50"
                 >
                   {loading ? 'İşleniyor...' : `${getPlanPrice()} Öde`}
