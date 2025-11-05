@@ -193,8 +193,26 @@ export async function POST(request: NextRequest) {
       console.error('Error creating tenant:', error);
       console.error('Error details:', error.message);
       console.error('Error stack:', error.stack);
+      
+      // Parse Prisma unique constraint errors
+      let errorMessage = 'Tenant oluşturulurken hata oluştu';
+      
+      if (error.message && error.message.includes('Unique constraint failed')) {
+        if (error.message.includes('username')) {
+          errorMessage = 'Bu kullanıcı adı zaten kullanılıyor. Lütfen farklı bir kullanıcı adı seçin.';
+        } else if (error.message.includes('slug')) {
+          errorMessage = 'Bu işletme adı zaten kullanılıyor. Lütfen farklı bir işletme adı seçin.';
+        } else if (error.message.includes('domain')) {
+          errorMessage = 'Bu alan adı zaten kullanılıyor. Lütfen farklı bir işletme adı seçin.';
+        } else if (error.message.includes('ownerEmail')) {
+          errorMessage = 'Bu e-posta adresi zaten kayıtlı. Lütfen farklı bir e-posta adresi kullanın.';
+        } else {
+          errorMessage = 'Girdiğiniz bilgiler zaten sistemde mevcut. Lütfen bilgilerinizi kontrol edin.';
+        }
+      }
+      
       return NextResponse.json(
-        { success: false, error: `Failed to create tenant: ${error.message}` },
+        { success: false, error: errorMessage },
         { status: 400 }
       );
     }
@@ -202,7 +220,7 @@ export async function POST(request: NextRequest) {
     console.error('Error in POST /api/tenants:', error);
     console.error('Error details:', error.message);
     return NextResponse.json(
-      { success: false, error: `Internal server error: ${error.message}` },
+      { success: false, error: 'Kayıt işlemi sırasında bir hata oluştu. Lütfen tekrar deneyin.' },
       { status: 500 }
     );
   }
