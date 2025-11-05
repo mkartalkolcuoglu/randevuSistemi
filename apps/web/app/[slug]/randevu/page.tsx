@@ -56,13 +56,8 @@ export default function RandevuPage({ params }: PageProps) {
     serviceName: string;
   } | null>(null);
   
-  // Sözleşme onayları
-  const [agreementCheckboxes, setAgreementCheckboxes] = useState({
-    userAgreement: false,
-    privacyPolicy: false,
-    cookiePolicy: false,
-    kvkk: false
-  });
+  // Sözleşme onayı
+  const [agreementsAccepted, setAgreementsAccepted] = useState(false);
 
   // API Hooks
   const { data: tenant, isLoading: tenantLoading } = useTenant(slug);
@@ -282,10 +277,9 @@ export default function RandevuPage({ params }: PageProps) {
       return;
     }
 
-    // Sözleşme onayları kontrolü
-    const allAgreed = Object.values(agreementCheckboxes).every(v => v);
-    if (!allAgreed) {
-      alert('Randevunuzu oluşturmak için lütfen tüm sözleşmeleri okuyup kabul edin.');
+    // Sözleşme onayı kontrolü
+    if (!agreementsAccepted) {
+      alert('Randevunuzu oluşturmak için lütfen sözleşmeleri okuyup kabul edin.');
       return;
     }
 
@@ -353,12 +347,7 @@ export default function RandevuPage({ params }: PageProps) {
       setSelectedDate('');
       setSelectedTime('');
       setCustomerInfo({ name: '', email: '', phone: '', notes: '' });
-      setAgreementCheckboxes({
-        userAgreement: false,
-        privacyPolicy: false,
-        cookiePolicy: false,
-        kvkk: false
-      });
+      setAgreementsAccepted(false);
       
     } catch (error) {
       console.error('Randevu oluşturma hatası:', error);
@@ -1005,75 +994,37 @@ export default function RandevuPage({ params }: PageProps) {
         </CardContent>
       </Card>
 
-      {/* Sözleşme Onayları */}
+      {/* Sözleşme Onayı */}
       <Card className="border-2 border-blue-200 bg-blue-50">
         <CardContent className="p-6">
           <h3 className="font-semibold text-gray-900 mb-4">Sözleşme ve Onaylar</h3>
-          <p className="text-sm text-gray-600 mb-4">
-            Randevunuzu oluşturmak için lütfen aşağıdaki sözleşmeleri okuyup onaylayın.
-          </p>
-          <div className="space-y-3">
-            <label className="flex items-start space-x-3 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={agreementCheckboxes.userAgreement}
-                onChange={(e) => setAgreementCheckboxes(prev => ({ ...prev, userAgreement: e.target.checked }))}
-                className="mt-1 w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-              />
-              <span className="text-sm text-gray-700">
-                <a href="/musteri-kullanici-sozlesmesi" target="_blank" className="text-blue-600 hover:underline font-medium">
-                  Müşteri Kullanıcı Sözleşmesi
-                </a>'ni okudum ve kabul ediyorum.
-              </span>
-            </label>
-            
-            <label className="flex items-start space-x-3 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={agreementCheckboxes.privacyPolicy}
-                onChange={(e) => setAgreementCheckboxes(prev => ({ ...prev, privacyPolicy: e.target.checked }))}
-                className="mt-1 w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-              />
-              <span className="text-sm text-gray-700">
-                <a href="/gizlilik-politikasi" target="_blank" className="text-blue-600 hover:underline font-medium">
-                  Gizlilik Politikası
-                </a>'nı okudum ve kabul ediyorum.
-              </span>
-            </label>
-            
-            <label className="flex items-start space-x-3 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={agreementCheckboxes.cookiePolicy}
-                onChange={(e) => setAgreementCheckboxes(prev => ({ ...prev, cookiePolicy: e.target.checked }))}
-                className="mt-1 w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-              />
-              <span className="text-sm text-gray-700">
-                <a href="/cerez-cookie-politikasi" target="_blank" className="text-blue-600 hover:underline font-medium">
-                  Çerez (Cookie) Politikası
-                </a>'nı okudum ve kabul ediyorum.
-              </span>
-            </label>
-            
-            <label className="flex items-start space-x-3 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={agreementCheckboxes.kvkk}
-                onChange={(e) => setAgreementCheckboxes(prev => ({ ...prev, kvkk: e.target.checked }))}
-                className="mt-1 w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-              />
-              <span className="text-sm text-gray-700">
-                <a href="/kvkk-aydinlatma-metni" target="_blank" className="text-blue-600 hover:underline font-medium">
-                  KVKK Aydınlatma Metni
-                </a>'ni okudum ve kabul ediyorum.
-              </span>
-            </label>
-          </div>
+          <label className="flex items-start space-x-3 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={agreementsAccepted}
+              onChange={(e) => setAgreementsAccepted(e.target.checked)}
+              className="mt-1 w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+            />
+            <span className="text-sm text-gray-700 leading-relaxed">
+              <a href="/musteri-kullanici-sozlesmesi" target="_blank" className="text-blue-600 hover:underline font-medium">
+                Müşteri Kullanıcı Sözleşmesi
+              </a>,{' '}
+              <a href="/gizlilik-politikasi" target="_blank" className="text-blue-600 hover:underline font-medium">
+                Gizlilik Politikası
+              </a>,{' '}
+              <a href="/cerez-cookie-politikasi" target="_blank" className="text-blue-600 hover:underline font-medium">
+                Çerez (Cookie) Politikası
+              </a> ve{' '}
+              <a href="/kvkk-aydinlatma-metni" target="_blank" className="text-blue-600 hover:underline font-medium">
+                KVKK Aydınlatma Metni
+              </a>'ni okudum ve kabul ediyorum.
+            </span>
+          </label>
           
-          {!Object.values(agreementCheckboxes).every(v => v) && (
+          {!agreementsAccepted && (
             <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
               <p className="text-sm text-yellow-800">
-                ⚠️ Randevunuzu oluşturmak için tüm sözleşmeleri kabul etmeniz gerekmektedir.
+                ⚠️ Randevunuzu oluşturmak için sözleşmeleri kabul etmeniz gerekmektedir.
               </p>
             </div>
           )}
@@ -1150,7 +1101,7 @@ export default function RandevuPage({ params }: PageProps) {
           {currentStep === 'confirmation' ? (
             <Button
               onClick={handleSubmit}
-              disabled={createAppointmentMutation.isPending || !Object.values(agreementCheckboxes).every(v => v)}
+              disabled={createAppointmentMutation.isPending || !agreementsAccepted}
               className="bg-green-600 hover:bg-green-700"
             >
               {createAppointmentMutation.isPending ? (
