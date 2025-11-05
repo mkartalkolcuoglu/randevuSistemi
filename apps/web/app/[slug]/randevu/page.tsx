@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, use } from 'react';
+import { useRouter } from 'next/navigation';
 import { Button, Card, CardContent, CardHeader, CardTitle, formatPhone, normalizePhone, PHONE_PLACEHOLDER, PHONE_MAX_LENGTH, Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '../../../components/ui';
 import { 
   ArrowLeft,
@@ -27,6 +28,7 @@ type StepType = 'phone' | 'service' | 'staff' | 'datetime' | 'customer' | 'confi
 
 export default function RandevuPage({ params }: PageProps) {
   const { slug } = use(params);
+  const router = useRouter();
   const [currentStep, setCurrentStep] = useState<StepType>('phone');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [customerPackages, setCustomerPackages] = useState<any[]>([]);
@@ -1172,6 +1174,7 @@ export default function RandevuPage({ params }: PageProps) {
               onClick={() => {
                 setShowSuccessModal(false);
                 setSuccessAppointment(null);
+                router.push(`/${slug}`);
               }}
               className="w-full"
             >
