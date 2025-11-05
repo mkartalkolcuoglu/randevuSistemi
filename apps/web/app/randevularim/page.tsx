@@ -4,8 +4,8 @@ import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Button, Card, CardContent } from '../../components/ui';
-import { ArrowLeft, Calendar, Clock, User, Phone, Mail, X, CheckCircle, AlertCircle } from 'lucide-react';
-import { format, parseISO, isBefore, addHours } from 'date-fns';
+import { ArrowLeft, Calendar, Clock, User, Phone, Mail, X, CheckCircle, AlertCircle, Filter } from 'lucide-react';
+import { format, parseISO, isBefore, addHours, isAfter, startOfToday } from 'date-fns';
 import { tr } from 'date-fns/locale';
 
 interface Appointment {
@@ -35,6 +35,11 @@ function RandevularimContent() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [cancellingId, setCancellingId] = useState<string | null>(null);
+  
+  // Filtreler
+  const [dateFilter, setDateFilter] = useState<'all' | 'upcoming' | 'past'>('all');
+  const [tenantFilter, setTenantFilter] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
 
   useEffect(() => {
     if (!phoneNumber) {
@@ -105,6 +110,43 @@ function RandevularimContent() {
       setCancellingId(null);
     }
   };
+
+  // Filtreleme fonksiyonu
+  const getFilteredAppointments = () => {
+    return appointments.filter((appointment) => {
+      // Tarih filtresi
+      if (dateFilter !== 'all') {
+        const appointmentDate = parseISO(appointment.date);
+        const today = startOfToday();
+        
+        if (dateFilter === 'upcoming' && isBefore(appointmentDate, today)) {
+          return false;
+        }
+        if (dateFilter === 'past' && isAfter(appointmentDate, today)) {
+          return false;
+        }
+      }
+      
+      // İşletme filtresi
+      if (tenantFilter !== 'all' && appointment.tenantSlug !== tenantFilter) {
+        return false;
+      }
+      
+      // Durum filtresi
+      if (statusFilter !== 'all' && appointment.status !== statusFilter) {
+        return false;
+      }
+      
+      return true;
+    });
+  };
+
+  // Benzersiz işletmeleri al
+  const uniqueTenants = Array.from(
+    new Map(
+      appointments.map(app => [app.tenantSlug, { slug: app.tenantSlug, name: app.tenantName }])
+    ).values()
+  );
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -181,6 +223,94 @@ function RandevularimContent() {
           </Card>
         )}
 
+        {/* Filters */}
+        {appointments.length > 0 && (
+          <Card className="mb-6">
+            <CardContent className="p-6">
+              <div className="flex items-center mb-4">
+                <Filter className="w-5 h-5 text-gray-600 mr-2" />
+                <h3 className="text-lg font-semibold text-gray-900">Filtreler</h3>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {/* Tarih Filtresi */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Tarih
+                  </label>
+                  <select
+                    value={dateFilter}
+                    onChange={(e) => setDateFilter(e.target.value as any)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none"
+                  >
+                    <option value="all">Tümü</option>
+                    <option value="upcoming">Gelecek Randevular</option>
+                    <option value="past">Geçmiş Randevular</option>
+                  </select>
+                </div>
+
+                {/* İşletme Filtresi */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    İşletme
+                  </label>
+                  <select
+                    value={tenantFilter}
+                    onChange={(e) => setTenantFilter(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none"
+                  >
+                    <option value="all">Tüm İşletmeler</option>
+                    {uniqueTenants.map((tenant) => (
+                      <option key={tenant.slug} value={tenant.slug}>
+                        {tenant.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Durum Filtresi */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Durum
+                  </label>
+                  <select
+                    value={statusFilter}
+                    onChange={(e) => setStatusFilter(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none"
+                  >
+                    <option value="all">Tümü</option>
+                    <option value="pending">Beklemede</option>
+                    <option value="confirmed">Onaylandı</option>
+                    <option value="completed">Tamamlandı</option>
+                    <option value="cancelled">İptal Edildi</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Aktif Filtreler ve Sıfırla Butonu */}
+              {(dateFilter !== 'all' || tenantFilter !== 'all' || statusFilter !== 'all') && (
+                <div className="mt-4 flex items-center justify-between">
+                  <p className="text-sm text-gray-600">
+                    {getFilteredAppointments().length} randevu gösteriliyor
+                  </p>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setDateFilter('all');
+                      setTenantFilter('all');
+                      setStatusFilter('all');
+                    }}
+                    className="text-sm"
+                  >
+                    Filtreleri Temizle
+                  </Button>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
         {/* Appointments List */}
         {appointments.length === 0 ? (
           <Card>
@@ -200,8 +330,32 @@ function RandevularimContent() {
             </CardContent>
           </Card>
         ) : (
-          <div className="space-y-4">
-            {appointments.map((appointment) => {
+          <>
+            {getFilteredAppointments().length === 0 ? (
+              <Card>
+                <CardContent className="p-12 text-center">
+                  <Filter className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                  <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                    Filtre Sonucu Bulunamadı
+                  </h3>
+                  <p className="text-gray-600 mb-6">
+                    Seçtiğiniz filtrelere uygun randevu bulunamadı.
+                  </p>
+                  <Button
+                    onClick={() => {
+                      setDateFilter('all');
+                      setTenantFilter('all');
+                      setStatusFilter('all');
+                    }}
+                    className="bg-[#163974] hover:bg-[#0F2A52]"
+                  >
+                    Filtreleri Temizle
+                  </Button>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="space-y-4">
+                {getFilteredAppointments().map((appointment) => {
               const canCancel = canCancelAppointment(appointment);
               const isCancelling = cancellingId === appointment.id;
               
@@ -289,7 +443,9 @@ function RandevularimContent() {
                 </Card>
               );
             })}
-          </div>
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>
