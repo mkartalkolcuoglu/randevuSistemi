@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@repo/ui';
-import { LogOut, User, Home, Calendar, Users, Briefcase, Package, Settings, Wallet, Gift, Clock, BarChart3, Menu, X, Bell, XCircle } from 'lucide-react';
+import { LogOut, User, Home, Calendar, Users, Briefcase, Package, Settings, Wallet, Gift, Clock, BarChart3, Menu, X, Bell, XCircle, Star } from 'lucide-react';
 import Link from 'next/link';
 import type { ClientUser } from '../../lib/client-permissions';
 import { canAccessPage } from '../../lib/client-permissions';
@@ -460,6 +460,12 @@ export default function AdminHeader({ user }: AdminHeaderProps) {
                 </Button>
               </Link>
             )}
+            <Link href="/admin/performans">
+              <Button variant="ghost" size="sm" className="text-gray-600 hover:text-gray-900">
+                <Star className="w-4 h-4 mr-2" />
+                Performans
+              </Button>
+            </Link>
             {canAccessPage(user, 'settings') && (
               <Link href="/admin/settings">
                 <Button variant="ghost" size="sm" className="text-gray-600 hover:text-gray-900">
@@ -579,6 +585,12 @@ export default function AdminHeader({ user }: AdminHeaderProps) {
                   </Button>
                 </Link>
               )}
+              <Link href="/admin/performans" onClick={() => setMobileMenuOpen(false)}>
+                <Button variant="ghost" size="sm" className="w-full justify-start text-gray-600 hover:text-gray-900 hover:bg-gray-100">
+                  <Star className="w-5 h-5 mr-3" />
+                  Performans
+                </Button>
+              </Link>
               {canAccessPage(user, 'settings') && (
                 <Link href="/admin/settings" onClick={() => setMobileMenuOpen(false)}>
                   <Button variant="ghost" size="sm" className="w-full justify-start text-gray-600 hover:text-gray-900 hover:bg-gray-100">
