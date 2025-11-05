@@ -122,7 +122,6 @@ function RandevularimContent() {
         },
         body: JSON.stringify({
           appointmentId: selectedAppointment.id,
-          tenantId: selectedAppointment.tenantSlug, // Will need to get actual tenantId
           customerName: selectedAppointment.customerName,
           customerPhone: selectedAppointment.customerPhone,
           rating,

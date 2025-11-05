@@ -6,7 +6,6 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const {
       appointmentId,
-      tenantId,
       customerName,
       customerPhone,
       rating,
@@ -17,7 +16,7 @@ export async function POST(request: NextRequest) {
     } = body;
 
     // Validasyon
-    if (!appointmentId || !tenantId || !customerName || !customerPhone || !rating) {
+    if (!appointmentId || !customerName || !customerPhone || !rating) {
       return NextResponse.json(
         { success: false, error: 'Gerekli alanlar eksik' },
         { status: 400 }
@@ -31,7 +30,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Randevuyu kontrol et
+    // Randevuyu kontrol et ve tenantId'yi al
     const appointment = await prisma.appointment.findUnique({
       where: { id: appointmentId }
     });
@@ -77,7 +76,7 @@ export async function POST(request: NextRequest) {
     // Feedback oluştur
     const feedback = await prisma.feedback.create({
       data: {
-        tenantId,
+        tenantId: appointment.tenantId,
         appointmentId,
         customerName,
         customerPhone,
