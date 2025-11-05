@@ -1,20 +1,38 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '../../../../lib/prisma';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '../../../../lib/auth-utils';
+import { cookies } from 'next/headers';
+
+export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
-    
-    if (!session?.user?.tenantId) {
+    const cookieStore = cookies();
+    const sessionCookie = cookieStore.get('tenant-session');
+
+    if (!sessionCookie) {
       return NextResponse.json(
-        { success: false, error: 'Yetkisiz erişim' },
+        { success: false, error: 'Not authenticated' },
         { status: 401 }
       );
     }
 
-    const tenantId = session.user.tenantId;
+    let session;
+    try {
+      session = JSON.parse(sessionCookie.value);
+    } catch {
+      return NextResponse.json(
+        { success: false, error: 'Invalid session' },
+        { status: 401 }
+      );
+    }
+
+    const tenantId = session.tenantId;
+    if (!tenantId) {
+      return NextResponse.json(
+        { success: false, error: 'Tenant ID not found in session' },
+        { status: 400 }
+      );
+    }
 
     const feedbacks = await prisma.feedback.findMany({
       where: { tenantId },
