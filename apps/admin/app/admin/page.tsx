@@ -17,10 +17,8 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { requireAuth } from '../../lib/auth-utils';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../../lib/prisma';
 import AdminHeader from './admin-header';
-
-const prisma = new PrismaClient();
 
 // Server-side data fetching functions
 async function getDashboardData(tenantId: string, userType: string, staffId?: string) {
@@ -126,8 +124,6 @@ async function getDashboardData(tenantId: string, userType: string, staffId?: st
         pending: 0,
       }
     };
-  } finally {
-    await prisma.$disconnect();
   }
 }
 
