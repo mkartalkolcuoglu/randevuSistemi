@@ -83,35 +83,35 @@ model Service {
 }
 
 model Appointment {
-  id           String   @id @default(cuid()) @map("id")
-  tenantId     String   @map("tenantId")
-  customerId   String   @map("customerId")
-  customerName String   @map("customerName")
-  customerPhone String? @map("customerPhone")
-  customerEmail String? @map("customerEmail")
-  serviceId    String   @map("serviceId")
-  serviceName  String   @map("serviceName")
-  staffId      String   @map("staffId")
-  staffName    String   @map("staffName")
-  date         String   @map("date")
-  time         String   @map("time")
-  status       String   @default("scheduled") @map("status")
-  notes        String?  @map("notes")
-  price        Float?   @map("price")
-  duration     Int?     @map("duration") // in minutes
-  paymentType  String   @default("cash") @map("paymentType")
-  packageInfo  String?  @db.Text @map("packageInfo") // JSON string containing package usage info
+  id           String   @id @default(cuid())
+  tenantId     String
+  customerId   String
+  customerName String
+  customerPhone String?
+  customerEmail String?
+  serviceId    String
+  serviceName  String
+  staffId      String
+  staffName    String
+  date         String
+  time         String
+  status       String   @default("scheduled")
+  notes        String?
+  price        Float?
+  duration     Int?     // in minutes
+  paymentType  String   @default("cash")
+  packageInfo  String?  @db.Text // JSON string containing package usage info
 
   // Payment fields
-  paymentStatus String  @default("pending") @map("paymentStatus") // pending, paid, package_used, failed
-  paymentId     String? @map("paymentId") // Link to Payment record
+  paymentStatus String  @default("pending") // pending, paid, package_used, failed
+  paymentId     String? // Link to Payment record
 
-  whatsappSent   Boolean   @default(false) @map("whatsappSent")
-  whatsappSentAt DateTime? @map("whatsappSentAt")
-  reminderSent   Boolean   @default(false) @map("reminderSent")
-  reminderSentAt DateTime? @map("reminderSentAt")
-  createdAt      DateTime  @default(now()) @map("createdAt")
-  updatedAt      DateTime  @updatedAt @map("updatedAt")
+  whatsappSent   Boolean   @default(false)
+  whatsappSentAt DateTime?
+  reminderSent   Boolean   @default(false)
+  reminderSentAt DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 
   @@index([paymentStatus])
   @@index([paymentId])
