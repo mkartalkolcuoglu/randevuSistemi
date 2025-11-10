@@ -77,13 +77,13 @@ export async function POST(request: NextRequest) {
       userIp
     });
 
-    // Unique merchant order ID oluştur
-    const merchantOid = `APT_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    // Unique merchant order ID oluştur (PayTR sadece alfanumerik kabul eder, özel karakter yok)
+    const merchantOid = `APT${Date.now()}${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
 
     // Payment kaydı oluştur (status: pending)
     const payment = await prisma.payment.create({
       data: {
-        id: `payment_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        id: `payment${Date.now()}${Math.random().toString(36).substr(2, 9)}`,
         tenantId,
         customerId: customerId || null,
         customerName: customerName || null,
