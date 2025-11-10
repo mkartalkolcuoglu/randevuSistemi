@@ -3,11 +3,11 @@
  * Documentation: https://www.netgsm.com.tr/dokuman/
  */
 
-const NETGSM_API_URL = 'https://api.netgsm.com.tr/sms/send/xml';
+const NETGSM_API_URL = 'https://api.netgsm.com.tr/sms/send/get';
 const NETGSM_USERCODE = process.env.NETGSM_USERCODE || '8503036723';
 const NETGSM_PASSWORD = process.env.NETGSM_PASSWORD || 'Ozan.1903';
-// NetGSM msgheader: Özel başlığınız varsa kullanın, yoksa boş bırakın
-const NETGSM_MSGHEADER = process.env.NETGSM_MSGHEADER || '';
+// NetGSM msgheader: Başlık için telefon numaranızı kullanın
+const NETGSM_MSGHEADER = process.env.NETGSM_MSGHEADER || '08503036723';
 
 interface SendSmsParams {
   to: string; // Recipient phone number (with country code, e.g., 905551234567)
@@ -62,45 +62,39 @@ export async function sendSMS(params: SendSmsParams): Promise<SendSmsResponse> {
       messageLength: params.message.length
     });
 
-    // NetGSM XML format
-    const xmlBody = `<?xml version="1.0" encoding="UTF-8"?>
-<mainbody>
-  <header>
-    <company dil="TR">Netgsm</company>
-    <usercode>${NETGSM_USERCODE}</usercode>
-    <password>${NETGSM_PASSWORD}</password>
-    <type>1:n</type>
-    <msgheader>${NETGSM_MSGHEADER}</msgheader>
-  </header>
-  <body>
-    <msg><![CDATA[${params.message}]]></msg>
-    <no>${formattedPhone}</no>
-  </body>
-</mainbody>`;
+    // NetGSM GET/POST format with URLSearchParams
+    const formData = new URLSearchParams({
+      usercode: NETGSM_USERCODE,
+      password: NETGSM_PASSWORD,
+      gsmno: formattedPhone,
+      message: params.message,
+      msgheader: NETGSM_MSGHEADER
+    });
 
     const response = await fetch(NETGSM_API_URL, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/xml',
+        'Content-Type': 'application/x-www-form-urlencoded',
       },
-      body: xmlBody,
+      body: formData,
     });
 
     const responseText = await response.text();
     console.log('📨 NetGSM Response:', responseText);
 
     // NetGSM Response Codes:
-    // 00 veya 01 = Başarılı (+ bulk ID)
+    // 00 = Başarılı (+ bulk ID)
     // 20 = Mesaj metninde hata
     // 30 = Geçersiz kullanıcı adı/şifre
     // 40 = Mesaj başlığı (header) hatalı
     // 70 = Hatalı sorgulama
 
-    const lines = responseText.trim().split(' ');
-    const code = lines[0];
-    const bulkId = lines[1];
+    // Response format: "00 123456789" (code + space + bulkId)
+    const trimmed = responseText.trim();
+    const code = trimmed.substring(0, 2);
+    const bulkId = trimmed.substring(3); // Everything after "00 "
 
-    if (code === '00' || code === '01') {
+    if (code === '00') {
       console.log('✅ SMS sent successfully. Bulk ID:', bulkId);
       return {
         success: true,
