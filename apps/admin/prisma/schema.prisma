@@ -333,13 +333,13 @@ model OtpVerification {
   phone       String   // Telefon numarası
   code        String   // 6 haneli OTP kodu
   purpose     String   // 'appointment_query', 'subscription', 'password_reset', vb.
-  tenantId    String?  // Opsiyonel: Hangi tenant için (subscription için gerekli)
-  expiresAt   DateTime // 120 saniye sonra
+  tenantId    String?  @map("tenantId") // Opsiyonel: Hangi tenant için (subscription için gerekli)
+  expiresAt   DateTime @map("expiresAt") // 120 saniye sonra
   verified    Boolean  @default(false)
   verifiedAt  DateTime? @map("verified_at")
   attempts    Int      @default(0) // Kaç kere denendi
   ipAddress   String?  @map("ip_address") // Güvenlik için IP kaydı
-  createdAt   DateTime @default(now())
+  createdAt   DateTime @default(now()) @map("createdAt")
 
   @@index([phone, purpose]) // Hızlı sorgulama için
   @@index([expiresAt]) // Cleanup için
