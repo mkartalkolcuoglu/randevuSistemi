@@ -7,6 +7,9 @@ export const dynamic = 'force-dynamic';
 
 async function getAppointments(tenantId: string, userType: string, staffId?: string) {
   try {
+    console.log('🔍 [Appointments] Fetching for tenant:', tenantId);
+    console.log('👤 [Appointments] User type:', userType);
+
     // Build where clause
     const where: any = {
       tenantId: tenantId
@@ -15,7 +18,10 @@ async function getAppointments(tenantId: string, userType: string, staffId?: str
     // If user is staff, only show their appointments
     if (userType === 'staff' && staffId) {
       where.staffId = staffId;
+      console.log('📌 [Appointments] Filtering by staffId:', staffId);
     }
+
+    console.log('🔍 [Appointments] Query where:', JSON.stringify(where));
 
     const appointments = await prisma.appointment.findMany({
       where,
@@ -25,9 +31,16 @@ async function getAppointments(tenantId: string, userType: string, staffId?: str
       ]
     });
 
+    console.log('✅ [Appointments] Found:', appointments.length, 'appointments');
+    if (appointments.length > 0) {
+      console.log('📋 [Appointments] First appointment:', appointments[0]);
+    }
+
     return appointments;
   } catch (error) {
-    console.error('Error fetching appointments:', error);
+    console.error('❌ [Appointments] Error fetching appointments:', error);
+    console.error('❌ [Appointments] Error details:', error instanceof Error ? error.message : String(error));
+    console.error('❌ [Appointments] Error stack:', error instanceof Error ? error.stack : 'No stack');
     return [];
   }
 }

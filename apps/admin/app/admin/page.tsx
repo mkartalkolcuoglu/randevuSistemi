@@ -37,10 +37,12 @@ async function getDashboardData(tenantId: string, userType: string, staffId?: st
     }
 
     // Get real data from PostgreSQL database using Prisma
+    console.log('🔍 [Dashboard] Querying appointments with where:', JSON.stringify(appointmentWhere));
     const appointments = await prisma.appointment.findMany({
       where: appointmentWhere,
       orderBy: { createdAt: 'desc' }
     });
+    console.log('✅ [Dashboard] Query successful, appointments count:', appointments.length);
 
     // Customers query - show all for tenant (staff can see all customers)
     const customers = await prisma.customer.findMany({
@@ -108,7 +110,9 @@ async function getDashboardData(tenantId: string, userType: string, staffId?: st
       }
     };
   } catch (error) {
-    console.error('❌ Error fetching dashboard data:', error);
+    console.error('❌ [Dashboard] Error fetching dashboard data:', error);
+    console.error('❌ [Dashboard] Error details:', error instanceof Error ? error.message : String(error));
+    console.error('❌ [Dashboard] Error stack:', error instanceof Error ? error.stack : 'No stack');
     return {
       totalAppointments: 0,
       todayAppointments: 0,
