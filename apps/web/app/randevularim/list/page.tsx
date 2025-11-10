@@ -3,7 +3,7 @@
 import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Button, Card, CardContent, Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '../../components/ui';
+import { Button, Card, CardContent, Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '../../../components/ui';
 import { ArrowLeft, Calendar, Clock, User, Phone, Mail, X, CheckCircle, AlertCircle, Filter, Star, MessageSquare } from 'lucide-react';
 import { format, parseISO, isBefore, addHours, isAfter, startOfToday, differenceInDays } from 'date-fns';
 import { tr } from 'date-fns/locale';
