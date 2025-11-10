@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '../../../../lib/prisma';
+import { formatPhoneForSMS } from '../../../../lib/netgsm-client';
 
 export async function GET(request: NextRequest) {
   try {
@@ -15,10 +16,27 @@ export async function GET(request: NextRequest) {
 
     console.log('📞 Fetching appointments for phone:', phone);
 
-    // Telefon numarasına göre randevuları getir (tüm tenant'lardan)
+    // Telefon numarasını formatla (0'sız hale getir: 9053...)
+    const formattedPhone = formatPhoneForSMS(phone);
+
+    // Olası formatlar:
+    // - 905XX (0 olmadan)
+    // - 05XX (0 ile)
+    // - 5XX (sadece numara)
+    const phoneVariants = [
+      formattedPhone,                    // 905XX...
+      formattedPhone.replace('90', '0'), // 05XX...
+      formattedPhone.replace('90', '')   // 5XX...
+    ];
+
+    console.log('🔍 Searching for phone variants:', phoneVariants);
+
+    // Telefon numarasına göre randevuları getir (tüm varyantları dene)
     const appointments = await prisma.appointment.findMany({
       where: {
-        customerPhone: phone
+        OR: phoneVariants.map(variant => ({
+          customerPhone: variant
+        }))
       },
       orderBy: [
         { date: 'desc' },
