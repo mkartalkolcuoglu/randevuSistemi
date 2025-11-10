@@ -6,7 +6,8 @@
 const NETGSM_API_URL = 'https://api.netgsm.com.tr/sms/send/xml';
 const NETGSM_USERCODE = process.env.NETGSM_USERCODE || '8503036723';
 const NETGSM_PASSWORD = process.env.NETGSM_PASSWORD || '1A765-A';
-const NETGSM_MSGHEADER = process.env.NETGSM_MSGHEADER || ''; // Boş ise numara ile gönderilir
+// NetGSM boş header kabul etmiyor - usercode kullanıyoruz (numara ile gönderim için)
+const NETGSM_MSGHEADER = process.env.NETGSM_MSGHEADER || process.env.NETGSM_USERCODE || '8503036723';
 
 interface SendSmsParams {
   to: string; // Recipient phone number (with country code, e.g., 905551234567)
