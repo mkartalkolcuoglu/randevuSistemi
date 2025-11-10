@@ -3,6 +3,10 @@
     {
       "path": "/api/whatsapp/check-reminders",
       "schedule": "0 * * * *"
+    },
+    {
+      "path": "/api/otp/cleanup",
+      "schedule": "0 2 * * *"
     }
   ]
 }

@@ -199,6 +199,24 @@ model Feedback {
   appointmentDate String
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
-  
+
   @@map("feedbacks")
+}
+
+model OtpVerification {
+  id          String   @id @default(cuid())
+  phone       String   // Telefon numarası
+  code        String   // 6 haneli OTP kodu
+  purpose     String   // 'appointment_query', 'subscription', 'password_reset', vb.
+  tenantId    String?  // Opsiyonel: Hangi tenant için (subscription için gerekli)
+  expiresAt   DateTime // 120 saniye sonra
+  verified    Boolean  @default(false)
+  verifiedAt  DateTime? @map("verified_at")
+  attempts    Int      @default(0) // Kaç kere denendi
+  ipAddress   String?  @map("ip_address") // Güvenlik için IP kaydı
+  createdAt   DateTime @default(now())
+
+  @@index([phone, purpose]) // Hızlı sorgulama için
+  @@index([expiresAt]) // Cleanup için
+  @@map("otp_verifications")
 }
