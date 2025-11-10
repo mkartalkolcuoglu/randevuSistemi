@@ -86,9 +86,16 @@ model Appointment {
   duration     Int?     // in minutes
   paymentType  String   @default("cash")
   packageInfo  String?  @db.Text // JSON string containing package usage info
+
+  // Payment fields
+  paymentStatus String  @default("pending") // pending, paid, package_used, failed
+  paymentId     String? // Link to Payment record
+
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
-  
+
+  @@index([paymentStatus])
+  @@index([paymentId])
   @@map("appointments")
 }
 
@@ -219,4 +226,49 @@ model OtpVerification {
   @@index([phone, purpose]) // Hızlı sorgulama için
   @@index([expiresAt]) // Cleanup için
   @@map("otp_verifications")
+}
+
+model Payment {
+  id              String   @id @default(cuid())
+  tenantId        String
+  appointmentId   String?  // Randevu için ödeme ise
+  customerId      String?
+  customerName    String?
+  customerEmail   String?
+  customerPhone   String?
+
+  // PayTR Bilgileri
+  merchantOid     String   @unique // PayTR sipariş no (unique order ID)
+  amount          Float    // Tutar (TL cinsinden, örn: 34.56)
+  paymentAmount   Int      // PayTR'a gönderilen tutar (3456 = 34.56 * 100)
+  currency        String   @default("TL")
+
+  // Ödeme Durumu
+  status          String   @default("pending") // pending, success, failed
+  paymentType     String?  // card, eft (PayTR'dan gelir)
+
+  // PayTR Callback Bilgileri
+  paytrToken      String?  @db.Text // İlk alınan iframe token (log için)
+  paytrHash       String?  // Callback'ten gelen hash
+  failedReason    String?  // Hata kodu/mesajı (failed_reason_code + failed_reason_msg)
+
+  // Refund (İade) Bilgileri
+  refundStatus    String?  // null, requested, processing, completed, failed
+  refundAmount    Float?   // İade tutarı
+  refundedAt      DateTime? @map("refunded_at")
+  refundReason    String?  @db.Text
+
+  // Meta Bilgiler
+  userIp          String?  @map("user_ip")
+  userBasket      String?  @db.Text // JSON: Sepet bilgisi (PayTR'a gönderilen)
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  paidAt          DateTime? @map("paid_at") // Ödeme başarılı olduğu an
+
+  @@index([merchantOid])
+  @@index([appointmentId])
+  @@index([status])
+  @@index([tenantId])
+  @@map("payments")
 }

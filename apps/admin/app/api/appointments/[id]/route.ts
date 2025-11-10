@@ -371,9 +371,17 @@ async function createAppointmentTransaction(appointment: any) {
       price: appointment.price,
       status: appointment.status,
       date: appointment.date,
-      customerId: appointment.customerId
+      customerId: appointment.customerId,
+      packageInfo: appointment.packageInfo ? 'HAS_PACKAGE' : 'NO_PACKAGE'
     });
-    
+
+    // 🎁 PAKET KULLANIMI KONTROLÜ - Eğer paket kullanıldıysa Transaction oluşturma!
+    if (appointment.packageInfo) {
+      console.log('⚠️ [TRANSACTION] Skipping - Package used for this appointment');
+      console.log('📦 Package info:', appointment.packageInfo);
+      return;
+    }
+
     // Skip if no price
     if (!appointment.price || appointment.price <= 0) {
       console.log('⚠️ [TRANSACTION] Skipping - No price set:', appointment.price);
