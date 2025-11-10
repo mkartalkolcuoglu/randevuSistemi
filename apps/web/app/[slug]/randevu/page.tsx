@@ -414,8 +414,11 @@ export default function RandevuPage({ params }: PageProps) {
           // Note: The appointment will be created by the callback after successful payment
           // User will need to complete payment in iframe, then we can show success
         } else {
-          console.error('❌ [CARD] Payment initiation failed:', paymentResult.error);
-          setPaymentError(paymentResult.error || 'Ödeme başlatılamadı');
+          console.error('❌ [CARD] Payment initiation failed:', paymentResult);
+          const errorMsg = paymentResult.details
+            ? `${paymentResult.error}: ${paymentResult.details}`
+            : (paymentResult.error || 'Ödeme başlatılamadı');
+          setPaymentError(errorMsg);
           setPaymentLoading(false);
         }
 

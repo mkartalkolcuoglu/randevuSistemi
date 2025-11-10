@@ -230,8 +230,8 @@ export async function initiatePayment(
       user_name: params.email.split('@')[0], // Email'den ad çıkar
       user_address: 'Türkiye',
       user_phone: '5555555555',
-      merchant_ok_url: params.successUrl || `${process.env.NEXT_PUBLIC_WEB_URL}/payment/success`,
-      merchant_fail_url: params.failUrl || `${process.env.NEXT_PUBLIC_WEB_URL}/payment/failed`,
+      merchant_ok_url: params.successUrl || `${process.env.NEXT_PUBLIC_WEB_URL || 'https://netrandevu.com'}/payment/success`,
+      merchant_fail_url: params.failUrl || `${process.env.NEXT_PUBLIC_WEB_URL || 'https://netrandevu.com'}/payment/failed`,
       timeout_limit: '30',
       currency: currency,
       test_mode: PAYTR_TEST_MODE
