@@ -110,6 +110,14 @@ export async function POST(request: NextRequest) {
     console.log('🎁 Package info from request:', appointmentData.packageInfo);
     console.log('📦 Use package flag:', appointmentData.usePackageForService);
     
+    // Determine payment status based on payment method
+    let paymentStatus = 'pending'; // Default
+    if (appointmentData.usePackageForService && appointmentData.packageInfo) {
+      paymentStatus = 'package_used';
+    } else if (appointmentData.paymentStatus) {
+      paymentStatus = appointmentData.paymentStatus; // Can be 'pending' or 'paid'
+    }
+
     const appointment = await prisma.appointment.create({
       data: {
         tenantId: tenant.id,
@@ -127,10 +135,11 @@ export async function POST(request: NextRequest) {
         price: appointmentData.price || service.price,
         status: 'pending',
         paymentType: 'cash',
+        paymentStatus: paymentStatus, // Set payment status
         notes: appointmentData.customerInfo?.notes || appointmentData.notes || '',
         // Store package info if user wants to use package
-        packageInfo: (appointmentData.usePackageForService && appointmentData.packageInfo) 
-          ? JSON.stringify(appointmentData.packageInfo) 
+        packageInfo: (appointmentData.usePackageForService && appointmentData.packageInfo)
+          ? JSON.stringify(appointmentData.packageInfo)
           : null
       }
     });

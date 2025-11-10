@@ -57,9 +57,16 @@ export default function RandevuPage({ params }: PageProps) {
     time: string;
     serviceName: string;
   } | null>(null);
-  
+
   // Sözleşme onayı
   const [agreementsAccepted, setAgreementsAccepted] = useState(false);
+
+  // Payment states
+  const [paymentMethod, setPaymentMethod] = useState<'package' | 'card' | 'later' | null>(null);
+  const [showPaymentIframe, setShowPaymentIframe] = useState(false);
+  const [paymentIframeUrl, setPaymentIframeUrl] = useState('');
+  const [paymentLoading, setPaymentLoading] = useState(false);
+  const [paymentError, setPaymentError] = useState<string | null>(null);
 
   // API Hooks
   const { data: tenant, isLoading: tenantLoading } = useTenant(slug);
@@ -279,6 +286,12 @@ export default function RandevuPage({ params }: PageProps) {
       return;
     }
 
+    // Payment method validation (unless using package)
+    if (!paymentMethod && !(servicePackageInfo && usePackageForService)) {
+      setPaymentError('Lütfen bir ödeme yöntemi seçin.');
+      return;
+    }
+
     // Sözleşme onayı kontrolü
     if (!agreementsAccepted) {
       alert('Randevunuzu oluşturmak için lütfen sözleşmeleri okuyup kabul edin.');
@@ -302,60 +315,171 @@ export default function RandevuPage({ params }: PageProps) {
       }
     }
 
-    try {
-      const selectedServiceData = services?.find(s => s.id === selectedService);
-      const appointmentData = {
-        tenantSlug: slug,
-        customerName: customerInfo.name,
-        customerEmail: customerInfo.email,
-        customerPhone: customerInfo.phone,
-        serviceId: selectedService, // Add serviceId to main data
-        serviceName: selectedServiceData?.name || 'Seçilen Hizmet',
-        staffId: selectedStaff,
-        date: selectedDate,
-        time: selectedTime,
-        duration: selectedServiceData?.duration || 60,
-        price: selectedServiceData?.price || 0,
-        notes: customerInfo.notes,
-        customerInfo,
-        // Package usage info
-        usePackageForService: servicePackageInfo ? usePackageForService : false,
-        packageInfo: (servicePackageInfo && usePackageForService) ? {
-          customerPackageId: servicePackageInfo.customerPackageId,
-          usageId: servicePackageInfo.usage.id,
-          packageName: servicePackageInfo.packageName,
-          serviceId: selectedService
-        } : null
-      };
-      
-      console.log('📤 Gönderilen randevu verisi:', appointmentData);
-      const appointment = await createAppointmentMutation.mutateAsync(appointmentData);
+    const selectedServiceData = services?.find(s => s.id === selectedService);
+    const staffData = staff?.find(s => s.id === selectedStaff);
 
-      // Save appointment details for modal BEFORE resetting
-      setSuccessAppointment({
-        id: appointment.id,
-        date: selectedDate,
-        time: selectedTime,
-        serviceName: selectedServiceData?.name || 'Seçilen Hizmet'
-      });
-      
-      // Show success modal
-      setShowSuccessModal(true);
-      
-      // Reset form
-      setCurrentStep('service');
-      setSelectedService('');
-      setSelectedStaff('');
-      setSelectedDate('');
-      setSelectedTime('');
-      setCustomerInfo({ name: '', email: '', phone: '', notes: '' });
-      setAgreementsAccepted(false);
-      
-    } catch (error) {
-      console.error('Randevu oluşturma hatası:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Bilinmeyen hata';
-      alert(`Randevu oluşturulurken hata: ${errorMessage}`);
+    // SCENARIO 1: Using Package
+    if (paymentMethod === 'package' || (servicePackageInfo && usePackageForService)) {
+      try {
+        const appointmentData = {
+          tenantSlug: slug,
+          customerName: customerInfo.name,
+          customerEmail: customerInfo.email,
+          customerPhone: customerInfo.phone,
+          serviceId: selectedService,
+          serviceName: selectedServiceData?.name || 'Seçilen Hizmet',
+          staffId: selectedStaff,
+          date: selectedDate,
+          time: selectedTime,
+          duration: selectedServiceData?.duration || 60,
+          price: selectedServiceData?.price || 0,
+          notes: customerInfo.notes,
+          customerInfo,
+          usePackageForService: true,
+          packageInfo: {
+            customerPackageId: servicePackageInfo!.customerPackageId,
+            usageId: servicePackageInfo!.usage.id,
+            packageName: servicePackageInfo!.packageName,
+            serviceId: selectedService
+          }
+        };
+
+        console.log('📤 [PACKAGE] Creating appointment with package:', appointmentData);
+        const appointment = await createAppointmentMutation.mutateAsync(appointmentData);
+
+        setSuccessAppointment({
+          id: appointment.id,
+          date: selectedDate,
+          time: selectedTime,
+          serviceName: selectedServiceData?.name || 'Seçilen Hizmet'
+        });
+
+        setShowSuccessModal(true);
+        resetForm();
+
+      } catch (error) {
+        console.error('Randevu oluşturma hatası:', error);
+        const errorMessage = error instanceof Error ? error.message : 'Bilinmeyen hata';
+        alert(`Randevu oluşturulurken hata: ${errorMessage}`);
+      }
     }
+    // SCENARIO 2: Pay with Card
+    else if (paymentMethod === 'card') {
+      try {
+        setPaymentLoading(true);
+        setPaymentError(null);
+
+        console.log('💳 [CARD] Initiating payment...');
+
+        const appointmentData = {
+          tenantId: tenant?.id || slug,
+          customerId: existingCustomer?.id || null,
+          customerName: customerInfo.name,
+          customerEmail: customerInfo.email,
+          customerPhone: customerInfo.phone,
+          serviceId: selectedService,
+          serviceName: selectedServiceData?.name || 'Seçilen Hizmet',
+          staffId: selectedStaff,
+          staffName: `${staffData?.firstName} ${staffData?.lastName}`,
+          date: selectedDate,
+          time: selectedTime,
+          duration: selectedServiceData?.duration || 60,
+          notes: customerInfo.notes || null
+        };
+
+        // Call payment initiate API
+        const response = await fetch('/api/payment/initiate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            tenantId: tenant?.id || slug,
+            customerId: existingCustomer?.id || null,
+            customerName: customerInfo.name,
+            customerEmail: customerInfo.email,
+            customerPhone: customerInfo.phone,
+            amount: selectedServiceData?.price || 0,
+            serviceName: selectedServiceData?.name || 'Seçilen Hizmet',
+            appointmentData: appointmentData
+          })
+        });
+
+        const paymentResult = await response.json();
+
+        if (paymentResult.success && paymentResult.iframeUrl) {
+          console.log('✅ [CARD] Payment initiated, opening iframe');
+          setPaymentIframeUrl(paymentResult.iframeUrl);
+          setShowPaymentIframe(true);
+          setPaymentLoading(false);
+
+          // Note: The appointment will be created by the callback after successful payment
+          // User will need to complete payment in iframe, then we can show success
+        } else {
+          console.error('❌ [CARD] Payment initiation failed:', paymentResult.error);
+          setPaymentError(paymentResult.error || 'Ödeme başlatılamadı');
+          setPaymentLoading(false);
+        }
+
+      } catch (error) {
+        console.error('❌ [CARD] Payment error:', error);
+        setPaymentError('Ödeme işlemi başlatılırken hata oluştu');
+        setPaymentLoading(false);
+      }
+    }
+    // SCENARIO 3: Pay Later
+    else if (paymentMethod === 'later') {
+      try {
+        const appointmentData = {
+          tenantSlug: slug,
+          customerName: customerInfo.name,
+          customerEmail: customerInfo.email,
+          customerPhone: customerInfo.phone,
+          serviceId: selectedService,
+          serviceName: selectedServiceData?.name || 'Seçilen Hizmet',
+          staffId: selectedStaff,
+          date: selectedDate,
+          time: selectedTime,
+          duration: selectedServiceData?.duration || 60,
+          price: selectedServiceData?.price || 0,
+          notes: customerInfo.notes,
+          customerInfo,
+          usePackageForService: false,
+          packageInfo: null,
+          paymentStatus: 'pending' // Mark as pending payment
+        };
+
+        console.log('📤 [LATER] Creating appointment without payment:', appointmentData);
+        const appointment = await createAppointmentMutation.mutateAsync(appointmentData);
+
+        setSuccessAppointment({
+          id: appointment.id,
+          date: selectedDate,
+          time: selectedTime,
+          serviceName: selectedServiceData?.name || 'Seçilen Hizmet'
+        });
+
+        setShowSuccessModal(true);
+        resetForm();
+
+      } catch (error) {
+        console.error('Randevu oluşturma hatası:', error);
+        const errorMessage = error instanceof Error ? error.message : 'Bilinmeyen hata';
+        alert(`Randevu oluşturulurken hata: ${errorMessage}`);
+      }
+    }
+  };
+
+  const resetForm = () => {
+    setCurrentStep('service');
+    setSelectedService('');
+    setSelectedStaff('');
+    setSelectedDate('');
+    setSelectedTime('');
+    setCustomerInfo({ name: '', email: '', phone: '', notes: '' });
+    setAgreementsAccepted(false);
+    setPaymentMethod(null);
+    setPaymentError(null);
+    setUsePackageForService(false);
+    setShowPackageChoice(false);
   };
 
   if (tenantLoading) {
@@ -996,6 +1120,105 @@ export default function RandevuPage({ params }: PageProps) {
         </CardContent>
       </Card>
 
+      {/* Payment Method Selection - Only show after package choice is resolved */}
+      {!showPackageChoice && (
+        <Card className="border-2 border-purple-200 bg-purple-50">
+          <CardContent className="p-6">
+            <h3 className="text-xl font-bold text-gray-900 mb-4">💳 Ödeme Yöntemi Seçin</h3>
+            <div className="space-y-3">
+              {/* Option 1: Use Package (only if applicable) */}
+              {servicePackageInfo && usePackageForService && (
+                <button
+                  onClick={() => setPaymentMethod('package')}
+                  className={`w-full p-4 rounded-lg border-2 text-left transition-all ${
+                    paymentMethod === 'package'
+                      ? 'border-green-500 bg-green-50'
+                      : 'border-gray-300 bg-white hover:border-green-300'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="text-2xl">🎁</div>
+                      <div>
+                        <p className="font-semibold text-gray-900">Paket Kullan</p>
+                        <p className="text-sm text-gray-600">
+                          {servicePackageInfo.packageName} - Kalan: {servicePackageInfo.remainingQuantity} seans
+                        </p>
+                      </div>
+                    </div>
+                    {paymentMethod === 'package' && <Check className="w-6 h-6 text-green-600" />}
+                  </div>
+                </button>
+              )}
+
+              {/* Option 2: Pay with Card */}
+              {(!servicePackageInfo || !usePackageForService) && (
+                <button
+                  onClick={() => setPaymentMethod('card')}
+                  className={`w-full p-4 rounded-lg border-2 text-left transition-all ${
+                    paymentMethod === 'card'
+                      ? 'border-blue-500 bg-blue-50'
+                      : 'border-gray-300 bg-white hover:border-blue-300'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="text-2xl">💳</div>
+                      <div>
+                        <p className="font-semibold text-gray-900">Kredi Kartı ile Öde</p>
+                        <p className="text-sm text-gray-600">
+                          Güvenli ödeme ile hemen öde - ₺{selectedServiceData?.price}
+                        </p>
+                      </div>
+                    </div>
+                    {paymentMethod === 'card' && <Check className="w-6 h-6 text-blue-600" />}
+                  </div>
+                </button>
+              )}
+
+              {/* Option 3: Pay Later */}
+              {(!servicePackageInfo || !usePackageForService) && (
+                <button
+                  onClick={() => setPaymentMethod('later')}
+                  className={`w-full p-4 rounded-lg border-2 text-left transition-all ${
+                    paymentMethod === 'later'
+                      ? 'border-orange-500 bg-orange-50'
+                      : 'border-gray-300 bg-white hover:border-orange-300'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="text-2xl">⏳</div>
+                      <div>
+                        <p className="font-semibold text-gray-900">Ödeme Yapmadan İlerle</p>
+                        <p className="text-sm text-gray-600">
+                          Randevuyu oluştur, ödemeyi sonra yap
+                        </p>
+                      </div>
+                    </div>
+                    {paymentMethod === 'later' && <Check className="w-6 h-6 text-orange-600" />}
+                  </div>
+                </button>
+              )}
+            </div>
+
+            {paymentError && (
+              <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+                <p className="text-sm text-red-800">{paymentError}</p>
+              </div>
+            )}
+
+            {!paymentMethod && (
+              <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                <p className="text-sm text-yellow-800">
+                  ⚠️ Devam etmek için bir ödeme yöntemi seçmeniz gerekmektedir.
+                </p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
       {/* Sözleşme Onayı */}
       <Card className="border-2 border-blue-200 bg-blue-50">
         <CardContent className="p-6">
@@ -1022,7 +1245,7 @@ export default function RandevuPage({ params }: PageProps) {
               </a>'ni okudum ve kabul ediyorum.
             </span>
           </label>
-          
+
           {!agreementsAccepted && (
             <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
               <p className="text-sm text-yellow-800">
@@ -1103,13 +1326,19 @@ export default function RandevuPage({ params }: PageProps) {
           {currentStep === 'confirmation' ? (
             <Button
               onClick={handleSubmit}
-              disabled={createAppointmentMutation.isPending || !agreementsAccepted}
+              disabled={
+                createAppointmentMutation.isPending ||
+                !agreementsAccepted ||
+                showPackageChoice ||
+                (!paymentMethod && !(servicePackageInfo && usePackageForService)) ||
+                paymentLoading
+              }
               className="bg-green-600 hover:bg-green-700"
             >
-              {createAppointmentMutation.isPending ? (
+              {createAppointmentMutation.isPending || paymentLoading ? (
                 <>
                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                  Oluşturuluyor...
+                  {paymentLoading ? 'Ödeme Hazırlanıyor...' : 'Oluşturuluyor...'}
                 </>
               ) : (
                 <>
@@ -1170,7 +1399,7 @@ export default function RandevuPage({ params }: PageProps) {
             </div>
           )}
           <DialogFooter>
-            <Button 
+            <Button
               onClick={() => {
                 setShowSuccessModal(false);
                 setSuccessAppointment(null);
@@ -1179,6 +1408,47 @@ export default function RandevuPage({ params }: PageProps) {
               className="w-full"
             >
               Tamam
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* PayTR Payment Iframe Modal */}
+      <Dialog open={showPaymentIframe} onOpenChange={setShowPaymentIframe}>
+        <DialogContent className="sm:max-w-2xl max-h-[90vh]">
+          <DialogHeader>
+            <DialogTitle className="text-center">💳 Güvenli Ödeme</DialogTitle>
+            <DialogDescription className="text-center">
+              PayTR güvenli ödeme sistemi ile ödemenizi tamamlayın
+            </DialogDescription>
+          </DialogHeader>
+          <div className="w-full h-[600px]">
+            {paymentLoading ? (
+              <div className="flex items-center justify-center h-full">
+                <div className="text-center">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                  <p className="text-gray-600">Ödeme sayfası yükleniyor...</p>
+                </div>
+              </div>
+            ) : (
+              <iframe
+                src={paymentIframeUrl}
+                className="w-full h-full border-0 rounded-lg"
+                title="PayTR Ödeme"
+              />
+            )}
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowPaymentIframe(false);
+                setPaymentIframeUrl('');
+                setPaymentMethod(null);
+              }}
+              className="w-full"
+            >
+              İptal Et
             </Button>
           </DialogFooter>
         </DialogContent>
