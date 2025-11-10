@@ -103,15 +103,15 @@ model Appointment {
   packageInfo         String?   @db.Text // JSON string containing package usage info
 
   // Payment fields
-  paymentStatus       String    @default("pending") // pending, paid, package_used, failed
-  paymentId           String?   // Link to Payment record
+  paymentStatus       String    @default("pending") @map("payment_status") // pending, paid, package_used, failed
+  paymentId           String?   @map("payment_id") // Link to Payment record
 
   whatsappSent        Boolean   @default(false) @map("whatsapp_sent") // Onay mesajı gönderildi mi
   whatsappSentAt      DateTime? @map("whatsapp_sent_at") // Onay mesajı gönderilme zamanı
   reminderSent        Boolean   @default(false) @map("reminder_sent") // Hatırlatma gönderildi mi
   reminderSentAt      DateTime? @map("reminder_sent_at") // Hatırlatma gönderilme zamanı
-  createdAt           DateTime  @default(now())
-  updatedAt           DateTime  @updatedAt
+  createdAt           DateTime  @default(now()) @map("created_at")
+  updatedAt           DateTime  @updatedAt @map("updated_at")
 
   @@index([paymentStatus])
   @@index([paymentId])
