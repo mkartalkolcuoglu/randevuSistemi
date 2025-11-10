@@ -5,13 +5,8 @@ import { prisma } from '../../../lib/prisma';
 
 export const dynamic = 'force-dynamic';
 
-// Server Component - server-side data fetch with tenant filtering
 async function getAppointments(tenantId: string, userType: string, staffId?: string) {
   try {
-    console.log('🔍 Fetching appointments for tenant:', tenantId);
-    console.log('👤 User type:', userType);
-    console.log('🆔 Staff ID:', staffId);
-
     // Build where clause
     const where: any = {
       tenantId: tenantId
@@ -20,7 +15,6 @@ async function getAppointments(tenantId: string, userType: string, staffId?: str
     // If user is staff, only show their appointments
     if (userType === 'staff' && staffId) {
       where.staffId = staffId;
-      console.log('📌 Filtering by staffId:', staffId);
     }
 
     const appointments = await prisma.appointment.findMany({
@@ -28,32 +22,39 @@ async function getAppointments(tenantId: string, userType: string, staffId?: str
       orderBy: [
         { date: 'desc' },
         { time: 'desc' }
-      ],
-      take: 100 // Limit to 100 for performance
+      ]
     });
-
-    console.log('📊 Found', appointments.length, 'appointments');
 
     return appointments;
   } catch (error) {
-    console.error('❌ Error fetching appointments:', error);
-    console.error('❌ Error details:', error instanceof Error ? error.message : String(error));
+    console.error('Error fetching appointments:', error);
     return [];
   }
 }
 
 export default async function AppointmentsPage() {
-  const user = await requireAuth();
-  
-  // Check if user has permission to access appointments page
   try {
-    await requirePageAccess('appointments');
-  } catch (error) {
-    console.log('❌ User does not have access to appointments page');
-    return <UnauthorizedAccess />;
-  }
-  
-  const appointments = await getAppointments(user.tenantId, user.userType, user.staffId);
+    const user = await requireAuth();
 
-  return <AppointmentsClient initialAppointments={appointments} tenantId={user.tenantId} user={user} />;
+    // Check permission
+    try {
+      await requirePageAccess('appointments');
+    } catch (error) {
+      return <UnauthorizedAccess />;
+    }
+
+    const appointments = await getAppointments(user.tenantId, user.userType, user.staffId);
+    return <AppointmentsClient initialAppointments={appointments} tenantId={user.tenantId} user={user} />;
+  } catch (error) {
+    console.error('Error in AppointmentsPage:', error);
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-red-600 mb-4">Hata Oluştu</h1>
+          <p className="text-gray-600">Randevular sayfası yüklenirken bir hata oluştu.</p>
+          <p className="text-sm text-gray-500 mt-2">{error instanceof Error ? error.message : 'Bilinmeyen hata'}</p>
+        </div>
+      </div>
+    );
+  }
 }
