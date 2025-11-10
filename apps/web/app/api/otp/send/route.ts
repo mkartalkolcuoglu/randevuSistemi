@@ -4,8 +4,12 @@ import { generateOtpCode, sendOtpSMS, formatPhoneForSMS } from '../../../../lib/
 
 export async function POST(request: NextRequest) {
   try {
+    console.log('📱 OTP send request received');
+
     const body = await request.json();
     const { phone, purpose = 'appointment_query', tenantId } = body;
+
+    console.log('Request body:', { phone, purpose, tenantId });
 
     if (!phone) {
       return NextResponse.json(
@@ -15,6 +19,7 @@ export async function POST(request: NextRequest) {
     }
 
     const formattedPhone = formatPhoneForSMS(phone);
+    console.log('Formatted phone:', formattedPhone);
 
     // Rate limiting: Son 1 dakika içinde aynı numara için OTP gönderilmiş mi kontrol et
     const oneMinuteAgo = new Date(Date.now() - 60 * 1000);
@@ -114,11 +119,19 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     console.error('❌ Error sending OTP:', error);
+
+    // Detailed error logging
+    if (error instanceof Error) {
+      console.error('Error message:', error.message);
+      console.error('Error stack:', error.stack);
+    }
+
     return NextResponse.json(
       {
         success: false,
         error: 'OTP gönderilirken hata oluştu',
-        details: error instanceof Error ? error.message : 'Unknown error'
+        details: error instanceof Error ? error.message : 'Unknown error',
+        stack: process.env.NODE_ENV === 'development' ? (error instanceof Error ? error.stack : null) : undefined
       },
       { status: 500 }
     );
