@@ -106,12 +106,8 @@ model Appointment {
   paymentStatus String  @default("pending") // pending, paid, package_used, failed
   paymentId     String? // Link to Payment record
 
-  whatsappSent   Boolean   @default(false)
-  whatsappSentAt DateTime?
-  reminderSent   Boolean   @default(false)
-  reminderSentAt DateTime?
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
   @@index([paymentStatus])
   @@index([paymentId])
