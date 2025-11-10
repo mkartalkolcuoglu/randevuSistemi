@@ -3,8 +3,8 @@
  * Documentation: https://whapi.cloud/tr/docs
  */
 
-const WHAPI_API_URL = 'https://gate.whapi.cloud';
-const WHAPI_TOKEN = process.env.WHAPI_API_TOKEN || 'APX4yYY4LGzHPj9mombXeiZQREHRPTQD';
+const WHAPI_API_URL = 'https://gate.whapi.cloud/';
+const WHAPI_TOKEN = process.env.WHAPI_API_TOKEN || 'gZMG02tjaHWaaWHFRFW0j4dITO8UX6l3';
 const WHAPI_PHONE = process.env.WHAPI_PHONE_NUMBER || '905365052512';
 
 interface SendMessageParams {

@@ -23,7 +23,7 @@
 Vercel Dashboard → Project → Settings → Environment Variables:
 
 ```bash
-WHAPI_API_TOKEN=APX4yYY4LGzHPj9mombXeiZQREHRPTQD
+WHAPI_API_TOKEN=your-whapi-token-here
 WHAPI_PHONE_NUMBER=905365052512
 CRON_SECRET=your-random-secret-key-here
 ```
@@ -187,7 +187,7 @@ FROM customers;
 
 1. **Whapi Token Kontrol:**
    ```bash
-   curl -H "Authorization: Bearer APX4yYY4LGzHPj9mombXeiZQREHRPTQD" \
+   curl -H "Authorization: Bearer YOUR_WHAPI_TOKEN" \
         https://gate.whapi.cloud/health
    ```
 
@@ -213,10 +213,12 @@ FROM customers;
 
 - **Dashboard:** https://whapi.cloud/dashboard
 - **Docs:** https://whapi.cloud/tr/docs
-- **Token:** APX4yYY4LGzHPj9mombXeiZQREHRPTQD
+- **API URL:** https://gate.whapi.cloud/
 - **Phone:** +90 536 505 25 12
 - **Free Trial:** 5 gün
 - **Pricing:** https://whapi.cloud/pricing
+
+**Not:** Token bilgisini Whapi.cloud Dashboard'dan alabilirsiniz.
 
 ---
 
