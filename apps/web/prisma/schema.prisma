@@ -230,40 +230,40 @@ model OtpVerification {
 
 model Payment {
   id              String   @id @default(cuid())
-  tenantId        String
-  appointmentId   String?  // Randevu için ödeme ise
-  customerId      String?
-  customerName    String?
-  customerEmail   String?
-  customerPhone   String?
+  tenantId        String   @map("tenant_id")
+  appointmentId   String?  @map("appointment_id") // Randevu için ödeme ise
+  customerId      String?  @map("customer_id")
+  customerName    String?  @map("customer_name")
+  customerEmail   String?  @map("customer_email")
+  customerPhone   String?  @map("customer_phone")
 
   // PayTR Bilgileri
-  merchantOid     String   @unique // PayTR sipariş no (unique order ID)
+  merchantOid     String   @unique @map("merchant_oid") // PayTR sipariş no (unique order ID)
   amount          Float    // Tutar (TL cinsinden, örn: 34.56)
-  paymentAmount   Int      // PayTR'a gönderilen tutar (3456 = 34.56 * 100)
+  paymentAmount   Int      @map("payment_amount") // PayTR'a gönderilen tutar (3456 = 34.56 * 100)
   currency        String   @default("TL")
 
   // Ödeme Durumu
   status          String   @default("pending") // pending, success, failed
-  paymentType     String?  // card, eft (PayTR'dan gelir)
+  paymentType     String?  @map("payment_type") // card, eft (PayTR'dan gelir)
 
   // PayTR Callback Bilgileri
-  paytrToken      String?  @db.Text // İlk alınan iframe token (log için)
-  paytrHash       String?  // Callback'ten gelen hash
-  failedReason    String?  // Hata kodu/mesajı (failed_reason_code + failed_reason_msg)
+  paytrToken      String?  @map("paytr_token") @db.Text // İlk alınan iframe token (log için)
+  paytrHash       String?  @map("paytr_hash") // Callback'ten gelen hash
+  failedReason    String?  @map("failed_reason") // Hata kodu/mesajı (failed_reason_code + failed_reason_msg)
 
   // Refund (İade) Bilgileri
-  refundStatus    String?  // null, requested, processing, completed, failed
-  refundAmount    Float?   // İade tutarı
+  refundStatus    String?  @map("refund_status") // null, requested, processing, completed, failed
+  refundAmount    Float?   @map("refund_amount") // İade tutarı
   refundedAt      DateTime? @map("refunded_at")
-  refundReason    String?  @db.Text
+  refundReason    String?  @map("refund_reason") @db.Text
 
   // Meta Bilgiler
   userIp          String?  @map("user_ip")
-  userBasket      String?  @db.Text // JSON: Sepet bilgisi (PayTR'a gönderilen)
+  userBasket      String?  @map("user_basket") @db.Text // JSON: Sepet bilgisi (PayTR'a gönderilen)
 
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
   paidAt          DateTime? @map("paid_at") // Ödeme başarılı olduğu an
 
   @@index([merchantOid])
