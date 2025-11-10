@@ -168,21 +168,23 @@ function PaymentSuccessContent() {
         {/* Action Buttons */}
         <div className="flex flex-col sm:flex-row gap-4">
           {tenantSlug && (
-            <Link
-              href={`/${tenantSlug}`}
-              className="flex-1 bg-gradient-to-r from-blue-600 to-blue-700 text-white px-6 py-4 rounded-xl font-semibold hover:from-blue-700 hover:to-blue-800 transition-all shadow-lg hover:shadow-xl flex items-center justify-center group"
-            >
-              Ana Sayfaya Dön
-              <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
-            </Link>
-          )}
+            <>
+              <Link
+                href={`/${tenantSlug}`}
+                className="flex-1 bg-gradient-to-r from-blue-600 to-blue-700 text-white px-6 py-4 rounded-xl font-semibold hover:from-blue-700 hover:to-blue-800 transition-all shadow-lg hover:shadow-xl flex items-center justify-center group"
+              >
+                Ana Sayfaya Dön
+                <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
+              </Link>
 
-          <a
-            href={`/${tenantSlug}/appointments`}
-            className="flex-1 bg-white text-gray-700 px-6 py-4 rounded-xl font-semibold hover:bg-gray-50 transition-all border-2 border-gray-200 hover:border-gray-300 flex items-center justify-center"
-          >
-            Yeni Randevu Al
-          </a>
+              <Link
+                href={`/${tenantSlug}/appointments`}
+                className="flex-1 bg-white text-gray-700 px-6 py-4 rounded-xl font-semibold hover:bg-gray-50 transition-all border-2 border-gray-200 hover:border-gray-300 flex items-center justify-center"
+              >
+                Yeni Randevu Al
+              </Link>
+            </>
+          )}
         </div>
 
         {/* Footer Note */}
