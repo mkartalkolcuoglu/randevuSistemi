@@ -102,15 +102,9 @@ model Appointment {
   paymentType  String   @default("cash")
   packageInfo  String?  @db.Text // JSON string containing package usage info
 
-  // Payment fields
-  paymentStatus String  @default("pending") // pending, paid, package_used, failed
-  paymentId     String? // Link to Payment record
-
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  @@index([paymentStatus])
-  @@index([paymentId])
   @@map("appointments")
 }
 
