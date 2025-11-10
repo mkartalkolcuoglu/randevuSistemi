@@ -84,23 +84,23 @@ model Service {
 
 model Appointment {
   id                  String    @id @default(cuid())
-  tenantId            String
-  customerId          String
-  customerName        String
-  customerPhone       String?
-  customerEmail       String?
-  serviceId           String
-  serviceName         String
-  staffId             String
-  staffName           String
+  tenantId            String    @map("tenant_id")
+  customerId          String    @map("customer_id")
+  customerName        String    @map("customer_name")
+  customerPhone       String?   @map("customer_phone")
+  customerEmail       String?   @map("customer_email")
+  serviceId           String    @map("service_id")
+  serviceName         String    @map("service_name")
+  staffId             String    @map("staff_id")
+  staffName           String    @map("staff_name")
   date                String
   time                String
   status              String    @default("scheduled")
   notes               String?
   price               Float?
   duration            Int?      // in minutes
-  paymentType         String    @default("cash")
-  packageInfo         String?   @db.Text // JSON string containing package usage info
+  paymentType         String    @default("cash") @map("payment_type")
+  packageInfo         String?   @db.Text @map("package_info") // JSON string containing package usage info
 
   // Payment fields
   paymentStatus       String    @default("pending") @map("payment_status") // pending, paid, package_used, failed
