@@ -247,10 +247,7 @@ export default function RegisterPage() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          ...formData,
-          payment: formData.subscriptionPlan !== 'trial' ? paymentData : null
-        }),
+        body: JSON.stringify(formData),
       });
 
       const data = await response.json();
