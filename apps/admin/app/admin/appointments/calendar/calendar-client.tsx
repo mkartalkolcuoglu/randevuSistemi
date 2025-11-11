@@ -57,7 +57,7 @@ export default function CalendarClient({ initialAppointments, tenantId, user }: 
   const getStatusText = (status: string) => {
     switch (status) {
       case 'scheduled':
-        return 'Planlandı';
+        return 'Onaylandı';
       case 'pending':
         return 'Bekliyor';
       case 'confirmed':
@@ -579,7 +579,7 @@ function getStatusColorForBadge(status: string) {
 
 function getStatusTextForBadge(status: string) {
   switch (status) {
-    case 'scheduled': return 'Planlandı';
+    case 'scheduled': return 'Onaylandı';
     case 'pending': return 'Bekliyor';
     case 'confirmed': return 'Onaylandı';
     case 'completed': return 'Tamamlandı';

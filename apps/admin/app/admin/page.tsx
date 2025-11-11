@@ -158,7 +158,7 @@ export default async function AdminDashboard() {
   const getStatusText = (status: string) => {
     switch (status) {
       case 'scheduled':
-        return 'Planlandı';
+        return 'Onaylandı';
       case 'confirmed':
         return 'Onaylandı';
       case 'completed':
@@ -320,7 +320,7 @@ export default async function AdminDashboard() {
               <div className="flex items-center justify-between">
                 <div className="flex items-center">
                   <CheckCircle className="w-5 h-5 text-green-600 mr-2" />
-                  <span className="text-sm text-gray-600">Planlandı</span>
+                  <span className="text-sm text-gray-600">Onaylandı</span>
                 </div>
                 <span className="font-semibold">{dashboardData.appointmentsByStatus.scheduled}</span>
               </div>

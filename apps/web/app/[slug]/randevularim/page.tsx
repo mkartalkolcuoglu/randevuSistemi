@@ -85,6 +85,8 @@ export default function RandevularimPage({ params }: RandevularimPageProps) {
 
   const getStatusColor = (status: string) => {
     switch (status) {
+      case 'scheduled':
+        return 'bg-green-100 text-green-800';
       case 'confirmed':
         return 'bg-green-100 text-green-800';
       case 'pending':
@@ -100,6 +102,8 @@ export default function RandevularimPage({ params }: RandevularimPageProps) {
 
   const getStatusText = (status: string) => {
     switch (status) {
+      case 'scheduled':
+        return 'Onaylandı';
       case 'confirmed':
         return 'Onaylandı';
       case 'pending':

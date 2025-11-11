@@ -193,7 +193,7 @@ export default function ReportsClient({ user }: ReportsClientProps) {
         const statusMap: any = {
           'completed': { name: 'Tamamlandı', value: 0, color: '#10B981' },
           'confirmed': { name: 'Onaylandı', value: 0, color: '#3B82F6' },
-          'scheduled': { name: 'Planlandı', value: 0, color: '#F59E0B' },
+          'scheduled': { name: 'Onaylandı', value: 0, color: '#3B82F6' },
           'cancelled': { name: 'İptal', value: 0, color: '#EF4444' },
           'no_show': { name: 'Gelmedi', value: 0, color: '#6B7280' }
         };

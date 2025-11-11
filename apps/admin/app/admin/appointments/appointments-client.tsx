@@ -70,11 +70,11 @@ export default function AppointmentsClient({ initialAppointments, tenantId, user
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'scheduled':
-        return 'bg-blue-100 text-blue-800';
+        return 'bg-green-100 text-green-800'; // Onaylandı ile aynı renk
       case 'confirmed':
         return 'bg-green-100 text-green-800';
       case 'completed':
-        return 'bg-green-100 text-green-800';
+        return 'bg-blue-100 text-blue-800'; // Tamamlandı için mavi
       case 'cancelled':
         return 'bg-red-100 text-red-800';
       case 'pending':
@@ -89,7 +89,7 @@ export default function AppointmentsClient({ initialAppointments, tenantId, user
   const getStatusText = (status: string) => {
     switch (status) {
       case 'scheduled':
-        return 'Planlandı';
+        return 'Onaylandı'; // "Planlandı" yerine "Onaylandı"
       case 'confirmed':
         return 'Onaylandı';
       case 'completed':
