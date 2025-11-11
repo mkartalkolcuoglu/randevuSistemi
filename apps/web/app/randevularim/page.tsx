@@ -1,13 +1,14 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Button, Card, CardContent } from '../../components/ui';
 import { ArrowLeft, Phone, KeyRound, AlertCircle, CheckCircle } from 'lucide-react';
 
 export default function RandevuSorgulama() {
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   // Step 1: Phone input
   // Step 2: OTP input
@@ -22,6 +23,14 @@ export default function RandevuSorgulama() {
   // OTP timer
   const [timeLeft, setTimeLeft] = useState(120); // 120 saniye
   const [canResend, setCanResend] = useState(false);
+
+  // Telefon numarasını URL'den al ve otomatik doldur + OTP gönder
+  useEffect(() => {
+    const prefillPhone = searchParams.get('prefill');
+    if (prefillPhone && phone === '') {
+      setPhone(prefillPhone);
+    }
+  }, [searchParams]);
 
   // Timer effect
   useEffect(() => {

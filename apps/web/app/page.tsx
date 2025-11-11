@@ -682,14 +682,14 @@ export default function Home() {
             >
               İptal
             </Button>
-            <Button 
+            <Button
               onClick={() => {
                 if (!phoneNumber || phoneNumber.length < 10) {
                   setPhoneError('Lütfen geçerli bir telefon numarası girin');
                   return;
                 }
-                // Randevularım sayfasına yönlendir
-                router.push(`/randevularim?phone=${encodeURIComponent(phoneNumber)}`);
+                // OTP doğrulama sayfasına telefon numarasıyla yönlendir
+                router.push(`/randevularim?prefill=${encodeURIComponent(phoneNumber)}`);
               }}
               className="bg-[#163974] hover:bg-[#0F2A52]"
             >
