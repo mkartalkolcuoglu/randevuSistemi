@@ -617,7 +617,18 @@ export default function RegisterPage() {
                   {packages.map((pkg) => {
                     const colors = getPackageColor(pkg.slug);
                     const isSelected = formData.subscriptionPlan === pkg.slug;
-                    const features = pkg.features ? JSON.parse(pkg.features) : [];
+
+                    // Safely parse features
+                    let features: string[] = [];
+                    try {
+                      if (pkg.features) {
+                        const parsed = JSON.parse(pkg.features);
+                        features = Array.isArray(parsed) ? parsed : [];
+                      }
+                    } catch (e) {
+                      console.error('Failed to parse features for package:', pkg.slug, e);
+                      features = [];
+                    }
 
                     return (
                       <div
