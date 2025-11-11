@@ -16,15 +16,32 @@ function RegistrationSuccessContent() {
   useEffect(() => {
     // Fetch business registration details if merchant_oid is available
     if (merchantOid) {
+      console.log('🔍 [REGISTRATION SUCCESS] Fetching payment status for:', merchantOid);
+
+      // Manuel olarak callback tetikle (test mode için)
+      console.log('🔧 [REGISTRATION SUCCESS] Triggering manual callback for test mode...');
+      fetch(`/api/payment/manual-callback?merchant_oid=${merchantOid}`, {
+        method: 'POST'
+      })
+        .then(res => res.json())
+        .then(callbackResult => {
+          console.log('✅ [REGISTRATION SUCCESS] Manual callback result:', callbackResult);
+        })
+        .catch(error => {
+          console.error('❌ [REGISTRATION SUCCESS] Manual callback error:', error);
+        });
+
+      // Payment status fetch
       fetch(`/api/payment/status?merchant_oid=${merchantOid}`)
         .then(res => res.json())
         .then(data => {
+          console.log('📦 [REGISTRATION SUCCESS] Payment status:', data);
           if (data.success) {
             setBusinessDetails(data.data);
           }
         })
         .catch(error => {
-          console.error('Error fetching payment status:', error);
+          console.error('❌ [REGISTRATION SUCCESS] Error fetching payment status:', error);
         })
         .finally(() => {
           setLoading(false);
@@ -34,20 +51,20 @@ function RegistrationSuccessContent() {
     }
   }, [merchantOid]);
 
-  // Auto-redirect to admin login after 10 seconds
-  useEffect(() => {
-    if (!loading && redirectCountdown > 0) {
-      const timer = setTimeout(() => {
-        setRedirectCountdown(prev => prev - 1);
-      }, 1000);
+  // Auto-redirect to admin login after 10 seconds (DISABLED FOR TESTING)
+  // useEffect(() => {
+  //   if (!loading && redirectCountdown > 0) {
+  //     const timer = setTimeout(() => {
+  //       setRedirectCountdown(prev => prev - 1);
+  //     }, 1000);
 
-      return () => clearTimeout(timer);
-    }
+  //     return () => clearTimeout(timer);
+  //   }
 
-    if (!loading && redirectCountdown === 0) {
-      window.location.href = 'https://admin.netrandevu.com/login';
-    }
-  }, [loading, redirectCountdown]);
+  //   if (!loading && redirectCountdown === 0) {
+  //     window.location.href = 'https://admin.netrandevu.com/login';
+  //   }
+  // }, [loading, redirectCountdown]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 via-white to-blue-50 flex items-center justify-center p-4">
