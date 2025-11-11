@@ -141,60 +141,35 @@ export async function POST(request: NextRequest) {
 
             console.log('📝 [PAYMENT CALLBACK] Generated unique slug:', slug);
 
+            // Domain ve username oluştur (unique olmalı)
+            const domain = `${slug}.netrandevu.com`;
+            const username = basketData.username;
+
             // Tenant (işletme) oluştur
             const tenant = await prisma.tenant.create({
               data: {
                 id: `tenant_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-                name: basketData.businessName,
+                businessName: basketData.businessName,
                 slug: slug,
-                businessType: basketData.businessType,
-                description: basketData.businessDescription || null,
-                address: basketData.address || null,
+                domain: domain,
+                username: username,
+                password: hashedPassword, // Aynı şifre (admin ile aynı)
                 ownerName: basketData.ownerName,
                 ownerEmail: basketData.ownerEmail,
                 phone: basketData.phone || null,
-                active: true,
+                plan: basketData.subscriptionPlan || 'Standard',
+                status: 'active',
+                address: basketData.address || null,
+                businessType: basketData.businessType || 'other',
+                businessDescription: basketData.businessDescription || null,
+                monthlyRevenue: 0,
+                appointmentCount: 0,
+                customerCount: 0,
                 createdAt: new Date()
               }
             });
 
             console.log('✅ [PAYMENT CALLBACK] Tenant created:', tenant.id);
-
-            // Admin kullanıcı oluştur
-            const admin = await prisma.user.create({
-              data: {
-                id: `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-                tenantId: tenant.id,
-                username: basketData.username,
-                password: hashedPassword,
-                name: basketData.ownerName,
-                email: basketData.ownerEmail,
-                phone: basketData.phone || null,
-                role: 'admin',
-                active: true
-              }
-            });
-
-            console.log('✅ [PAYMENT CALLBACK] Admin user created:', admin.id);
-
-            // Subscription oluştur
-            const startDate = new Date();
-            const endDate = new Date();
-            endDate.setDate(endDate.getDate() + basketData.packageDurationDays);
-
-            const subscription = await prisma.subscription.create({
-              data: {
-                id: `sub_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-                tenantId: tenant.id,
-                plan: basketData.subscriptionPlan || 'premium',
-                status: 'active',
-                startDate: startDate,
-                endDate: endDate,
-                paymentId: payment.id
-              }
-            });
-
-            console.log('✅ [PAYMENT CALLBACK] Subscription created:', subscription.id);
 
             // Payment'ı tenant ile ilişkilendir
             await prisma.payment.update({
