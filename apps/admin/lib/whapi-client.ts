@@ -26,18 +26,43 @@ interface SendMessageResponse {
 export function formatPhoneForWhatsApp(phone: string): string {
   // Remove all non-numeric characters
   let cleaned = phone.replace(/\D/g, '');
-  
+
   // If starts with 0, remove it (Turkish format)
   if (cleaned.startsWith('0')) {
     cleaned = cleaned.substring(1);
   }
-  
+
   // If doesn't start with country code, add Turkish code (90)
   if (!cleaned.startsWith('90')) {
     cleaned = '90' + cleaned;
   }
-  
+
   return cleaned;
+}
+
+/**
+ * Format date to DD.MM.YYYY (GG.AA.YYYY in Turkish)
+ * Accepts: YYYY-MM-DD or DD-MM-YYYY or DD.MM.YYYY
+ */
+export function formatDateToDDMMYYYY(date: string): string {
+  // If already in DD.MM.YYYY format, return as is
+  if (/^\d{2}\.\d{2}\.\d{4}$/.test(date)) {
+    return date;
+  }
+
+  // If in YYYY-MM-DD format, convert to DD.MM.YYYY
+  if (/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+    const [year, month, day] = date.split('-');
+    return `${day}.${month}.${year}`;
+  }
+
+  // If in DD-MM-YYYY format, convert to DD.MM.YYYY
+  if (/^\d{2}-\d{2}-\d{4}$/.test(date)) {
+    return date.replace(/-/g, '.');
+  }
+
+  // Otherwise return as is
+  return date;
 }
 
 /**
@@ -109,12 +134,15 @@ export function generateConfirmationMessage(appointment: {
   businessAddress?: string;
 }): string {
   const { customerName, date, time, staffName, serviceName, price, businessName, businessPhone, businessAddress } = appointment;
-  
+
   const firstName = customerName.split(' ')[0];
-  
+
+  // Format date to GG.AA.YYYY (DD.MM.YYYY)
+  const formattedDate = formatDateToDDMMYYYY(date);
+
   let message = `Merhaba ${firstName},\n\n`;
   message += `Randevunuz başarıyla oluşturuldu! 🎉\n\n`;
-  message += `📅 *Tarih:* ${date}\n`;
+  message += `📅 *Tarih:* ${formattedDate}\n`;
   message += `🕐 *Saat:* ${time}\n`;
   message += `👤 *Personel:* ${staffName}\n`;
   message += `💼 *Hizmet:* ${serviceName}\n`;
@@ -147,12 +175,15 @@ export function generateReminderMessage(appointment: {
   businessAddress?: string;
 }): string {
   const { customerName, date, time, staffName, businessName, businessPhone, businessAddress } = appointment;
-  
+
   const firstName = customerName.split(' ')[0];
-  
+
+  // Format date to GG.AA.YYYY (DD.MM.YYYY)
+  const formattedDate = formatDateToDDMMYYYY(date);
+
   let message = `Merhaba ${firstName},\n\n`;
   message += `⏰ *Randevunuza 2 saat kaldı!*\n\n`;
-  message += `📅 *Tarih:* ${date}\n`;
+  message += `📅 *Tarih:* ${formattedDate}\n`;
   message += `🕐 *Saat:* ${time}\n`;
   message += `👤 *Personel:* ${staffName}\n`;
   

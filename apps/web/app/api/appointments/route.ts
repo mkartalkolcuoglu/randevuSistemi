@@ -185,7 +185,7 @@ export async function POST(request: NextRequest) {
     
     console.log('✅ Appointment created with ID:', appointment.id);
     console.log('📦 PackageInfo saved:', appointment.packageInfo ? 'Yes' : 'No');
-    
+
     // Create notification for new appointment (non-blocking)
     console.log('🔔 [WEB-APPOINTMENT] Creating notification for tenantId:', tenant.id);
     prisma.notification.create({
@@ -201,7 +201,26 @@ export async function POST(request: NextRequest) {
     }).catch(error => {
       console.error('🔔 [WEB-APPOINTMENT] Failed to create notification:', error);
     });
-    
+
+    // WhatsApp onay mesajı gönder (sadece confirmed randevular için)
+    if (appointmentStatus === 'confirmed') {
+      console.log('📱 [WEB-APPOINTMENT] Triggering WhatsApp confirmation for confirmed appointment:', appointment.id);
+      fetch(`https://admin.netrandevu.com/api/whatsapp/send-confirmation`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ appointmentId: appointment.id })
+      }).then(async res => {
+        const responseText = await res.text();
+        if (res.ok) {
+          console.log('✅ [WEB-APPOINTMENT] WhatsApp confirmation sent successfully:', responseText);
+        } else {
+          console.error('❌ [WEB-APPOINTMENT] WhatsApp API error:', res.status, responseText);
+        }
+      }).catch(err => {
+        console.error('❌ [WEB-APPOINTMENT] WhatsApp API call failed:', err);
+      });
+    }
+
     console.log('✅ Appointment created successfully:', appointment.id);
     
     return NextResponse.json({
