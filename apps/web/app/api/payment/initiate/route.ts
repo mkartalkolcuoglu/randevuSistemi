@@ -35,6 +35,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const {
       tenantId,
+      tenantSlug,
       customerId,
       customerName,
       customerEmail,
@@ -105,6 +106,21 @@ export async function POST(request: NextRequest) {
     // PayTR config'i logla (debugging için)
     logPayTRConfig();
 
+    // Base URL'i al
+    const baseUrl = process.env.NEXT_PUBLIC_WEB_URL || 'https://netrandevu.com';
+
+    // Success ve Fail URL'lerini oluştur (tenant parametresi ile)
+    const successUrl = tenantSlug
+      ? `${baseUrl}/payment/success?tenant=${tenantSlug}&merchant_oid=${merchantOid}`
+      : `${baseUrl}/payment/success?merchant_oid=${merchantOid}`;
+
+    const failUrl = tenantSlug
+      ? `${baseUrl}/payment/failed?tenant=${tenantSlug}`
+      : `${baseUrl}/payment/failed`;
+
+    console.log('🔗 [PAYMENT] Success URL:', successUrl);
+    console.log('🔗 [PAYMENT] Fail URL:', failUrl);
+
     // PayTR'dan token al
     const paytrResult = await initiatePayment({
       merchantOid,
@@ -120,7 +136,9 @@ export async function POST(request: NextRequest) {
       ],
       currency: 'TL',
       noInstallment: 0, // Taksit var
-      maxInstallment: 0 // Sınırsız taksit
+      maxInstallment: 0, // Sınırsız taksit
+      successUrl,
+      failUrl
     });
 
     if (paytrResult.status === 'failed' || !paytrResult.token) {
