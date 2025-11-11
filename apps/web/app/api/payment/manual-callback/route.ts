@@ -43,27 +43,36 @@ export async function POST(request: NextRequest) {
       hasBasket: !!payment.userBasket
     });
 
-    // Eğer zaten işlenmişse, tekrar işleme
-    if (payment.status !== 'pending') {
-      console.log('⚠️ [MANUAL CALLBACK] Payment already processed:', payment.status);
+    // Eğer zaten işlenmişse VE tenant varsa, tekrar işleme
+    if (payment.status !== 'pending' && payment.tenantId) {
+      console.log('⚠️ [MANUAL CALLBACK] Payment already processed and tenant exists:', payment.status);
       return NextResponse.json({
         success: true,
         message: 'Payment already processed',
-        status: payment.status
+        status: payment.status,
+        tenantId: payment.tenantId
       });
     }
 
-    // Payment'i success yap
-    await prisma.payment.update({
-      where: { id: payment.id },
-      data: {
-        status: 'success',
-        paymentType: 'card',
-        paidAt: new Date()
-      }
-    });
+    // Eğer payment success ama tenant yoksa, yine de tenant oluştur
+    if (payment.status === 'success' && !payment.tenantId) {
+      console.log('🔄 [MANUAL CALLBACK] Payment is success but no tenant, will create tenant...');
+    }
 
-    console.log('✅ [MANUAL CALLBACK] Payment marked as success');
+    // Payment'i success yap (sadece pending ise)
+    if (payment.status === 'pending') {
+      await prisma.payment.update({
+        where: { id: payment.id },
+        data: {
+          status: 'success',
+          paymentType: 'card',
+          paidAt: new Date()
+        }
+      });
+      console.log('✅ [MANUAL CALLBACK] Payment marked as success');
+    } else {
+      console.log('ℹ️ [MANUAL CALLBACK] Payment already marked as:', payment.status);
+    }
 
     // userBasket'i işle
     if (payment.userBasket) {
