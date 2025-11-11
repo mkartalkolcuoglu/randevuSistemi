@@ -1,12 +1,12 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Button, Card, CardContent } from '../../components/ui';
 import { ArrowLeft, Phone, KeyRound, AlertCircle, CheckCircle } from 'lucide-react';
 
-export default function RandevuSorgulama() {
+function RandevuSorgulamaContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -386,5 +386,17 @@ export default function RandevuSorgulama() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function RandevuSorgulama() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600"></div>
+      </div>
+    }>
+      <RandevuSorgulamaContent />
+    </Suspense>
   );
 }
