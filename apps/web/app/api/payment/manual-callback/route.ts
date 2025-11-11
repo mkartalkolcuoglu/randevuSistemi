@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '../../../../lib/prisma';
+import bcrypt from 'bcryptjs';
 
 /**
  * Manual Callback Endpoint for Test Mode
@@ -84,7 +85,6 @@ export async function POST(request: NextRequest) {
           console.log('🏢 [MANUAL CALLBACK] Processing business registration...');
 
           // Hash password
-          const bcrypt = require('bcryptjs');
           const hashedPassword = await bcrypt.hash(basketData.password, 10);
 
           // Slug oluştur

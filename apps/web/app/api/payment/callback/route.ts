@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '../../../../lib/prisma';
 import { validateCallbackHash } from '../../../../lib/paytr-client';
+import bcrypt from 'bcryptjs';
 
 /**
  * PayTR Callback Endpoint
@@ -118,7 +119,6 @@ export async function POST(request: NextRequest) {
             console.log('🏢 [PAYMENT CALLBACK] Creating business registration...', basketData);
 
             // Hash password
-            const bcrypt = require('bcryptjs');
             const hashedPassword = await bcrypt.hash(basketData.password, 10);
 
             // Slug oluştur (business name'den)
