@@ -153,7 +153,7 @@ export async function POST(request: NextRequest) {
               staffName: appointmentData.staffName,
               date: appointmentData.date,
               time: appointmentData.time,
-              status: 'scheduled', // Yeni randevu
+              status: 'confirmed', // Kredi kartı ile ödendi - onaylanmış
               price: payment.amount,
               duration: appointmentData.duration,
               paymentType: payment_type || 'card',

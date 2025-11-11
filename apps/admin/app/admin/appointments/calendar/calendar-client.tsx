@@ -57,7 +57,7 @@ export default function CalendarClient({ initialAppointments, tenantId, user }: 
   const getStatusText = (status: string) => {
     switch (status) {
       case 'scheduled':
-        return 'Onaylandı';
+        return 'Planlandı';
       case 'pending':
         return 'Bekliyor';
       case 'confirmed':

@@ -145,10 +145,10 @@ export async function POST(request: NextRequest) {
 
     if (appointmentData.usePackageForService && appointmentData.packageInfo) {
       paymentStatus = 'package_used';
-      appointmentStatus = 'scheduled'; // Package kullanımı onaylanmış sayılır
+      appointmentStatus = 'confirmed'; // Package kullanımı onaylanmış
     } else if (appointmentData.paymentStatus === 'paid') {
       paymentStatus = 'paid';
-      appointmentStatus = 'scheduled'; // Ödeme yapıldıysa onaylanmış
+      appointmentStatus = 'confirmed'; // Kredi kartı ile ödeme yapıldı - onaylanmış
     } else {
       paymentStatus = 'pending';
       appointmentStatus = 'pending'; // Ödeme bekleniyor
