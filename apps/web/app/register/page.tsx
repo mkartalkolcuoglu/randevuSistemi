@@ -440,20 +440,6 @@ export default function RegisterPage() {
           </div>
         )}
 
-        {/* Error Message */}
-        {error && (
-          <div className="mb-6 p-4 bg-red-50 border-2 border-red-200 rounded-xl text-red-700 text-sm shadow-sm">
-            <div className="flex items-start">
-              <div className="flex-shrink-0">
-                <span className="text-xl">⚠️</span>
-              </div>
-              <div className="ml-3">
-                <p className="font-medium">{error}</p>
-              </div>
-            </div>
-          </div>
-        )}
-
         {/* Step 1: Business Information */}
         {currentStep === 'info' && (
           <Card className="shadow-xl border-2"  >
@@ -605,13 +591,28 @@ export default function RegisterPage() {
                 </div>
               </div>
 
+              {/* Error Message - Info Step */}
+              {error && currentStep === 'info' && (
+                <div className="mt-4 p-4 bg-red-50 border-2 border-red-200 rounded-xl text-red-700 text-sm shadow-sm">
+                  <div className="flex items-start">
+                    <div className="flex-shrink-0">
+                      <span className="text-xl">⚠️</span>
+                    </div>
+                    <div className="ml-3">
+                      <p className="font-medium">{error}</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               <div className="flex justify-end pt-4">
-                <Button 
-                  onClick={handleNext} 
-                  size="lg" 
+                <Button
+                  onClick={handleNext}
+                  size="lg"
                   className="bg-gradient-to-r from-green-400 to-blue-500 text-white hover:shadow-xl transition"
+                  disabled={loading}
                 >
-                  Devam Et
+                  {loading ? 'Kontrol ediliyor...' : 'Devam Et'}
                   <ArrowRight className="w-4 h-4 ml-2" />
                 </Button>
               </div>
@@ -781,14 +782,28 @@ export default function RegisterPage() {
                 </div>
               )}
 
+              {/* Error Message - Package Step */}
+              {error && currentStep === 'package' && (
+                <div className="mt-4 p-4 bg-red-50 border-2 border-red-200 rounded-xl text-red-700 text-sm shadow-sm">
+                  <div className="flex items-start">
+                    <div className="flex-shrink-0">
+                      <span className="text-xl">⚠️</span>
+                    </div>
+                    <div className="ml-3">
+                      <p className="font-medium">{error}</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               <div className="flex justify-between pt-6">
                 <Button variant="outline" onClick={() => setCurrentStep('info')} size="lg">
                   <ArrowLeft className="w-4 h-4 mr-2" />
                   Geri
                 </Button>
-                <Button 
-                  onClick={handleNext} 
-                  size="lg" 
+                <Button
+                  onClick={handleNext}
+                  size="lg"
                   disabled={loading || packagesLoading || (getSelectedPackage()?.price === 0 && !agreementsAccepted)}
                   className="bg-gradient-to-r from-green-400 to-blue-500 text-white hover:shadow-xl transition disabled:opacity-50"
                 >
@@ -868,6 +883,20 @@ export default function RegisterPage() {
                   </div>
                 )}
               </div>
+
+              {/* Error Message - Payment Step */}
+              {error && currentStep === 'payment' && (
+                <div className="mt-4 p-4 bg-red-50 border-2 border-red-200 rounded-xl text-red-700 text-sm shadow-sm">
+                  <div className="flex items-start">
+                    <div className="flex-shrink-0">
+                      <span className="text-xl">⚠️</span>
+                    </div>
+                    <div className="ml-3">
+                      <p className="font-medium">{error}</p>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               <div className="flex justify-between pt-4">
                 <Button variant="outline" onClick={() => setCurrentStep('package')} size="lg">
