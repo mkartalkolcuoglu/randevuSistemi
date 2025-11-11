@@ -187,10 +187,6 @@ export default function PackagesPage() {
                       <p className="text-sm text-gray-500">{pkg.durationDays} gün geçerli</p>
                     </div>
 
-                    {pkg.description && (
-                      <p className="text-sm text-gray-600">{pkg.description}</p>
-                    )}
-
                     {pkg.features && (() => {
                       try {
                         const parsed = JSON.parse(pkg.features);
