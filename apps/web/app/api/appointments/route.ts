@@ -71,9 +71,38 @@ export async function POST(request: NextRequest) {
     }
     
     console.log('✅ Staff found:', `${staff.firstName} ${staff.lastName}`);
-    
+
+    // Check for time slot conflicts
+    console.log('🔍 Step 4: Checking for time slot conflicts');
+    const existingAppointment = await prisma.appointment.findFirst({
+      where: {
+        staffId: appointmentData.staffId,
+        date: appointmentData.date,
+        time: appointmentData.time,
+        status: {
+          not: 'cancelled' // Sadece iptal edilmemiş randevuları kontrol et
+        }
+      }
+    });
+
+    if (existingAppointment) {
+      console.error('❌ Time slot conflict:', {
+        date: appointmentData.date,
+        time: appointmentData.time,
+        staffId: appointmentData.staffId,
+        existingAppointmentId: existingAppointment.id
+      });
+      return NextResponse.json({
+        success: false,
+        error: 'Bu saat dolu',
+        message: `${appointmentData.date} tarihinde ${appointmentData.time} saati için başka bir randevu mevcut. Lütfen başka bir saat seçin.`
+      }, { status: 409 }); // 409 Conflict
+    }
+
+    console.log('✅ Time slot is available');
+
     // Find or create customer
-    console.log('🔍 Step 4: Finding/creating customer');
+    console.log('🔍 Step 5: Finding/creating customer');
     let customer = await prisma.customer.findFirst({
       where: {
         tenantId: tenant.id,

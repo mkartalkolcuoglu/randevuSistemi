@@ -111,6 +111,33 @@ export async function POST(request: NextRequest) {
           const appointmentData = JSON.parse(payment.userBasket);
           console.log('📅 [PAYMENT CALLBACK] Creating appointment...', appointmentData);
 
+          // Check for time slot conflicts
+          console.log('🔍 [PAYMENT CALLBACK] Checking for time slot conflicts');
+          const existingAppointment = await prisma.appointment.findFirst({
+            where: {
+              staffId: appointmentData.staffId,
+              date: appointmentData.date,
+              time: appointmentData.time,
+              status: {
+                not: 'cancelled' // Sadece iptal edilmemiş randevuları kontrol et
+              }
+            }
+          });
+
+          if (existingAppointment) {
+            console.error('❌ [PAYMENT CALLBACK] Time slot conflict:', {
+              date: appointmentData.date,
+              time: appointmentData.time,
+              staffId: appointmentData.staffId,
+              existingAppointmentId: existingAppointment.id
+            });
+            // Payment başarılı ama randevu oluşturulamadı (time slot conflict)
+            // Bu durumu loglayalım ve PayTR'a OK dönmeliyiz
+            throw new Error(`Time slot conflict: ${appointmentData.date} ${appointmentData.time} is already booked`);
+          }
+
+          console.log('✅ [PAYMENT CALLBACK] Time slot is available');
+
           // Randevu oluştur
           const appointment = await prisma.appointment.create({
             data: {
@@ -145,25 +172,6 @@ export async function POST(request: NextRequest) {
               appointmentId: appointment.id
             }
           });
-
-          // Transaction oluştur (Kasa için)
-          await prisma.transaction.create({
-            data: {
-              id: `txn_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-              tenantId: appointmentData.tenantId,
-              type: 'appointment',
-              amount: payment.amount,
-              description: `Randevu Ödemesi: ${appointmentData.serviceName} - ${appointmentData.customerName}`,
-              paymentType: payment_type || 'card',
-              customerId: appointmentData.customerId,
-              customerName: appointmentData.customerName,
-              appointmentId: appointment.id,
-              date: appointmentData.date,
-              profit: 0
-            }
-          });
-
-          console.log('✅ [PAYMENT CALLBACK] Transaction created for appointment');
 
           // Notification oluştur
           await prisma.notification.create({
