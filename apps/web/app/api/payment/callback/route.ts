@@ -283,8 +283,12 @@ export async function POST(request: NextRequest) {
           }
 
         } catch (error) {
-          console.error('❌ [PAYMENT CALLBACK] Error creating appointment:', error);
-          // Ödeme başarılı ama randevu oluşturulamadı
+          console.error('❌ [PAYMENT CALLBACK] Error processing basket data:', error);
+          if (error instanceof Error) {
+            console.error('Error message:', error.message);
+            console.error('Error stack:', error.stack);
+          }
+          // Ödeme başarılı ama işlem tamamlanamadı
           // Bu durumu loglayalım ama PayTR'a OK dönmeliyiz
         }
       }

@@ -215,6 +215,9 @@ export async function initiatePayment(
       merchantKey: PAYTR_MERCHANT_KEY
     });
 
+    // Base URL için environment variable kullan
+    const baseUrl = process.env.NEXT_PUBLIC_WEB_URL || 'https://netrandevu.com';
+
     // PayTR API'ye POST request
     const formData = new URLSearchParams({
       merchant_id: PAYTR_MERCHANT_ID,
@@ -230,8 +233,9 @@ export async function initiatePayment(
       user_name: params.email.split('@')[0], // Email'den ad çıkar
       user_address: 'Türkiye',
       user_phone: '5555555555',
-      merchant_ok_url: params.successUrl || `${process.env.NEXT_PUBLIC_WEB_URL || 'https://netrandevu.com'}/payment/success`,
-      merchant_fail_url: params.failUrl || `${process.env.NEXT_PUBLIC_WEB_URL || 'https://netrandevu.com'}/payment/failed`,
+      merchant_ok_url: params.successUrl || `${baseUrl}/payment/success`,
+      merchant_fail_url: params.failUrl || `${baseUrl}/payment/failed`,
+      merchant_callback_url: `${baseUrl}/api/payment/callback`, // ÖNEMLİ: Callback URL!
       timeout_limit: '30',
       currency: currency,
       test_mode: PAYTR_TEST_MODE
