@@ -145,7 +145,7 @@ export async function sendOtpSMS(params: {
 }): Promise<SendSmsResponse> {
   const { to, code, purpose = 'randevu sorgulama' } = params;
 
-  const message = `NetRandevu ${purpose} kodunuz: ${code}. 2 dakika gecerlidir.`;
+  const message = `NetRandevu ${purpose} kodunuz: ${code}. 120 saniye gecerlidir.`;
 
   return sendSMS({ to, message });
 }
@@ -154,5 +154,5 @@ export async function sendOtpSMS(params: {
  * Generate OTP message text
  */
 export function generateOtpMessage(code: string, purpose: string = 'randevu sorgulama'): string {
-  return `NetRandevu ${purpose} kodunuz: ${code}. 2 dakika gecerlidir.`;
+  return `NetRandevu ${purpose} kodunuz: ${code}. 120 saniye gecerlidir.`;
 }
