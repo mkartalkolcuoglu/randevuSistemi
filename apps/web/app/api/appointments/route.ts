@@ -141,11 +141,21 @@ export async function POST(request: NextRequest) {
     
     // Determine payment status based on payment method
     let paymentStatus = 'pending'; // Default
+    let appointmentStatus = 'pending'; // Default status for unpaid appointments
+
     if (appointmentData.usePackageForService && appointmentData.packageInfo) {
       paymentStatus = 'package_used';
-    } else if (appointmentData.paymentStatus) {
-      paymentStatus = appointmentData.paymentStatus; // Can be 'pending' or 'paid'
+      appointmentStatus = 'scheduled'; // Package kullanımı onaylanmış sayılır
+    } else if (appointmentData.paymentStatus === 'paid') {
+      paymentStatus = 'paid';
+      appointmentStatus = 'scheduled'; // Ödeme yapıldıysa onaylanmış
+    } else {
+      paymentStatus = 'pending';
+      appointmentStatus = 'pending'; // Ödeme bekleniyor
     }
+
+    console.log('📋 Appointment status will be:', appointmentStatus);
+    console.log('💳 Payment status will be:', paymentStatus);
 
     const appointment = await prisma.appointment.create({
       data: {
@@ -162,7 +172,7 @@ export async function POST(request: NextRequest) {
         time: appointmentData.time,
         duration: appointmentData.duration || service.duration,
         price: appointmentData.price || service.price,
-        status: 'pending',
+        status: appointmentStatus, // Ödeme durumuna göre: 'pending' veya 'scheduled'
         paymentType: 'cash',
         paymentStatus: paymentStatus, // Set payment status
         notes: appointmentData.customerInfo?.notes || appointmentData.notes || '',
