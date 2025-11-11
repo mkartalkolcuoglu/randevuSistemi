@@ -151,11 +151,15 @@ model Tenant {
   customerCount      Int      @default(0)
   createdAt          DateTime @default(now())
   lastLogin          DateTime?
-  
+
+  // Subscription fields
+  subscriptionStart  DateTime?
+  subscriptionEnd    DateTime?
+
   // JSON fields for complex data
   workingHours       String?  // JSON string
   theme              String?  // JSON string
-  
+
   @@map("tenants")
 }
 
