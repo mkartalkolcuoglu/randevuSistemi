@@ -75,6 +75,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Generate message
+    // Check if appointment uses package
+    const isPackage = appointment.paymentStatus === 'package_used';
+
     const message = generateConfirmationMessage({
       customerName: appointment.customerName,
       date: appointment.date,
@@ -85,6 +88,7 @@ export async function POST(request: NextRequest) {
       businessName: settings.businessName,
       businessPhone: settings.businessPhone || '',
       businessAddress: settings.businessAddress || undefined,
+      isPackage, // Paket kullanımı mı?
     });
 
     // Send WhatsApp message

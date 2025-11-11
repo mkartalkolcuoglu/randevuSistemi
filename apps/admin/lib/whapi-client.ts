@@ -132,8 +132,9 @@ export function generateConfirmationMessage(appointment: {
   businessName: string;
   businessPhone: string;
   businessAddress?: string;
+  isPackage?: boolean; // Paket kullanımı mı?
 }): string {
-  const { customerName, date, time, staffName, serviceName, price, businessName, businessPhone, businessAddress } = appointment;
+  const { customerName, date, time, staffName, serviceName, price, businessName, businessPhone, businessAddress, isPackage } = appointment;
 
   const firstName = customerName.split(' ')[0];
 
@@ -146,8 +147,11 @@ export function generateConfirmationMessage(appointment: {
   message += `🕐 *Saat:* ${time}\n`;
   message += `👤 *Personel:* ${staffName}\n`;
   message += `💼 *Hizmet:* ${serviceName}\n`;
-  
-  if (price) {
+
+  // Ücret veya paket bilgisi
+  if (isPackage) {
+    message += `🎁 *Ödeme:* Paket Kullanımı\n`;
+  } else if (price) {
     message += `💰 *Ücret:* ${price} TL\n`;
   }
   
