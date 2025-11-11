@@ -157,10 +157,37 @@ export default function RegisterPage() {
     return true;
   };
 
-  const handleNext = () => {
+  const handleNext = async () => {
     if (currentStep === 'info') {
       if (validateInfoStep()) {
-        setCurrentStep('package');
+        // Kullanıcı adı kontrolü yap
+        setLoading(true);
+        setError('');
+
+        try {
+          const response = await fetch(`/api/check-username?username=${encodeURIComponent(formData.username)}`);
+          const data = await response.json();
+
+          if (!response.ok || !data.success) {
+            setError('Kullanıcı adı kontrolü yapılırken bir hata oluştu');
+            setLoading(false);
+            return;
+          }
+
+          if (!data.available) {
+            setError('Bu kullanıcı adı daha önce alınmış. Lütfen farklı bir kullanıcı adı deneyin.');
+            setLoading(false);
+            return;
+          }
+
+          // Kullanıcı adı müsait, devam et
+          setLoading(false);
+          setCurrentStep('package');
+        } catch (error) {
+          console.error('Username check error:', error);
+          setError('Kullanıcı adı kontrolü yapılırken bir hata oluştu');
+          setLoading(false);
+        }
       }
     } else if (currentStep === 'package') {
       const selectedPkg = getSelectedPackage();
