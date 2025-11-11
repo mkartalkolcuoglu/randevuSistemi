@@ -701,31 +701,6 @@ export default function RegisterPage() {
                             </div>
                           )}
 
-                          {pkg.durationDays === 30 && (
-                            <div className="text-xs text-gray-500 border-t pt-4 space-y-1">
-                              <p className="flex items-start">
-                                <Check className="w-3 h-3 text-gray-400 mr-1 mt-0.5" />
-                                <span>30 gün geçerli</span>
-                              </p>
-                              <p className="flex items-start">
-                                <Check className="w-3 h-3 text-gray-400 mr-1 mt-0.5" />
-                                <span>Dilediğiniz zaman iptal</span>
-                              </p>
-                            </div>
-                          )}
-
-                          {pkg.durationDays === 365 && (
-                            <div className="text-xs text-gray-500 border-t pt-4 space-y-1">
-                              <p className="flex items-start">
-                                <Check className="w-3 h-3 text-gray-400 mr-1 mt-0.5" />
-                                <span>1 yıl geçerli</span>
-                              </p>
-                              <p className="flex items-start">
-                                <Check className="w-3 h-3 text-gray-400 mr-1 mt-0.5" />
-                                <span>2 ay bedava!</span>
-                              </p>
-                            </div>
-                          )}
                         </div>
                       </div>
                     );
