@@ -242,6 +242,9 @@ export async function initiatePayment(
     });
 
     console.log('🚀 [PAYTR] Sending request to PayTR API...');
+    console.log('📝 [PAYTR] Callback URL:', formData.get('merchant_callback_url'));
+    console.log('📝 [PAYTR] Success URL:', formData.get('merchant_ok_url'));
+    console.log('📝 [PAYTR] Fail URL:', formData.get('merchant_fail_url'));
 
     const response = await fetch(PAYTR_API_URL, {
       method: 'POST',

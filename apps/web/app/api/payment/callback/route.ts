@@ -22,7 +22,10 @@ import { validateCallbackHash } from '../../../../lib/paytr-client';
  */
 export async function POST(request: NextRequest) {
   try {
-    console.log('🔔 [PAYMENT CALLBACK] Received callback from PayTR');
+    console.log('='.repeat(80));
+    console.log('🔔 [PAYMENT CALLBACK] *** CALLBACK RECEIVED FROM PAYTR ***');
+    console.log('Time:', new Date().toISOString());
+    console.log('='.repeat(80));
 
     const formData = await request.formData();
 
