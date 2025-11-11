@@ -24,18 +24,8 @@ export default function EditPackagePage({ params }: { params: Promise<{ id: stri
     isActive: true,
     isFeatured: false
   });
-  const [features, setFeatures] = useState({
-    appointments: '',
-    sms: '',
-    staff: '',
-    locations: '',
-    services: '',
-    clients: '',
-    reports: false,
-    customDomain: false,
-    apiAccess: false,
-    support: 'email'
-  });
+  const [features, setFeatures] = useState<string[]>([]);
+  const [newFeature, setNewFeature] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
@@ -63,25 +53,23 @@ export default function EditPackagePage({ params }: { params: Promise<{ id: stri
 
         if (pkg.features) {
           const parsedFeatures = typeof pkg.features === 'string' ? JSON.parse(pkg.features) : pkg.features;
-          
-          // Convert to the correct format
+
+          // Support both array and object formats
           if (Array.isArray(parsedFeatures)) {
-            // Old format - set to defaults
-            console.warn('Old array format detected, using defaults');
+            // Array format - use directly
+            setFeatures(parsedFeatures);
           } else {
-            // New format - merge with defaults
-            setFeatures({
-              appointments: parsedFeatures.appointments?.toString() || '',
-              sms: parsedFeatures.sms?.toString() || '',
-              staff: parsedFeatures.staff?.toString() || '',
-              locations: parsedFeatures.locations?.toString() || '',
-              services: parsedFeatures.services?.toString() || '',
-              clients: parsedFeatures.clients?.toString() || '',
-              reports: parsedFeatures.reports || false,
-              customDomain: parsedFeatures.customDomain || false,
-              apiAccess: parsedFeatures.apiAccess || false,
-              support: parsedFeatures.support || 'email'
-            });
+            // Object format - convert to descriptive strings
+            const featureList: string[] = [];
+            if (parsedFeatures.appointments) featureList.push(`Aylık randevu: ${parsedFeatures.appointments === -1 ? 'Sınırsız' : parsedFeatures.appointments}`);
+            if (parsedFeatures.sms) featureList.push(`SMS: ${parsedFeatures.sms === -1 ? 'Sınırsız' : parsedFeatures.sms}`);
+            if (parsedFeatures.staff) featureList.push(`Personel: ${parsedFeatures.staff === -1 ? 'Sınırsız' : parsedFeatures.staff}`);
+            if (parsedFeatures.locations) featureList.push(`Lokasyon: ${parsedFeatures.locations === -1 ? 'Çoklu' : parsedFeatures.locations}`);
+            if (parsedFeatures.reports) featureList.push('Detaylı raporlar');
+            if (parsedFeatures.customDomain) featureList.push('Özel alan adı');
+            if (parsedFeatures.apiAccess) featureList.push('API erişimi');
+            if (parsedFeatures.support) featureList.push(`Destek: ${parsedFeatures.support}`);
+            setFeatures(featureList);
           }
         }
       }
@@ -98,8 +86,15 @@ export default function EditPackagePage({ params }: { params: Promise<{ id: stri
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleFeatureChange = (field: string, value: any) => {
-    setFeatures(prev => ({ ...prev, [field]: value }));
+  const handleAddFeature = () => {
+    if (newFeature.trim()) {
+      setFeatures(prev => [...prev, newFeature.trim()]);
+      setNewFeature('');
+    }
+  };
+
+  const handleRemoveFeature = (index: number) => {
+    setFeatures(prev => prev.filter((_, i) => i !== index));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -108,26 +103,12 @@ export default function EditPackagePage({ params }: { params: Promise<{ id: stri
     setSaving(true);
 
     try {
-      // Convert string inputs to numbers where appropriate
-      const processedFeatures = {
-        appointments: features.appointments === '-1' || features.appointments === 'unlimited' ? -1 : parseInt(features.appointments) || 0,
-        sms: features.sms === '-1' || features.sms === 'unlimited' ? -1 : parseInt(features.sms) || 0,
-        staff: features.staff === '-1' || features.staff === 'unlimited' ? -1 : parseInt(features.staff) || 1,
-        locations: features.locations === '-1' || features.locations === 'unlimited' ? -1 : parseInt(features.locations) || 1,
-        services: features.services ? (features.services === '-1' || features.services === 'unlimited' ? -1 : parseInt(features.services)) : undefined,
-        clients: features.clients ? (features.clients === '-1' || features.clients === 'unlimited' ? -1 : parseInt(features.clients)) : undefined,
-        reports: features.reports,
-        customDomain: features.customDomain,
-        apiAccess: features.apiAccess,
-        support: features.support || 'email'
-      };
-
       const response = await fetch(`/api/packages/${resolvedParams.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...formData,
-          features: processedFeatures
+          features: features
         })
       });
 
@@ -258,129 +239,57 @@ export default function EditPackagePage({ params }: { params: Promise<{ id: stri
                 {/* Features */}
                 <div className="space-y-4">
                   <Label className="text-lg font-semibold">Paket Özellikleri</Label>
-                  
-                  {/* Numeric Features */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <Label htmlFor="appointments">Aylık Randevu Limiti</Label>
-                      <Input
-                        id="appointments"
-                        type="number"
-                        value={features.appointments}
-                        onChange={(e) => handleFeatureChange('appointments', e.target.value)}
-                        placeholder="-1 = Sınırsız, 0 = Yok"
-                      />
-                      <p className="text-xs text-gray-500 mt-1">-1 = Sınırsız</p>
-                    </div>
+                  <p className="text-sm text-gray-500">Paketin içerdiği özellikleri listeleyin</p>
 
-                    <div>
-                      <Label htmlFor="sms">SMS/WhatsApp Limiti</Label>
-                      <Input
-                        id="sms"
-                        type="number"
-                        value={features.sms}
-                        onChange={(e) => handleFeatureChange('sms', e.target.value)}
-                        placeholder="-1 = Sınırsız, 0 = Yok"
-                      />
-                      <p className="text-xs text-gray-500 mt-1">-1 = Sınırsız</p>
-                    </div>
-
-                    <div>
-                      <Label htmlFor="staff">Personel Sayısı</Label>
-                      <Input
-                        id="staff"
-                        type="number"
-                        value={features.staff}
-                        onChange={(e) => handleFeatureChange('staff', e.target.value)}
-                        placeholder="-1 = Sınırsız"
-                      />
-                      <p className="text-xs text-gray-500 mt-1">-1 = Sınırsız</p>
-                    </div>
-
-                    <div>
-                      <Label htmlFor="locations">Lokasyon Sayısı</Label>
-                      <Input
-                        id="locations"
-                        type="number"
-                        value={features.locations}
-                        onChange={(e) => handleFeatureChange('locations', e.target.value)}
-                        placeholder="-1 = Çoklu"
-                      />
-                      <p className="text-xs text-gray-500 mt-1">-1 = Çoklu lokasyon</p>
-                    </div>
-
-                    <div>
-                      <Label htmlFor="services">Hizmet Sayısı (Opsiyonel)</Label>
-                      <Input
-                        id="services"
-                        type="number"
-                        value={features.services}
-                        onChange={(e) => handleFeatureChange('services', e.target.value)}
-                        placeholder="-1 = Sınırsız"
-                      />
-                    </div>
-
-                    <div>
-                      <Label htmlFor="clients">Müşteri Sayısı (Opsiyonel)</Label>
-                      <Input
-                        id="clients"
-                        type="number"
-                        value={features.clients}
-                        onChange={(e) => handleFeatureChange('clients', e.target.value)}
-                        placeholder="-1 = Sınırsız"
-                      />
-                    </div>
+                  {/* Add Feature Input */}
+                  <div className="flex gap-2">
+                    <Input
+                      value={newFeature}
+                      onChange={(e) => setNewFeature(e.target.value)}
+                      placeholder="Özellik ekleyin (örn: Sınırsız randevu)"
+                      onKeyPress={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          handleAddFeature();
+                        }
+                      }}
+                    />
+                    <Button
+                      type="button"
+                      onClick={handleAddFeature}
+                      className="bg-green-600 hover:bg-green-700 text-white shrink-0"
+                    >
+                      <Plus className="w-4 h-4 mr-2" />
+                      Ekle
+                    </Button>
                   </div>
 
-                  {/* Boolean Features */}
-                  <div className="space-y-3 pt-4 border-t">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <Label>Detaylı Raporlar</Label>
-                        <p className="text-sm text-gray-500">Gelişmiş raporlama özellikleri</p>
-                      </div>
-                      <Switch
-                        checked={features.reports}
-                        onCheckedChange={(checked) => handleFeatureChange('reports', checked)}
-                      />
-                    </div>
+                  {/* Features List */}
+                  {features.length > 0 && (
+                    <ul className="space-y-2 border border-gray-200 rounded-lg p-4">
+                      {features.map((feature, index) => (
+                        <li key={index} className="flex items-center justify-between bg-gray-50 px-3 py-2 rounded">
+                          <span className="text-sm text-gray-700">• {feature}</span>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleRemoveFeature(index)}
+                            className="text-red-600 hover:bg-red-50"
+                          >
+                            <X className="w-4 h-4" />
+                          </Button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
 
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <Label>Özel Alan Adı</Label>
-                        <p className="text-sm text-gray-500">Kendi domain adresini kullanabilme</p>
-                      </div>
-                      <Switch
-                        checked={features.customDomain}
-                        onCheckedChange={(checked) => handleFeatureChange('customDomain', checked)}
-                      />
+                  {features.length === 0 && (
+                    <div className="text-center py-8 border-2 border-dashed border-gray-300 rounded-lg">
+                      <p className="text-gray-500 text-sm">Henüz özellik eklenmedi</p>
+                      <p className="text-gray-400 text-xs mt-1">Yukarıdaki alandan özellik ekleyebilirsiniz</p>
                     </div>
-
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <Label>API Erişimi</Label>
-                        <p className="text-sm text-gray-500">REST API ile entegrasyon</p>
-                      </div>
-                      <Switch
-                        checked={features.apiAccess}
-                        onCheckedChange={(checked) => handleFeatureChange('apiAccess', checked)}
-                      />
-                    </div>
-
-                    <div>
-                      <Label htmlFor="support">Destek Seviyesi</Label>
-                      <select
-                        id="support"
-                        value={features.support}
-                        onChange={(e) => handleFeatureChange('support', e.target.value)}
-                        className="w-full mt-2 px-3 py-2 border border-gray-300 rounded-md"
-                      >
-                        <option value="email">E-posta Destek</option>
-                        <option value="standard">Standart Destek</option>
-                        <option value="priority">Öncelikli Destek</option>
-                      </select>
-                    </div>
-                  </div>
+                  )}
                 </div>
 
                 {/* Switches */}
