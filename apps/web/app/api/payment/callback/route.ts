@@ -148,6 +148,17 @@ export async function POST(request: NextRequest) {
             const domain = `${slug}.netrandevu.com`;
             const username = basketData.username;
 
+            // Subscription tarihlerini hesapla (paket süresine göre)
+            const subscriptionStart = new Date();
+            const durationDays = basketData.packageDurationDays || 30; // Default 30 gün
+            const subscriptionEnd = new Date(subscriptionStart.getTime() + durationDays * 24 * 60 * 60 * 1000);
+
+            console.log('📅 [PAYMENT CALLBACK] Subscription dates:', {
+              start: subscriptionStart.toISOString(),
+              end: subscriptionEnd.toISOString(),
+              durationDays
+            });
+
             // Tenant (işletme) oluştur
             const tenant = await prisma.tenant.create({
               data: {
@@ -165,6 +176,8 @@ export async function POST(request: NextRequest) {
                 address: basketData.address || null,
                 businessType: basketData.businessType || 'other',
                 businessDescription: basketData.businessDescription || null,
+                subscriptionStart: subscriptionStart,
+                subscriptionEnd: subscriptionEnd,
                 monthlyRevenue: 0,
                 appointmentCount: 0,
                 customerCount: 0,
@@ -183,6 +196,32 @@ export async function POST(request: NextRequest) {
             });
 
             console.log('✅ [PAYMENT CALLBACK] Business registration completed successfully');
+
+            // Send welcome email (non-blocking)
+            console.log('📧 [PAYMENT CALLBACK] Sending welcome email...');
+            fetch(`${process.env.NEXT_PUBLIC_WEB_URL || 'https://netrandevu.com'}/api/send-welcome-email`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                businessName: basketData.businessName,
+                slug: slug,
+                username: username,
+                password: basketData.password,
+                ownerName: basketData.ownerName,
+                ownerEmail: basketData.ownerEmail,
+                adminPanelUrl: 'https://admin.netrandevu.com/login',
+                landingPageUrl: `https://netrandevu.com/${slug}`
+              })
+            }).then(async res => {
+              const responseText = await res.text();
+              if (res.ok) {
+                console.log('✅ [PAYMENT CALLBACK] Welcome email sent successfully');
+              } else {
+                console.error('❌ [PAYMENT CALLBACK] Welcome email error:', res.status, responseText);
+              }
+            }).catch(err => {
+              console.error('❌ [PAYMENT CALLBACK] Welcome email call failed:', err);
+            });
 
           } else {
             // Normal randevu oluşturma akışı
