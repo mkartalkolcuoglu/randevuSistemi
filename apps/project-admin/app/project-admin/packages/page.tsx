@@ -191,16 +191,37 @@ export default function PackagesPage() {
                       <p className="text-sm text-gray-600">{pkg.description}</p>
                     )}
 
-                    {pkg.features && (
-                      <ul className="text-sm text-gray-600 space-y-1">
-                        {JSON.parse(pkg.features).map((feature: string, idx: number) => (
-                          <li key={idx} className="flex items-center">
-                            <span className="mr-2">•</span>
-                            {feature}
-                          </li>
-                        ))}
-                      </ul>
-                    )}
+                    {pkg.features && (() => {
+                      try {
+                        const parsed = JSON.parse(pkg.features);
+                        // Check if features is an array (old format)
+                        if (Array.isArray(parsed)) {
+                          return (
+                            <ul className="text-sm text-gray-600 space-y-1">
+                              {parsed.map((feature: string, idx: number) => (
+                                <li key={idx} className="flex items-center">
+                                  <span className="mr-2">•</span>
+                                  {feature}
+                                </li>
+                              ))}
+                            </ul>
+                          );
+                        }
+                        // If features is an object (new format), display as key-value
+                        return (
+                          <ul className="text-sm text-gray-600 space-y-1">
+                            {Object.entries(parsed).map(([key, value], idx) => (
+                              <li key={idx} className="flex items-center justify-between">
+                                <span className="mr-2">• {key}</span>
+                                <span className="font-semibold">{String(value)}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        );
+                      } catch (e) {
+                        return <p className="text-sm text-red-600">Özellikler yüklenemedi</p>;
+                      }
+                    })()}
 
                     {/* Actions */}
                     <div className="flex items-center justify-between pt-4 border-t">
