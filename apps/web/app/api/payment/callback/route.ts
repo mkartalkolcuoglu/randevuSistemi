@@ -188,6 +188,23 @@ export async function POST(request: NextRequest) {
 
           console.log('✅ [PAYMENT CALLBACK] Notification created');
 
+          // WhatsApp onay mesajı gönder (non-blocking)
+          console.log('📱 [PAYMENT CALLBACK] Sending WhatsApp confirmation for confirmed appointment');
+          const adminApiUrl = process.env.NEXT_PUBLIC_ADMIN_URL || 'https://admin.netrandevu.com';
+          fetch(`${adminApiUrl}/api/whatsapp/send-confirmation`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ appointmentId: appointment.id })
+          }).then(res => {
+            if (res.ok) {
+              console.log('✅ [PAYMENT CALLBACK] WhatsApp confirmation sent');
+            } else {
+              console.error('❌ [PAYMENT CALLBACK] WhatsApp confirmation failed:', res.status);
+            }
+          }).catch(err => {
+            console.error('❌ [PAYMENT CALLBACK] WhatsApp confirmation error:', err);
+          });
+
         } catch (error) {
           console.error('❌ [PAYMENT CALLBACK] Error creating appointment:', error);
           // Ödeme başarılı ama randevu oluşturulamadı
