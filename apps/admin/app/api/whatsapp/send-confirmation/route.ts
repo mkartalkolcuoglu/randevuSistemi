@@ -78,6 +78,14 @@ export async function POST(request: NextRequest) {
     // Check if appointment uses package
     const isPackage = appointment.paymentStatus === 'package_used';
 
+    console.log('📦 Package check:', {
+      appointmentId: appointment.id,
+      paymentStatus: appointment.paymentStatus,
+      paymentType: appointment.paymentType,
+      isPackage: isPackage,
+      price: appointment.price
+    });
+
     const message = generateConfirmationMessage({
       customerName: appointment.customerName,
       date: appointment.date,
