@@ -105,106 +105,207 @@ export async function POST(request: NextRequest) {
         }
       });
 
-      // Eğer appointmentData varsa, randevu oluştur
+      // Eğer appointmentData veya registrationData varsa, işle
       if (payment.userBasket) {
         try {
-          const appointmentData = JSON.parse(payment.userBasket);
-          console.log('📅 [PAYMENT CALLBACK] Creating appointment...', appointmentData);
+          const basketData = JSON.parse(payment.userBasket);
 
-          // Check for time slot conflicts
-          console.log('🔍 [PAYMENT CALLBACK] Checking for time slot conflicts');
-          const existingAppointment = await prisma.appointment.findFirst({
-            where: {
-              staffId: appointmentData.staffId,
-              date: appointmentData.date,
-              time: appointmentData.time,
-              status: {
-                not: 'cancelled' // Sadece iptal edilmemiş randevuları kontrol et
+          // İşletme kaydı mı, randevu mu kontrol et
+          if (basketData.type === 'business_registration') {
+            console.log('🏢 [PAYMENT CALLBACK] Creating business registration...', basketData);
+
+            // Hash password
+            const bcrypt = require('bcryptjs');
+            const hashedPassword = await bcrypt.hash(basketData.password, 10);
+
+            // Slug oluştur (business name'den)
+            const generateSlug = (name: string): string => {
+              return name
+                .toLowerCase()
+                .replace(/[^a-z0-9\s-]/g, '')
+                .replace(/\s+/g, '-')
+                .replace(/-+/g, '-')
+                .trim();
+            };
+
+            let slug = generateSlug(basketData.businessName);
+
+            // Slug'ın benzersiz olduğundan emin ol
+            let slugExists = await prisma.tenant.findUnique({ where: { slug } });
+            let counter = 1;
+            while (slugExists) {
+              slug = `${generateSlug(basketData.businessName)}-${counter}`;
+              slugExists = await prisma.tenant.findUnique({ where: { slug } });
+              counter++;
+            }
+
+            console.log('📝 [PAYMENT CALLBACK] Generated unique slug:', slug);
+
+            // Tenant (işletme) oluştur
+            const tenant = await prisma.tenant.create({
+              data: {
+                id: `tenant_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+                name: basketData.businessName,
+                slug: slug,
+                businessType: basketData.businessType,
+                description: basketData.businessDescription || null,
+                address: basketData.address || null,
+                ownerName: basketData.ownerName,
+                ownerEmail: basketData.ownerEmail,
+                phone: basketData.phone || null,
+                active: true,
+                createdAt: new Date()
               }
-            }
-          });
-
-          if (existingAppointment) {
-            console.error('❌ [PAYMENT CALLBACK] Time slot conflict:', {
-              date: appointmentData.date,
-              time: appointmentData.time,
-              staffId: appointmentData.staffId,
-              existingAppointmentId: existingAppointment.id
             });
-            // Payment başarılı ama randevu oluşturulamadı (time slot conflict)
-            // Bu durumu loglayalım ve PayTR'a OK dönmeliyiz
-            throw new Error(`Time slot conflict: ${appointmentData.date} ${appointmentData.time} is already booked`);
+
+            console.log('✅ [PAYMENT CALLBACK] Tenant created:', tenant.id);
+
+            // Admin kullanıcı oluştur
+            const admin = await prisma.user.create({
+              data: {
+                id: `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+                tenantId: tenant.id,
+                username: basketData.username,
+                password: hashedPassword,
+                name: basketData.ownerName,
+                email: basketData.ownerEmail,
+                phone: basketData.phone || null,
+                role: 'admin',
+                active: true
+              }
+            });
+
+            console.log('✅ [PAYMENT CALLBACK] Admin user created:', admin.id);
+
+            // Subscription oluştur
+            const startDate = new Date();
+            const endDate = new Date();
+            endDate.setDate(endDate.getDate() + basketData.packageDurationDays);
+
+            const subscription = await prisma.subscription.create({
+              data: {
+                id: `sub_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+                tenantId: tenant.id,
+                plan: basketData.subscriptionPlan || 'premium',
+                status: 'active',
+                startDate: startDate,
+                endDate: endDate,
+                paymentId: payment.id
+              }
+            });
+
+            console.log('✅ [PAYMENT CALLBACK] Subscription created:', subscription.id);
+
+            // Payment'ı tenant ile ilişkilendir
+            await prisma.payment.update({
+              where: { id: payment.id },
+              data: {
+                tenantId: tenant.id
+              }
+            });
+
+            console.log('✅ [PAYMENT CALLBACK] Business registration completed successfully');
+
+          } else {
+            // Normal randevu oluşturma akışı
+            const appointmentData = basketData;
+            console.log('📅 [PAYMENT CALLBACK] Creating appointment...', appointmentData);
+
+            // Check for time slot conflicts
+            console.log('🔍 [PAYMENT CALLBACK] Checking for time slot conflicts');
+            const existingAppointment = await prisma.appointment.findFirst({
+              where: {
+                staffId: appointmentData.staffId,
+                date: appointmentData.date,
+                time: appointmentData.time,
+                status: {
+                  not: 'cancelled' // Sadece iptal edilmemiş randevuları kontrol et
+                }
+              }
+            });
+
+            if (existingAppointment) {
+              console.error('❌ [PAYMENT CALLBACK] Time slot conflict:', {
+                date: appointmentData.date,
+                time: appointmentData.time,
+                staffId: appointmentData.staffId,
+                existingAppointmentId: existingAppointment.id
+              });
+              // Payment başarılı ama randevu oluşturulamadı (time slot conflict)
+              // Bu durumu loglayalım ve PayTR'a OK dönmeliyiz
+              throw new Error(`Time slot conflict: ${appointmentData.date} ${appointmentData.time} is already booked`);
+            }
+
+            console.log('✅ [PAYMENT CALLBACK] Time slot is available');
+
+            // Randevu oluştur
+            const appointment = await prisma.appointment.create({
+              data: {
+                id: `apt_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+                tenantId: appointmentData.tenantId,
+                customerId: appointmentData.customerId,
+                customerName: appointmentData.customerName,
+                customerPhone: appointmentData.customerPhone,
+                customerEmail: appointmentData.customerEmail,
+                serviceId: appointmentData.serviceId,
+                serviceName: appointmentData.serviceName,
+                staffId: appointmentData.staffId,
+                staffName: appointmentData.staffName,
+                date: appointmentData.date,
+                time: appointmentData.time,
+                status: 'confirmed', // Kredi kartı ile ödendi - onaylanmış
+                price: payment.amount,
+                duration: appointmentData.duration,
+                paymentType: payment_type === 'card' ? 'credit_card' : (payment_type === 'eft' ? 'eft' : 'credit_card'), // Kredi Kartı veya EFT
+                paymentStatus: 'paid', // Ödeme başarılı
+                paymentId: payment.id,
+                notes: appointmentData.notes || null
+              }
+            });
+
+            console.log('✅ [PAYMENT CALLBACK] Appointment created:', appointment.id);
+
+            // Payment'a appointment ID'yi ekle
+            await prisma.payment.update({
+              where: { id: payment.id },
+              data: {
+                appointmentId: appointment.id
+              }
+            });
+
+            // Notification oluştur
+            await prisma.notification.create({
+              data: {
+                id: `notif_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+                tenantId: appointmentData.tenantId,
+                type: 'new_appointment',
+                title: 'Yeni Randevu',
+                message: `${appointmentData.customerName} - ${appointmentData.serviceName} (${appointmentData.date} ${appointmentData.time}) - Ödeme Alındı`,
+                link: `/admin/appointments`,
+                read: false
+              }
+            });
+
+            console.log('✅ [PAYMENT CALLBACK] Notification created');
+
+            // WhatsApp onay mesajı gönder (non-blocking)
+            // Randevu zaten 'confirmed' olarak oluşturuldu, doğrudan WhatsApp API'yi çağırıyoruz
+            console.log('📱 [PAYMENT CALLBACK] Triggering WhatsApp confirmation for appointment:', appointment.id);
+            fetch(`https://admin.netrandevu.com/api/whatsapp/send-confirmation`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ appointmentId: appointment.id })
+            }).then(async res => {
+              const responseText = await res.text();
+              if (res.ok) {
+                console.log('✅ [PAYMENT CALLBACK] WhatsApp confirmation sent successfully:', responseText);
+              } else {
+                console.error('❌ [PAYMENT CALLBACK] WhatsApp API error:', res.status, responseText);
+              }
+            }).catch(err => {
+              console.error('❌ [PAYMENT CALLBACK] WhatsApp API call failed:', err);
+            });
           }
-
-          console.log('✅ [PAYMENT CALLBACK] Time slot is available');
-
-          // Randevu oluştur
-          const appointment = await prisma.appointment.create({
-            data: {
-              id: `apt_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-              tenantId: appointmentData.tenantId,
-              customerId: appointmentData.customerId,
-              customerName: appointmentData.customerName,
-              customerPhone: appointmentData.customerPhone,
-              customerEmail: appointmentData.customerEmail,
-              serviceId: appointmentData.serviceId,
-              serviceName: appointmentData.serviceName,
-              staffId: appointmentData.staffId,
-              staffName: appointmentData.staffName,
-              date: appointmentData.date,
-              time: appointmentData.time,
-              status: 'confirmed', // Kredi kartı ile ödendi - onaylanmış
-              price: payment.amount,
-              duration: appointmentData.duration,
-              paymentType: payment_type === 'card' ? 'credit_card' : (payment_type === 'eft' ? 'eft' : 'credit_card'), // Kredi Kartı veya EFT
-              paymentStatus: 'paid', // Ödeme başarılı
-              paymentId: payment.id,
-              notes: appointmentData.notes || null
-            }
-          });
-
-          console.log('✅ [PAYMENT CALLBACK] Appointment created:', appointment.id);
-
-          // Payment'a appointment ID'yi ekle
-          await prisma.payment.update({
-            where: { id: payment.id },
-            data: {
-              appointmentId: appointment.id
-            }
-          });
-
-          // Notification oluştur
-          await prisma.notification.create({
-            data: {
-              id: `notif_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-              tenantId: appointmentData.tenantId,
-              type: 'new_appointment',
-              title: 'Yeni Randevu',
-              message: `${appointmentData.customerName} - ${appointmentData.serviceName} (${appointmentData.date} ${appointmentData.time}) - Ödeme Alındı`,
-              link: `/admin/appointments`,
-              read: false
-            }
-          });
-
-          console.log('✅ [PAYMENT CALLBACK] Notification created');
-
-          // WhatsApp onay mesajı gönder (non-blocking)
-          // Randevu zaten 'confirmed' olarak oluşturuldu, doğrudan WhatsApp API'yi çağırıyoruz
-          console.log('📱 [PAYMENT CALLBACK] Triggering WhatsApp confirmation for appointment:', appointment.id);
-          fetch(`https://admin.netrandevu.com/api/whatsapp/send-confirmation`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ appointmentId: appointment.id })
-          }).then(async res => {
-            const responseText = await res.text();
-            if (res.ok) {
-              console.log('✅ [PAYMENT CALLBACK] WhatsApp confirmation sent successfully:', responseText);
-            } else {
-              console.error('❌ [PAYMENT CALLBACK] WhatsApp API error:', res.status, responseText);
-            }
-          }).catch(err => {
-            console.error('❌ [PAYMENT CALLBACK] WhatsApp API call failed:', err);
-          });
 
         } catch (error) {
           console.error('❌ [PAYMENT CALLBACK] Error creating appointment:', error);

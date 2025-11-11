@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Button, Card, CardContent, CardHeader, CardTitle, Input, formatPhone, normalizePhone, PHONE_PLACEHOLDER, PHONE_MAX_LENGTH, Badge } from '../../components/ui';
+import { Button, Card, CardContent, CardHeader, CardTitle, Input, formatPhone, normalizePhone, PHONE_PLACEHOLDER, PHONE_MAX_LENGTH, Badge, Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '../../components/ui';
 import { ArrowLeft, ArrowRight, Building2, User, Mail, Phone, MapPin, Lock, Check, CreditCard, Calendar, Star } from 'lucide-react';
 
 type Step = 'info' | 'package' | 'payment' | 'success';
@@ -102,13 +102,10 @@ export default function RegisterPage() {
     }
   };
 
-  const [paymentData, setPaymentData] = useState({
-    cardNumber: '',
-    cardName: '',
-    expiryMonth: '',
-    expiryYear: '',
-    cvv: ''
-  });
+  // PayTR iframe states
+  const [showPaymentIframe, setShowPaymentIframe] = useState(false);
+  const [paymentIframeUrl, setPaymentIframeUrl] = useState('');
+  const [paymentLoading, setPaymentLoading] = useState(false);
 
   // Sözleşme onayı
   const [agreementsAccepted, setAgreementsAccepted] = useState(false);
@@ -116,11 +113,6 @@ export default function RegisterPage() {
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
-  };
-
-  const handlePaymentInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setPaymentData(prev => ({ ...prev, [name]: value }));
   };
 
   const validateInfoStep = () => {
@@ -157,22 +149,6 @@ export default function RegisterPage() {
   };
 
   const validatePayment = () => {
-    if (!paymentData.cardNumber || paymentData.cardNumber.length < 16) {
-      setError('Geçerli bir kart numarası giriniz');
-      return false;
-    }
-    if (!paymentData.cardName.trim()) {
-      setError('Kart üzerindeki isim gereklidir');
-      return false;
-    }
-    if (!paymentData.expiryMonth || !paymentData.expiryYear) {
-      setError('Son kullanma tarihi gereklidir');
-      return false;
-    }
-    if (!paymentData.cvv || paymentData.cvv.length < 3) {
-      setError('CVV gereklidir');
-      return false;
-    }
     if (!agreementsAccepted) {
       setError('Sözleşmeleri kabul etmeniz gerekmektedir');
       return false;
@@ -200,8 +176,64 @@ export default function RegisterPage() {
       }
     } else if (currentStep === 'payment') {
       if (validatePayment()) {
-        handleSubmit();
+        handlePaymentInitiate();
       }
+    }
+  };
+
+  const handlePaymentInitiate = async () => {
+    setPaymentLoading(true);
+    setError('');
+
+    const selectedPkg = getSelectedPackage();
+    if (!selectedPkg) {
+      setError('Paket bulunamadı');
+      setPaymentLoading(false);
+      return;
+    }
+
+    try {
+      // Call payment initiate API for business registration
+      const response = await fetch('/api/payment/initiate-registration', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          businessName: formData.businessName,
+          businessType: formData.businessType,
+          businessDescription: formData.businessDescription,
+          address: formData.address,
+          ownerName: formData.ownerName,
+          ownerEmail: formData.ownerEmail,
+          phone: formData.phone,
+          username: formData.username,
+          password: formData.password,
+          subscriptionPlan: formData.subscriptionPlan,
+          packageId: selectedPkg.id,
+          packagePrice: selectedPkg.price,
+          packageName: selectedPkg.name,
+          packageDurationDays: selectedPkg.durationDays
+        })
+      });
+
+      const paymentResult = await response.json();
+
+      if (paymentResult.success && paymentResult.iframeUrl) {
+        console.log('✅ [REGISTER] Payment initiated, opening iframe');
+        setPaymentIframeUrl(paymentResult.iframeUrl);
+        setShowPaymentIframe(true);
+        setPaymentLoading(false);
+      } else {
+        console.error('❌ [REGISTER] Payment initiation failed:', paymentResult);
+        const errorMsg = paymentResult.details
+          ? `${paymentResult.error}: ${paymentResult.details}`
+          : (paymentResult.error || 'Ödeme başlatılamadı');
+        setError(errorMsg);
+        setPaymentLoading(false);
+      }
+    } catch (error) {
+      console.error('❌ [REGISTER] Payment error:', error);
+      setError('Ödeme işlemi başlatılırken hata oluştu');
+      setPaymentLoading(false);
     }
   };
 
@@ -781,84 +813,12 @@ export default function RegisterPage() {
                 </div>
               </div>
 
-              {/* Demo Payment Notice */}
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <p className="text-sm text-blue-800">
-                  <strong>Demo Mod:</strong> Bu bir demo ödeme sayfasıdır. Gerçek ödeme alınmayacaktır.
-                  Herhangi bir kart bilgisi girebilirsiniz.
+              {/* Payment Info Notice */}
+              <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                <p className="text-sm text-green-800">
+                  <strong>💳 Güvenli Ödeme:</strong> PayTR güvenli ödeme sistemi ile ödemenizi tamamlayacaksınız.
+                  "Ödemeye Geç" butonuna tıkladığınızda güvenli ödeme ekranı açılacaktır.
                 </p>
-              </div>
-
-              {/* Payment Form */}
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Kart Numarası *</label>
-                  <Input
-                    name="cardNumber"
-                    value={paymentData.cardNumber}
-                    onChange={handlePaymentInputChange}
-                    placeholder="1234 5678 9012 3456"
-                    maxLength={16}
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Kart Üzerindeki İsim *</label>
-                  <Input
-                    name="cardName"
-                    value={paymentData.cardName}
-                    onChange={handlePaymentInputChange}
-                    placeholder="AD SOYAD"
-                    required
-                  />
-                </div>
-                <div className="grid grid-cols-3 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Ay *</label>
-                    <select
-                      name="expiryMonth"
-                      value={paymentData.expiryMonth}
-                      onChange={handlePaymentInputChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      required
-                    >
-                      <option value="">Ay</option>
-                      {Array.from({ length: 12 }, (_, i) => i + 1).map(month => (
-                        <option key={month} value={month.toString().padStart(2, '0')}>
-                          {month.toString().padStart(2, '0')}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Yıl *</label>
-                    <select
-                      name="expiryYear"
-                      value={paymentData.expiryYear}
-                      onChange={handlePaymentInputChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      required
-                    >
-                      <option value="">Yıl</option>
-                      {Array.from({ length: 10 }, (_, i) => new Date().getFullYear() + i).map(year => (
-                        <option key={year} value={year}>
-                          {year}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">CVV *</label>
-                    <Input
-                      name="cvv"
-                      value={paymentData.cvv}
-                      onChange={handlePaymentInputChange}
-                      placeholder="123"
-                      maxLength={3}
-                      required
-                    />
-                  </div>
-                </div>
               </div>
 
               {/* Sözleşme Onayı */}
@@ -904,18 +864,59 @@ export default function RegisterPage() {
                   <ArrowLeft className="w-4 h-4 mr-2" />
                   Geri
                 </Button>
-                <Button 
-                  onClick={handleNext} 
-                  size="lg" 
-                  disabled={loading || !agreementsAccepted}
+                <Button
+                  onClick={handleNext}
+                  size="lg"
+                  disabled={paymentLoading || !agreementsAccepted}
                   className="bg-gradient-to-r from-green-400 to-blue-500 text-white hover:shadow-xl transition disabled:opacity-50"
                 >
-                  {loading ? 'İşleniyor...' : `${getPlanPrice()} Öde`}
+                  {paymentLoading ? 'Yükleniyor...' : 'Ödemeye Geç'}
+                  <ArrowRight className="w-4 h-4 ml-2" />
                 </Button>
               </div>
             </CardContent>
           </Card>
         )}
+
+        {/* PayTR Payment Iframe Modal */}
+        <Dialog open={showPaymentIframe} onOpenChange={setShowPaymentIframe}>
+          <DialogContent className="sm:max-w-2xl max-h-[90vh]">
+            <DialogHeader>
+              <DialogTitle className="text-center">💳 Güvenli Ödeme</DialogTitle>
+              <DialogDescription className="text-center">
+                PayTR güvenli ödeme sistemi ile ödemenizi tamamlayın
+              </DialogDescription>
+            </DialogHeader>
+            <div className="w-full h-[600px]">
+              {paymentLoading ? (
+                <div className="flex items-center justify-center h-full">
+                  <div className="text-center">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                    <p className="text-gray-600">Ödeme sayfası yükleniyor...</p>
+                  </div>
+                </div>
+              ) : (
+                <iframe
+                  src={paymentIframeUrl}
+                  className="w-full h-full border-0 rounded-lg"
+                  title="PayTR Ödeme"
+                />
+              )}
+            </div>
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowPaymentIframe(false);
+                  setPaymentIframeUrl('');
+                }}
+                className="w-full"
+              >
+                İptal Et
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
         {/* Step 4: Success */}
         {currentStep === 'success' && credentials && (
