@@ -172,8 +172,8 @@ export async function POST(request: NextRequest) {
         time: appointmentData.time,
         duration: appointmentData.duration || service.duration,
         price: appointmentData.price || service.price,
-        status: appointmentStatus, // Ödeme durumuna göre: 'pending' veya 'scheduled'
-        paymentType: 'cash',
+        status: appointmentStatus, // Ödeme durumuna göre: 'pending' veya 'confirmed'
+        paymentType: appointmentData.paymentType || 'cash', // Ödeme tipi (cash, credit_card, package)
         paymentStatus: paymentStatus, // Set payment status
         notes: appointmentData.customerInfo?.notes || appointmentData.notes || '',
         // Store package info if user wants to use package

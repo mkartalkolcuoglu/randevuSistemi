@@ -156,7 +156,7 @@ export async function POST(request: NextRequest) {
               status: 'confirmed', // Kredi kartı ile ödendi - onaylanmış
               price: payment.amount,
               duration: appointmentData.duration,
-              paymentType: payment_type || 'card',
+              paymentType: payment_type === 'card' ? 'credit_card' : (payment_type === 'eft' ? 'eft' : 'credit_card'), // Kredi Kartı veya EFT
               paymentStatus: 'paid', // Ödeme başarılı
               paymentId: payment.id,
               notes: appointmentData.notes || null
@@ -189,20 +189,20 @@ export async function POST(request: NextRequest) {
           console.log('✅ [PAYMENT CALLBACK] Notification created');
 
           // WhatsApp onay mesajı gönder (non-blocking)
-          console.log('📱 [PAYMENT CALLBACK] Sending WhatsApp confirmation for confirmed appointment');
-          const adminApiUrl = process.env.NEXT_PUBLIC_ADMIN_URL || 'https://admin.netrandevu.com';
-          fetch(`${adminApiUrl}/api/whatsapp/send-confirmation`, {
+          // Randevu zaten 'confirmed' olarak oluşturuldu, doğrudan WhatsApp API'yi çağırıyoruz
+          console.log('📱 [PAYMENT CALLBACK] Triggering WhatsApp confirmation');
+          fetch(`https://admin.netrandevu.com/api/whatsapp/send-confirmation`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ appointmentId: appointment.id })
           }).then(res => {
             if (res.ok) {
-              console.log('✅ [PAYMENT CALLBACK] WhatsApp confirmation sent');
+              console.log('✅ [PAYMENT CALLBACK] WhatsApp confirmation API called successfully');
             } else {
-              console.error('❌ [PAYMENT CALLBACK] WhatsApp confirmation failed:', res.status);
+              console.error('❌ [PAYMENT CALLBACK] WhatsApp API returned error:', res.status);
             }
           }).catch(err => {
-            console.error('❌ [PAYMENT CALLBACK] WhatsApp confirmation error:', err);
+            console.error('❌ [PAYMENT CALLBACK] WhatsApp API call failed:', err);
           });
 
         } catch (error) {
