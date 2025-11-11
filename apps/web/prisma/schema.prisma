@@ -230,7 +230,7 @@ model OtpVerification {
 
 model Payment {
   id              String   @id @default(cuid())
-  tenantId        String   @map("tenant_id")
+  tenantId        String?  @map("tenant_id") // Nullable: İşletme kaydı için henüz tenant yok
   appointmentId   String?  @map("appointment_id") // Randevu için ödeme ise
   customerId      String?  @map("customer_id")
   customerName    String?  @map("customer_name")
