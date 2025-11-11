@@ -36,10 +36,142 @@ export default function Home() {
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [phoneNumber, setPhoneNumber] = useState('');
   const [phoneError, setPhoneError] = useState('');
+  const [loginStep, setLoginStep] = useState<'phone' | 'otp'>('phone');
+  const [otp, setOtp] = useState(['', '', '', '', '', '']);
+  const [otpLoading, setOtpLoading] = useState(false);
+  const [otpError, setOtpError] = useState('');
+  const [otpSuccess, setOtpSuccess] = useState('');
+  const [timeLeft, setTimeLeft] = useState(120);
+  const [canResend, setCanResend] = useState(false);
 
   useEffect(() => {
     fetchData();
   }, []);
+
+  // OTP Timer
+  useEffect(() => {
+    if (loginStep === 'otp' && timeLeft > 0) {
+      const timer = setTimeout(() => setTimeLeft(timeLeft - 1), 1000);
+      return () => clearTimeout(timer);
+    } else if (timeLeft === 0) {
+      setCanResend(true);
+    }
+  }, [loginStep, timeLeft]);
+
+  const handleSendOtp = async () => {
+    if (phoneNumber.length < 10) {
+      setPhoneError('Lütfen geçerli bir telefon numarası girin');
+      return;
+    }
+
+    setOtpLoading(true);
+    setPhoneError('');
+    setOtpError('');
+
+    try {
+      const response = await fetch('/api/otp/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          phone: phoneNumber,
+          purpose: 'appointment_query'
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setOtpSuccess('Doğrulama kodu gönderildi');
+        setLoginStep('otp');
+        setTimeLeft(120);
+        setCanResend(false);
+      } else {
+        setPhoneError(data.error || 'SMS gönderilemedi');
+      }
+    } catch (err) {
+      setPhoneError('Bir hata oluştu. Lütfen tekrar deneyin.');
+    } finally {
+      setOtpLoading(false);
+    }
+  };
+
+  const handleOtpChange = (index: number, value: string) => {
+    if (!/^\d*$/.test(value)) return;
+
+    const newOtp = [...otp];
+    newOtp[index] = value.slice(-1);
+    setOtp(newOtp);
+
+    if (value && index < 5) {
+      const nextInput = document.getElementById(`login-otp-${index + 1}`);
+      nextInput?.focus();
+    }
+  };
+
+  const handleOtpKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Backspace' && !otp[index] && index > 0) {
+      const prevInput = document.getElementById(`login-otp-${index - 1}`);
+      prevInput?.focus();
+    }
+  };
+
+  const handleVerifyOtp = async () => {
+    const code = otp.join('');
+
+    if (code.length !== 6) {
+      setOtpError('Lütfen 6 haneli kodu girin');
+      return;
+    }
+
+    setOtpLoading(true);
+    setOtpError('');
+
+    try {
+      const response = await fetch('/api/otp/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          phone: phoneNumber,
+          code,
+          purpose: 'appointment_query'
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setOtpSuccess('Doğrulama başarılı! Yönlendiriliyorsunuz...');
+        setTimeout(() => {
+          router.push(`/randevularim/list?phone=${encodeURIComponent(phoneNumber)}`);
+        }, 1000);
+      } else {
+        setOtpError(data.error || 'Hatalı doğrulama kodu');
+      }
+    } catch (err) {
+      setOtpError('Bir hata oluştu. Lütfen tekrar deneyin.');
+    } finally {
+      setOtpLoading(false);
+    }
+  };
+
+  const handleResendOtp = () => {
+    setOtp(['', '', '', '', '', '']);
+    setOtpError('');
+    setOtpSuccess('');
+    handleSendOtp();
+  };
+
+  const resetLoginModal = () => {
+    setShowLoginModal(false);
+    setLoginStep('phone');
+    setPhoneNumber('');
+    setPhoneError('');
+    setOtp(['', '', '', '', '', '']);
+    setOtpError('');
+    setOtpSuccess('');
+    setTimeLeft(120);
+    setCanResend(false);
+  };
 
   const fetchData = async () => {
     try {
@@ -643,58 +775,135 @@ export default function Home() {
       </section>
 
       {/* Kullanıcı Girişi Modal */}
-      <Dialog open={showLoginModal} onOpenChange={setShowLoginModal}>
+      <Dialog open={showLoginModal} onOpenChange={resetLoginModal}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Kullanıcı Girişi</DialogTitle>
             <DialogDescription>
-              Randevularınızı görüntülemek için kayıtlı telefon numaranızı girin.
+              {loginStep === 'phone'
+                ? 'Randevularınızı görüntülemek için kayıtlı telefon numaranızı girin.'
+                : `${formatPhone(phoneNumber)} numarasına gönderilen 6 haneli kodu girin`
+              }
             </DialogDescription>
           </DialogHeader>
-          <div className="py-4">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Telefon Numarası *
-            </label>
-            <input
-              type="tel"
-              value={formatPhone(phoneNumber)}
-              onChange={(e) => {
-                const normalized = normalizePhone(e.target.value);
-                setPhoneNumber(normalized);
-                setPhoneError('');
-              }}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none"
-              placeholder={PHONE_PLACEHOLDER}
-              maxLength={PHONE_MAX_LENGTH}
-            />
-            {phoneError && (
-              <p className="mt-2 text-sm text-red-600">{phoneError}</p>
-            )}
-          </div>
+
+          {/* Success/Error Messages */}
+          {otpSuccess && (
+            <div className="px-6 py-3 bg-green-50 border border-green-200 rounded-lg">
+              <p className="text-sm text-green-800">{otpSuccess}</p>
+            </div>
+          )}
+          {(phoneError || otpError) && (
+            <div className="px-6 py-3 bg-red-50 border border-red-200 rounded-lg">
+              <p className="text-sm text-red-800">{phoneError || otpError}</p>
+            </div>
+          )}
+
+          {/* Phone Input Step */}
+          {loginStep === 'phone' && (
+            <div className="py-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Telefon Numarası *
+              </label>
+              <input
+                type="tel"
+                value={formatPhone(phoneNumber)}
+                onChange={(e) => {
+                  const normalized = normalizePhone(e.target.value);
+                  setPhoneNumber(normalized);
+                  setPhoneError('');
+                }}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none"
+                placeholder={PHONE_PLACEHOLDER}
+                maxLength={PHONE_MAX_LENGTH}
+                disabled={otpLoading}
+              />
+            </div>
+          )}
+
+          {/* OTP Input Step */}
+          {loginStep === 'otp' && (
+            <div className="py-4 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-3 text-center">
+                  Doğrulama Kodu
+                </label>
+                <div className="flex justify-center space-x-2">
+                  {otp.map((digit, index) => (
+                    <input
+                      key={index}
+                      id={`login-otp-${index}`}
+                      type="text"
+                      inputMode="numeric"
+                      maxLength={1}
+                      value={digit}
+                      onChange={(e) => handleOtpChange(index, e.target.value)}
+                      onKeyDown={(e) => handleOtpKeyDown(index, e)}
+                      className="w-10 h-12 text-center text-xl font-bold border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none"
+                      disabled={otpLoading}
+                    />
+                  ))}
+                </div>
+              </div>
+
+              {/* Timer */}
+              <div className="text-center">
+                {timeLeft > 0 ? (
+                  <p className="text-sm text-gray-600">
+                    Kod {Math.floor(timeLeft / 60)}:{String(timeLeft % 60).padStart(2, '0')} içinde geçersiz olacak
+                  </p>
+                ) : (
+                  <p className="text-sm text-red-600">Kodun süresi doldu</p>
+                )}
+              </div>
+
+              {/* Resend & Back */}
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  onClick={handleResendOtp}
+                  disabled={!canResend || otpLoading}
+                  className="flex-1 text-sm"
+                >
+                  Kodu Tekrar Gönder
+                </Button>
+                <Button
+                  variant="ghost"
+                  onClick={() => setLoginStep('phone')}
+                  disabled={otpLoading}
+                  className="flex-1 text-sm"
+                >
+                  Numarayı Değiştir
+                </Button>
+              </div>
+            </div>
+          )}
+
           <DialogFooter>
-            <Button 
-              variant="outline" 
-              onClick={() => {
-                setShowLoginModal(false);
-                setPhoneNumber('');
-                setPhoneError('');
-              }}
+            <Button
+              variant="outline"
+              onClick={resetLoginModal}
+              disabled={otpLoading}
             >
               İptal
             </Button>
-            <Button
-              onClick={() => {
-                if (!phoneNumber || phoneNumber.length < 10) {
-                  setPhoneError('Lütfen geçerli bir telefon numarası girin');
-                  return;
-                }
-                // OTP doğrulama sayfasına telefon numarasıyla yönlendir
-                router.push(`/randevularim?prefill=${encodeURIComponent(phoneNumber)}`);
-              }}
-              className="bg-[#163974] hover:bg-[#0F2A52]"
-            >
-              Devam Et
-            </Button>
+            {loginStep === 'phone' ? (
+              <Button
+                onClick={handleSendOtp}
+                disabled={otpLoading || !phoneNumber || phoneNumber.length < 10}
+                className="bg-[#163974] hover:bg-[#0F2A52]"
+              >
+                {otpLoading ? 'Gönderiliyor...' : 'Kod Gönder'}
+              </Button>
+            ) : (
+              <Button
+                onClick={handleVerifyOtp}
+                disabled={otpLoading || otp.join('').length !== 6 || timeLeft === 0}
+                className="bg-[#163974] hover:bg-[#0F2A52]"
+              >
+                {otpLoading ? 'Doğrulanıyor...' : 'Doğrula'}
+              </Button>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>
