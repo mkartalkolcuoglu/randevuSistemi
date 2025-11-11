@@ -190,16 +190,17 @@ export async function POST(request: NextRequest) {
 
           // WhatsApp onay mesajı gönder (non-blocking)
           // Randevu zaten 'confirmed' olarak oluşturuldu, doğrudan WhatsApp API'yi çağırıyoruz
-          console.log('📱 [PAYMENT CALLBACK] Triggering WhatsApp confirmation');
+          console.log('📱 [PAYMENT CALLBACK] Triggering WhatsApp confirmation for appointment:', appointment.id);
           fetch(`https://admin.netrandevu.com/api/whatsapp/send-confirmation`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ appointmentId: appointment.id })
-          }).then(res => {
+          }).then(async res => {
+            const responseText = await res.text();
             if (res.ok) {
-              console.log('✅ [PAYMENT CALLBACK] WhatsApp confirmation API called successfully');
+              console.log('✅ [PAYMENT CALLBACK] WhatsApp confirmation sent successfully:', responseText);
             } else {
-              console.error('❌ [PAYMENT CALLBACK] WhatsApp API returned error:', res.status);
+              console.error('❌ [PAYMENT CALLBACK] WhatsApp API error:', res.status, responseText);
             }
           }).catch(err => {
             console.error('❌ [PAYMENT CALLBACK] WhatsApp API call failed:', err);
