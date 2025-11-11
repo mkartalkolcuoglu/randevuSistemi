@@ -393,6 +393,7 @@ export default function RandevuPage({ params }: PageProps) {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             tenantId: tenant?.id || slug,
+            tenantSlug: slug, // Tenant slug'ı ekle (success sayfası için)
             customerId: existingCustomer?.id || null,
             customerName: customerInfo.name,
             customerEmail: customerInfo.email,
