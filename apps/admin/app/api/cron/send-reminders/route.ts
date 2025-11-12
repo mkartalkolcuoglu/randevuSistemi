@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '../../../../lib/prisma';
-import { formatPhone } from '../../../../lib/netgsm-client';
+import { formatPhoneForSMS } from '../../../../lib/netgsm-client';
 
 /**
  * Cron Job: Send appointment reminders 2 hours before
@@ -82,7 +82,7 @@ export async function GET(request: NextRequest) {
         console.log(`📲 [CRON] Sending reminder for appointment ${appointment.id}`);
 
         // Format phone number
-        const phoneNumber = formatPhone(appointment.customerPhone);
+        const phoneNumber = formatPhoneForSMS(appointment.customerPhone);
 
         // Prepare message templates
         const whatsappMessage = `Merhaba ${appointment.customerName},
