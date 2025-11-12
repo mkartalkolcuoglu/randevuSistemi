@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { Button, Input, Label, Textarea, Card, CardContent, CardHeader, CardTitle, Switch } from '@repo/ui';
+import { Button, Input, Label, Textarea, Card, CardContent, CardHeader, CardTitle, Switch } from '@/components/ui';
 import { ArrowLeft, Save, Plus, X } from 'lucide-react';
 import Link from 'next/link';
 import StaffAuthForm from '../../new/staff-form-with-auth';

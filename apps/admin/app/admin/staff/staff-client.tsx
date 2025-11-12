@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { Button, Input, Card, CardContent, CardHeader, CardTitle, Badge } from '@repo/ui';
+import { Button, Input, Card, CardContent, CardHeader, CardTitle, Badge } from '@/components/ui';
 import { Plus, Search, Edit, Trash2, Phone, Mail, Calendar, User, Star, Clock, Users, Scissors } from 'lucide-react';
 import Link from 'next/link';
 import AdminHeader from '../admin-header';

@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { ChevronUp, ChevronDown, Search } from 'lucide-react';
-import { Input } from '@repo/ui';
+import { Input } from '@/components/ui';
 
 export interface Column<T> {
   key: string;

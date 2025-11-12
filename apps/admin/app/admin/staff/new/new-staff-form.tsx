@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Button, Input, Label, Textarea, Card, CardContent, CardHeader, CardTitle, Switch, formatPhone, normalizePhone, PHONE_PLACEHOLDER, PHONE_MAX_LENGTH } from '@repo/ui';
+import { Button, Input, Label, Textarea, Card, CardContent, CardHeader, CardTitle, Switch, formatPhone, normalizePhone, PHONE_PLACEHOLDER, PHONE_MAX_LENGTH } from '@/components/ui';
 import { ChevronLeft, Save, Plus, X } from 'lucide-react';
 import Link from 'next/link';
 import StaffAuthForm from './staff-form-with-auth';

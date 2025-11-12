@@ -1,4 +1,4 @@
-import { Card, CardContent, CardHeader, CardTitle, Badge } from '@repo/ui';
+import { Card, CardContent, CardHeader, CardTitle, Badge } from '@/components/ui';
 
 export const dynamic = 'force-dynamic';
 import { 

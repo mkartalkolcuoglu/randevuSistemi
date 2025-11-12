@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { Button, Card, CardContent, CardHeader, CardTitle, Badge } from '@repo/ui';
+import { Button, Card, CardContent, CardHeader, CardTitle, Badge } from '@/components/ui';
 import { ArrowLeft, Edit, Trash2, Phone, Mail, Calendar, MapPin, User, Clock, DollarSign, Gift, Package } from 'lucide-react';
 import Link from 'next/link';
 

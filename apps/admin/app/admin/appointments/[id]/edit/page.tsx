@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { Button, Input, Label, Textarea, Card, CardContent, CardHeader, CardTitle } from '@repo/ui';
+import { Button, Input, Label, Textarea, Card, CardContent, CardHeader, CardTitle } from '@/components/ui';
 import { ArrowLeft, Save } from 'lucide-react';
 import Link from 'next/link';
 import { generateTimeSlots, parseWorkingHours, getWorkingHoursForDay, type WorkingHours } from '../../../../../lib/time-slots';

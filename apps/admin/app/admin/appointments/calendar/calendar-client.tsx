@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Card, CardContent, CardHeader, CardTitle, Button, Badge } from '@repo/ui';
+import { Card, CardContent, CardHeader, CardTitle, Button, Badge } from '@/components/ui';
 import { ArrowLeft, ChevronLeft, ChevronRight, X, Calendar, Clock, User, MapPin, DollarSign, Package } from 'lucide-react';
 import AdminHeader from '../../admin-header';
 import type { ClientUser } from '../../../../lib/client-permissions';

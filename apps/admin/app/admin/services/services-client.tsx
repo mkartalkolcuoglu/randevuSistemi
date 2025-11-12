@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Button, Input, Card, CardContent, CardDescription, CardHeader, CardTitle, Badge } from '@repo/ui';
+import { Button, Input, Card, CardContent, CardDescription, CardHeader, CardTitle, Badge } from '@/components/ui';
 import { Plus, Search, Edit3, Trash2, Clock, DollarSign, Eye, Briefcase } from 'lucide-react';
 import { apiClient } from '../../../lib/api-client';
 import AdminHeader from '../admin-header';

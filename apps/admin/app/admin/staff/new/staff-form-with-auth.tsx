@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { Button, Input, Label, Card, CardContent, CardHeader, CardTitle } from '@repo/ui';
+import { Button, Input, Label, Card, CardContent, CardHeader, CardTitle } from '@/components/ui';
 import { Lock, User, Shield, Eye, EyeOff } from 'lucide-react';
 import { DEFAULT_STAFF_PERMISSIONS, PAGE_NAMES, type StaffPermissions } from '../../../../lib/permissions';
 

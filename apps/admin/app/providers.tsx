@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from 'react';
-import { AlertProvider, setGlobalAlertContext, useAlert } from '@repo/ui';
+import { AlertProvider, setGlobalAlertContext, useAlert } from '@/components/ui';
 
 function AlertContextInitializer() {
   const alertContext = useAlert();

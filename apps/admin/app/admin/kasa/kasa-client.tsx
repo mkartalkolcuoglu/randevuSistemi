@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Button, Card, CardContent, CardHeader, CardTitle, Badge } from '@repo/ui';
+import { Button, Card, CardContent, CardHeader, CardTitle, Badge } from '@/components/ui';
 import {
   DollarSign,
   TrendingUp,

@@ -1,7 +1,7 @@
 "use client";
 
 import { Shield, ArrowLeft } from 'lucide-react';
-import { Button, Card, CardContent } from '@repo/ui';
+import { Button, Card, CardContent } from '@/components/ui';
 import Link from 'next/link';
 
 export default function UnauthorizedAccess() {

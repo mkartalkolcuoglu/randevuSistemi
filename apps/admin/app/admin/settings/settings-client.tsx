@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, Button, Tabs, TabsList, TabsTrigger, TabsContent, formatPhone, normalizePhone, PHONE_PLACEHOLDER, PHONE_MAX_LENGTH } from '@repo/ui';
+import { Card, CardContent, CardHeader, CardTitle, Button, Tabs, TabsList, TabsTrigger, TabsContent, formatPhone, normalizePhone, PHONE_PLACEHOLDER, PHONE_MAX_LENGTH } from '@/components/ui';
 import { Save, Palette, Building2, User, Key, Clock, Upload, ArrowLeft, MapPin, Settings } from 'lucide-react';
 import AdminHeader from '../admin-header';
 import type { ClientUser } from '../../../lib/client-permissions';

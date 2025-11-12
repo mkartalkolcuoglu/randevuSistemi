@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { Button, Input, Label, Card, CardContent, CardHeader, CardTitle, Badge } from '@repo/ui';
+import { Button, Input, Label, Card, CardContent, CardHeader, CardTitle, Badge } from '@/components/ui';
 import { Plus, Package, Edit, Trash2, Save, X, Search } from 'lucide-react';
 import AdminHeader from '../admin-header';
 import type { ClientUser } from '../../../lib/client-permissions';

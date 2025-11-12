@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { Button, Input, Card, CardContent, CardHeader, CardTitle, Badge } from '@repo/ui';
+import { Button, Input, Card, CardContent, CardHeader, CardTitle, Badge } from '@/components/ui';
 import { Plus, Search, Edit, Calendar, Clock, User, AlertTriangle, CheckCircle, Trash2, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 

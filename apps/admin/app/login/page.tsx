@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Button, Input, Card, CardContent, CardHeader, CardTitle } from '@repo/ui';
+import { Button, Input, Card, CardContent, CardHeader, CardTitle } from '@/components/ui';
 import { LogIn, User, Lock, AlertCircle } from 'lucide-react';
 
 export default function LoginPage() {

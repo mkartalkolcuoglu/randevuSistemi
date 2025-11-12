@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { Card, CardContent, CardHeader, CardTitle, Button, Badge, Input } from '@repo/ui';
+import { Card, CardContent, CardHeader, CardTitle, Button, Badge, Input } from '@/components/ui';
 import { Plus, Search, Calendar, Clock, User, Edit, Trash2, ArrowLeft, MessageCircle, Eye } from 'lucide-react';
 import AdminHeader from '../admin-header';
 import { DataTable, Column } from '../../../components/DataTable';

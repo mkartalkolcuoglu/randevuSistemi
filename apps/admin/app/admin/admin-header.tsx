@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Button } from '@repo/ui';
+import { Button } from '@/components/ui';
 import { LogOut, User, Home, Calendar, Users, Briefcase, Package, Settings, Wallet, Gift, Clock, BarChart3, Menu, X, Bell, XCircle, Star } from 'lucide-react';
 import Link from 'next/link';
 import type { ClientUser } from '../../lib/client-permissions';

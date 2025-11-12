@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { Button, Input, Card, CardContent, CardHeader, CardTitle, Badge, AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@repo/ui';
+import { Button, Input, Card, CardContent, CardHeader, CardTitle, Badge, AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui';
 import { Plus, Search, Edit, Trash2, Phone, Mail, Calendar, User, AlertCircle, CheckCircle, AlertTriangle, XCircle, Download, Upload, FileSpreadsheet } from 'lucide-react';
 import Link from 'next/link';
 import AdminHeader from '../admin-header';
