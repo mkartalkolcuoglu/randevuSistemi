@@ -26,6 +26,8 @@ export function middleware(request: NextRequest) {
     '/api/customer-packages/check',  // Allow web app to check customer packages
     '/api/public',  // ✅ Allow all public API routes (tenant, check-blacklist, etc.)
     '/api/whatsapp',  // ✅ Allow WhatsApp API routes (internal use, will check auth in route)
+    '/api/whapi',  // ✅ Allow Whapi API routes (for cron jobs)
+    '/api/netgsm',  // ✅ Allow NetGSM API routes (for cron jobs)
     '/api/cron',  // ✅ Allow cron job routes (protected by CRON_SECRET)
     '/api/tenants/sync',
     '/favicon.ico',
