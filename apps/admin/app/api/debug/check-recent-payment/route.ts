@@ -61,8 +61,7 @@ export async function GET(request: NextRequest) {
         paymentType: recentPayment.paymentType,
         createdAt: recentPayment.createdAt,
         paidAt: recentPayment.paidAt,
-        appointmentId: recentPayment.appointmentId,
-        tenantId: recentPayment.tenantId
+        appointmentId: recentPayment.appointmentId
       },
       basketData,
       appointment: appointment ? {
