@@ -284,25 +284,56 @@ export async function POST(request: NextRequest) {
 
             // 💰 KASA'YA TRANSACTION EKLE
             console.log('💰 [PAYMENT CALLBACK] Creating transaction for kasa...');
+            console.log('💰 [PAYMENT CALLBACK] Transaction data:', JSON.stringify({
+              tenantId: appointmentData.tenantId,
+              type: 'appointment',
+              amount: payment.amount,
+              description: `Randevu: ${appointmentData.serviceName} - ${appointmentData.customerName}`,
+              paymentType: payment_type === 'card' ? 'card' : (payment_type === 'eft' ? 'eft' : 'card'),
+              customerId: appointmentData.customerId,
+              customerName: appointmentData.customerName,
+              appointmentId: appointment.id,
+              date: appointmentData.date,
+              profit: 0
+            }, null, 2));
+
             try {
+              const transactionData = {
+                tenantId: appointmentData.tenantId,
+                type: 'appointment',
+                amount: payment.amount,
+                description: `Randevu: ${appointmentData.serviceName} - ${appointmentData.customerName}`,
+                paymentType: payment_type === 'card' ? 'card' : (payment_type === 'eft' ? 'eft' : 'card'),
+                customerId: appointmentData.customerId,
+                customerName: appointmentData.customerName,
+                appointmentId: appointment.id,
+                date: appointmentData.date,
+                profit: 0
+              };
+
               const transaction = await prisma.transaction.create({
-                data: {
-                  tenantId: appointmentData.tenantId,
-                  type: 'appointment',
-                  amount: payment.amount,
-                  description: `Randevu: ${appointmentData.serviceName} - ${appointmentData.customerName}`,
-                  paymentType: payment_type === 'card' ? 'card' : (payment_type === 'eft' ? 'eft' : 'card'),
-                  customerId: appointmentData.customerId,
-                  customerName: appointmentData.customerName,
-                  appointmentId: appointment.id,
-                  date: appointmentData.date,
-                  profit: 0 // Appointments don't have cost/profit calculation
-                }
+                data: transactionData
               });
               console.log('✅ [PAYMENT CALLBACK] Transaction created for kasa:', transaction.id);
-            } catch (transactionError) {
-              console.error('❌ [PAYMENT CALLBACK] Error creating transaction:', transactionError);
-              // Don't throw - appointment was created successfully
+            } catch (transactionError: any) {
+              console.error('❌ [PAYMENT CALLBACK] Error creating transaction:', {
+                error: transactionError,
+                message: transactionError?.message,
+                stack: transactionError?.stack,
+                code: transactionError?.code,
+                meta: transactionError?.meta
+              });
+              // Store error in payment notes for debugging
+              try {
+                await prisma.payment.update({
+                  where: { id: payment.id },
+                  data: {
+                    failedReason: `Transaction creation failed: ${transactionError?.message || JSON.stringify(transactionError)}`
+                  }
+                });
+              } catch (e) {
+                console.error('❌ Failed to update payment with error:', e);
+              }
             }
 
             // Payment'a appointment ID'yi ekle
