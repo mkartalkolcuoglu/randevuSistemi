@@ -21,46 +21,37 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Calculate time range: 10 minutes from now (with 5-minute window for 5-min cron)
+    // Calculate time range: exactly 10 minutes from now (no range, just 10 minutes)
     const now = new Date();
     const tenMinutesLater = new Date(now.getTime() + 10 * 60 * 1000);
-    const fifteenMinutesLater = new Date(now.getTime() + 15 * 60 * 1000);
 
     console.log('📅 [CRON] Time range:', {
       now: now.toISOString(),
       nowLocal: now.toLocaleString('tr-TR', { timeZone: 'Europe/Istanbul' }),
-      rangeStart: tenMinutesLater.toISOString(),
-      rangeStartLocal: tenMinutesLater.toLocaleString('tr-TR', { timeZone: 'Europe/Istanbul' }),
-      rangeEnd: fifteenMinutesLater.toISOString(),
-      rangeEndLocal: fifteenMinutesLater.toLocaleString('tr-TR', { timeZone: 'Europe/Istanbul' })
+      tenMinutesLater: tenMinutesLater.toISOString(),
+      tenMinutesLaterLocal: tenMinutesLater.toLocaleString('tr-TR', { timeZone: 'Europe/Istanbul' })
     });
 
     // Format dates for database query (YYYY-MM-DD) - using Turkey timezone
     const turkeyNow = new Date(now.toLocaleString('en-US', { timeZone: 'Europe/Istanbul' }));
     const turkeyTenMin = new Date(turkeyNow.getTime() + 10 * 60 * 1000);
-    const turkeyFifteenMin = new Date(turkeyNow.getTime() + 15 * 60 * 1000);
 
     const dateStr = turkeyTenMin.toISOString().split('T')[0];
 
-    // Format times for database query (HH:MM)
-    const timeStart = turkeyTenMin.toTimeString().substring(0, 5);
-    const timeEnd = turkeyFifteenMin.toTimeString().substring(0, 5);
+    // Format time for database query (HH:MM) - exact 10 minute time
+    const timeExact = turkeyTenMin.toTimeString().substring(0, 5);
 
     console.log('🔍 [CRON] Querying appointments:', {
       dateStr,
-      timeStart,
-      timeEnd,
+      timeExact,
       timezone: 'Europe/Istanbul'
     });
 
-    // Find appointments that need reminders
+    // Find appointments that need reminders - exact time match
     const appointments = await prisma.appointment.findMany({
       where: {
         date: dateStr,
-        time: {
-          gte: timeStart,
-          lte: timeEnd
-        },
+        time: timeExact,
         status: {
           in: ['confirmed', 'pending'] // Only send reminders for active appointments
         }
@@ -105,7 +96,7 @@ export async function GET(request: NextRequest) {
         success: true,
         message: 'No appointments need reminders',
         count: 0,
-        queryParams: { dateStr, timeStart, timeEnd },
+        queryParams: { dateStr, timeExact },
         allTodayCount: allTodayAppointments.length
       });
     }

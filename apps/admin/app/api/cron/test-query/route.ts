@@ -7,43 +7,34 @@ import { prisma } from '../../../../lib/prisma';
  */
 export async function GET(request: NextRequest) {
   try {
-    // Calculate time range: 10 minutes from now (with 5-minute window for 5-min cron)
+    // Calculate time range: exactly 10 minutes from now
     const now = new Date();
     const tenMinutesLater = new Date(now.getTime() + 10 * 60 * 1000);
-    const fifteenMinutesLater = new Date(now.getTime() + 15 * 60 * 1000);
 
     // Format dates for database query (YYYY-MM-DD) - using Turkey timezone
     const turkeyNow = new Date(now.toLocaleString('en-US', { timeZone: 'Europe/Istanbul' }));
     const turkeyTenMin = new Date(turkeyNow.getTime() + 10 * 60 * 1000);
-    const turkeyFifteenMin = new Date(turkeyNow.getTime() + 15 * 60 * 1000);
 
     const dateStr = turkeyTenMin.toISOString().split('T')[0];
 
-    // Format times for database query (HH:MM)
-    const timeStart = turkeyTenMin.toTimeString().substring(0, 5);
-    const timeEnd = turkeyFifteenMin.toTimeString().substring(0, 5);
+    // Format time for database query (HH:MM) - exact time
+    const timeExact = turkeyTenMin.toTimeString().substring(0, 5);
 
     const queryInfo = {
       now: now.toISOString(),
       nowLocal: now.toLocaleString('tr-TR', { timeZone: 'Europe/Istanbul' }),
-      rangeStart: tenMinutesLater.toISOString(),
-      rangeStartLocal: tenMinutesLater.toLocaleString('tr-TR', { timeZone: 'Europe/Istanbul' }),
-      rangeEnd: fifteenMinutesLater.toISOString(),
-      rangeEndLocal: fifteenMinutesLater.toLocaleString('tr-TR', { timeZone: 'Europe/Istanbul' }),
+      tenMinutesLater: tenMinutesLater.toISOString(),
+      tenMinutesLaterLocal: tenMinutesLater.toLocaleString('tr-TR', { timeZone: 'Europe/Istanbul' }),
       dateStr,
-      timeStart,
-      timeEnd,
+      timeExact,
       timezone: 'Europe/Istanbul'
     };
 
-    // Find appointments that need reminders
+    // Find appointments that need reminders - exact time match
     const appointments = await prisma.appointment.findMany({
       where: {
         date: dateStr,
-        time: {
-          gte: timeStart,
-          lte: timeEnd
-        },
+        time: timeExact,
         status: {
           in: ['confirmed', 'pending']
         }
