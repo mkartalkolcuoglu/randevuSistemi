@@ -47,14 +47,6 @@ export async function GET(request: NextRequest) {
         status: {
           in: ['confirmed', 'pending']
         }
-      },
-      include: {
-        tenant: {
-          select: {
-            businessName: true,
-            address: true
-          }
-        }
       }
     });
 
@@ -86,7 +78,7 @@ export async function GET(request: NextRequest) {
         customer: a.customerName,
         phone: a.customerPhone,
         status: a.status,
-        businessName: a.tenant?.businessName
+        tenantId: a.tenantId
       })),
       allTodayAppointments,
       count: appointments.length,

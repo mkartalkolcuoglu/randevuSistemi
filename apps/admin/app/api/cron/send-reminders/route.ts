@@ -64,14 +64,6 @@ export async function GET(request: NextRequest) {
         status: {
           in: ['confirmed', 'pending'] // Only send reminders for active appointments
         }
-      },
-      include: {
-        tenant: {
-          select: {
-            businessName: true,
-            address: true
-          }
-        }
       }
     });
 
@@ -133,24 +125,30 @@ export async function GET(request: NextRequest) {
           continue;
         }
 
+        // Get tenant info for the appointment
+        const tenant = await prisma.tenant.findUnique({
+          where: { id: appointment.tenantId },
+          select: { businessName: true, address: true }
+        });
+
         // Format phone number
         const phoneNumber = formatPhoneForSMS(appointment.customerPhone);
 
         // Prepare message templates
         const whatsappMessage = `Merhaba ${appointment.customerName},
 
-${appointment.tenant?.businessName || 'Randevu'} randevunuz 10 dakika sonra!
+${tenant?.businessName || 'Randevu'} randevunuz 10 dakika sonra!
 
 📅 Tarih: ${appointment.date}
 🕐 Saat: ${appointment.time}
 💇 Hizmet: ${appointment.serviceName}
 👤 Personel: ${appointment.staffName}
 
-${appointment.tenant?.address ? `Adres: ${appointment.tenant.address}` : ''}
+${tenant?.address ? `Adres: ${tenant.address}` : ''}
 
 Görüşmek üzere!`;
 
-        const smsMessage = `${appointment.tenant?.businessName || 'Randevu'} randevunuz 10 dakika sonra. Tarih: ${appointment.date}, Saat: ${appointment.time}, Hizmet: ${appointment.serviceName}. Görüşmek üzere!`;
+        const smsMessage = `${tenant?.businessName || 'Randevu'} randevunuz 10 dakika sonra. Tarih: ${appointment.date}, Saat: ${appointment.time}, Hizmet: ${appointment.serviceName}. Görüşmek üzere!`;
 
         // Send WhatsApp reminder
         const whatsappResponse = await fetch(`${process.env.NEXT_PUBLIC_ADMIN_URL || 'https://admin.netrandevu.com'}/api/whapi/send-message`, {
