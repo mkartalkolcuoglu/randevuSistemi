@@ -14,7 +14,7 @@
     },
     {
       "path": "/api/cron/daily-staff-reminder",
-      "schedule": "5 11 * * *"
+      "schedule": "30 5 * * *"
     }
   ]
 }
