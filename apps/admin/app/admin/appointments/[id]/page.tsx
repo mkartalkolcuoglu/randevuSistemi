@@ -213,8 +213,10 @@ export default function AppointmentDetailPage() {
     switch (type) {
       case 'cash':
         return 'bg-green-100 text-green-800';
+      case 'card':
       case 'credit_card':
         return 'bg-blue-100 text-blue-800';
+      case 'eft':
       case 'bank_transfer':
         return 'bg-purple-100 text-purple-800';
       default:
@@ -226,8 +228,10 @@ export default function AppointmentDetailPage() {
     switch (type) {
       case 'cash':
         return 'Nakit';
+      case 'card':
       case 'credit_card':
         return 'Kredi Kartı';
+      case 'eft':
       case 'bank_transfer':
         return 'Havale';
       default:
