@@ -298,6 +298,35 @@ export async function POST(request: NextRequest) {
 
       console.log('✅ Appointment created:', newAppointment.id, 'with package:', data.usePackageForService);
 
+      // 💰 Create transaction if status is completed or confirmed
+      if (newAppointment.status === 'completed' || newAppointment.status === 'confirmed') {
+        console.log('💰 [APPOINTMENT] Creating transaction for kasa...');
+        try {
+          // Only create transaction if no package was used
+          if (!data.usePackageForService) {
+            const transaction = await prisma.transaction.create({
+              data: {
+                tenantId: tenant.id,
+                type: 'appointment',
+                amount: newAppointment.price || 0,
+                description: `Randevu: ${data.serviceName} - ${data.customerName}`,
+                paymentType: newAppointment.paymentType,
+                customerId: customer.id,
+                customerName: data.customerName,
+                appointmentId: newAppointment.id,
+                date: newAppointment.date,
+                profit: 0
+              }
+            });
+            console.log('✅ [APPOINTMENT] Transaction created for kasa:', transaction.id);
+          } else {
+            console.log('⏭️  [APPOINTMENT] Skipping transaction - package used');
+          }
+        } catch (transactionError) {
+          console.error('❌ [APPOINTMENT] Error creating transaction:', transactionError);
+        }
+      }
+
       // Create notification for new appointment (non-blocking)
       console.log('🔔 [APPOINTMENT] Creating notification for tenantId:', tenant.id);
       prisma.notification.create({
@@ -398,6 +427,35 @@ export async function POST(request: NextRequest) {
     });
 
     console.log('✅ Admin appointment created:', newAppointment.id);
+
+    // 💰 Create transaction if status is completed or confirmed
+    if (newAppointment.status === 'completed' || newAppointment.status === 'confirmed') {
+      console.log('💰 [ADMIN-APPOINTMENT] Creating transaction for kasa...');
+      try {
+        // Only create transaction if no package was used
+        if (!data.packageInfo) {
+          const transaction = await prisma.transaction.create({
+            data: {
+              tenantId: customer.tenantId,
+              type: 'appointment',
+              amount: newAppointment.price || 0,
+              description: `Randevu: ${service.name} - ${customer.firstName} ${customer.lastName}`,
+              paymentType: newAppointment.paymentType,
+              customerId: customer.id,
+              customerName: `${customer.firstName} ${customer.lastName}`,
+              appointmentId: newAppointment.id,
+              date: newAppointment.date,
+              profit: 0
+            }
+          });
+          console.log('✅ [ADMIN-APPOINTMENT] Transaction created for kasa:', transaction.id);
+        } else {
+          console.log('⏭️  [ADMIN-APPOINTMENT] Skipping transaction - package used');
+        }
+      } catch (transactionError) {
+        console.error('❌ [ADMIN-APPOINTMENT] Error creating transaction:', transactionError);
+      }
+    }
 
     // Create notification for new appointment (non-blocking)
     console.log('🔔 [ADMIN-APPOINTMENT] Creating notification for tenantId:', customer.tenantId);
