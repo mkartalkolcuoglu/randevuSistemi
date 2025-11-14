@@ -3,10 +3,10 @@ import { prisma } from '../../../../lib/prisma';
 import { formatPhoneForSMS } from '../../../../lib/netgsm-client';
 
 /**
- * Cron Job: Send appointment reminders 10 minutes before
+ * Cron Job: Send appointment reminders 2 hours before
  *
  * This endpoint is called by Vercel Cron every 5 minutes
- * It finds appointments that are 10 minutes away and sends WhatsApp + SMS reminders
+ * It finds appointments that are 2 hours away and sends WhatsApp + SMS reminders
  *
  * GET /api/cron/send-reminders
  */
@@ -21,25 +21,25 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Calculate time range: exactly 10 minutes from now (no range, just 10 minutes)
+    // Calculate time range: exactly 2 hours from now (120 minutes)
     const now = new Date();
-    const tenMinutesLater = new Date(now.getTime() + 10 * 60 * 1000);
+    const twoHoursLater = new Date(now.getTime() + 120 * 60 * 1000);
 
     console.log('📅 [CRON] Time range:', {
       now: now.toISOString(),
       nowLocal: now.toLocaleString('tr-TR', { timeZone: 'Europe/Istanbul' }),
-      tenMinutesLater: tenMinutesLater.toISOString(),
-      tenMinutesLaterLocal: tenMinutesLater.toLocaleString('tr-TR', { timeZone: 'Europe/Istanbul' })
+      twoHoursLater: twoHoursLater.toISOString(),
+      twoHoursLaterLocal: twoHoursLater.toLocaleString('tr-TR', { timeZone: 'Europe/Istanbul' })
     });
 
     // Format dates for database query (YYYY-MM-DD) - using Turkey timezone
     const turkeyNow = new Date(now.toLocaleString('en-US', { timeZone: 'Europe/Istanbul' }));
-    const turkeyTenMin = new Date(turkeyNow.getTime() + 10 * 60 * 1000);
+    const turkeyTwoHours = new Date(turkeyNow.getTime() + 120 * 60 * 1000);
 
-    const dateStr = turkeyTenMin.toISOString().split('T')[0];
+    const dateStr = turkeyTwoHours.toISOString().split('T')[0];
 
-    // Format time for database query (HH:MM) - exact 10 minute time
-    const timeExact = turkeyTenMin.toTimeString().substring(0, 5);
+    // Format time for database query (HH:MM) - exact 2 hour time
+    const timeExact = turkeyTwoHours.toTimeString().substring(0, 5);
 
     console.log('🔍 [CRON] Querying appointments:', {
       dateStr,
@@ -73,7 +73,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Also query and log ALL today's appointments for debugging
-    const todayStr = turkeyTenMin.toISOString().split('T')[0];
+    const todayStr = turkeyTwoHours.toISOString().split('T')[0];
     const allTodayAppointments = await prisma.appointment.findMany({
       where: {
         date: todayStr,
@@ -128,7 +128,7 @@ export async function GET(request: NextRequest) {
         // Prepare message templates
         const whatsappMessage = `Merhaba ${appointment.customerName},
 
-${tenant?.businessName || 'Randevu'} randevunuz 10 dakika sonra!
+${tenant?.businessName || 'Randevu'} randevunuz 2 saat sonra!
 
 📅 Tarih: ${appointment.date}
 🕐 Saat: ${appointment.time}
@@ -139,7 +139,7 @@ ${tenant?.address ? `Adres: ${tenant.address}` : ''}
 
 Görüşmek üzere!`;
 
-        const smsMessage = `${tenant?.businessName || 'Randevu'} randevunuz 10 dakika sonra. Tarih: ${appointment.date}, Saat: ${appointment.time}, Hizmet: ${appointment.serviceName}. Görüşmek üzere!`;
+        const smsMessage = `${tenant?.businessName || 'Randevu'} randevunuz 2 saat sonra. Tarih: ${appointment.date}, Saat: ${appointment.time}, Hizmet: ${appointment.serviceName}. Görüşmek üzere!`;
 
         // Send WhatsApp reminder
         const whatsappResponse = await fetch(`${process.env.NEXT_PUBLIC_ADMIN_URL || 'https://admin.netrandevu.com'}/api/whapi/send-message`, {
