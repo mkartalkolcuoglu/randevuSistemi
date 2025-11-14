@@ -20,14 +20,15 @@ export function middleware(request: NextRequest) {
 
   // Public paths that don't require authentication
   const publicPaths = [
-    '/login', 
-    '/api/auth/login', 
-    '/api/appointments', 
+    '/login',
+    '/api/auth/login',
+    '/api/appointments',
     '/api/customer-packages/check',  // Allow web app to check customer packages
     '/api/public',  // ✅ Allow all public API routes (tenant, check-blacklist, etc.)
     '/api/whatsapp',  // ✅ Allow WhatsApp API routes (internal use, will check auth in route)
-    '/api/tenants/sync', 
-    '/favicon.ico', 
+    '/api/cron',  // ✅ Allow cron job routes (protected by CRON_SECRET)
+    '/api/tenants/sync',
+    '/favicon.ico',
     '/_next'
   ];
   

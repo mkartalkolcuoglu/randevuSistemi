@@ -3,10 +3,10 @@ import { prisma } from '../../../../lib/prisma';
 import { formatPhoneForSMS } from '../../../../lib/netgsm-client';
 
 /**
- * Cron Job: Send appointment reminders 2 hours before
+ * Cron Job: Send appointment reminders 10 minutes before
  *
  * This endpoint is called by Vercel Cron every 15 minutes
- * It finds appointments that are 2 hours away and sends WhatsApp + SMS reminders
+ * It finds appointments that are 10 minutes away and sends WhatsApp + SMS reminders
  *
  * GET /api/cron/send-reminders
  */
@@ -21,23 +21,23 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Calculate time range: 2 hours from now (with 15-minute window)
+    // Calculate time range: 10 minutes from now (with 15-minute window)
     const now = new Date();
-    const twoHoursLater = new Date(now.getTime() + 2 * 60 * 60 * 1000);
-    const twoHours15MinLater = new Date(now.getTime() + (2 * 60 + 15) * 60 * 1000);
+    const tenMinutesLater = new Date(now.getTime() + 10 * 60 * 1000);
+    const twentyFiveMinutesLater = new Date(now.getTime() + 25 * 60 * 1000);
 
     console.log('📅 [CRON] Time range:', {
       now: now.toISOString(),
-      rangeStart: twoHoursLater.toISOString(),
-      rangeEnd: twoHours15MinLater.toISOString()
+      rangeStart: tenMinutesLater.toISOString(),
+      rangeEnd: twentyFiveMinutesLater.toISOString()
     });
 
     // Format dates for database query (YYYY-MM-DD)
-    const dateStr = twoHoursLater.toISOString().split('T')[0];
+    const dateStr = tenMinutesLater.toISOString().split('T')[0];
 
     // Format times for database query (HH:MM)
-    const timeStart = twoHoursLater.toTimeString().substring(0, 5);
-    const timeEnd = twoHours15MinLater.toTimeString().substring(0, 5);
+    const timeStart = tenMinutesLater.toTimeString().substring(0, 5);
+    const timeEnd = twentyFiveMinutesLater.toTimeString().substring(0, 5);
 
     console.log('🔍 [CRON] Querying appointments:', { dateStr, timeStart, timeEnd });
 
@@ -81,13 +81,20 @@ export async function GET(request: NextRequest) {
       try {
         console.log(`📲 [CRON] Sending reminder for appointment ${appointment.id}`);
 
+        // Skip if no phone number
+        if (!appointment.customerPhone) {
+          console.warn(`⚠️ [CRON] No phone number for appointment ${appointment.id}`);
+          errorCount++;
+          continue;
+        }
+
         // Format phone number
         const phoneNumber = formatPhoneForSMS(appointment.customerPhone);
 
         // Prepare message templates
         const whatsappMessage = `Merhaba ${appointment.customerName},
 
-${appointment.tenant?.businessName || 'Randevu'} randevunuz 2 saat sonra!
+${appointment.tenant?.businessName || 'Randevu'} randevunuz 10 dakika sonra!
 
 📅 Tarih: ${appointment.date}
 🕐 Saat: ${appointment.time}
@@ -98,7 +105,7 @@ ${appointment.tenant?.address ? `Adres: ${appointment.tenant.address}` : ''}
 
 Görüşmek üzere!`;
 
-        const smsMessage = `${appointment.tenant?.businessName || 'Randevu'} randevunuz 2 saat sonra. Tarih: ${appointment.date}, Saat: ${appointment.time}, Hizmet: ${appointment.serviceName}. Görüşmek üzere!`;
+        const smsMessage = `${appointment.tenant?.businessName || 'Randevu'} randevunuz 10 dakika sonra. Tarih: ${appointment.date}, Saat: ${appointment.time}, Hizmet: ${appointment.serviceName}. Görüşmek üzere!`;
 
         // Send WhatsApp reminder
         const whatsappResponse = await fetch(`${process.env.NEXT_PUBLIC_ADMIN_URL || 'https://admin.netrandevu.com'}/api/whapi/send-message`, {
