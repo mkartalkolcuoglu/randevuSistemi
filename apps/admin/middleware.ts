@@ -29,6 +29,7 @@ export function middleware(request: NextRequest) {
     '/api/whapi',  // ✅ Allow Whapi API routes (for cron jobs)
     '/api/netgsm',  // ✅ Allow NetGSM API routes (for cron jobs)
     '/api/cron',  // ✅ Allow cron job routes (protected by CRON_SECRET)
+    '/api/debug',  // ✅ Allow debug routes (for troubleshooting)
     '/api/tenants/sync',
     '/favicon.ico',
     '/_next'
