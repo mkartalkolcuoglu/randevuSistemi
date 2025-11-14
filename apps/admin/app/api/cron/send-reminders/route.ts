@@ -5,7 +5,7 @@ import { formatPhoneForSMS } from '../../../../lib/netgsm-client';
 /**
  * Cron Job: Send appointment reminders 10 minutes before
  *
- * This endpoint is called by Vercel Cron every 15 minutes
+ * This endpoint is called by Vercel Cron every 5 minutes
  * It finds appointments that are 10 minutes away and sends WhatsApp + SMS reminders
  *
  * GET /api/cron/send-reminders
@@ -21,25 +21,37 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Calculate time range: 10 minutes from now (with 15-minute window)
+    // Calculate time range: 10 minutes from now (with 5-minute window for 5-min cron)
     const now = new Date();
     const tenMinutesLater = new Date(now.getTime() + 10 * 60 * 1000);
-    const twentyFiveMinutesLater = new Date(now.getTime() + 25 * 60 * 1000);
+    const fifteenMinutesLater = new Date(now.getTime() + 15 * 60 * 1000);
 
     console.log('📅 [CRON] Time range:', {
       now: now.toISOString(),
+      nowLocal: now.toLocaleString('tr-TR', { timeZone: 'Europe/Istanbul' }),
       rangeStart: tenMinutesLater.toISOString(),
-      rangeEnd: twentyFiveMinutesLater.toISOString()
+      rangeStartLocal: tenMinutesLater.toLocaleString('tr-TR', { timeZone: 'Europe/Istanbul' }),
+      rangeEnd: fifteenMinutesLater.toISOString(),
+      rangeEndLocal: fifteenMinutesLater.toLocaleString('tr-TR', { timeZone: 'Europe/Istanbul' })
     });
 
-    // Format dates for database query (YYYY-MM-DD)
-    const dateStr = tenMinutesLater.toISOString().split('T')[0];
+    // Format dates for database query (YYYY-MM-DD) - using Turkey timezone
+    const turkeyNow = new Date(now.toLocaleString('en-US', { timeZone: 'Europe/Istanbul' }));
+    const turkeyTenMin = new Date(turkeyNow.getTime() + 10 * 60 * 1000);
+    const turkeyFifteenMin = new Date(turkeyNow.getTime() + 15 * 60 * 1000);
+
+    const dateStr = turkeyTenMin.toISOString().split('T')[0];
 
     // Format times for database query (HH:MM)
-    const timeStart = tenMinutesLater.toTimeString().substring(0, 5);
-    const timeEnd = twentyFiveMinutesLater.toTimeString().substring(0, 5);
+    const timeStart = turkeyTenMin.toTimeString().substring(0, 5);
+    const timeEnd = turkeyFifteenMin.toTimeString().substring(0, 5);
 
-    console.log('🔍 [CRON] Querying appointments:', { dateStr, timeStart, timeEnd });
+    console.log('🔍 [CRON] Querying appointments:', {
+      dateStr,
+      timeStart,
+      timeEnd,
+      timezone: 'Europe/Istanbul'
+    });
 
     // Find appointments that need reminders
     const appointments = await prisma.appointment.findMany({
@@ -65,11 +77,44 @@ export async function GET(request: NextRequest) {
 
     console.log(`📋 [CRON] Found ${appointments.length} appointments needing reminders`);
 
+    // Log all appointments for debugging
+    if (appointments.length > 0) {
+      console.log('📋 [CRON] Appointments details:', JSON.stringify(appointments.map(a => ({
+        id: a.id,
+        date: a.date,
+        time: a.time,
+        customer: a.customerName,
+        phone: a.customerPhone,
+        status: a.status
+      })), null, 2));
+    }
+
+    // Also query and log ALL today's appointments for debugging
+    const todayStr = turkeyTenMin.toISOString().split('T')[0];
+    const allTodayAppointments = await prisma.appointment.findMany({
+      where: {
+        date: todayStr,
+        status: { in: ['confirmed', 'pending'] }
+      },
+      select: {
+        id: true,
+        date: true,
+        time: true,
+        customerName: true,
+        status: true
+      },
+      orderBy: { time: 'asc' }
+    });
+
+    console.log(`📅 [CRON] All today's appointments (${todayStr}):`, JSON.stringify(allTodayAppointments, null, 2));
+
     if (appointments.length === 0) {
       return NextResponse.json({
         success: true,
         message: 'No appointments need reminders',
-        count: 0
+        count: 0,
+        queryParams: { dateStr, timeStart, timeEnd },
+        allTodayCount: allTodayAppointments.length
       });
     }
 
