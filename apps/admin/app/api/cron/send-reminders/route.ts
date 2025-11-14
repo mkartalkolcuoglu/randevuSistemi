@@ -3,10 +3,11 @@ import { prisma } from '../../../../lib/prisma';
 import { formatPhoneForSMS } from '../../../../lib/netgsm-client';
 
 /**
- * Cron Job: Send appointment reminders 2 hours before
+ * Cron Job: Send appointment reminders based on tenant settings
  *
  * This endpoint is called by Vercel Cron every 5 minutes
- * It finds appointments that are 2 hours away and sends WhatsApp + SMS reminders
+ * It finds appointments that need reminders based on each tenant's reminderMinutes setting
+ * and sends WhatsApp + SMS reminders
  *
  * GET /api/cron/send-reminders
  */
@@ -21,49 +22,78 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Calculate time range: exactly 2 hours from now (120 minutes)
-    const now = new Date();
-    const twoHoursLater = new Date(now.getTime() + 120 * 60 * 1000);
-
-    console.log('📅 [CRON] Time range:', {
-      now: now.toISOString(),
-      nowLocal: now.toLocaleString('tr-TR', { timeZone: 'Europe/Istanbul' }),
-      twoHoursLater: twoHoursLater.toISOString(),
-      twoHoursLaterLocal: twoHoursLater.toLocaleString('tr-TR', { timeZone: 'Europe/Istanbul' })
-    });
-
-    // Format dates for database query (YYYY-MM-DD) - using Turkey timezone
-    const turkeyNow = new Date(now.toLocaleString('en-US', { timeZone: 'Europe/Istanbul' }));
-    const turkeyTwoHours = new Date(turkeyNow.getTime() + 120 * 60 * 1000);
-
-    const dateStr = turkeyTwoHours.toISOString().split('T')[0];
-
-    // Format time for database query (HH:MM) - exact 2 hour time
-    const timeExact = turkeyTwoHours.toTimeString().substring(0, 5);
-
-    console.log('🔍 [CRON] Querying appointments:', {
-      dateStr,
-      timeExact,
-      timezone: 'Europe/Istanbul'
-    });
-
-    // Find appointments that need reminders - exact time match
-    const appointments = await prisma.appointment.findMany({
-      where: {
-        date: dateStr,
-        time: timeExact,
-        status: {
-          in: ['confirmed', 'pending'] // Only send reminders for active appointments
-        }
+    // Get all tenant settings to know their reminder preferences
+    const allSettings = await prisma.settings.findMany({
+      select: {
+        tenantId: true,
+        reminderMinutes: true
       }
     });
 
-    console.log(`📋 [CRON] Found ${appointments.length} appointments needing reminders`);
+    console.log(`📋 [CRON] Found ${allSettings.length} tenants with settings`);
+
+    // Group tenants by their reminder minutes setting
+    const tenantsByReminderTime = new Map<number, string[]>();
+
+    for (const setting of allSettings) {
+      const reminderMinutes = setting.reminderMinutes || 120; // Default: 2 hours
+      if (!tenantsByReminderTime.has(reminderMinutes)) {
+        tenantsByReminderTime.set(reminderMinutes, []);
+      }
+      tenantsByReminderTime.get(reminderMinutes)!.push(setting.tenantId);
+    }
+
+    console.log(`🔍 [CRON] Reminder time groups:`, Array.from(tenantsByReminderTime.entries()).map(([mins, tenants]) => ({
+      reminderMinutes: mins,
+      tenantCount: tenants.length
+    })));
+
+    let allAppointments: any[] = [];
+
+    // For each reminder time group, find matching appointments
+    for (const [reminderMinutes, tenantIds] of tenantsByReminderTime.entries()) {
+      const now = new Date();
+      const reminderTime = new Date(now.getTime() + reminderMinutes * 60 * 1000);
+
+      // Format dates for database query (YYYY-MM-DD) - using Turkey timezone
+      const turkeyNow = new Date(now.toLocaleString('en-US', { timeZone: 'Europe/Istanbul' }));
+      const turkeyReminderTime = new Date(turkeyNow.getTime() + reminderMinutes * 60 * 1000);
+
+      const dateStr = turkeyReminderTime.toISOString().split('T')[0];
+      const timeExact = turkeyReminderTime.toTimeString().substring(0, 5);
+
+      console.log(`⏰ [CRON] Checking ${reminderMinutes}min reminder for ${tenantIds.length} tenants:`, {
+        dateStr,
+        timeExact,
+        timezone: 'Europe/Istanbul'
+      });
+
+      // Find appointments that need reminders for this time group
+      const appointments = await prisma.appointment.findMany({
+        where: {
+          tenantId: { in: tenantIds },
+          date: dateStr,
+          time: timeExact,
+          status: {
+            in: ['confirmed', 'pending'] // Only send reminders for active appointments
+          },
+          reminderSent: false // Only send if reminder hasn't been sent yet
+        }
+      });
+
+      if (appointments.length > 0) {
+        console.log(`✅ [CRON] Found ${appointments.length} appointments for ${reminderMinutes}min reminder`);
+        allAppointments.push(...appointments);
+      }
+    }
+
+    console.log(`📋 [CRON] Total appointments needing reminders: ${allAppointments.length}`);
 
     // Log all appointments for debugging
-    if (appointments.length > 0) {
-      console.log('📋 [CRON] Appointments details:', JSON.stringify(appointments.map(a => ({
+    if (allAppointments.length > 0) {
+      console.log('📋 [CRON] Appointments details:', JSON.stringify(allAppointments.map(a => ({
         id: a.id,
+        tenantId: a.tenantId,
         date: a.date,
         time: a.time,
         customer: a.customerName,
@@ -72,32 +102,11 @@ export async function GET(request: NextRequest) {
       })), null, 2));
     }
 
-    // Also query and log ALL today's appointments for debugging
-    const todayStr = turkeyTwoHours.toISOString().split('T')[0];
-    const allTodayAppointments = await prisma.appointment.findMany({
-      where: {
-        date: todayStr,
-        status: { in: ['confirmed', 'pending'] }
-      },
-      select: {
-        id: true,
-        date: true,
-        time: true,
-        customerName: true,
-        status: true
-      },
-      orderBy: { time: 'asc' }
-    });
-
-    console.log(`📅 [CRON] All today's appointments (${todayStr}):`, JSON.stringify(allTodayAppointments, null, 2));
-
-    if (appointments.length === 0) {
+    if (allAppointments.length === 0) {
       return NextResponse.json({
         success: true,
         message: 'No appointments need reminders',
-        count: 0,
-        queryParams: { dateStr, timeExact },
-        allTodayCount: allTodayAppointments.length
+        count: 0
       });
     }
 
@@ -105,7 +114,7 @@ export async function GET(request: NextRequest) {
     let errorCount = 0;
 
     // Send reminders for each appointment
-    for (const appointment of appointments) {
+    for (const appointment of allAppointments) {
       try {
         console.log(`📲 [CRON] Sending reminder for appointment ${appointment.id}`);
 
@@ -116,11 +125,30 @@ export async function GET(request: NextRequest) {
           continue;
         }
 
-        // Get tenant info for the appointment
+        // Get tenant info and settings for the appointment
         const tenant = await prisma.tenant.findUnique({
           where: { id: appointment.tenantId },
           select: { businessName: true, address: true }
         });
+
+        const settings = await prisma.settings.findUnique({
+          where: { tenantId: appointment.tenantId },
+          select: { reminderMinutes: true }
+        });
+
+        const reminderMinutes = settings?.reminderMinutes || 120;
+
+        // Format reminder time text
+        let reminderTimeText = '';
+        if (reminderMinutes < 60) {
+          reminderTimeText = `${reminderMinutes} dakika sonra`;
+        } else if (reminderMinutes < 1440) {
+          const hours = Math.floor(reminderMinutes / 60);
+          reminderTimeText = `${hours} saat sonra`;
+        } else {
+          const days = Math.floor(reminderMinutes / 1440);
+          reminderTimeText = `${days} gün sonra`;
+        }
 
         // Format phone number
         const phoneNumber = formatPhoneForSMS(appointment.customerPhone);
@@ -128,7 +156,7 @@ export async function GET(request: NextRequest) {
         // Prepare message templates
         const whatsappMessage = `Merhaba ${appointment.customerName},
 
-${tenant?.businessName || 'Randevu'} randevunuz 2 saat sonra!
+${tenant?.businessName || 'Randevu'} randevunuz ${reminderTimeText}!
 
 📅 Tarih: ${appointment.date}
 🕐 Saat: ${appointment.time}
@@ -139,7 +167,7 @@ ${tenant?.address ? `Adres: ${tenant.address}` : ''}
 
 Görüşmek üzere!`;
 
-        const smsMessage = `${tenant?.businessName || 'Randevu'} randevunuz 2 saat sonra. Tarih: ${appointment.date}, Saat: ${appointment.time}, Hizmet: ${appointment.serviceName}. Görüşmek üzere!`;
+        const smsMessage = `${tenant?.businessName || 'Randevu'} randevunuz ${reminderTimeText}. Tarih: ${appointment.date}, Saat: ${appointment.time}, Hizmet: ${appointment.serviceName}. Görüşmek üzere!`;
 
         // Send WhatsApp reminder
         const whatsappResponse = await fetch(`${process.env.NEXT_PUBLIC_ADMIN_URL || 'https://admin.netrandevu.com'}/api/whapi/send-message`, {
@@ -180,6 +208,17 @@ Görüşmek üzere!`;
         // Consider it success if at least one channel succeeded
         if (whatsappResult.success || smsResult.success) {
           successCount++;
+
+          // Mark reminder as sent to prevent duplicate reminders
+          await prisma.appointment.update({
+            where: { id: appointment.id },
+            data: {
+              reminderSent: true,
+              reminderSentAt: new Date()
+            }
+          });
+
+          console.log(`✅ [CRON] Reminder marked as sent for appointment ${appointment.id}`);
         } else {
           errorCount++;
         }
@@ -198,7 +237,7 @@ Görüşmek üzere!`;
     return NextResponse.json({
       success: true,
       message: 'Reminders sent',
-      total: appointments.length,
+      total: allAppointments.length,
       successCount,
       errorCount
     });

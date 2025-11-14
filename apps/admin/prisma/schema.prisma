@@ -145,11 +145,12 @@ model Settings {
   workingHours            String?  // JSON string
   appointmentTimeInterval Int?     @default(30) @map("appointment_time_interval") // Appointment time slot interval in minutes (5, 10, 15, 20, 30, 45, 60)
   blacklistThreshold      Int?     @default(3) @map("blacklist_threshold") // Number of no-shows before blacklisting (1-10)
+  reminderMinutes         Int?     @default(120) @map("reminder_minutes") // Minutes before appointment to send reminder (10, 30, 60, 120, 1440)
   notificationSettings    String?  // JSON string
   paymentSettings         String?  // JSON string
   themeSettings           String?  // JSON string for colors, fonts, etc.
   updatedAt               DateTime @updatedAt
-  
+
   @@map("settings")
 }
 

@@ -61,6 +61,7 @@ export async function GET() {
       ...tenant,
       appointmentTimeInterval: settings?.appointmentTimeInterval || 30,
       blacklistThreshold: settings?.blacklistThreshold || 3,
+      reminderMinutes: settings?.reminderMinutes || 120,
       // Include settings data for reference (useful for debugging)
       _settings: {
         businessPhone: settings?.businessPhone,
@@ -177,12 +178,15 @@ export async function PUT(request: Request) {
       businessAddress: data.businessAddress || null, // ✅ WhatsApp için adres
       businessEmail: data.ownerEmail || null,
     };
-    
+
     if (data.appointmentTimeInterval !== undefined) {
       settingsData.appointmentTimeInterval = parseInt(data.appointmentTimeInterval);
     }
     if (data.blacklistThreshold !== undefined) {
       settingsData.blacklistThreshold = parseInt(data.blacklistThreshold);
+    }
+    if (data.reminderMinutes !== undefined) {
+      settingsData.reminderMinutes = parseInt(data.reminderMinutes);
     }
     if (data.workingHours) {
       settingsData.workingHours = JSON.stringify(data.workingHours);
@@ -210,7 +214,8 @@ export async function PUT(request: Request) {
       data: {
         ...updatedTenant,
         appointmentTimeInterval: data.appointmentTimeInterval || 30,
-        blacklistThreshold: data.blacklistThreshold || 3
+        blacklistThreshold: data.blacklistThreshold || 3,
+        reminderMinutes: data.reminderMinutes || 120
       }
     });
 
