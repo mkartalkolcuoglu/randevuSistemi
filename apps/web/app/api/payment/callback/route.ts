@@ -273,7 +273,7 @@ export async function POST(request: NextRequest) {
                 status: 'confirmed', // Kredi kartı ile ödendi - onaylanmış
                 price: payment.amount,
                 duration: appointmentData.duration,
-                paymentType: payment_type === 'card' ? 'credit_card' : (payment_type === 'eft' ? 'eft' : 'credit_card'), // Kredi Kartı veya EFT
+                paymentType: payment_type === 'card' ? 'card' : (payment_type === 'eft' ? 'eft' : 'card'), // Kredi Kartı veya EFT
                 paymentStatus: 'paid', // Ödeme başarılı
                 paymentId: payment.id,
                 notes: appointmentData.notes || null
@@ -281,6 +281,29 @@ export async function POST(request: NextRequest) {
             });
 
             console.log('✅ [PAYMENT CALLBACK] Appointment created:', appointment.id);
+
+            // 💰 KASA'YA TRANSACTION EKLE
+            console.log('💰 [PAYMENT CALLBACK] Creating transaction for kasa...');
+            try {
+              const transaction = await prisma.transaction.create({
+                data: {
+                  tenantId: appointmentData.tenantId,
+                  type: 'appointment',
+                  amount: payment.amount,
+                  description: `Randevu: ${appointmentData.serviceName} - ${appointmentData.customerName}`,
+                  paymentType: payment_type === 'card' ? 'card' : (payment_type === 'eft' ? 'eft' : 'card'),
+                  customerId: appointmentData.customerId,
+                  customerName: appointmentData.customerName,
+                  appointmentId: appointment.id,
+                  date: appointmentData.date,
+                  profit: 0 // Appointments don't have cost/profit calculation
+                }
+              });
+              console.log('✅ [PAYMENT CALLBACK] Transaction created for kasa:', transaction.id);
+            } catch (transactionError) {
+              console.error('❌ [PAYMENT CALLBACK] Error creating transaction:', transactionError);
+              // Don't throw - appointment was created successfully
+            }
 
             // Payment'a appointment ID'yi ekle
             await prisma.payment.update({
