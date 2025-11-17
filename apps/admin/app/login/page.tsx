@@ -29,7 +29,8 @@ export default function LoginPage() {
       const result = await response.json();
 
       if (result.success) {
-        router.push('/admin');
+        // Kullan window.location.href instead of router.push to ensure cookie is included
+        window.location.href = '/admin';
       } else {
         setError(result.error || 'Giriş başarısız');
       }
