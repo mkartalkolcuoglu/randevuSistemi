@@ -47,8 +47,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Use activate-free endpoint for free packages' }, { status: 400 });
     }
 
-    // PayTR için merchant_oid oluştur
-    const merchantOid = `SUB-${tenant.id}-${Date.now()}`;
+    // PayTR için merchant_oid oluştur (alfanumerik olmalı, özel karakter yok)
+    const merchantOid = `SUB${tenant.id}${Date.now()}`;
     const paymentAmount = Math.round(pkg.price * 100); // TL to kuruş
 
     // Payment kaydı oluştur
