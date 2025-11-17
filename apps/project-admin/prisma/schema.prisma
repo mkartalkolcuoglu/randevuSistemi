@@ -161,6 +161,40 @@ model Page {
   isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  
+
   @@map("pages")
+}
+
+model Payment {
+  id              String   @id @default(cuid())
+  tenantId        String?  @map("tenant_id")
+  appointmentId   String?  @map("appointment_id")
+  customerId      String?  @map("customer_id")
+  customerName    String?  @map("customer_name")
+  customerEmail   String?  @map("customer_email")
+  customerPhone   String?  @map("customer_phone")
+  merchantOid     String   @unique @map("merchant_oid")
+  amount          Float
+  paymentAmount   Int      @map("payment_amount")
+  currency        String   @default("TL")
+  status          String   @default("pending")
+  paymentType     String?  @map("payment_type")
+  paytrToken      String?  @map("paytr_token") @db.Text
+  paytrHash       String?  @map("paytr_hash")
+  failedReason    String?  @map("failed_reason")
+  refundStatus    String?  @map("refund_status")
+  refundAmount    Float?   @map("refund_amount")
+  refundedAt      DateTime? @map("refunded_at")
+  refundReason    String?  @map("refund_reason") @db.Text
+  userIp          String?  @map("user_ip")
+  userBasket      String?  @map("user_basket") @db.Text
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+  paidAt          DateTime? @map("paid_at")
+
+  @@index([merchantOid])
+  @@index([appointmentId])
+  @@index([status])
+  @@index([tenantId])
+  @@map("payments")
 }
