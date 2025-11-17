@@ -44,6 +44,19 @@ export async function POST(request: NextRequest) {
       }
     });
 
+    // Cookie'yi güncelle (subscriptionEnd'i yeni tarihle)
+    const updatedSessionData = {
+      ...sessionData,
+      subscriptionEnd: subscriptionEnd.toISOString(),
+    };
+
+    cookieStore.set('tenant-session', JSON.stringify(updatedSessionData), {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 60 * 60 * 24 * 7 // 7 days
+    });
+
     return NextResponse.json({
       success: true,
       message: 'Package activated successfully',
