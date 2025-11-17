@@ -1372,18 +1372,22 @@ export default function RandevuPage({ params }: PageProps) {
         </Card>
 
         {/* Navigation */}
-        <div className="flex justify-between">
-          <Button
-            variant="outline"
+        <div className="flex justify-between gap-4">
+          <button
             onClick={handlePrev}
             disabled={currentStepIndex === 0}
+            className={`inline-flex items-center justify-center px-6 py-3 border-2 rounded-lg text-sm font-medium transition-all touch-manipulation select-none ${
+              currentStepIndex === 0
+                ? 'border-gray-200 bg-gray-100 text-gray-400 cursor-not-allowed'
+                : 'border-gray-300 bg-white text-gray-700 active:bg-gray-50 active:border-gray-400 cursor-pointer'
+            }`}
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
             Geri
-          </Button>
+          </button>
 
           {currentStep === 'confirmation' ? (
-            <Button
+            <button
               onClick={handleSubmit}
               disabled={
                 createAppointmentMutation.isPending ||
@@ -1392,7 +1396,15 @@ export default function RandevuPage({ params }: PageProps) {
                 (!paymentMethod && !(servicePackageInfo && usePackageForService)) ||
                 paymentLoading
               }
-              className="bg-green-600 hover:bg-green-700"
+              className={`inline-flex items-center justify-center px-6 py-3 border-2 rounded-lg text-sm font-medium transition-all touch-manipulation select-none ${
+                createAppointmentMutation.isPending ||
+                !agreementsAccepted ||
+                showPackageChoice ||
+                (!paymentMethod && !(servicePackageInfo && usePackageForService)) ||
+                paymentLoading
+                  ? 'border-gray-200 bg-gray-100 text-gray-400 cursor-not-allowed'
+                  : 'border-green-600 bg-green-600 text-white active:bg-green-700 active:border-green-700 cursor-pointer'
+              }`}
             >
               {createAppointmentMutation.isPending || paymentLoading ? (
                 <>
@@ -1405,15 +1417,20 @@ export default function RandevuPage({ params }: PageProps) {
                   Randevuyu Onayla
                 </>
               )}
-            </Button>
+            </button>
           ) : (
-            <Button
+            <button
               onClick={handleNext}
               disabled={!canProceedToNext()}
+              className={`inline-flex items-center justify-center px-6 py-3 border-2 rounded-lg text-sm font-medium transition-all touch-manipulation select-none ${
+                !canProceedToNext()
+                  ? 'border-gray-200 bg-gray-100 text-gray-400 cursor-not-allowed'
+                  : 'border-blue-600 bg-blue-600 text-white active:bg-blue-700 active:border-blue-700 cursor-pointer'
+              }`}
             >
               İleri
               <ArrowRight className="w-4 h-4 ml-2" />
-            </Button>
+            </button>
           )}
         </div>
       </div>
