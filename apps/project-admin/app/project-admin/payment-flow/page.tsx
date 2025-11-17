@@ -121,7 +121,7 @@ export default async function PaymentFlowPage() {
   const isProjectAdmin = await checkProjectAdmin();
 
   if (!isProjectAdmin) {
-    redirect('/admin');
+    redirect('/login');
   }
 
   const payments = await getPayments();
