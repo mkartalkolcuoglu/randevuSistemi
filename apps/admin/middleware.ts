@@ -31,13 +31,15 @@ export function middleware(request: NextRequest) {
     '/api/cron',  // ✅ Allow cron job routes (protected by CRON_SECRET)
     '/api/debug',  // ✅ Allow debug routes (for troubleshooting)
     '/api/tenants/sync',
+    '/api/subscription',  // ✅ Allow subscription API routes
+    '/admin/select-subscription',  // ✅ Allow subscription selection page
     '/favicon.ico',
     '/_next'
   ];
-  
+
   // Check if current path is public
   const isPublicPath = publicPaths.some(path => pathname.startsWith(path));
-  
+
   if (isPublicPath) {
     return NextResponse.next();
   }
@@ -53,10 +55,21 @@ export function middleware(request: NextRequest) {
   try {
     // Parse session data
     const sessionData = JSON.parse(sessionCookie.value);
-    
+
     if (!sessionData.tenantId) {
       // Invalid session data
       return NextResponse.redirect(new URL('/login', request.url));
+    }
+
+    // Subscription check - only for owner users (not staff)
+    if (sessionData.userType === 'owner' && sessionData.subscriptionEnd) {
+      const subscriptionEnd = new Date(sessionData.subscriptionEnd);
+      const now = new Date();
+
+      // Eğer subscription süresi dolmuşsa ve subscription sayfasında değilse
+      if (subscriptionEnd < now && !pathname.startsWith('/admin/select-subscription')) {
+        return NextResponse.redirect(new URL('/admin/select-subscription', request.url));
+      }
     }
 
     // Permission check for staff users

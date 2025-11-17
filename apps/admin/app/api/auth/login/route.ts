@@ -20,7 +20,8 @@ export async function POST(request: NextRequest) {
         slug: true,
         username: true,
         ownerName: true,
-        ownerEmail: true
+        ownerEmail: true,
+        subscriptionEnd: true
       }
     });
 
@@ -40,7 +41,8 @@ export async function POST(request: NextRequest) {
         slug: tenant.slug,
         ownerName: tenant.ownerName || tenant.businessName,
         userType: 'owner',
-        role: 'owner'
+        role: 'owner',
+        subscriptionEnd: tenant.subscriptionEnd
       }), {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',

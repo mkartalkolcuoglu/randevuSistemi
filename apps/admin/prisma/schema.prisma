@@ -179,11 +179,12 @@ model Tenant {
   subscriptionPlan   String?  // "trial", "monthly", "yearly"
   subscriptionStart  DateTime?
   subscriptionEnd    DateTime?
-  
+  hasUsedTrial       Boolean  @default(false) @map("has_used_trial") // Trial paketini kullanıp kullanmadığı
+
   // JSON fields for complex data
   workingHours       String?  // JSON string
   theme              String?  // JSON string
-  
+
   @@map("tenants")
 }
 
