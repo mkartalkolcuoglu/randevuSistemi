@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui';
-import { LogOut, User, Home, Calendar, Users, Briefcase, Package, Settings, Wallet, Gift, Clock, BarChart3, Menu, X, Bell, XCircle, Star, DollarSign } from 'lucide-react';
+import { LogOut, User, Home, Calendar, Users, Briefcase, Package, Settings, Wallet, Gift, Clock, BarChart3, Menu, X, Bell, XCircle, Star } from 'lucide-react';
 import Link from 'next/link';
 import type { ClientUser } from '../../lib/client-permissions';
 import { canAccessPage } from '../../lib/client-permissions';
@@ -480,12 +480,6 @@ export default function AdminHeader({ user }: AdminHeaderProps) {
                 Performans
               </Button>
             </Link>
-            <Link href="/payment-flow">
-              <Button variant="ghost" size="sm" className="text-purple-600 hover:text-purple-900 hover:bg-purple-50">
-                <DollarSign className="w-4 h-4 mr-2" />
-                Ödeme Akışı
-              </Button>
-            </Link>
             {canAccessPage(user, 'settings') && (
               <Link href="/admin/settings">
                 <Button variant="ghost" size="sm" className="text-gray-600 hover:text-gray-900">
@@ -609,12 +603,6 @@ export default function AdminHeader({ user }: AdminHeaderProps) {
                 <Button variant="ghost" size="sm" className="w-full justify-start text-gray-600 hover:text-gray-900 hover:bg-gray-100">
                   <Star className="w-5 h-5 mr-3" />
                   Performans
-                </Button>
-              </Link>
-              <Link href="/payment-flow" onClick={() => setMobileMenuOpen(false)}>
-                <Button variant="ghost" size="sm" className="w-full justify-start text-purple-600 hover:text-purple-900 hover:bg-purple-50">
-                  <DollarSign className="w-5 h-5 mr-3" />
-                  Ödeme Akışı
                 </Button>
               </Link>
               {canAccessPage(user, 'settings') && (
