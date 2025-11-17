@@ -33,13 +33,13 @@ function PaymentContent() {
             Ödemenizi tamamlamak için aşağıdaki formu doldurun
           </p>
 
-          <div className="w-full" style={{ minHeight: '600px' }}>
+          <div className="w-full">
             <iframe
               src={`https://www.paytr.com/odeme/guvenli/${token}`}
               id="paytriframe"
               frameBorder="0"
-              scrolling="no"
-              style={{ width: '100%', height: '600px' }}
+              scrolling="yes"
+              style={{ width: '100%', height: '800px', minHeight: '600px' }}
             />
           </div>
 
