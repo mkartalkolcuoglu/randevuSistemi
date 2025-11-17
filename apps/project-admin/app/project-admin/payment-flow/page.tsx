@@ -30,7 +30,8 @@ async function getPayments() {
         status: true,
         paidAt: true,
         createdAt: true,
-        userBasket: true
+        userBasket: true,
+        productName: true  // Paket/ürün adı
       }
     });
 
@@ -40,7 +41,7 @@ async function getPayments() {
         let tenantName = 'Bilinmiyor';
         let serviceName = null;
         let packageName = null;
-        let productName = null;
+        let productName = payment.productName || null; // Veritabanından gelen productName'i kullan
 
         // Tenant bilgisi
         if (payment.tenantId) {
@@ -64,14 +65,21 @@ async function getPayments() {
           }
         }
 
-        // userBasket'ten paket veya ürün bilgisi çıkar
-        if (payment.userBasket) {
+        // Eğer productName yoksa (eski kayıtlar), userBasket'ten parse et
+        if (!productName && payment.userBasket) {
           try {
-            const basket = JSON.parse(payment.userBasket);
-            // Basket formatı: "Ürün Adı 1, Miktar 1, Fiyat 1"
-            const parts = basket.split(',');
-            if (parts.length > 0) {
-              const itemName = parts[0].trim();
+            // userBasket base64 encoded JSON olabilir
+            let basket = payment.userBasket;
+            try {
+              basket = Buffer.from(payment.userBasket, 'base64').toString('utf-8');
+            } catch (e) {
+              // Base64 değilse, direkt kullan
+            }
+
+            const basketData = JSON.parse(basket);
+            // Basket formatı: [["Ürün Adı", "Fiyat", "Miktar"]]
+            if (Array.isArray(basketData) && basketData.length > 0 && Array.isArray(basketData[0])) {
+              const itemName = basketData[0][0];
               // Eğer "Paket" kelimesi içeriyorsa paket, değilse ürün olarak kabul et
               if (itemName.toLowerCase().includes('paket') || itemName.toLowerCase().includes('package')) {
                 packageName = itemName;
@@ -82,6 +90,7 @@ async function getPayments() {
             }
           } catch (e) {
             // JSON parse hatası, devam et
+            console.error('Error parsing userBasket:', e);
           }
         }
 
