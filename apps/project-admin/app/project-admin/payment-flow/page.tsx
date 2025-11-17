@@ -1,21 +1,7 @@
-import { cookies } from 'next/headers';
-import { redirect } from 'next/navigation';
 import PaymentFlowClient from './payment-flow-client';
 import { prisma } from '../../../lib/prisma';
 
 export const dynamic = 'force-dynamic';
-
-// Project Admin kontrolü
-async function checkProjectAdmin() {
-  const cookieStore = await cookies();
-  const projectAdminCookie = cookieStore.get('project-admin');
-
-  if (!projectAdminCookie || projectAdminCookie.value !== 'true') {
-    return false;
-  }
-
-  return true;
-}
 
 async function getPayments() {
   try {
@@ -117,13 +103,7 @@ async function getPayments() {
 }
 
 export default async function PaymentFlowPage() {
-  // Project admin kontrolü
-  const isProjectAdmin = await checkProjectAdmin();
-
-  if (!isProjectAdmin) {
-    redirect('/login');
-  }
-
+  // Middleware already handles authentication
   const payments = await getPayments();
 
   return <PaymentFlowClient payments={payments} />;
