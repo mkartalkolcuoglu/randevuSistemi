@@ -173,6 +173,7 @@ model Payment {
   customerName    String?  @map("customer_name")
   customerEmail   String?  @map("customer_email")
   customerPhone   String?  @map("customer_phone")
+  productName     String?  @map("product_name") // Ürün/hizmet adı (subscription paket adı vb.)
   merchantOid     String   @unique @map("merchant_oid")
   amount          Float
   paymentAmount   Int      @map("payment_amount")
