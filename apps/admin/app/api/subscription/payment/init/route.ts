@@ -51,6 +51,12 @@ export async function POST(request: NextRequest) {
     const merchantOid = `SUB${tenant.id}${Date.now()}`;
     const paymentAmount = Math.round(pkg.price * 100); // TL to kuruş
 
+    const userIp = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
+
+    // Basket'i base64 encode et (PayTR formatı)
+    const basketItems = [[pkg.name, paymentAmount.toString(), '1']];
+    const userBasket = Buffer.from(JSON.stringify(basketItems), 'utf-8').toString('base64');
+
     // Payment kaydı oluştur
     const payment = await prisma.payment.create({
       data: {
@@ -63,8 +69,8 @@ export async function POST(request: NextRequest) {
         paymentAmount,
         currency: 'TL',
         status: 'pending',
-        userBasket: `${pkg.name}, 1, ${pkg.price}`,
-        userIp: request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown',
+        userBasket,
+        userIp,
       }
     });
 
@@ -72,10 +78,12 @@ export async function POST(request: NextRequest) {
     const merchantId = process.env.PAYTR_MERCHANT_ID!;
     const merchantKey = process.env.PAYTR_MERCHANT_KEY!;
     const merchantSalt = process.env.PAYTR_MERCHANT_SALT!;
+    const testMode = process.env.PAYTR_TEST_MODE === 'true' ? '1' : '0';
 
-    // Hash oluştur
-    const hashStr = `${merchantId}${payment.userIp}${merchantOid}${tenant.ownerEmail}${paymentAmount}${payment.userBasket}no_installment0${payment.currency}1${merchantSalt}`;
-    const paytrToken = crypto.createHmac('sha256', merchantKey).update(hashStr).digest('base64');
+    // Hash oluştur (Web app ile aynı format)
+    const hashStr = `${merchantId}${userIp}${merchantOid}${tenant.ownerEmail}${paymentAmount}${userBasket}00TL${testMode}`;
+    const hashWithSalt = hashStr + merchantSalt;
+    const paytrToken = crypto.createHmac('sha256', merchantKey).update(hashWithSalt).digest('base64');
 
     // PayTR'ye istek at
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://admin.netrandevu.com';
@@ -86,23 +94,23 @@ export async function POST(request: NextRequest) {
       },
       body: new URLSearchParams({
         merchant_id: merchantId,
-        user_ip: payment.userIp,
+        user_ip: userIp,
         merchant_oid: merchantOid,
         email: tenant.ownerEmail,
         payment_amount: paymentAmount.toString(),
         paytr_token: paytrToken,
-        user_basket: payment.userBasket,
-        debug_on: process.env.PAYTR_TEST_MODE === 'true' ? '1' : '0',
+        user_basket: userBasket,
+        debug_on: testMode,
         no_installment: '0',
         max_installment: '0',
-        user_name: tenant.ownerName,
-        user_address: tenant.businessName,
-        user_phone: tenant.phone || '',
+        user_name: tenant.ownerName || 'Kullanıcı',
+        user_address: tenant.businessName || 'Adres',
+        user_phone: tenant.phone || '5555555555',
         merchant_ok_url: `${baseUrl}/admin/select-subscription/payment-success?package=${pkg.slug}&duration=${pkg.durationDays}`,
         merchant_fail_url: `${baseUrl}/admin/select-subscription/payment-failed`,
         timeout_limit: '30',
         currency: 'TL',
-        test_mode: process.env.PAYTR_TEST_MODE === 'true' ? '1' : '0',
+        test_mode: testMode,
         lang: 'tr',
       }).toString()
     });
