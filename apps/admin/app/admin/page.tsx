@@ -16,7 +16,8 @@ import {
   User
 } from 'lucide-react';
 import Link from 'next/link';
-import { requireAuth } from '../../lib/auth-utils';
+import { getAuthenticatedUser } from '../../lib/auth-utils';
+import { redirect } from 'next/navigation';
 import { prisma } from '../../lib/prisma';
 import AdminHeader from './admin-header';
 
@@ -132,8 +133,13 @@ async function getDashboardData(tenantId: string, userType: string, staffId?: st
 }
 
 export default async function AdminDashboard() {
-  // Require authentication and get user data
-  const user = await requireAuth();
+  // Get authenticated user (middleware already validated)
+  const user = await getAuthenticatedUser();
+
+  if (!user) {
+    redirect('/login');
+  }
+
   const dashboardData = await getDashboardData(user.tenantId, user.userType, user.staffId);
 
   const getStatusColor = (status: string) => {
