@@ -3,8 +3,8 @@
 import { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, Button, Badge } from '@/components/ui';
 import { DollarSign, Calendar, Building2, Package, ShoppingCart, User } from 'lucide-react';
-import AdminHeader from '../admin-header';
-import { DataTable, Column } from '../../../components/DataTable';
+import AdminHeader from '../admin/admin-header';
+import { DataTable, Column } from '../../components/DataTable';
 
 interface Payment {
   id: string;
