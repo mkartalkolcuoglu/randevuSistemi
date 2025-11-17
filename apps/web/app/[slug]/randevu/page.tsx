@@ -1038,13 +1038,13 @@ export default function RandevuPage({ params }: PageProps) {
                   Hayır derseniz normal ücret (₺{selectedServiceData?.price}) tahsil edilecektir.
                 </p>
               </div>
-              <div className="flex gap-4 justify-center">
+              <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <Button
                   onClick={() => {
                     setUsePackageForService(true);
                     setShowPackageChoice(false);
                   }}
-                  className="px-8 py-3 bg-green-600 text-white font-semibold hover:bg-green-700 active:bg-green-800 touch-manipulation flex items-center gap-2"
+                  className="w-full sm:w-auto px-8 py-3 bg-green-600 text-white font-semibold hover:bg-green-700 active:bg-green-800 touch-manipulation flex items-center justify-center gap-2"
                 >
                   <Check className="w-5 h-5" />
                   Evet, Paketten Düş
@@ -1055,7 +1055,7 @@ export default function RandevuPage({ params }: PageProps) {
                     setShowPackageChoice(false);
                   }}
                   variant="outline"
-                  className="px-8 py-3 font-semibold active:bg-gray-200 touch-manipulation flex items-center gap-2"
+                  className="w-full sm:w-auto px-8 py-3 font-semibold active:bg-gray-200 touch-manipulation flex items-center justify-center gap-2"
                 >
                   <X className="w-5 h-5" />
                   Hayır, Ödeme Yapacağım

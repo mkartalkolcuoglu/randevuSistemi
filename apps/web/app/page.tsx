@@ -252,33 +252,34 @@ export default function Home() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-4">
             <div className="flex items-center">
-              <img 
-                src="https://i.hizliresim.com/4a00l8g.png" 
-                alt="Net Randevu Logo" 
-                className="h-10 w-auto"
+              <img
+                src="https://i.hizliresim.com/4a00l8g.png"
+                alt="Net Randevu Logo"
+                className="h-8 sm:h-10 w-auto"
               />
             </div>
-            <nav className="hidden md:flex space-x-8">
+            <nav className="hidden lg:flex space-x-8">
               <a href="#features" className="text-gray-600 hover:text-gray-900 transition">Özellikler</a>
               <a href="#pricing" className="text-gray-600 hover:text-gray-900 transition">Fiyatlar</a>
               <a href="#faq" className="text-gray-600 hover:text-gray-900 transition">SSS</a>
             </nav>
-            <div className="flex items-center space-x-4">
-              <Button 
-                variant="outline" 
-                className="border-gray-300 text-gray-700 hover:bg-gray-100 transition"
+            <div className="flex items-center gap-2 sm:gap-4">
+              <Button
+                variant="outline"
+                size="sm"
+                className="border-gray-300 text-gray-700 hover:bg-gray-100 transition text-xs sm:text-sm px-2 sm:px-4"
                 onClick={() => setShowLoginModal(true)}
               >
-                <User className="w-4 h-4 mr-2" />
-                Kullanıcı Girişi
+                <User className="w-3 h-3 sm:w-4 sm:h-4 sm:mr-2" />
+                <span className="hidden sm:inline">Kullanıcı Girişi</span>
               </Button>
-              <Link href="https://admin.netrandevu.com">
-                <Button variant="outline" className="border-[#163974] text-[#163974] hover:bg-[#163974] hover:text-white transition">
+              <Link href="https://admin.netrandevu.com" className="hidden md:block">
+                <Button variant="outline" size="sm" className="border-[#163974] text-[#163974] hover:bg-[#163974] hover:text-white transition text-xs sm:text-sm">
                   İşletme Paneli
                 </Button>
               </Link>
               <Link href="/register">
-                <Button className="bg-[#163974] hover:bg-[#0F2A52] text-white hover:shadow-lg transition">
+                <Button size="sm" className="bg-[#163974] hover:bg-[#0F2A52] text-white hover:shadow-lg transition text-xs sm:text-sm px-3 sm:px-4">
                   Ücretsiz Başla
                 </Button>
               </Link>
