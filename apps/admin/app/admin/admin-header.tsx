@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui';
-import { LogOut, User, Home, Calendar, Users, Briefcase, Package, Settings, Wallet, Gift, Clock, BarChart3, Menu, X, Bell, XCircle, Star } from 'lucide-react';
+import { LogOut, User, Home, Calendar, Users, Briefcase, Package, Settings, Wallet, Gift, Clock, BarChart3, Menu, X, Bell, XCircle, Star, DollarSign } from 'lucide-react';
 import Link from 'next/link';
 import type { ClientUser } from '../../lib/client-permissions';
 import { canAccessPage } from '../../lib/client-permissions';
@@ -22,7 +22,21 @@ export default function AdminHeader({ user }: AdminHeaderProps) {
   const [notifications, setNotifications] = useState<any[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [isProjectAdmin, setIsProjectAdmin] = useState(false);
   const router = useRouter();
+
+  // Check for project-admin cookie
+  useEffect(() => {
+    const checkProjectAdmin = () => {
+      const cookies = document.cookie.split(';');
+      const projectAdminCookie = cookies.find(c => c.trim().startsWith('project-admin='));
+      if (projectAdminCookie) {
+        const value = projectAdminCookie.split('=')[1];
+        setIsProjectAdmin(value === 'true');
+      }
+    };
+    checkProjectAdmin();
+  }, []);
 
   // Check for permission_denied error in URL
   useEffect(() => {
@@ -32,7 +46,7 @@ export default function AdminHeader({ user }: AdminHeaderProps) {
       // Remove error param from URL
       const newUrl = window.location.pathname;
       window.history.replaceState({}, '', newUrl);
-      
+
       // Auto-hide after 10 seconds
       setTimeout(() => setShowUnauthorizedAlert(false), 10000);
     }
@@ -466,6 +480,14 @@ export default function AdminHeader({ user }: AdminHeaderProps) {
                 Performans
               </Button>
             </Link>
+            {isProjectAdmin && (
+              <Link href="/payment-flow">
+                <Button variant="ghost" size="sm" className="text-purple-600 hover:text-purple-900 hover:bg-purple-50">
+                  <DollarSign className="w-4 h-4 mr-2" />
+                  Ödeme Akışı
+                </Button>
+              </Link>
+            )}
             {canAccessPage(user, 'settings') && (
               <Link href="/admin/settings">
                 <Button variant="ghost" size="sm" className="text-gray-600 hover:text-gray-900">
@@ -591,6 +613,14 @@ export default function AdminHeader({ user }: AdminHeaderProps) {
                   Performans
                 </Button>
               </Link>
+              {isProjectAdmin && (
+                <Link href="/payment-flow" onClick={() => setMobileMenuOpen(false)}>
+                  <Button variant="ghost" size="sm" className="w-full justify-start text-purple-600 hover:text-purple-900 hover:bg-purple-50">
+                    <DollarSign className="w-5 h-5 mr-3" />
+                    Ödeme Akışı
+                  </Button>
+                </Link>
+              )}
               {canAccessPage(user, 'settings') && (
                 <Link href="/admin/settings" onClick={() => setMobileMenuOpen(false)}>
                   <Button variant="ghost" size="sm" className="w-full justify-start text-gray-600 hover:text-gray-900 hover:bg-gray-100">
