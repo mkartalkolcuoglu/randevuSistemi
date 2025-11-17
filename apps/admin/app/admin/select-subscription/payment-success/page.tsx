@@ -30,9 +30,9 @@ function PaymentSuccessContent() {
 
         setActivating(false);
 
-        // 2 saniye sonra dashboard'a yönlendir (hard reload ile cookie'leri güncelle)
+        // 2 saniye sonra root'a yönlendir, middleware dashboard'a redirect eder
         setTimeout(() => {
-          window.location.replace('/admin');
+          window.location.replace('/');
         }, 2000);
       } catch (err: any) {
         setError(err.message);
