@@ -685,12 +685,12 @@ export default function RandevuPage({ params }: PageProps) {
           {services?.map((service) => {
             const packageInfo = checkServiceInPackage(service.id);
             return (
-              <Card 
+              <Card
                 key={service.id}
-                className={`cursor-pointer transition-all duration-200 hover:shadow-lg transform hover:scale-[1.02] relative ${
-                  selectedService === service.id 
-                    ? 'ring-2 ring-blue-500 bg-blue-50 border-blue-200 shadow-lg' 
-                    : 'hover:border-blue-200'
+                className={`cursor-pointer transition-all duration-200 touch-manipulation relative ${
+                  selectedService === service.id
+                    ? 'ring-2 ring-blue-500 bg-blue-50 border-blue-200 shadow-lg'
+                    : 'active:border-blue-200 active:shadow-md'
                 }`}
                 onClick={() => setSelectedService(service.id)}
               >
@@ -759,12 +759,12 @@ export default function RandevuPage({ params }: PageProps) {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {staff?.map((member) => (
-            <Card 
+            <Card
               key={member.id}
-              className={`cursor-pointer transition-all duration-200 hover:shadow-lg transform hover:scale-[1.02] ${
-                selectedStaff === member.id 
-                  ? 'ring-2 ring-blue-500 bg-blue-50 border-blue-200 shadow-lg' 
-                  : 'hover:border-blue-200'
+              className={`cursor-pointer transition-all duration-200 touch-manipulation ${
+                selectedStaff === member.id
+                  ? 'ring-2 ring-blue-500 bg-blue-50 border-blue-200 shadow-lg'
+                  : 'active:border-blue-200 active:shadow-md'
               }`}
               onClick={() => setSelectedStaff(member.id)}
             >
@@ -829,16 +829,16 @@ export default function RandevuPage({ params }: PageProps) {
             <Button
               key={dateOption.date}
               variant={selectedDate === dateOption.date ? "default" : "outline"}
-              className={`p-3 h-auto flex flex-col transition-all duration-200 ${
-                dateOption.isClosed 
-                  ? 'opacity-50 cursor-not-allowed bg-gray-100' 
-                  : 'transform hover:scale-105'
+              className={`p-3 h-auto flex flex-col transition-all duration-200 touch-manipulation ${
+                dateOption.isClosed
+                  ? 'opacity-50 cursor-not-allowed bg-gray-100'
+                  : ''
               } ${
-                selectedDate === dateOption.date 
-                  ? 'bg-blue-600 text-white shadow-lg' 
-                  : dateOption.isClosed 
-                    ? 'hover:bg-gray-100' 
-                    : 'hover:bg-blue-50 hover:border-blue-300'
+                selectedDate === dateOption.date
+                  ? 'bg-blue-600 text-white shadow-lg'
+                  : dateOption.isClosed
+                    ? ''
+                    : 'active:bg-blue-50 active:border-blue-300'
               } ${
                 dateOption.isToday ? 'border-blue-500' : ''
               }`}
@@ -848,7 +848,6 @@ export default function RandevuPage({ params }: PageProps) {
                 }
               }}
               disabled={dateOption.isClosed}
-              style={{ pointerEvents: dateOption.isClosed ? 'none' : 'auto' }}
             >
               <Calendar className="w-4 h-4 mb-1" />
               <span className="text-sm font-medium">{dateOption.display}</span>
@@ -874,10 +873,10 @@ export default function RandevuPage({ params }: PageProps) {
                   <Button
                     key={slot.time}
                     variant={selectedTime === slot.time ? "default" : "outline"}
-                    className={`p-3 text-sm transition-all duration-200 transform hover:scale-105 ${
-                      selectedTime === slot.time 
-                        ? 'bg-blue-600 text-white shadow-lg' 
-                        : 'hover:bg-blue-50 hover:border-blue-300'
+                    className={`p-3 text-sm transition-all duration-200 touch-manipulation ${
+                      selectedTime === slot.time
+                        ? 'bg-blue-600 text-white shadow-lg'
+                        : 'active:bg-blue-50 active:border-blue-300'
                     }`}
                     onClick={() => setSelectedTime(slot.time)}
                   >
@@ -1018,26 +1017,27 @@ export default function RandevuPage({ params }: PageProps) {
                 </p>
               </div>
               <div className="flex gap-4 justify-center">
-                <button
+                <Button
                   onClick={() => {
                     setUsePackageForService(true);
                     setShowPackageChoice(false);
                   }}
-                  className="px-8 py-3 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700 transition-colors duration-200 flex items-center gap-2"
+                  className="px-8 py-3 bg-green-600 text-white font-semibold hover:bg-green-700 active:bg-green-800 touch-manipulation flex items-center gap-2"
                 >
                   <Check className="w-5 h-5" />
                   Evet, Paketten Düş
-                </button>
-                <button
+                </Button>
+                <Button
                   onClick={() => {
                     setUsePackageForService(false);
                     setShowPackageChoice(false);
                   }}
-                  className="px-8 py-3 bg-gray-200 text-gray-700 font-semibold rounded-lg hover:bg-gray-300 transition-colors duration-200 flex items-center gap-2"
+                  variant="outline"
+                  className="px-8 py-3 font-semibold active:bg-gray-200 touch-manipulation flex items-center gap-2"
                 >
                   <X className="w-5 h-5" />
                   Hayır, Ödeme Yapacağım
-                </button>
+                </Button>
               </div>
             </div>
           </CardContent>
@@ -1133,11 +1133,12 @@ export default function RandevuPage({ params }: PageProps) {
               {/* Option 1: Use Package (only if applicable) */}
               {servicePackageInfo && usePackageForService && (
                 <button
+                  type="button"
                   onClick={() => setPaymentMethod('package')}
-                  className={`w-full p-4 rounded-lg border-2 text-left transition-all ${
+                  className={`w-full p-4 rounded-lg border-2 text-left transition-all touch-manipulation ${
                     paymentMethod === 'package'
                       ? 'border-green-500 bg-green-50'
-                      : 'border-gray-300 bg-white hover:border-green-300'
+                      : 'border-gray-300 bg-white active:border-green-300 active:bg-green-50'
                   }`}
                 >
                   <div className="flex items-center justify-between">
@@ -1158,11 +1159,12 @@ export default function RandevuPage({ params }: PageProps) {
               {/* Option 2: Pay with Card */}
               {(!servicePackageInfo || !usePackageForService) && (
                 <button
+                  type="button"
                   onClick={() => setPaymentMethod('card')}
-                  className={`w-full p-4 rounded-lg border-2 text-left transition-all ${
+                  className={`w-full p-4 rounded-lg border-2 text-left transition-all touch-manipulation ${
                     paymentMethod === 'card'
                       ? 'border-blue-500 bg-blue-50'
-                      : 'border-gray-300 bg-white hover:border-blue-300'
+                      : 'border-gray-300 bg-white active:border-blue-300 active:bg-blue-50'
                   }`}
                 >
                   <div className="flex items-center justify-between">
@@ -1183,11 +1185,12 @@ export default function RandevuPage({ params }: PageProps) {
               {/* Option 3: Pay Later */}
               {(!servicePackageInfo || !usePackageForService) && (
                 <button
+                  type="button"
                   onClick={() => setPaymentMethod('later')}
-                  className={`w-full p-4 rounded-lg border-2 text-left transition-all ${
+                  className={`w-full p-4 rounded-lg border-2 text-left transition-all touch-manipulation ${
                     paymentMethod === 'later'
                       ? 'border-orange-500 bg-orange-50'
-                      : 'border-gray-300 bg-white hover:border-orange-300'
+                      : 'border-gray-300 bg-white active:border-orange-300 active:bg-orange-50'
                   }`}
                 >
                   <div className="flex items-center justify-between">
