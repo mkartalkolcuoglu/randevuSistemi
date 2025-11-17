@@ -68,8 +68,16 @@ export function middleware(request: NextRequest) {
         const subscriptionEnd = new Date(sessionData.subscriptionEnd);
         const now = new Date();
 
+        console.log('🔍 Subscription check:', {
+          subscriptionEnd: subscriptionEnd.toISOString(),
+          now: now.toISOString(),
+          isExpired: subscriptionEnd < now,
+          pathname
+        });
+
         // Subscription dolmuşsa ve subscription sayfasında değilse, redirect et
         if (subscriptionEnd < now && !pathname.startsWith('/admin/select-subscription')) {
+          console.log('⚠️ Redirecting to subscription page');
           return NextResponse.redirect(new URL('/admin/select-subscription', request.url));
         }
       }
