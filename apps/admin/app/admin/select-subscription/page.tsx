@@ -45,9 +45,14 @@ async function getActivePackages(hasUsedTrial: boolean) {
       }
     });
 
-    // Eğer trial kullanılmışsa, trial paketini filtrele
+    // Eğer trial kullanılmışsa, trial paketlerini filtrele
     if (hasUsedTrial) {
-      return packages.filter(pkg => pkg.slug !== 'trial');
+      return packages.filter(pkg =>
+        pkg.slug !== 'trial' &&
+        pkg.slug !== 'deneme' &&
+        pkg.slug !== 'deneme-paketi' &&
+        pkg.price > 0 // Ücretsiz paketleri de filtrele
+      );
     }
 
     return packages;
