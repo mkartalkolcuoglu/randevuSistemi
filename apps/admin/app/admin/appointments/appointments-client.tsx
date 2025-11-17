@@ -18,7 +18,14 @@ interface AppointmentsClientProps {
 export default function AppointmentsClient({ initialAppointments, tenantId, user }: AppointmentsClientProps) {
   const [appointments, setAppointments] = useState(initialAppointments);
   const [statusFilter, setStatusFilter] = useState('all');
-  const [dateFilter, setDateFilter] = useState('');
+  // Varsayılan olarak bugünün tarihi (YYYY-MM-DD formatında)
+  const [dateFilter, setDateFilter] = useState(() => {
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const day = String(today.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  });
 
   const handleDelete = async (id: string) => {
     if (confirm('Bu randevuyu silmek istediğinizden emin misiniz?')) {
@@ -416,21 +423,24 @@ export default function AppointmentsClient({ initialAppointments, tenantId, user
                         )}
                       </div>
                     </div>
-                    {(statusFilter !== 'all' || dateFilter) && (
-                      <div className="flex items-end">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => {
-                            setStatusFilter('all');
-                            setDateFilter('');
-                          }}
-                          className="text-gray-600 hover:text-gray-900"
-                        >
-                          Filtreleri Temizle
-                        </Button>
-                      </div>
-                    )}
+                    <div className="flex items-end">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setStatusFilter('all');
+                          // Bugünün tarihine dön
+                          const today = new Date();
+                          const year = today.getFullYear();
+                          const month = String(today.getMonth() + 1).padStart(2, '0');
+                          const day = String(today.getDate()).padStart(2, '0');
+                          setDateFilter(`${year}-${month}-${day}`);
+                        }}
+                        className="text-gray-600 hover:text-gray-900"
+                      >
+                        Bugüne Dön
+                      </Button>
+                    </div>
                   </div>
 
                   {/* DataTable */}
