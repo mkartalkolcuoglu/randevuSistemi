@@ -1372,7 +1372,7 @@ export default function RandevuPage({ params }: PageProps) {
         </Card>
 
         {/* Navigation */}
-        <div className="flex justify-between gap-4">
+        <div className="flex justify-between gap-4 relative z-50">
           <button
             onClick={handlePrev}
             onTouchEnd={(e) => {
@@ -1383,7 +1383,7 @@ export default function RandevuPage({ params }: PageProps) {
             }}
             disabled={currentStepIndex === 0}
             style={{ WebkitTapHighlightColor: 'transparent' }}
-            className={`inline-flex items-center justify-center px-6 py-3 border-2 rounded-lg text-sm font-medium touch-manipulation select-none min-h-[48px] ${
+            className={`relative inline-flex items-center justify-center px-6 py-3 border-2 rounded-lg text-sm font-medium touch-manipulation select-none min-h-[48px] min-w-[100px] ${
               currentStepIndex === 0
                 ? 'border-gray-200 bg-gray-100 text-gray-400 cursor-not-allowed'
                 : 'border-gray-300 bg-white text-gray-700 active:bg-gray-50 active:border-gray-400 cursor-pointer'
@@ -1416,7 +1416,7 @@ export default function RandevuPage({ params }: PageProps) {
                 paymentLoading
               }
               style={{ WebkitTapHighlightColor: 'transparent' }}
-              className={`inline-flex items-center justify-center px-6 py-3 border-2 rounded-lg text-sm font-medium touch-manipulation select-none min-h-[48px] ${
+              className={`relative inline-flex items-center justify-center px-6 py-3 border-2 rounded-lg text-sm font-medium touch-manipulation select-none min-h-[48px] min-w-[150px] ${
                 createAppointmentMutation.isPending ||
                 !agreementsAccepted ||
                 showPackageChoice ||
@@ -1449,7 +1449,7 @@ export default function RandevuPage({ params }: PageProps) {
               }}
               disabled={!canProceedToNext()}
               style={{ WebkitTapHighlightColor: 'transparent' }}
-              className={`inline-flex items-center justify-center px-6 py-3 border-2 rounded-lg text-sm font-medium touch-manipulation select-none min-h-[48px] ${
+              className={`relative inline-flex items-center justify-center px-6 py-3 border-2 rounded-lg text-sm font-medium touch-manipulation select-none min-h-[48px] min-w-[100px] ${
                 !canProceedToNext()
                   ? 'border-gray-200 bg-gray-100 text-gray-400 cursor-not-allowed'
                   : 'border-blue-600 bg-blue-600 text-white active:bg-blue-700 active:border-blue-700 cursor-pointer'
