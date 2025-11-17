@@ -392,3 +392,20 @@ model Payment {
   @@index([tenantId])
   @@map("payments")
 }
+
+model SubscriptionPackage {
+  id           String   @id @default(cuid())
+  name         String   // "15 Günlük Deneme", "Aylık Premium"
+  slug         String   @unique // "trial", "monthly", "yearly"
+  durationDays Int      @map("duration_days") // 15, 30, 365
+  price        Float    @default(0) // 0 = ücretsiz
+  isActive     Boolean  @default(true) @map("is_active")
+  isFeatured   Boolean  @default(false) @map("is_featured") // Öne çıkan paket (özel badge)
+  displayOrder Int      @default(0) @map("display_order")
+  features     String?  @db.Text // JSON array: ["Sınırsız randevu", "100 müşteri"]
+  description  String?  // Kısa açıklama
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  @@map("subscription_packages")
+}
