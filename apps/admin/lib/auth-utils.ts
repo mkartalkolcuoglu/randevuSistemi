@@ -39,8 +39,8 @@ export async function getAuthenticatedUser(): Promise<AuthenticatedUser | null> 
       if (userType === 'owner') {
         const tenant = await prisma.tenant.findFirst({
           where: {
-            id: sessionData.tenantId,
-            status: 'active'
+            id: sessionData.tenantId
+            // Don't check status - middleware handles subscription
           },
           select: {
             id: true,
