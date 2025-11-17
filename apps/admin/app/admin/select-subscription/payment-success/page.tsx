@@ -30,9 +30,9 @@ function PaymentSuccessContent() {
 
         setActivating(false);
 
-        // 2 saniye sonra dashboard'a yönlendir
+        // 2 saniye sonra dashboard'a yönlendir (hard reload ile cookie'leri güncelle)
         setTimeout(() => {
-          window.location.href = '/admin';
+          window.location.replace('/admin');
         }, 2000);
       } catch (err: any) {
         setError(err.message);
