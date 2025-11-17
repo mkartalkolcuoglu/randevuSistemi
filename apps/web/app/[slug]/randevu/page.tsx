@@ -1365,14 +1365,14 @@ export default function RandevuPage({ params }: PageProps) {
       <div className="max-w-4xl mx-auto px-4 py-6">
 
         {/* Main Content */}
-        <Card className="mb-8">
-          <CardContent className="p-8">
+        <Card className="mb-8 relative z-10">
+          <CardContent className="p-8 overflow-visible">
             {renderCurrentStep()}
           </CardContent>
         </Card>
 
         {/* Navigation */}
-        <div className="flex justify-between gap-4 relative z-50">
+        <div className="flex justify-between gap-4 relative z-50 pb-8">
           <button
             onClick={handlePrev}
             onTouchEnd={(e) => {
