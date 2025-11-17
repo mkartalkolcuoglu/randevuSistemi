@@ -31,7 +31,7 @@ export default function Header() {
     { href: '/project-admin/packages', label: 'Paketler', icon: Package },
     { href: '/project-admin/pages', label: 'Sayfalar', icon: FileText },
     { href: '/project-admin/reports', label: 'Raporlar', icon: BarChart3 },
-    { href: '/payment-flow', label: 'Ödeme Akışı', icon: DollarSign },
+    { href: '/project-admin/payment-flow', label: 'Ödeme Akışı', icon: DollarSign },
   ];
 
   return (
