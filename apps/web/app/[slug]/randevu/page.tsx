@@ -1375,20 +1375,39 @@ export default function RandevuPage({ params }: PageProps) {
         <div className="flex justify-between gap-4">
           <button
             onClick={handlePrev}
+            onTouchEnd={(e) => {
+              if (currentStepIndex !== 0) {
+                e.preventDefault();
+                handlePrev();
+              }
+            }}
             disabled={currentStepIndex === 0}
-            className={`inline-flex items-center justify-center px-6 py-3 border-2 rounded-lg text-sm font-medium transition-all touch-manipulation select-none ${
+            style={{ WebkitTapHighlightColor: 'transparent' }}
+            className={`inline-flex items-center justify-center px-6 py-3 border-2 rounded-lg text-sm font-medium touch-manipulation select-none min-h-[48px] ${
               currentStepIndex === 0
                 ? 'border-gray-200 bg-gray-100 text-gray-400 cursor-not-allowed'
                 : 'border-gray-300 bg-white text-gray-700 active:bg-gray-50 active:border-gray-400 cursor-pointer'
             }`}
           >
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Geri
+            <ArrowLeft className="w-4 h-4 mr-2 pointer-events-none" />
+            <span className="pointer-events-none">Geri</span>
           </button>
 
           {currentStep === 'confirmation' ? (
             <button
               onClick={handleSubmit}
+              onTouchEnd={(e) => {
+                const isDisabled = createAppointmentMutation.isPending ||
+                  !agreementsAccepted ||
+                  showPackageChoice ||
+                  (!paymentMethod && !(servicePackageInfo && usePackageForService)) ||
+                  paymentLoading;
+
+                if (!isDisabled) {
+                  e.preventDefault();
+                  handleSubmit();
+                }
+              }}
               disabled={
                 createAppointmentMutation.isPending ||
                 !agreementsAccepted ||
@@ -1396,7 +1415,8 @@ export default function RandevuPage({ params }: PageProps) {
                 (!paymentMethod && !(servicePackageInfo && usePackageForService)) ||
                 paymentLoading
               }
-              className={`inline-flex items-center justify-center px-6 py-3 border-2 rounded-lg text-sm font-medium transition-all touch-manipulation select-none ${
+              style={{ WebkitTapHighlightColor: 'transparent' }}
+              className={`inline-flex items-center justify-center px-6 py-3 border-2 rounded-lg text-sm font-medium touch-manipulation select-none min-h-[48px] ${
                 createAppointmentMutation.isPending ||
                 !agreementsAccepted ||
                 showPackageChoice ||
@@ -1408,28 +1428,35 @@ export default function RandevuPage({ params }: PageProps) {
             >
               {createAppointmentMutation.isPending || paymentLoading ? (
                 <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                  {paymentLoading ? 'Ödeme Hazırlanıyor...' : 'Oluşturuluyor...'}
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2 pointer-events-none"></div>
+                  <span className="pointer-events-none">{paymentLoading ? 'Ödeme Hazırlanıyor...' : 'Oluşturuluyor...'}</span>
                 </>
               ) : (
                 <>
-                  <Check className="w-4 h-4 mr-2" />
-                  Randevuyu Onayla
+                  <Check className="w-4 h-4 mr-2 pointer-events-none" />
+                  <span className="pointer-events-none">Randevuyu Onayla</span>
                 </>
               )}
             </button>
           ) : (
             <button
               onClick={handleNext}
+              onTouchEnd={(e) => {
+                if (canProceedToNext()) {
+                  e.preventDefault();
+                  handleNext();
+                }
+              }}
               disabled={!canProceedToNext()}
-              className={`inline-flex items-center justify-center px-6 py-3 border-2 rounded-lg text-sm font-medium transition-all touch-manipulation select-none ${
+              style={{ WebkitTapHighlightColor: 'transparent' }}
+              className={`inline-flex items-center justify-center px-6 py-3 border-2 rounded-lg text-sm font-medium touch-manipulation select-none min-h-[48px] ${
                 !canProceedToNext()
                   ? 'border-gray-200 bg-gray-100 text-gray-400 cursor-not-allowed'
                   : 'border-blue-600 bg-blue-600 text-white active:bg-blue-700 active:border-blue-700 cursor-pointer'
               }`}
             >
-              İleri
-              <ArrowRight className="w-4 h-4 ml-2" />
+              <span className="pointer-events-none">İleri</span>
+              <ArrowRight className="w-4 h-4 ml-2 pointer-events-none" />
             </button>
           )}
         </div>
