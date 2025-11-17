@@ -356,6 +356,7 @@ model Payment {
   customerName    String?  @map("customer_name")
   customerEmail   String?  @map("customer_email")
   customerPhone   String?  @map("customer_phone")
+  productName     String?  @map("product_name") // Ürün/hizmet adı (subscription paket adı vb.)
 
   // PayTR Bilgileri
   merchantOid     String   @unique @map("merchant_oid") // PayTR sipariş no (unique order ID)
