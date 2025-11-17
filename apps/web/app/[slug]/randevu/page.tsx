@@ -1460,6 +1460,7 @@ export default function RandevuPage({ params }: PageProps) {
               <ArrowRight className="w-4 h-4 ml-2 pointer-events-none" />
             </button>
           )}
+          </div>
         </div>
       </div>
 
