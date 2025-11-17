@@ -1,5 +1,3 @@
-"use client";
-
 import { Button } from '@/components/ui';
 import { XCircle } from 'lucide-react';
 
@@ -22,20 +20,17 @@ export default function PaymentFailedPage() {
         </p>
 
         <div className="space-y-3">
-          <Button
-            className="w-full"
-            onClick={() => window.location.href = '/admin/select-subscription'}
-          >
-            Tekrar Dene
-          </Button>
+          <form action="/admin/select-subscription" method="get">
+            <Button type="submit" className="w-full">
+              Tekrar Dene
+            </Button>
+          </form>
 
-          <Button
-            variant="outline"
-            className="w-full"
-            onClick={() => window.location.href = '/admin'}
-          >
-            Dashboard'a Dön
-          </Button>
+          <form action="/admin" method="get">
+            <Button type="submit" variant="outline" className="w-full">
+              Dashboard'a Dön
+            </Button>
+          </form>
         </div>
 
         <div className="mt-6 p-4 bg-gray-50 rounded-lg">
