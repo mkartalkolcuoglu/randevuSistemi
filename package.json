@@ -26,6 +26,7 @@
     "packages/*"
   ],
   "dependencies": {
-    "@prisma/client": "^6.16.2"
+    "@prisma/client": "^6.16.2",
+    "react-is": "^19.2.0"
   }
 }
