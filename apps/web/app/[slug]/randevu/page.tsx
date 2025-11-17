@@ -685,14 +685,24 @@ export default function RandevuPage({ params }: PageProps) {
           {services?.map((service) => {
             const packageInfo = checkServiceInPackage(service.id);
             return (
-              <Card
+              <div
                 key={service.id}
-                className={`cursor-pointer transition-all duration-200 touch-manipulation relative ${
+                role="button"
+                tabIndex={0}
+                onClick={() => setSelectedService(service.id)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    setSelectedService(service.id);
+                  }
+                }}
+              >
+              <Card
+                className={`cursor-pointer transition-all duration-200 select-none relative ${
                   selectedService === service.id
                     ? 'ring-2 ring-blue-500 bg-blue-50 border-blue-200 shadow-lg'
                     : 'active:border-blue-200 active:shadow-md'
                 }`}
-                onClick={() => setSelectedService(service.id)}
               >
                 {packageInfo && (
                   <div className="absolute top-2 right-2 bg-green-500 text-white text-xs font-semibold px-2 py-1 rounded-full flex items-center gap-1">
@@ -720,6 +730,7 @@ export default function RandevuPage({ params }: PageProps) {
                   </div>
                 </CardContent>
               </Card>
+              </div>
             );
           })}
         </div>
@@ -759,14 +770,24 @@ export default function RandevuPage({ params }: PageProps) {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {staff?.map((member) => (
-            <Card
+            <div
               key={member.id}
-              className={`cursor-pointer transition-all duration-200 touch-manipulation ${
+              role="button"
+              tabIndex={0}
+              onClick={() => setSelectedStaff(member.id)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  setSelectedStaff(member.id);
+                }
+              }}
+            >
+            <Card
+              className={`cursor-pointer transition-all duration-200 select-none ${
                 selectedStaff === member.id
                   ? 'ring-2 ring-blue-500 bg-blue-50 border-blue-200 shadow-lg'
                   : 'active:border-blue-200 active:shadow-md'
               }`}
-              onClick={() => setSelectedStaff(member.id)}
             >
               <CardContent className="p-4">
                 <div className="flex items-center space-x-4">
@@ -787,6 +808,7 @@ export default function RandevuPage({ params }: PageProps) {
                 </div>
               </CardContent>
             </Card>
+            </div>
           ))}
         </div>
       )}
@@ -1132,10 +1154,20 @@ export default function RandevuPage({ params }: PageProps) {
             <div className="space-y-3">
               {/* Option 1: Use Package (only if applicable) */}
               {servicePackageInfo && usePackageForService && (
-                <button
-                  type="button"
-                  onClick={() => setPaymentMethod('package')}
-                  className={`w-full p-4 rounded-lg border-2 text-left transition-all touch-manipulation ${
+                <a
+                  role="button"
+                  tabIndex={0}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    setPaymentMethod('package');
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      setPaymentMethod('package');
+                    }
+                  }}
+                  className={`block w-full p-4 rounded-lg border-2 text-left transition-all cursor-pointer select-none ${
                     paymentMethod === 'package'
                       ? 'border-green-500 bg-green-50'
                       : 'border-gray-300 bg-white active:border-green-300 active:bg-green-50'
@@ -1153,15 +1185,25 @@ export default function RandevuPage({ params }: PageProps) {
                     </div>
                     {paymentMethod === 'package' && <Check className="w-6 h-6 text-green-600" />}
                   </div>
-                </button>
+                </a>
               )}
 
               {/* Option 2: Pay with Card */}
               {(!servicePackageInfo || !usePackageForService) && (
-                <button
-                  type="button"
-                  onClick={() => setPaymentMethod('card')}
-                  className={`w-full p-4 rounded-lg border-2 text-left transition-all touch-manipulation ${
+                <a
+                  role="button"
+                  tabIndex={0}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    setPaymentMethod('card');
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      setPaymentMethod('card');
+                    }
+                  }}
+                  className={`block w-full p-4 rounded-lg border-2 text-left transition-all cursor-pointer select-none ${
                     paymentMethod === 'card'
                       ? 'border-blue-500 bg-blue-50'
                       : 'border-gray-300 bg-white active:border-blue-300 active:bg-blue-50'
@@ -1179,15 +1221,25 @@ export default function RandevuPage({ params }: PageProps) {
                     </div>
                     {paymentMethod === 'card' && <Check className="w-6 h-6 text-blue-600" />}
                   </div>
-                </button>
+                </a>
               )}
 
               {/* Option 3: Pay Later */}
               {(!servicePackageInfo || !usePackageForService) && (
-                <button
-                  type="button"
-                  onClick={() => setPaymentMethod('later')}
-                  className={`w-full p-4 rounded-lg border-2 text-left transition-all touch-manipulation ${
+                <a
+                  role="button"
+                  tabIndex={0}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    setPaymentMethod('later');
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      setPaymentMethod('later');
+                    }
+                  }}
+                  className={`block w-full p-4 rounded-lg border-2 text-left transition-all cursor-pointer select-none ${
                     paymentMethod === 'later'
                       ? 'border-orange-500 bg-orange-50'
                       : 'border-gray-300 bg-white active:border-orange-300 active:bg-orange-50'
@@ -1205,7 +1257,7 @@ export default function RandevuPage({ params }: PageProps) {
                     </div>
                     {paymentMethod === 'later' && <Check className="w-6 h-6 text-orange-600" />}
                   </div>
-                </button>
+                </a>
               )}
             </div>
 
