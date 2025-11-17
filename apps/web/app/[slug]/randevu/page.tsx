@@ -1375,9 +1375,8 @@ export default function RandevuPage({ params }: PageProps) {
         <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 py-4 px-4 z-50">
           <div className="max-w-4xl mx-auto flex justify-between gap-4">
           <button
-            onClick={handlePrev}
-            onTouchEnd={(e) => {
-              if (currentStepIndex !== 0) {
+            onPointerDown={(e) => {
+              if (currentStepIndex !== 0 && e.isPrimary) {
                 e.preventDefault();
                 handlePrev();
               }
@@ -1396,15 +1395,14 @@ export default function RandevuPage({ params }: PageProps) {
 
           {currentStep === 'confirmation' ? (
             <button
-              onClick={handleSubmit}
-              onTouchEnd={(e) => {
+              onPointerDown={(e) => {
                 const isDisabled = createAppointmentMutation.isPending ||
                   !agreementsAccepted ||
                   showPackageChoice ||
                   (!paymentMethod && !(servicePackageInfo && usePackageForService)) ||
                   paymentLoading;
 
-                if (!isDisabled) {
+                if (!isDisabled && e.isPrimary) {
                   e.preventDefault();
                   handleSubmit();
                 }
@@ -1441,9 +1439,8 @@ export default function RandevuPage({ params }: PageProps) {
             </button>
           ) : (
             <button
-              onClick={handleNext}
-              onTouchEnd={(e) => {
-                if (canProceedToNext()) {
+              onPointerDown={(e) => {
+                if (canProceedToNext() && e.isPrimary) {
                   e.preventDefault();
                   handleNext();
                 }
