@@ -69,6 +69,7 @@ export async function POST(request: NextRequest) {
         paymentAmount,
         currency: 'TL',
         status: 'pending',
+        productName: pkg.name, // Paket adını kaydet
         userBasket,
         userIp,
       }
