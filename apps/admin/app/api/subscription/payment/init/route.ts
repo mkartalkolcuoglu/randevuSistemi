@@ -107,7 +107,15 @@ export async function POST(request: NextRequest) {
       }).toString()
     });
 
-    const paytrData = await paytrResponse.json();
+    const paytrText = await paytrResponse.text();
+    console.log('PayTR Response:', paytrText);
+
+    let paytrData;
+    try {
+      paytrData = JSON.parse(paytrText);
+    } catch (e) {
+      throw new Error(`PayTR invalid JSON response: ${paytrText}`);
+    }
 
     if (paytrData.status === 'success') {
       // Payment kaydını güncelle
