@@ -3,7 +3,7 @@
 import { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, Button, Badge } from '@repo/ui';
 import { DollarSign, Calendar, Building2, Package, ShoppingCart, User } from 'lucide-react';
-import { DataTable, Column } from '../../components/DataTable';
+import { DataTable, Column } from '../../../components/DataTable';
 
 interface Payment {
   id: string;

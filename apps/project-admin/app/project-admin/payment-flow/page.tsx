@@ -1,7 +1,7 @@
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import PaymentFlowClient from './payment-flow-client';
-import { prisma } from '../../lib/prisma';
+import { prisma } from '../../../lib/prisma';
 
 export const dynamic = 'force-dynamic';
 
