@@ -273,9 +273,10 @@ export default function Home() {
                 <User className="w-3 h-3 sm:w-4 sm:h-4 sm:mr-2" />
                 <span className="hidden sm:inline">Kullanıcı Girişi</span>
               </Button>
-              <Link href="https://admin.netrandevu.com" className="hidden md:block">
-                <Button variant="outline" size="sm" className="border-[#163974] text-[#163974] hover:bg-[#163974] hover:text-white transition text-xs sm:text-sm">
-                  İşletme Paneli
+              <Link href="https://admin.netrandevu.com">
+                <Button variant="outline" size="sm" className="border-[#163974] text-[#163974] hover:bg-[#163974] hover:text-white transition text-xs sm:text-sm px-2 sm:px-4">
+                  <BarChart3 className="w-3 h-3 sm:w-4 sm:h-4 sm:mr-2" />
+                  <span className="hidden sm:inline">İşletme Paneli</span>
                 </Button>
               </Link>
               <Link href="/register">
