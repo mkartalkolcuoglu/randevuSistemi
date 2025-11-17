@@ -12,7 +12,7 @@ export async function POST(request: NextRequest) {
       where: {
         username: username,
         password: password,
-        status: 'active'
+        // Don't check status - middleware handles subscription
       },
       select: {
         id: true,
