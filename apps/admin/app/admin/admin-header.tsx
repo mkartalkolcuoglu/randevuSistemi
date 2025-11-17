@@ -480,14 +480,12 @@ export default function AdminHeader({ user }: AdminHeaderProps) {
                 Performans
               </Button>
             </Link>
-            {isProjectAdmin && (
-              <Link href="/payment-flow">
-                <Button variant="ghost" size="sm" className="text-purple-600 hover:text-purple-900 hover:bg-purple-50">
-                  <DollarSign className="w-4 h-4 mr-2" />
-                  Ödeme Akışı
-                </Button>
-              </Link>
-            )}
+            <Link href="/payment-flow">
+              <Button variant="ghost" size="sm" className="text-purple-600 hover:text-purple-900 hover:bg-purple-50">
+                <DollarSign className="w-4 h-4 mr-2" />
+                Ödeme Akışı
+              </Button>
+            </Link>
             {canAccessPage(user, 'settings') && (
               <Link href="/admin/settings">
                 <Button variant="ghost" size="sm" className="text-gray-600 hover:text-gray-900">
@@ -613,14 +611,12 @@ export default function AdminHeader({ user }: AdminHeaderProps) {
                   Performans
                 </Button>
               </Link>
-              {isProjectAdmin && (
-                <Link href="/payment-flow" onClick={() => setMobileMenuOpen(false)}>
-                  <Button variant="ghost" size="sm" className="w-full justify-start text-purple-600 hover:text-purple-900 hover:bg-purple-50">
-                    <DollarSign className="w-5 h-5 mr-3" />
-                    Ödeme Akışı
-                  </Button>
-                </Link>
-              )}
+              <Link href="/payment-flow" onClick={() => setMobileMenuOpen(false)}>
+                <Button variant="ghost" size="sm" className="w-full justify-start text-purple-600 hover:text-purple-900 hover:bg-purple-50">
+                  <DollarSign className="w-5 h-5 mr-3" />
+                  Ödeme Akışı
+                </Button>
+              </Link>
               {canAccessPage(user, 'settings') && (
                 <Link href="/admin/settings" onClick={() => setMobileMenuOpen(false)}>
                   <Button variant="ghost" size="sm" className="w-full justify-start text-gray-600 hover:text-gray-900 hover:bg-gray-100">
