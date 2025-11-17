@@ -62,14 +62,18 @@ export function middleware(request: NextRequest) {
     }
 
     // Subscription check - only for owner users (not staff)
-    if (sessionData.userType === 'owner' && sessionData.subscriptionEnd) {
-      const subscriptionEnd = new Date(sessionData.subscriptionEnd);
-      const now = new Date();
+    if (sessionData.userType === 'owner') {
+      // Eğer subscriptionEnd varsa ve süresi dolmuşsa
+      if (sessionData.subscriptionEnd) {
+        const subscriptionEnd = new Date(sessionData.subscriptionEnd);
+        const now = new Date();
 
-      // Eğer subscription süresi dolmuşsa ve subscription sayfasında değilse
-      if (subscriptionEnd < now && !pathname.startsWith('/admin/select-subscription')) {
-        return NextResponse.redirect(new URL('/admin/select-subscription', request.url));
+        // Subscription dolmuşsa ve subscription sayfasında değilse, redirect et
+        if (subscriptionEnd < now && !pathname.startsWith('/admin/select-subscription')) {
+          return NextResponse.redirect(new URL('/admin/select-subscription', request.url));
+        }
       }
+      // Eğer subscriptionEnd null ise, normal devam et (eski tenant'lar için)
     }
 
     // Permission check for staff users
