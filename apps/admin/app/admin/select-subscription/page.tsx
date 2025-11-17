@@ -64,10 +64,9 @@ export default async function SelectSubscriptionPage() {
     redirect('/login');
   }
 
-  // Eğer subscription aktifse, dashboard'a yönlendir
-  if (tenant.subscriptionEnd && new Date(tenant.subscriptionEnd) > new Date()) {
-    redirect('/admin');
-  }
+  // NOT: Subscription aktif kontrolü yapma - middleware zaten kontrol ediyor
+  // Eğer buraya geldiyse, subscription dolmuş demektir
+  // Bu kontrolü kaldırmak redirect loop'u önler
 
   const packages = await getActivePackages(tenant.hasUsedTrial);
 
