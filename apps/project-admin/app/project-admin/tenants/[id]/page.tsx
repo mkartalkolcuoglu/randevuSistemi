@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { Button, Card, CardContent, CardHeader, CardTitle } from '@repo/ui';
-import { ArrowLeft, Building2, Edit, Globe, ExternalLink, RefreshCw } from 'lucide-react';
+import { ArrowLeft, Building2, Edit, Globe, ExternalLink, RefreshCw, FileText, Download, Eye } from 'lucide-react';
 import { useState, useEffect } from 'react';
 
 interface TenantDetailPageProps {
@@ -259,7 +259,7 @@ export default function TenantDetailPage({ params }: TenantDetailPageProps) {
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Ana Renk</label>
                     <div className="flex items-center space-x-2">
-                      <div 
+                      <div
                         className="w-6 h-6 rounded border border-gray-300"
                         style={{ backgroundColor: tenant.theme?.primaryColor || '#EC4899' }}
                       ></div>
@@ -269,7 +269,7 @@ export default function TenantDetailPage({ params }: TenantDetailPageProps) {
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">İkincil Renk</label>
                     <div className="flex items-center space-x-2">
-                      <div 
+                      <div
                         className="w-6 h-6 rounded border border-gray-300"
                         style={{ backgroundColor: tenant.theme?.secondaryColor || '#f3f4f6' }}
                       ></div>
@@ -277,18 +277,141 @@ export default function TenantDetailPage({ params }: TenantDetailPageProps) {
                     </div>
                   </div>
                 </div>
-                
+
                 {tenant.theme?.logo && (
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Logo</label>
                     <img src={tenant.theme.logo} alt="Logo" className="h-12 w-auto" />
                   </div>
                 )}
-                
+
                 {tenant.theme?.headerImage && (
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Header Görseli</label>
                     <img src={tenant.theme.headerImage} alt="Header" className="h-24 w-auto rounded" />
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Documents */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <FileText className="w-5 h-5 mr-2" />
+                  Ödeme Belgeleri
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {tenant.theme?.documents ? (
+                  <>
+                    {/* IBAN */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">IBAN</label>
+                      {tenant.theme.documents.iban ? (
+                        <p className="text-gray-900 font-mono bg-gray-50 p-2 rounded">{tenant.theme.documents.iban}</p>
+                      ) : (
+                        <p className="text-gray-400 italic">Yüklenmemiş</p>
+                      )}
+                    </div>
+
+                    {/* Kimlik Belgesi */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Kimlik Belgesi</label>
+                      {tenant.theme.documents.identityDocument ? (
+                        <div className="space-y-2">
+                          {tenant.theme.documents.identityDocument.startsWith('data:image/') ? (
+                            <img
+                              src={tenant.theme.documents.identityDocument}
+                              alt="Kimlik Belgesi"
+                              className="max-w-full max-h-48 rounded border border-gray-200 cursor-pointer hover:opacity-90"
+                              onClick={() => window.open(tenant.theme.documents.identityDocument, '_blank')}
+                            />
+                          ) : (
+                            <div className="flex items-center gap-2 p-3 bg-gray-50 rounded border border-gray-200">
+                              <FileText className="w-8 h-8 text-red-500" />
+                              <span className="text-sm text-gray-600">PDF Belgesi</span>
+                              <a
+                                href={tenant.theme.documents.identityDocument}
+                                download="kimlik-belgesi.pdf"
+                                className="ml-auto text-blue-600 hover:text-blue-800"
+                              >
+                                <Download className="w-4 h-4" />
+                              </a>
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <p className="text-gray-400 italic">Yüklenmemiş</p>
+                      )}
+                    </div>
+
+                    {/* Vergi Levhası */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Vergi Levhası</label>
+                      {tenant.theme.documents.taxDocument ? (
+                        <div className="space-y-2">
+                          {tenant.theme.documents.taxDocument.startsWith('data:image/') ? (
+                            <img
+                              src={tenant.theme.documents.taxDocument}
+                              alt="Vergi Levhası"
+                              className="max-w-full max-h-48 rounded border border-gray-200 cursor-pointer hover:opacity-90"
+                              onClick={() => window.open(tenant.theme.documents.taxDocument, '_blank')}
+                            />
+                          ) : (
+                            <div className="flex items-center gap-2 p-3 bg-gray-50 rounded border border-gray-200">
+                              <FileText className="w-8 h-8 text-red-500" />
+                              <span className="text-sm text-gray-600">PDF Belgesi</span>
+                              <a
+                                href={tenant.theme.documents.taxDocument}
+                                download="vergi-levhasi.pdf"
+                                className="ml-auto text-blue-600 hover:text-blue-800"
+                              >
+                                <Download className="w-4 h-4" />
+                              </a>
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <p className="text-gray-400 italic">Yüklenmemiş</p>
+                      )}
+                    </div>
+
+                    {/* İmza Sirküleri */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">İmza Sirküleri</label>
+                      {tenant.theme.documents.signatureDocument ? (
+                        <div className="space-y-2">
+                          {tenant.theme.documents.signatureDocument.startsWith('data:image/') ? (
+                            <img
+                              src={tenant.theme.documents.signatureDocument}
+                              alt="İmza Sirküleri"
+                              className="max-w-full max-h-48 rounded border border-gray-200 cursor-pointer hover:opacity-90"
+                              onClick={() => window.open(tenant.theme.documents.signatureDocument, '_blank')}
+                            />
+                          ) : (
+                            <div className="flex items-center gap-2 p-3 bg-gray-50 rounded border border-gray-200">
+                              <FileText className="w-8 h-8 text-red-500" />
+                              <span className="text-sm text-gray-600">PDF Belgesi</span>
+                              <a
+                                href={tenant.theme.documents.signatureDocument}
+                                download="imza-sirkuleri.pdf"
+                                className="ml-auto text-blue-600 hover:text-blue-800"
+                              >
+                                <Download className="w-4 h-4" />
+                              </a>
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <p className="text-gray-400 italic">Yüklenmemiş</p>
+                      )}
+                    </div>
+                  </>
+                ) : (
+                  <div className="text-center py-6 text-gray-500">
+                    <FileText className="w-12 h-12 mx-auto mb-2 text-gray-300" />
+                    <p>Henüz belge yüklenmemiş</p>
                   </div>
                 )}
               </CardContent>
