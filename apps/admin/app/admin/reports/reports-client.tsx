@@ -79,7 +79,7 @@ export default function ReportsClient({ user }: ReportsClientProps) {
         fetch('/api/customers'),
         fetch('/api/services'),
         fetch('/api/staff'),
-        fetch('/api/transactions?tenantId=all') // Will be filtered by API based on auth
+        fetch('/api/transactions') // API will get tenantId from auth
       ]);
 
       const appointments = await appointmentsRes.json();
@@ -87,6 +87,8 @@ export default function ReportsClient({ user }: ReportsClientProps) {
       const services = await servicesRes.json();
       const staff = await staffRes.json();
       const transactionsData = await transactionsRes.json();
+
+      console.log('📊 Transactions data:', transactionsData);
 
       // Calculate this month's and last month's data
       const now = new Date();

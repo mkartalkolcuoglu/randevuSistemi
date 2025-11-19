@@ -80,8 +80,17 @@ async function getDashboardData(tenantId: string, userType: string, staffId?: st
     // Monthly revenue from transactions (same as Kasa)
     const now = new Date();
     const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    const startDate = firstDayOfMonth.toISOString().split('T')[0];
-    const endDate = now.toISOString().split('T')[0];
+
+    // Use local date format to avoid UTC issues
+    const formatLocalDate = (date: Date) => {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    };
+
+    const startDate = formatLocalDate(firstDayOfMonth);
+    const endDate = formatLocalDate(now);
 
     const transactions = await prisma.transaction.findMany({
       where: {

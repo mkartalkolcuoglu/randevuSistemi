@@ -7,16 +7,22 @@ const prisma = new PrismaClient();
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const tenantId = searchParams.get('tenantId');
+    let tenantId = searchParams.get('tenantId');
     const startDate = searchParams.get('startDate');
     const endDate = searchParams.get('endDate');
     const type = searchParams.get('type');
 
+    // If no tenantId provided, get from auth
     if (!tenantId) {
-      return NextResponse.json(
-        { success: false, error: 'Tenant ID required' },
-        { status: 400 }
-      );
+      const { getAuthenticatedUser } = await import('../../../lib/auth-utils');
+      const user = await getAuthenticatedUser();
+      if (!user) {
+        return NextResponse.json(
+          { success: false, error: 'Unauthorized' },
+          { status: 401 }
+        );
+      }
+      tenantId = user.tenantId;
     }
 
     const where: any = { tenantId };

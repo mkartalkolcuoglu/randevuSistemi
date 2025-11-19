@@ -66,10 +66,17 @@ export default function KasaClient({ tenantId, user }: KasaClientProps) {
     fetchTransactions();
   }, [dateFilter, customStartDate, customEndDate]);
 
+  const formatLocalDate = (date: Date) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
   const getDateRange = () => {
     const today = new Date();
     let startDate = '';
-    let endDate = today.toISOString().split('T')[0];
+    let endDate = formatLocalDate(today);
 
     switch (dateFilter) {
       case 'today':
@@ -78,12 +85,12 @@ export default function KasaClient({ tenantId, user }: KasaClientProps) {
       case 'week':
         const weekAgo = new Date(today);
         weekAgo.setDate(today.getDate() - 7);
-        startDate = weekAgo.toISOString().split('T')[0];
+        startDate = formatLocalDate(weekAgo);
         break;
       case 'month':
         // Bu ayın 1'inden bugüne
         const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-        startDate = firstDayOfMonth.toISOString().split('T')[0];
+        startDate = formatLocalDate(firstDayOfMonth);
         break;
       case 'custom':
         startDate = customStartDate;
