@@ -73,18 +73,20 @@ export default function ReportsClient({ user }: ReportsClientProps) {
     try {
       setLoading(true);
       
-      // Fetch appointments, customers, services, staff data
-      const [appointmentsRes, customersRes, servicesRes, staffRes] = await Promise.all([
+      // Fetch appointments, customers, services, staff, transactions data
+      const [appointmentsRes, customersRes, servicesRes, staffRes, transactionsRes] = await Promise.all([
         fetch('/api/appointments'),
         fetch('/api/customers'),
         fetch('/api/services'),
-        fetch('/api/staff')
+        fetch('/api/staff'),
+        fetch('/api/transactions?tenantId=all') // Will be filtered by API based on auth
       ]);
 
       const appointments = await appointmentsRes.json();
       const customers = await customersRes.json();
       const services = await servicesRes.json();
       const staff = await staffRes.json();
+      const transactionsData = await transactionsRes.json();
 
       // Calculate this month's and last month's data
       const now = new Date();
@@ -94,28 +96,47 @@ export default function ReportsClient({ user }: ReportsClientProps) {
 
       if (appointments.success && appointments.data) {
         const allAppointments = appointments.data;
+        const allTransactions = transactionsData.success ? transactionsData.data : [];
 
-        // This month vs last month - using apt.date (appointment date) for consistency
+        // This month vs last month - using transactions for revenue (same as Kasa)
+        const thisMonthTransactions = allTransactions.filter((t: any) => {
+          const tDate = new Date(t.date);
+          return tDate.getMonth() === now.getMonth() &&
+                 tDate.getFullYear() === now.getFullYear();
+        });
+
+        const lastMonth = now.getMonth() === 0 ? 11 : now.getMonth() - 1;
+        const lastMonthYear = now.getMonth() === 0 ? now.getFullYear() - 1 : now.getFullYear();
+
+        const lastMonthTransactions = allTransactions.filter((t: any) => {
+          const tDate = new Date(t.date);
+          return tDate.getMonth() === lastMonth &&
+                 tDate.getFullYear() === lastMonthYear;
+        });
+
+        // Calculate revenue from transactions (income types)
+        const incomeTypes = ['income', 'sale', 'appointment', 'package'];
+        const thisMonthRevenue = thisMonthTransactions
+          .filter((t: any) => incomeTypes.includes(t.type))
+          .reduce((sum: number, t: any) => sum + (t.amount || 0), 0);
+        const lastMonthRevenue = lastMonthTransactions
+          .filter((t: any) => incomeTypes.includes(t.type))
+          .reduce((sum: number, t: any) => sum + (t.amount || 0), 0);
+
+        // Appointments count (for display)
         const thisMonthAppointments = allAppointments.filter((apt: any) => {
           const aptDate = new Date(apt.date);
           return aptDate.getMonth() === now.getMonth() &&
                  aptDate.getFullYear() === now.getFullYear() &&
-                 apt.status !== 'cancelled' &&
-                 !apt.packageInfo; // Exclude package usage
+                 apt.status !== 'cancelled';
         });
 
         const lastMonthAppointments = allAppointments.filter((apt: any) => {
           const aptDate = new Date(apt.date);
-          const lastMonth = now.getMonth() === 0 ? 11 : now.getMonth() - 1;
-          const lastMonthYear = now.getMonth() === 0 ? now.getFullYear() - 1 : now.getFullYear();
           return aptDate.getMonth() === lastMonth &&
                  aptDate.getFullYear() === lastMonthYear &&
-                 apt.status !== 'cancelled' &&
-                 !apt.packageInfo; // Exclude package usage
+                 apt.status !== 'cancelled';
         });
-
-        const thisMonthRevenue = thisMonthAppointments.reduce((sum: number, apt: any) => sum + (apt.price || 0), 0);
-        const lastMonthRevenue = lastMonthAppointments.reduce((sum: number, apt: any) => sum + (apt.price || 0), 0);
 
         const thisMonthCustomers = customers.success ? customers.data.filter((cust: any) => {
           const custDate = new Date(cust.createdAt);
@@ -142,7 +163,7 @@ export default function ReportsClient({ user }: ReportsClientProps) {
           }
         });
 
-        // Generate monthly data for last 6 months
+        // Generate monthly data for last 6 months using transactions
         const monthNames = ['Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran', 'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'];
         const last6Months = [];
         for (let i = 5; i >= 0; i--) {
@@ -150,15 +171,24 @@ export default function ReportsClient({ user }: ReportsClientProps) {
           const targetYear = now.getFullYear() + Math.floor(targetMonth / 12);
           const normalizedMonth = ((targetMonth % 12) + 12) % 12;
 
+          // Revenue from transactions
+          const monthTransactions = allTransactions.filter((t: any) => {
+            const tDate = new Date(t.date);
+            return tDate.getMonth() === normalizedMonth &&
+                   tDate.getFullYear() === targetYear;
+          });
+
+          const monthRevenue = monthTransactions
+            .filter((t: any) => incomeTypes.includes(t.type))
+            .reduce((sum: number, t: any) => sum + (t.amount || 0), 0);
+
+          // Appointments count
           const monthAppointments = allAppointments.filter((apt: any) => {
             const aptDate = new Date(apt.date);
             return aptDate.getMonth() === normalizedMonth &&
                    aptDate.getFullYear() === targetYear &&
-                   apt.status !== 'cancelled' &&
-                   !apt.packageInfo; // Exclude package usage
+                   apt.status !== 'cancelled';
           });
-
-          const monthRevenue = monthAppointments.reduce((sum: number, apt: any) => sum + (apt.price || 0), 0);
 
           last6Months.push({
             month: monthNames[normalizedMonth],

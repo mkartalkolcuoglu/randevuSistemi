@@ -77,17 +77,25 @@ async function getDashboardData(tenantId: string, userType: string, staffId?: st
              appointmentDate.getFullYear() === now.getFullYear();
     }).length;
     
-    // Monthly revenue (exclude package usage and cancelled)
-    const monthlyRevenue = appointments
-      .filter((app) => {
-        const appointmentDate = new Date(app.date);
-        const now = new Date();
-        return appointmentDate.getMonth() === now.getMonth() &&
-               appointmentDate.getFullYear() === now.getFullYear() &&
-               app.status !== 'cancelled' && // Exclude cancelled appointments
-               !app.packageInfo; // Exclude package usage appointments from revenue
-      })
-      .reduce((sum, app) => sum + (Number(app.price) || 0), 0);
+    // Monthly revenue from transactions (same as Kasa)
+    const now = new Date();
+    const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const startDate = firstDayOfMonth.toISOString().split('T')[0];
+    const endDate = now.toISOString().split('T')[0];
+
+    const transactions = await prisma.transaction.findMany({
+      where: {
+        tenantId: tenantId,
+        date: {
+          gte: startDate,
+          lte: endDate
+        }
+      }
+    });
+
+    const monthlyRevenue = transactions
+      .filter(t => ['income', 'sale', 'appointment', 'package'].includes(t.type))
+      .reduce((sum, t) => sum + t.amount, 0);
 
     // Completed appointments count
     const completedAppointments = appointments.filter((app) => 
