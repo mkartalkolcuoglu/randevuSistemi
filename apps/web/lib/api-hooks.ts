@@ -7,6 +7,7 @@ export interface Tenant {
   slug: string;
   description?: string;
   workingHours?: string | null; // JSON string from database
+  cardPaymentEnabled?: boolean; // Card payment toggle
   contactPhone?: string;
   contactEmail?: string;
   address?: string;

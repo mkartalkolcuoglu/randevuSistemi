@@ -35,6 +35,7 @@ export async function GET(
         businessType: true,
         status: true,
         workingHours: true, // ✅ Added for working hours functionality
+        cardPaymentEnabled: true, // ✅ Added for card payment toggle
         createdAt: true
         // Note: Web DB Tenant model doesn't have updatedAt field
       }
@@ -94,6 +95,7 @@ export async function GET(
       contactPhone: tenant.phone || '',
       address: tenant.address || '',
       workingHours: finalWorkingHours || null, // ✅ Include working hours (from Web DB or Admin API fallback)
+      cardPaymentEnabled: tenant.cardPaymentEnabled !== false, // ✅ Card payment toggle (default: true)
       isActive: tenant.status === 'active',
       createdAt: tenant.createdAt?.toISOString() || new Date().toISOString(),
       updatedAt: tenant.updatedAt?.toISOString() || new Date().toISOString()
