@@ -96,24 +96,32 @@ export default function ReportsClient({ user }: ReportsClientProps) {
       const firstDayLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
       const lastDayLastMonth = new Date(now.getFullYear(), now.getMonth(), 0);
 
+      // Local date format helper (same as Dashboard and Kasa)
+      const formatLocalDate = (date: Date) => {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+      };
+
+      // Calculate date ranges using string comparison (same as Dashboard)
+      const thisMonthStart = formatLocalDate(firstDayThisMonth);
+      const thisMonthEnd = formatLocalDate(now);
+      const lastMonthStart = formatLocalDate(firstDayLastMonth);
+      const lastMonthEnd = formatLocalDate(lastDayLastMonth);
+
       if (appointments.success && appointments.data) {
         const allAppointments = appointments.data;
         const allTransactions = transactionsData.success ? transactionsData.data : [];
 
         // This month vs last month - using transactions for revenue (same as Kasa)
+        // Use string comparison to match Dashboard logic exactly
         const thisMonthTransactions = allTransactions.filter((t: any) => {
-          const tDate = new Date(t.date);
-          return tDate.getMonth() === now.getMonth() &&
-                 tDate.getFullYear() === now.getFullYear();
+          return t.date >= thisMonthStart && t.date <= thisMonthEnd;
         });
 
-        const lastMonth = now.getMonth() === 0 ? 11 : now.getMonth() - 1;
-        const lastMonthYear = now.getMonth() === 0 ? now.getFullYear() - 1 : now.getFullYear();
-
         const lastMonthTransactions = allTransactions.filter((t: any) => {
-          const tDate = new Date(t.date);
-          return tDate.getMonth() === lastMonth &&
-                 tDate.getFullYear() === lastMonthYear;
+          return t.date >= lastMonthStart && t.date <= lastMonthEnd;
         });
 
         // Calculate revenue from transactions (income types)
@@ -125,18 +133,14 @@ export default function ReportsClient({ user }: ReportsClientProps) {
           .filter((t: any) => incomeTypes.includes(t.type))
           .reduce((sum: number, t: any) => sum + (t.amount || 0), 0);
 
-        // Appointments count (for display)
+        // Appointments count (for display) - use string comparison
         const thisMonthAppointments = allAppointments.filter((apt: any) => {
-          const aptDate = new Date(apt.date);
-          return aptDate.getMonth() === now.getMonth() &&
-                 aptDate.getFullYear() === now.getFullYear() &&
+          return apt.date >= thisMonthStart && apt.date <= thisMonthEnd &&
                  apt.status !== 'cancelled';
         });
 
         const lastMonthAppointments = allAppointments.filter((apt: any) => {
-          const aptDate = new Date(apt.date);
-          return aptDate.getMonth() === lastMonth &&
-                 aptDate.getFullYear() === lastMonthYear &&
+          return apt.date >= lastMonthStart && apt.date <= lastMonthEnd &&
                  apt.status !== 'cancelled';
         });
 
@@ -169,26 +173,26 @@ export default function ReportsClient({ user }: ReportsClientProps) {
         const monthNames = ['Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran', 'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'];
         const last6Months = [];
         for (let i = 5; i >= 0; i--) {
-          const targetMonth = now.getMonth() - i;
-          const targetYear = now.getFullYear() + Math.floor(targetMonth / 12);
-          const normalizedMonth = ((targetMonth % 12) + 12) % 12;
+          const targetDate = new Date(now.getFullYear(), now.getMonth() - i, 1);
+          const targetYear = targetDate.getFullYear();
+          const normalizedMonth = targetDate.getMonth();
 
-          // Revenue from transactions
+          // Calculate month start and end dates for string comparison
+          const monthStart = formatLocalDate(new Date(targetYear, normalizedMonth, 1));
+          const monthEnd = formatLocalDate(new Date(targetYear, normalizedMonth + 1, 0)); // Last day of month
+
+          // Revenue from transactions - use string comparison
           const monthTransactions = allTransactions.filter((t: any) => {
-            const tDate = new Date(t.date);
-            return tDate.getMonth() === normalizedMonth &&
-                   tDate.getFullYear() === targetYear;
+            return t.date >= monthStart && t.date <= monthEnd;
           });
 
           const monthRevenue = monthTransactions
             .filter((t: any) => incomeTypes.includes(t.type))
             .reduce((sum: number, t: any) => sum + (t.amount || 0), 0);
 
-          // Appointments count
+          // Appointments count - use string comparison
           const monthAppointments = allAppointments.filter((apt: any) => {
-            const aptDate = new Date(apt.date);
-            return aptDate.getMonth() === normalizedMonth &&
-                   aptDate.getFullYear() === targetYear &&
+            return apt.date >= monthStart && apt.date <= monthEnd &&
                    apt.status !== 'cancelled';
           });
 
