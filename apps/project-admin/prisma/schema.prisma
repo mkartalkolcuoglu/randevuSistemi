@@ -39,7 +39,10 @@ model Tenant {
   // JSON fields for complex data
   workingHours       String?  // JSON string
   theme              String?  // JSON string
-  
+
+  // Payment settings
+  cardPaymentEnabled Boolean  @default(true) @map("card_payment_enabled")
+
   @@map("tenants")
 }
 

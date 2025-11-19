@@ -1189,7 +1189,7 @@ export default function RandevuPage({ params }: PageProps) {
               )}
 
               {/* Option 2: Pay with Card */}
-              {(!servicePackageInfo || !usePackageForService) && (
+              {(!servicePackageInfo || !usePackageForService) && tenant?.cardPaymentEnabled !== false && (
                 <a
                   role="button"
                   tabIndex={0}

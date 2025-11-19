@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, Button, Tabs, TabsList, TabsTrigger, TabsContent, formatPhone, normalizePhone, PHONE_PLACEHOLDER, PHONE_MAX_LENGTH } from '@/components/ui';
-import { Save, Palette, Building2, User, Key, Clock, Upload, ArrowLeft, MapPin, Settings } from 'lucide-react';
+import { Save, Palette, Building2, User, Key, Clock, Upload, ArrowLeft, MapPin, Settings, CreditCard } from 'lucide-react';
 import AdminHeader from '../admin-header';
 import type { ClientUser } from '../../../lib/client-permissions';
 
@@ -49,6 +49,8 @@ export default function SettingsClient({ user }: SettingsClientProps) {
     appointmentTimeInterval: 30, // dakika cinsinden
     blacklistThreshold: 3, // Kara liste eşiği (kaç defa gelmedi)
     reminderMinutes: 120, // Hatırlatma süresi (randevudan kaç dakika önce)
+    // Ödeme ayarları
+    cardPaymentEnabled: true, // Kredi kartı ile ödeme aktif mi
     // Konum ayarları
     location: {
       latitude: '',
@@ -146,6 +148,7 @@ export default function SettingsClient({ user }: SettingsClientProps) {
             appointmentTimeInterval: tenant.appointmentTimeInterval || 30, // Default: 30 dakika
             blacklistThreshold: tenant.blacklistThreshold || 3, // Default: 3 defa gelmedi
             reminderMinutes: tenant.reminderMinutes || 120, // Default: 2 saat (120 dakika)
+            cardPaymentEnabled: tenant.cardPaymentEnabled !== false, // Default: true
             themeSettings: themeData,
             location: locationData
           }));
@@ -1126,6 +1129,41 @@ export default function SettingsClient({ user }: SettingsClientProps) {
             <p className="text-xs text-gray-500 mt-1">
               Müşterilere randevu saatinden ne kadar önce WhatsApp ve SMS hatırlatması gönderilsin?
             </p>
+          </div>
+
+          {/* Ödeme Ayarları */}
+          <div className="pt-6 mt-6 border-t border-gray-200">
+            <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
+              <CreditCard className="w-5 h-5 mr-2" />
+              Ödeme Ayarları
+            </h3>
+
+            <div className="space-y-4">
+              <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                <div className="flex-1">
+                  <label className="block text-sm font-medium text-gray-700">
+                    Kredi Kartı ile Ödeme
+                  </label>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Bu seçenek kapalı olduğunda, müşteriler kredi kartı ile ödeme yapamaz. Randevu oluştururken ve müşteri tarafında kart seçeneği görünmez.
+                  </p>
+                </div>
+                <div className="ml-4">
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={settings.cardPaymentEnabled}
+                      onChange={(e) => setSettings(prev => ({ ...prev, cardPaymentEnabled: e.target.checked }))}
+                      className="sr-only peer"
+                    />
+                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                    <span className="ml-3 text-sm font-medium text-gray-700">
+                      {settings.cardPaymentEnabled ? 'Aktif' : 'Pasif'}
+                    </span>
+                  </label>
+                </div>
+              </div>
+            </div>
           </div>
 
           {/* Preview */}

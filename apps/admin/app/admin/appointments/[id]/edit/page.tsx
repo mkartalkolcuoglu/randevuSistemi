@@ -19,6 +19,7 @@ export default function EditAppointmentPage() {
   const [allTimeSlots, setAllTimeSlots] = useState<string[]>([]);
   const [timeInterval, setTimeInterval] = useState<number>(30); // Default: 30 minutes
   const [workingHours, setWorkingHours] = useState<WorkingHours | null>(null);
+  const [cardPaymentEnabled, setCardPaymentEnabled] = useState<boolean>(true);
 
   const [formData, setFormData] = useState({
     customerName: '',
@@ -99,12 +100,15 @@ export default function EditAppointmentPage() {
           const data = await response.json();
           const interval = data.data?.appointmentTimeInterval || 30;
           setTimeInterval(interval);
-          
+
           // Parse working hours
           const hours = parseWorkingHours(data.data?.workingHours);
           setWorkingHours(hours);
-          
-          console.log('⚙️ Settings loaded:', { interval, workingHours: hours });
+
+          // Get card payment setting
+          setCardPaymentEnabled(data.data?.cardPaymentEnabled !== false);
+
+          console.log('⚙️ Settings loaded:', { interval, workingHours: hours, cardPaymentEnabled: data.data?.cardPaymentEnabled });
         }
       } catch (error) {
         console.error('Error fetching settings:', error);
@@ -461,7 +465,9 @@ export default function EditAppointmentPage() {
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
                     <option value="cash">Nakit</option>
-                    <option value="credit_card">Kredi Kartı</option>
+                    {cardPaymentEnabled && (
+                      <option value="credit_card">Kredi Kartı</option>
+                    )}
                     <option value="bank_transfer">Havale</option>
                   </select>
                 )}

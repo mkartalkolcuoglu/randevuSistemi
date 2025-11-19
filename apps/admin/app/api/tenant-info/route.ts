@@ -134,6 +134,11 @@ export async function PUT(request: Request) {
       username: data.username
     };
 
+    // Update payment settings
+    if (data.cardPaymentEnabled !== undefined) {
+      updateData.cardPaymentEnabled = data.cardPaymentEnabled;
+    }
+
     // Convert JSON objects to strings for database storage
     if (data.workingHours) {
       updateData.workingHours = JSON.stringify(data.workingHours);

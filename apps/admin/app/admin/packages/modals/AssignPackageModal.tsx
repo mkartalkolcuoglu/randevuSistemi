@@ -45,12 +45,26 @@ export default function AssignPackageModal({
   const [loading, setLoading] = useState(false);
   const [loadingCustomers, setLoadingCustomers] = useState(true);
   const [loadingStaff, setLoadingStaff] = useState(true);
+  const [cardPaymentEnabled, setCardPaymentEnabled] = useState(true);
 
   useEffect(() => {
     loadCustomers();
     loadAssignedCustomers();
     loadStaff();
+    loadSettings();
   }, [tenantId, pkg.id]);
+
+  const loadSettings = async () => {
+    try {
+      const response = await fetch('/api/tenant-info');
+      if (response.ok) {
+        const data = await response.json();
+        setCardPaymentEnabled(data.data?.cardPaymentEnabled !== false);
+      }
+    } catch (error) {
+      console.error('Error loading settings:', error);
+    }
+  };
 
   useEffect(() => {
     // Filter customers: exclude already assigned ones and apply search
@@ -296,7 +310,9 @@ export default function AssignPackageModal({
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
             >
               <option value="cash">Nakit</option>
-              <option value="card">Kredi Kartı</option>
+              {cardPaymentEnabled && (
+                <option value="card">Kredi Kartı</option>
+              )}
               <option value="transfer">Havale/EFT</option>
             </select>
           </div>
