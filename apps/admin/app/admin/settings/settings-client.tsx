@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, Button, Tabs, TabsList, TabsTrigger, TabsContent, formatPhone, normalizePhone, PHONE_PLACEHOLDER, PHONE_MAX_LENGTH } from '@/components/ui';
-import { Save, Palette, Building2, User, Key, Clock, Upload, ArrowLeft, MapPin, Settings, CreditCard } from 'lucide-react';
+import { Save, Palette, Building2, User, Key, Clock, Upload, ArrowLeft, MapPin, Settings, CreditCard, FileText } from 'lucide-react';
 import AdminHeader from '../admin-header';
 import type { ClientUser } from '../../../lib/client-permissions';
 
@@ -56,6 +56,13 @@ export default function SettingsClient({ user }: SettingsClientProps) {
       latitude: '',
       longitude: '',
       address: ''
+    },
+    // Belgeler
+    documents: {
+      identityDocument: '',
+      taxDocument: '',
+      iban: '',
+      signatureDocument: ''
     }
   });
 
@@ -125,7 +132,15 @@ export default function SettingsClient({ user }: SettingsClientProps) {
           
           // Extract location from theme (if it exists there)
           const locationData = themeData.location || tenant.location || {};
-          
+
+          // Extract documents from theme (if it exists there)
+          const documentsData = themeData.documents || tenant.documents || {
+            identityDocument: '',
+            taxDocument: '',
+            iban: '',
+            signatureDocument: ''
+          };
+
           setSettings(prev => ({
             ...prev,
             // Business info from Admin API
@@ -150,7 +165,8 @@ export default function SettingsClient({ user }: SettingsClientProps) {
             reminderMinutes: tenant.reminderMinutes || 120, // Default: 2 saat (120 dakika)
             cardPaymentEnabled: tenant.cardPaymentEnabled !== false, // Default: true
             themeSettings: themeData,
-            location: locationData
+            location: locationData,
+            documents: documentsData
           }));
           
           // Set existing image previews
@@ -541,6 +557,10 @@ export default function SettingsClient({ user }: SettingsClientProps) {
           <TabsTrigger value="hours" className="flex flex-col md:flex-row items-center gap-1 py-2 px-2 text-xs md:text-sm">
             <Clock className="w-4 h-4" />
             <span>Çalışma</span>
+          </TabsTrigger>
+          <TabsTrigger value="documents" className="flex flex-col md:flex-row items-center gap-1 py-2 px-2 text-xs md:text-sm">
+            <FileText className="w-4 h-4" />
+            <span>Belgeler</span>
           </TabsTrigger>
         </TabsList>
 
@@ -1198,6 +1218,209 @@ export default function SettingsClient({ user }: SettingsClientProps) {
           </div>
         </CardContent>
       </Card>
+        </TabsContent>
+
+        {/* Belgeler */}
+        <TabsContent value="documents">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <FileText className="w-5 h-5 mr-2" />
+                Belgeler
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <p className="text-sm text-gray-600 mb-4">
+                Ödeme işlemleri için gerekli belgeleri yükleyin. Tüm belgeler güvenli bir şekilde saklanacaktır.
+              </p>
+
+              {/* Kimlik Belgesi */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Kimlik Belgesi
+                </label>
+                <div className="flex items-center gap-4">
+                  <div className="flex-1">
+                    <input
+                      type="file"
+                      accept="image/*,.pdf"
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          const reader = new FileReader();
+                          reader.onload = async (event) => {
+                            let result = event.target?.result as string;
+                            if (result.startsWith('data:image/')) {
+                              result = await compressImage(result, 500);
+                            }
+                            setSettings(prev => ({
+                              ...prev,
+                              documents: { ...prev.documents, identityDocument: result }
+                            }));
+                          };
+                          reader.readAsDataURL(file);
+                        }
+                      }}
+                      className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                    />
+                  </div>
+                  {settings.documents.identityDocument && (
+                    <div className="flex items-center gap-2">
+                      <span className="text-green-600 text-sm">Yüklendi</span>
+                      <button
+                        type="button"
+                        onClick={() => setSettings(prev => ({
+                          ...prev,
+                          documents: { ...prev.documents, identityDocument: '' }
+                        }))}
+                        className="text-red-500 hover:text-red-700 text-sm"
+                      >
+                        Sil
+                      </button>
+                    </div>
+                  )}
+                </div>
+                <p className="text-xs text-gray-500 mt-1">Kimlik kartı veya pasaport (resim veya PDF)</p>
+              </div>
+
+              {/* Vergi Levhası */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Vergi Levhası
+                </label>
+                <div className="flex items-center gap-4">
+                  <div className="flex-1">
+                    <input
+                      type="file"
+                      accept="image/*,.pdf"
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          const reader = new FileReader();
+                          reader.onload = async (event) => {
+                            let result = event.target?.result as string;
+                            if (result.startsWith('data:image/')) {
+                              result = await compressImage(result, 500);
+                            }
+                            setSettings(prev => ({
+                              ...prev,
+                              documents: { ...prev.documents, taxDocument: result }
+                            }));
+                          };
+                          reader.readAsDataURL(file);
+                        }
+                      }}
+                      className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                    />
+                  </div>
+                  {settings.documents.taxDocument && (
+                    <div className="flex items-center gap-2">
+                      <span className="text-green-600 text-sm">Yüklendi</span>
+                      <button
+                        type="button"
+                        onClick={() => setSettings(prev => ({
+                          ...prev,
+                          documents: { ...prev.documents, taxDocument: '' }
+                        }))}
+                        className="text-red-500 hover:text-red-700 text-sm"
+                      >
+                        Sil
+                      </button>
+                    </div>
+                  )}
+                </div>
+                <p className="text-xs text-gray-500 mt-1">Vergi levhası belgesi (resim veya PDF)</p>
+              </div>
+
+              {/* IBAN */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  IBAN Bilgisi
+                </label>
+                <input
+                  type="text"
+                  value={settings.documents.iban}
+                  onChange={(e) => {
+                    let value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+                    // TR ile başlamasını sağla
+                    if (!value.startsWith('TR') && value.length > 0) {
+                      if (value.startsWith('T')) {
+                        // Sadece T varsa bekle
+                      } else {
+                        value = 'TR' + value;
+                      }
+                    }
+                    // Maksimum 26 karakter (TR + 24 rakam)
+                    value = value.slice(0, 26);
+                    setSettings(prev => ({
+                      ...prev,
+                      documents: { ...prev.documents, iban: value }
+                    }));
+                  }}
+                  placeholder="TR00 0000 0000 0000 0000 0000 00"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-mono"
+                />
+                <p className="text-xs text-gray-500 mt-1">TR ile başlayan 26 haneli IBAN numaranız</p>
+              </div>
+
+              {/* İmza Sirküleri */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  İmza Sirküleri
+                </label>
+                <div className="flex items-center gap-4">
+                  <div className="flex-1">
+                    <input
+                      type="file"
+                      accept="image/*,.pdf"
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          const reader = new FileReader();
+                          reader.onload = async (event) => {
+                            let result = event.target?.result as string;
+                            if (result.startsWith('data:image/')) {
+                              result = await compressImage(result, 500);
+                            }
+                            setSettings(prev => ({
+                              ...prev,
+                              documents: { ...prev.documents, signatureDocument: result }
+                            }));
+                          };
+                          reader.readAsDataURL(file);
+                        }
+                      }}
+                      className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                    />
+                  </div>
+                  {settings.documents.signatureDocument && (
+                    <div className="flex items-center gap-2">
+                      <span className="text-green-600 text-sm">Yüklendi</span>
+                      <button
+                        type="button"
+                        onClick={() => setSettings(prev => ({
+                          ...prev,
+                          documents: { ...prev.documents, signatureDocument: '' }
+                        }))}
+                        className="text-red-500 hover:text-red-700 text-sm"
+                      >
+                        Sil
+                      </button>
+                    </div>
+                  )}
+                </div>
+                <p className="text-xs text-gray-500 mt-1">Noter onaylı imza sirküleri (resim veya PDF)</p>
+              </div>
+
+              {/* Bilgi Notu */}
+              <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                <p className="text-sm text-yellow-800">
+                  <strong>Not:</strong> Yüklediğiniz belgeler yalnızca ödeme işlemleri için kullanılacaktır.
+                  Belgeleriniz güvenli sunucularda şifreli olarak saklanmaktadır.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
         </TabsContent>
       </Tabs>
 

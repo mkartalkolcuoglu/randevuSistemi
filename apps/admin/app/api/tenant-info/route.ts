@@ -144,20 +144,25 @@ export async function PUT(request: Request) {
       updateData.workingHours = JSON.stringify(data.workingHours);
     }
     
-    // Combine themeSettings and location into theme field
-    if (data.themeSettings || data.location) {
+    // Combine themeSettings, location, and documents into theme field
+    if (data.themeSettings || data.location || data.documents) {
       const themeData: any = {};
-      
+
       // Add theme settings
       if (data.themeSettings) {
         Object.assign(themeData, data.themeSettings);
       }
-      
+
       // Add location to theme
       if (data.location) {
         themeData.location = data.location;
       }
-      
+
+      // Add documents to theme
+      if (data.documents) {
+        themeData.documents = data.documents;
+      }
+
       updateData.theme = JSON.stringify(themeData);
     }
 
