@@ -40,15 +40,12 @@ export default function Header() {
         <div className="flex justify-between items-center h-16">
           <div className="flex items-center space-x-6">
             {/* System Logo */}
-            <Link href="/" className="flex items-center space-x-2">
-              <img 
-                src="https://i.hizliresim.com/4a00l8g.png" 
-                alt="Net Randevu Logo" 
+            <Link href="/" className="flex items-center">
+              <img
+                src="https://i.hizliresim.com/4a00l8g.png"
+                alt="Net Randevu Logo"
                 className="h-10 w-auto"
               />
-              <span className="text-xl font-bold text-gray-900 hidden sm:block">
-                Net Randevu
-              </span>
             </Link>
             
             <span className="text-gray-300">|</span>
