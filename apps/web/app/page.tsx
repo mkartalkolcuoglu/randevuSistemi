@@ -233,10 +233,10 @@ export default function Home() {
         console.error('Failed to fetch pages:', pagesRes.status);
       }
 
-      // Calculate stats (these would come from project-admin API in real scenario)
+      // Set fixed stats for landing page
       setStats({
-        tenants: 50 + Math.floor(Math.random() * 50),
-        appointments: 5000 + Math.floor(Math.random() * 5000)
+        tenants: 100,
+        appointments: 15000
       });
     } catch (error) {
       console.error('Error fetching landing data:', error);
@@ -347,7 +347,7 @@ export default function Home() {
             </div>
             <div className="text-center">
               <div className="text-4xl font-bold text-gray-900 mb-2">7/24</div>
-              <div className="text-gray-600">Destek</div>
+              <div className="text-gray-600">Randevu Sistemi</div>
             </div>
           </div>
         </div>
@@ -375,32 +375,32 @@ export default function Home() {
               },
               {
                 icon: Users,
-                title: "Müşteri Yönetimi",
-                description: "Müşteri bilgilerini güvenle saklayın. Geçmiş randevular, tercihler ve iletişim bilgileri tek yerde.",
+                title: "Müşteri & Personel Yönetimi",
+                description: "Müşteri bilgilerini güvenle saklayın. Personellerinizi ekleyin, yetkilendirin ve çalışma saatlerini ayarlayın.",
                 color: "from-blue-400 to-cyan-400"
               },
               {
                 icon: BarChart3,
-                title: "Detaylı Raporlar",
-                description: "İşletmenizin performansını takip edin. Gelir, müşteri ve randevu raporlarıyla veriye dayalı kararlar alın.",
+                title: "Kasa & Raporlar",
+                description: "Gelir-gider takibi yapın, detaylı raporlarla işletmenizin performansını analiz edin.",
                 color: "from-purple-400 to-pink-400"
               },
               {
                 icon: Smartphone,
-                title: "Mobil Uyumlu",
-                description: "Tüm cihazlarda mükemmel çalışır. Müşterileriniz telefonlarından kolayca randevu alır.",
+                title: "Kredi Kartı ile Ödeme",
+                description: "Müşterileriniz randevu sırasında güvenli ödeme yapabilir. PayTR altyapısı ile tüm kartlar desteklenir.",
                 color: "from-orange-400 to-red-400"
               },
               {
                 icon: MessageCircle,
-                title: "Otomatik Hatırlatmalar",
-                description: "WhatsApp üzerinden otomatik hatırlatmalar gönderin. Müşterileriniz randevularını asla kaçırmasın.",
+                title: "SMS & WhatsApp Hatırlatma",
+                description: "Otomatik SMS ve WhatsApp hatırlatmaları gönderin. Müşterileriniz randevularını asla kaçırmasın.",
                 color: "from-indigo-400 to-blue-400"
               },
               {
                 icon: Shield,
-                title: "Güvenli & Hızlı",
-                description: "Verileriniz şifreli ve güvende. Hızlı ve kesintisiz hizmet garantisi.",
+                title: "Özelleştirilebilir Tema",
+                description: "Logo, renkler ve görseller ile kendi markanızı yansıtın. Konum haritası ile müşterilerinizi yönlendirin.",
                 color: "from-teal-400 to-green-400"
               }
             ].map((feature, index) => (
@@ -727,7 +727,7 @@ export default function Home() {
               },
               {
                 question: "Destek hizmeti sunuyor musunuz?",
-                answer: "Elbette! Email ve destek ile yanınızdayız. Tüm sorularınıza hızlıca cevap veriyoruz."
+                answer: "Elbette! Email ve WhatsApp ile yanınızdayız. Tüm sorularınıza hızlıca cevap veriyoruz."
               },
               {
                 question: "Verilerim güvende mi?",
