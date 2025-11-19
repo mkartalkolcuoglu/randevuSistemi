@@ -18,14 +18,8 @@ interface AppointmentsClientProps {
 export default function AppointmentsClient({ initialAppointments, tenantId, user }: AppointmentsClientProps) {
   const [appointments, setAppointments] = useState(initialAppointments);
   const [statusFilter, setStatusFilter] = useState('all');
-  // Varsayılan olarak bugünün tarihi (YYYY-MM-DD formatında)
-  const [dateFilter, setDateFilter] = useState(() => {
-    const today = new Date();
-    const year = today.getFullYear();
-    const month = String(today.getMonth() + 1).padStart(2, '0');
-    const day = String(today.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
-  });
+  // Varsayılan olarak boş (tüm randevuları göster)
+  const [dateFilter, setDateFilter] = useState('');
 
   const handleDelete = async (id: string) => {
     if (confirm('Bu randevuyu silmek istediğinizden emin misiniz?')) {
