@@ -72,8 +72,8 @@ export async function POST(request: NextRequest) {
                         <td style="color: #111827; font-size: 14px; padding: 8px 0;"><code style="background-color: #f9fafb; padding: 4px 8px; border-radius: 4px;">${data.password}</code></td>
                       </tr>
                       <tr>
-                        <td style="color: #6b7280; font-size: 14px; padding: 8px 0;"><strong>URL Slug:</strong></td>
-                        <td style="color: #111827; font-size: 14px; padding: 8px 0;"><code style="background-color: #f9fafb; padding: 4px 8px; border-radius: 4px;">${data.slug}</code></td>
+                        <td style="color: #6b7280; font-size: 14px; padding: 8px 0;"><strong>Websitesi:</strong></td>
+                        <td style="color: #111827; font-size: 14px; padding: 8px 0;"><a href="${data.landingPageUrl}" style="color: #163974; text-decoration: none;">${data.landingPageUrl}</a></td>
                       </tr>
                     </table>
                   </td>
