@@ -934,10 +934,12 @@ export default function Home() {
               </ul>
             </div>
             <div>
-              <h3 className="font-semibold mb-4">Destek</h3>
+              <h3 className="font-semibold mb-4">İletişim</h3>
               <ul className="space-y-2 text-gray-400">
                 <li><a href="#faq" className="hover:text-white transition">SSS</a></li>
-                <li><a href="mailto:info@netrandevu.com" className="hover:text-white transition">İletişim</a></li>
+                <li><a href="tel:08503036723" className="hover:text-white transition">0850 303 67 23</a></li>
+                <li><a href="https://wa.me/908503036723" className="hover:text-white transition">WhatsApp</a></li>
+                <li><a href="mailto:info@netrandevu.com" className="hover:text-white transition">info@netrandevu.com</a></li>
               </ul>
             </div>
             <div>
