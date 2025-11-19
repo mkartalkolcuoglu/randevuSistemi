@@ -916,14 +916,17 @@ export default function Home() {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
             <div>
               <div className="flex items-center space-x-2 mb-4">
-                <img 
-                  src="https://i.hizliresim.com/4a00l8g.png" 
-                  alt="Net Randevu Logo" 
+                <img
+                  src="https://i.hizliresim.com/4a00l8g.png"
+                  alt="Net Randevu Logo"
                   className="h-8 w-auto"
                 />
               </div>
-              <p className="text-gray-400">
+              <p className="text-gray-400 mb-3">
                 Modern işletmeler için tasarlanmış randevu yönetim platformu.
+              </p>
+              <p className="text-gray-500 text-sm">
+                Cemalpaşa Mah. Gazipaşa Blv. Camurdanoğlu Apt. Giriş No: 34 İç Kapı No: 04 Seyhan/Adana
               </p>
             </div>
             <div>
