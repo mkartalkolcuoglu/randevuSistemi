@@ -77,13 +77,14 @@ async function getDashboardData(tenantId: string, userType: string, staffId?: st
              appointmentDate.getFullYear() === now.getFullYear();
     }).length;
     
-    // Monthly revenue (exclude package usage)
+    // Monthly revenue (exclude package usage and cancelled)
     const monthlyRevenue = appointments
       .filter((app) => {
         const appointmentDate = new Date(app.date);
         const now = new Date();
-        return appointmentDate.getMonth() === now.getMonth() && 
+        return appointmentDate.getMonth() === now.getMonth() &&
                appointmentDate.getFullYear() === now.getFullYear() &&
+               app.status !== 'cancelled' && // Exclude cancelled appointments
                !app.packageInfo; // Exclude package usage appointments from revenue
       })
       .reduce((sum, app) => sum + (Number(app.price) || 0), 0);

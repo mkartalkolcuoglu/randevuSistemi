@@ -95,15 +95,20 @@ export default function ReportsClient({ user }: ReportsClientProps) {
       if (appointments.success && appointments.data) {
         const allAppointments = appointments.data;
 
-        // This month vs last month
+        // This month vs last month - using apt.date (appointment date) for consistency
         const thisMonthAppointments = allAppointments.filter((apt: any) => {
-          const aptDate = new Date(apt.createdAt);
-          return aptDate >= firstDayThisMonth && apt.status !== 'cancelled';
+          const aptDate = new Date(apt.date);
+          return aptDate >= firstDayThisMonth &&
+                 apt.status !== 'cancelled' &&
+                 !apt.packageInfo; // Exclude package usage
         });
 
         const lastMonthAppointments = allAppointments.filter((apt: any) => {
-          const aptDate = new Date(apt.createdAt);
-          return aptDate >= firstDayLastMonth && aptDate <= lastDayLastMonth && apt.status !== 'cancelled';
+          const aptDate = new Date(apt.date);
+          return aptDate >= firstDayLastMonth &&
+                 aptDate <= lastDayLastMonth &&
+                 apt.status !== 'cancelled' &&
+                 !apt.packageInfo; // Exclude package usage
         });
 
         const thisMonthRevenue = thisMonthAppointments.reduce((sum: number, apt: any) => sum + (apt.price || 0), 0);
@@ -140,14 +145,17 @@ export default function ReportsClient({ user }: ReportsClientProps) {
         for (let i = 5; i >= 0; i--) {
           const monthDate = new Date(now.getFullYear(), now.getMonth() - i, 1);
           const nextMonthDate = new Date(now.getFullYear(), now.getMonth() - i + 1, 1);
-          
+
           const monthAppointments = allAppointments.filter((apt: any) => {
-            const aptDate = new Date(apt.createdAt);
-            return aptDate >= monthDate && aptDate < nextMonthDate && apt.status !== 'cancelled';
+            const aptDate = new Date(apt.date);
+            return aptDate >= monthDate &&
+                   aptDate < nextMonthDate &&
+                   apt.status !== 'cancelled' &&
+                   !apt.packageInfo; // Exclude package usage
           });
 
           const monthRevenue = monthAppointments.reduce((sum: number, apt: any) => sum + (apt.price || 0), 0);
-          
+
           last6Months.push({
             month: monthNames[monthDate.getMonth()],
             gelir: monthRevenue,

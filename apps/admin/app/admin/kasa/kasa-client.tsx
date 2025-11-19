@@ -81,9 +81,9 @@ export default function KasaClient({ tenantId, user }: KasaClientProps) {
         startDate = weekAgo.toISOString().split('T')[0];
         break;
       case 'month':
-        const monthAgo = new Date(today);
-        monthAgo.setMonth(today.getMonth() - 1);
-        startDate = monthAgo.toISOString().split('T')[0];
+        // Bu ayın 1'inden bugüne
+        const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+        startDate = firstDayOfMonth.toISOString().split('T')[0];
         break;
       case 'custom':
         startDate = customStartDate;
