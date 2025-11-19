@@ -1280,6 +1280,22 @@ export default function SettingsClient({ user }: SettingsClientProps) {
                     </div>
                   )}
                 </div>
+                {settings.documents.identityDocument && (
+                  <div className="mt-2">
+                    {settings.documents.identityDocument.startsWith('data:image/') ? (
+                      <img
+                        src={settings.documents.identityDocument}
+                        alt="Kimlik Belgesi"
+                        className="max-w-xs max-h-40 rounded border border-gray-200"
+                      />
+                    ) : (
+                      <div className="flex items-center gap-2 p-3 bg-gray-50 rounded border border-gray-200">
+                        <FileText className="w-8 h-8 text-red-500" />
+                        <span className="text-sm text-gray-600">PDF Belgesi</span>
+                      </div>
+                    )}
+                  </div>
+                )}
                 <p className="text-xs text-gray-500 mt-1">Kimlik kartı veya pasaport (resim veya PDF)</p>
               </div>
 
@@ -1329,6 +1345,22 @@ export default function SettingsClient({ user }: SettingsClientProps) {
                     </div>
                   )}
                 </div>
+                {settings.documents.taxDocument && (
+                  <div className="mt-2">
+                    {settings.documents.taxDocument.startsWith('data:image/') ? (
+                      <img
+                        src={settings.documents.taxDocument}
+                        alt="Vergi Levhası"
+                        className="max-w-xs max-h-40 rounded border border-gray-200"
+                      />
+                    ) : (
+                      <div className="flex items-center gap-2 p-3 bg-gray-50 rounded border border-gray-200">
+                        <FileText className="w-8 h-8 text-red-500" />
+                        <span className="text-sm text-gray-600">PDF Belgesi</span>
+                      </div>
+                    )}
+                  </div>
+                )}
                 <p className="text-xs text-gray-500 mt-1">Vergi levhası belgesi (resim veya PDF)</p>
               </div>
 
@@ -1409,6 +1441,22 @@ export default function SettingsClient({ user }: SettingsClientProps) {
                     </div>
                   )}
                 </div>
+                {settings.documents.signatureDocument && (
+                  <div className="mt-2">
+                    {settings.documents.signatureDocument.startsWith('data:image/') ? (
+                      <img
+                        src={settings.documents.signatureDocument}
+                        alt="İmza Sirküleri"
+                        className="max-w-xs max-h-40 rounded border border-gray-200"
+                      />
+                    ) : (
+                      <div className="flex items-center gap-2 p-3 bg-gray-50 rounded border border-gray-200">
+                        <FileText className="w-8 h-8 text-red-500" />
+                        <span className="text-sm text-gray-600">PDF Belgesi</span>
+                      </div>
+                    )}
+                  </div>
+                )}
                 <p className="text-xs text-gray-500 mt-1">Noter onaylı imza sirküleri (resim veya PDF)</p>
               </div>
 
