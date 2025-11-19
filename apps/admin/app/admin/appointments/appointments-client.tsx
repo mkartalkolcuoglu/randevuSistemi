@@ -343,110 +343,109 @@ export default function AppointmentsClient({ initialAppointments, tenantId, user
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {filteredAppointments.length === 0 ? (
-              <div className="p-8 text-center">
-                <Calendar className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">Randevu bulunamadı</h3>
-                <p className="text-gray-600 mb-4">
-                  {statusFilter !== 'all' || dateFilter 
-                    ? 'Filtre kriterlerinize uygun randevu bulunamadı.'
-                    : 'Henüz randevu bulunmuyor.'}
-                </p>
-                <Link href="/admin/appointments/new">
-                  <Button>
-                    <Plus className="w-4 h-4 mr-2" />
-                    İlk Randevuyu Oluştur
-                  </Button>
-                </Link>
-              </div>
-            ) : (
-              <>
-                {/* Filters and Table Combined */}
-                <div className="space-y-4">
-                  {/* Filters */}
-                  <div className="flex flex-col sm:flex-row gap-3 pb-4 border-b border-gray-200">
-                    <div className="flex-1 sm:max-w-xs">
-                      <label className="block text-xs font-medium text-gray-600 mb-1.5">
-                        Durum
-                      </label>
-                      <select 
-                        value={statusFilter}
-                        onChange={(e) => setStatusFilter(e.target.value)}
-                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      >
-                        <option value="all">Tüm Durumlar</option>
-                        <option value="scheduled">Planlandı</option>
-                        <option value="pending">Beklemede</option>
-                        <option value="completed">Tamamlandı</option>
-                        <option value="cancelled">İptal Edildi</option>
-                        <option value="no_show">Gelmedi ve Bilgi Vermedi</option>
-                      </select>
-                    </div>
-                    <div className="flex-1 sm:max-w-xs">
-                      <label className="block text-xs font-medium text-gray-600 mb-1.5">
-                        Tarih
-                      </label>
-                      <div className="flex gap-2">
-                        <input
-                          type="date"
-                          value={dateFilter}
-                          onChange={(e) => setDateFilter(e.target.value)}
-                          onClick={(e) => {
-                            // Force open date picker
-                            try {
-                              (e.target as HTMLInputElement).showPicker?.();
-                            } catch (err) {
-                              // Fallback for browsers that don't support showPicker
-                              console.log('showPicker not supported');
-                            }
-                          }}
-                          className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
-                          placeholder="Tarih seçin"
-                          title="Tarih seçmek için tıklayın"
-                        />
-                        {dateFilter && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => setDateFilter('')}
-                            className="px-2"
-                            title="Filtreyi temizle"
-                          >
-                            ✕
-                          </Button>
-                        )}
-                      </div>
-                    </div>
-                    <div className="flex items-end">
+            <div className="space-y-4">
+              {/* Filters - Always visible */}
+              <div className="flex flex-col sm:flex-row gap-3 pb-4 border-b border-gray-200">
+                <div className="flex-1 sm:max-w-xs">
+                  <label className="block text-xs font-medium text-gray-600 mb-1.5">
+                    Durum
+                  </label>
+                  <select
+                    value={statusFilter}
+                    onChange={(e) => setStatusFilter(e.target.value)}
+                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="all">Tüm Durumlar</option>
+                    <option value="scheduled">Planlandı</option>
+                    <option value="pending">Beklemede</option>
+                    <option value="completed">Tamamlandı</option>
+                    <option value="cancelled">İptal Edildi</option>
+                    <option value="no_show">Gelmedi ve Bilgi Vermedi</option>
+                  </select>
+                </div>
+                <div className="flex-1 sm:max-w-xs">
+                  <label className="block text-xs font-medium text-gray-600 mb-1.5">
+                    Tarih
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                      type="date"
+                      value={dateFilter}
+                      onChange={(e) => setDateFilter(e.target.value)}
+                      onClick={(e) => {
+                        // Force open date picker
+                        try {
+                          (e.target as HTMLInputElement).showPicker?.();
+                        } catch (err) {
+                          // Fallback for browsers that don't support showPicker
+                          console.log('showPicker not supported');
+                        }
+                      }}
+                      className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
+                      placeholder="Tarih seçin"
+                      title="Tarih seçmek için tıklayın"
+                    />
+                    {dateFilter && (
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => {
-                          setStatusFilter('all');
-                          // Bugünün tarihine dön
-                          const today = new Date();
-                          const year = today.getFullYear();
-                          const month = String(today.getMonth() + 1).padStart(2, '0');
-                          const day = String(today.getDate()).padStart(2, '0');
-                          setDateFilter(`${year}-${month}-${day}`);
-                        }}
-                        className="text-gray-600 hover:text-gray-900"
+                        onClick={() => setDateFilter('')}
+                        className="px-2"
+                        title="Filtreyi temizle"
                       >
-                        Bugüne Dön
+                        ✕
                       </Button>
-                    </div>
+                    )}
                   </div>
-
-                  {/* DataTable */}
-                  <DataTable
-                    data={filteredAppointments}
-                    columns={columns}
-                    keyExtractor={(apt) => apt.id}
-                    emptyMessage="Arama kriterlerinize uygun randevu bulunamadı"
-                  />
                 </div>
-              </>
-            )}
+                <div className="flex items-end">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setStatusFilter('all');
+                      // Bugünün tarihine dön
+                      const today = new Date();
+                      const year = today.getFullYear();
+                      const month = String(today.getMonth() + 1).padStart(2, '0');
+                      const day = String(today.getDate()).padStart(2, '0');
+                      setDateFilter(`${year}-${month}-${day}`);
+                    }}
+                    className="text-gray-600 hover:text-gray-900"
+                  >
+                    Bugüne Dön
+                  </Button>
+                </div>
+              </div>
+
+              {/* DataTable or Empty State */}
+              {filteredAppointments.length === 0 ? (
+                <div className="p-8 text-center">
+                  <Calendar className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">Randevu bulunamadı</h3>
+                  <p className="text-gray-600 mb-4">
+                    {statusFilter !== 'all' || dateFilter
+                      ? 'Filtre kriterlerinize uygun randevu bulunamadı.'
+                      : 'Henüz randevu bulunmuyor.'}
+                  </p>
+                  {hasPermission(user, 'appointments', 'create') && (
+                    <Link href="/admin/appointments/new">
+                      <Button>
+                        <Plus className="w-4 h-4 mr-2" />
+                        Yeni Randevu Oluştur
+                      </Button>
+                    </Link>
+                  )}
+                </div>
+              ) : (
+                <DataTable
+                  data={filteredAppointments}
+                  columns={columns}
+                  keyExtractor={(apt) => apt.id}
+                  emptyMessage="Arama kriterlerinize uygun randevu bulunamadı"
+                />
+              )}
+            </div>
           </CardContent>
         </Card>
       </div>
