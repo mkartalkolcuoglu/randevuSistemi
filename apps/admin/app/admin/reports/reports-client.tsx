@@ -98,15 +98,18 @@ export default function ReportsClient({ user }: ReportsClientProps) {
         // This month vs last month - using apt.date (appointment date) for consistency
         const thisMonthAppointments = allAppointments.filter((apt: any) => {
           const aptDate = new Date(apt.date);
-          return aptDate >= firstDayThisMonth &&
+          return aptDate.getMonth() === now.getMonth() &&
+                 aptDate.getFullYear() === now.getFullYear() &&
                  apt.status !== 'cancelled' &&
                  !apt.packageInfo; // Exclude package usage
         });
 
         const lastMonthAppointments = allAppointments.filter((apt: any) => {
           const aptDate = new Date(apt.date);
-          return aptDate >= firstDayLastMonth &&
-                 aptDate <= lastDayLastMonth &&
+          const lastMonth = now.getMonth() === 0 ? 11 : now.getMonth() - 1;
+          const lastMonthYear = now.getMonth() === 0 ? now.getFullYear() - 1 : now.getFullYear();
+          return aptDate.getMonth() === lastMonth &&
+                 aptDate.getFullYear() === lastMonthYear &&
                  apt.status !== 'cancelled' &&
                  !apt.packageInfo; // Exclude package usage
         });
@@ -143,13 +146,14 @@ export default function ReportsClient({ user }: ReportsClientProps) {
         const monthNames = ['Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran', 'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'];
         const last6Months = [];
         for (let i = 5; i >= 0; i--) {
-          const monthDate = new Date(now.getFullYear(), now.getMonth() - i, 1);
-          const nextMonthDate = new Date(now.getFullYear(), now.getMonth() - i + 1, 1);
+          const targetMonth = now.getMonth() - i;
+          const targetYear = now.getFullYear() + Math.floor(targetMonth / 12);
+          const normalizedMonth = ((targetMonth % 12) + 12) % 12;
 
           const monthAppointments = allAppointments.filter((apt: any) => {
             const aptDate = new Date(apt.date);
-            return aptDate >= monthDate &&
-                   aptDate < nextMonthDate &&
+            return aptDate.getMonth() === normalizedMonth &&
+                   aptDate.getFullYear() === targetYear &&
                    apt.status !== 'cancelled' &&
                    !apt.packageInfo; // Exclude package usage
           });
@@ -157,7 +161,7 @@ export default function ReportsClient({ user }: ReportsClientProps) {
           const monthRevenue = monthAppointments.reduce((sum: number, apt: any) => sum + (apt.price || 0), 0);
 
           last6Months.push({
-            month: monthNames[monthDate.getMonth()],
+            month: monthNames[normalizedMonth],
             gelir: monthRevenue,
             randevu: monthAppointments.length
           });
