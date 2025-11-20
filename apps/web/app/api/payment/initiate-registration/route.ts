@@ -57,21 +57,46 @@ export async function POST(request: NextRequest) {
     } = body;
 
     // Validasyon
-    if (!businessName || !ownerEmail || !packagePrice || !packageName || !username || !password) {
+    if (!businessName || !ownerEmail || packagePrice === undefined || packagePrice === null || !packageName || !username || !password) {
+      console.error('❌ [REGISTRATION PAYMENT] Missing required fields:', {
+        hasBusinessName: !!businessName,
+        hasOwnerEmail: !!ownerEmail,
+        hasPackagePrice: packagePrice !== undefined && packagePrice !== null,
+        packagePriceValue: packagePrice,
+        hasPackageName: !!packageName,
+        hasUsername: !!username,
+        hasPassword: !!password
+      });
+
       return NextResponse.json(
         {
           success: false,
-          error: 'Gerekli alanlar eksik'
+          error: 'Gerekli alanlar eksik',
+          details: 'businessName, ownerEmail, packagePrice, packageName, username veya password eksik'
         },
         { status: 400 }
       );
     }
 
-    if (packagePrice <= 0) {
+    if (packagePrice < 0) {
       return NextResponse.json(
         {
           success: false,
           error: 'Geçersiz tutar'
+        },
+        { status: 400 }
+      );
+    }
+
+    // Ücretsiz paketler için özel kontrol
+    if (packagePrice === 0) {
+      console.log('⚠️  [REGISTRATION PAYMENT] Free package detected, skipping PayTR integration');
+      // Ücretsiz paketler için direkt kayıt yap, ödeme iframe'i gösterme
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Ücretsiz paketler için ödeme gerektirmez',
+          details: 'Bu paket için doğrudan kayıt olabilirsiniz'
         },
         { status: 400 }
       );
