@@ -219,6 +219,7 @@ export async function initiatePayment(
     const baseUrl = process.env.NEXT_PUBLIC_WEB_URL || 'https://netrandevu.com';
 
     // PayTR API'ye POST request
+    // Sadece zorunlu ve dokümante edilmiş parametreler kullanılıyor
     const formData = new URLSearchParams({
       merchant_id: PAYTR_MERCHANT_ID,
       user_ip: params.userIp,
@@ -227,7 +228,6 @@ export async function initiatePayment(
       payment_amount: paymentAmount.toString(),
       paytr_token: paytrToken,
       user_basket: userBasket,
-      debug_on: PAYTR_TEST_MODE, // Test modunda hata detayları (1 veya 0)
       no_installment: noInstallment.toString(),
       max_installment: maxInstallment.toString(),
       user_name: params.email.split('@')[0], // Email'den ad çıkar
@@ -251,7 +251,6 @@ export async function initiatePayment(
       email: formData.get('email'),
       payment_amount: formData.get('payment_amount'),
       user_basket: formData.get('user_basket'),
-      debug_on: formData.get('debug_on'),
       no_installment: formData.get('no_installment'),
       max_installment: formData.get('max_installment'),
       user_name: formData.get('user_name'),
