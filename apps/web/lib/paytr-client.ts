@@ -242,9 +242,24 @@ export async function initiatePayment(
     });
 
     console.log('🚀 [PAYTR] Sending request to PayTR API...');
-    console.log('📝 [PAYTR] Callback URL:', formData.get('merchant_callback_url'));
-    console.log('📝 [PAYTR] Success URL:', formData.get('merchant_ok_url'));
-    console.log('📝 [PAYTR] Fail URL:', formData.get('merchant_fail_url'));
+    console.log('📝 [PAYTR] All parameters:', {
+      merchant_id: formData.get('merchant_id'),
+      user_ip: formData.get('user_ip'),
+      merchant_oid: formData.get('merchant_oid'),
+      email: formData.get('email'),
+      payment_amount: formData.get('payment_amount'),
+      user_basket: formData.get('user_basket'),
+      no_installment: formData.get('no_installment'),
+      max_installment: formData.get('max_installment'),
+      user_name: formData.get('user_name'),
+      user_address: formData.get('user_address'),
+      user_phone: formData.get('user_phone'),
+      currency: formData.get('currency'),
+      test_mode: formData.get('test_mode'),
+      callback_url: formData.get('merchant_callback_url'),
+      success_url: formData.get('merchant_ok_url'),
+      fail_url: formData.get('merchant_fail_url')
+    });
 
     const response = await fetch(PAYTR_API_URL, {
       method: 'POST',
