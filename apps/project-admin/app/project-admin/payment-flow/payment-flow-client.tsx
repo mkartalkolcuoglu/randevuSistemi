@@ -13,8 +13,8 @@ interface Payment {
   amount: number;
   paymentType: string | null;
   status: string;
-  paidAt: Date | null;
-  createdAt: Date;
+  paidAt: string | null;
+  createdAt: string;
   serviceName: string | null;
   packageName: string | null;
   productName: string | null;
@@ -34,10 +34,10 @@ interface CancelledCardPayment {
   price: number | null;
   paymentType: string;
   refundCompleted: boolean | null;
-  refundCompletedAt: Date | null;
+  refundCompletedAt: string | null;
   refundNotes: string | null;
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt: string;
+  updatedAt: string;
 }
 
 interface PaymentFlowClientProps {

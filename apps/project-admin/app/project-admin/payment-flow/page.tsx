@@ -90,7 +90,9 @@ async function getPayments() {
           tenantName,
           serviceName,
           packageName,
-          productName
+          productName,
+          paidAt: payment.paidAt ? payment.paidAt.toISOString() : null,
+          createdAt: payment.createdAt.toISOString()
         };
       })
     );
@@ -152,11 +154,15 @@ async function getCancelledCardPayments() {
 
         return {
           ...appointment,
-          tenantName
+          tenantName,
+          createdAt: appointment.createdAt.toISOString(),
+          updatedAt: appointment.updatedAt.toISOString(),
+          refundCompletedAt: appointment.refundCompletedAt ? appointment.refundCompletedAt.toISOString() : null
         };
       })
     );
 
+    console.log('✅ Found cancelled card payments:', appointmentsWithDetails.length);
     return appointmentsWithDetails;
   } catch (error) {
     console.error('Error fetching cancelled card payments:', error);
@@ -168,6 +174,11 @@ export default async function PaymentFlowPage() {
   // Middleware already handles authentication
   const payments = await getPayments();
   const cancelledCardPayments = await getCancelledCardPayments();
+
+  console.log('📊 Payment Flow Data:', {
+    paymentsCount: payments.length,
+    cancelledCardPaymentsCount: cancelledCardPayments.length
+  });
 
   return <PaymentFlowClient payments={payments} cancelledCardPayments={cancelledCardPayments} />;
 }
