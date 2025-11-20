@@ -227,7 +227,7 @@ export async function initiatePayment(
       payment_amount: paymentAmount.toString(),
       paytr_token: paytrToken,
       user_basket: userBasket,
-      debug_on: PAYTR_TEST_MODE, // Test modunda hata detayları
+      debug_on: PAYTR_TEST_MODE, // Test modunda hata detayları (1 veya 0)
       no_installment: noInstallment.toString(),
       max_installment: maxInstallment.toString(),
       user_name: params.email.split('@')[0], // Email'den ad çıkar
@@ -237,8 +237,7 @@ export async function initiatePayment(
       merchant_fail_url: params.failUrl || `${baseUrl}/payment/failed`,
       timeout_limit: '30',
       currency: currency,
-      test_mode: PAYTR_TEST_MODE,
-      lang: 'tr' // Dil parametresi
+      test_mode: PAYTR_TEST_MODE
     });
 
     // NOT: merchant_callback_url parametresi ayrı ekleniyor (PayTR dokümantasyonunda belirtilmiyor ama gerekli olabilir)
@@ -252,6 +251,7 @@ export async function initiatePayment(
       email: formData.get('email'),
       payment_amount: formData.get('payment_amount'),
       user_basket: formData.get('user_basket'),
+      debug_on: formData.get('debug_on'),
       no_installment: formData.get('no_installment'),
       max_installment: formData.get('max_installment'),
       user_name: formData.get('user_name'),
@@ -259,10 +259,18 @@ export async function initiatePayment(
       user_phone: formData.get('user_phone'),
       currency: formData.get('currency'),
       test_mode: formData.get('test_mode'),
-      callback_url: formData.get('merchant_callback_url'),
+      timeout_limit: formData.get('timeout_limit'),
       success_url: formData.get('merchant_ok_url'),
       fail_url: formData.get('merchant_fail_url')
     });
+
+    // Decode and log basket for debugging
+    try {
+      const decodedBasket = Buffer.from(userBasket, 'base64').toString('utf-8');
+      console.log('📦 [PAYTR] Decoded basket:', decodedBasket);
+    } catch (e) {
+      console.error('❌ [PAYTR] Error decoding basket:', e);
+    }
 
     const response = await fetch(PAYTR_API_URL, {
       method: 'POST',
