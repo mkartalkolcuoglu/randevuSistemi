@@ -304,6 +304,10 @@ export async function POST(request: NextRequest) {
         try {
           // Only create transaction if no package was used
           if (!data.usePackageForService) {
+            // Bugünün tarihini al (ödemenin yapıldığı gün)
+            const today = new Date();
+            const transactionDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+
             const transaction = await prisma.transaction.create({
               data: {
                 tenantId: tenant.id,
@@ -314,7 +318,7 @@ export async function POST(request: NextRequest) {
                 customerId: customer.id,
                 customerName: data.customerName,
                 appointmentId: newAppointment.id,
-                date: newAppointment.date,
+                date: transactionDate,
                 profit: 0
               }
             });
@@ -434,6 +438,10 @@ export async function POST(request: NextRequest) {
       try {
         // Only create transaction if no package was used
         if (!data.packageInfo) {
+          // Bugünün tarihini al (ödemenin yapıldığı gün)
+          const today = new Date();
+          const transactionDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+
           const transaction = await prisma.transaction.create({
             data: {
               tenantId: customer.tenantId,
@@ -444,7 +452,7 @@ export async function POST(request: NextRequest) {
               customerId: customer.id,
               customerName: `${customer.firstName} ${customer.lastName}`,
               appointmentId: newAppointment.id,
-              date: newAppointment.date,
+              date: transactionDate,
               profit: 0
             }
           });

@@ -284,6 +284,11 @@ export async function POST(request: NextRequest) {
 
             // 💰 KASA'YA TRANSACTION EKLE
             console.log('💰 [PAYMENT CALLBACK] Creating transaction for kasa...');
+
+            // Bugünün tarihini al (ödemenin yapıldığı gün)
+            const today = new Date();
+            const transactionDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+
             console.log('💰 [PAYMENT CALLBACK] Transaction data:', JSON.stringify({
               tenantId: appointmentData.tenantId,
               type: 'appointment',
@@ -293,7 +298,7 @@ export async function POST(request: NextRequest) {
               customerId: appointmentData.customerId,
               customerName: appointmentData.customerName,
               appointmentId: appointment.id,
-              date: appointmentData.date,
+              date: transactionDate,
               profit: 0
             }, null, 2));
 
@@ -307,7 +312,7 @@ export async function POST(request: NextRequest) {
                 customerId: appointmentData.customerId,
                 customerName: appointmentData.customerName,
                 appointmentId: appointment.id,
-                date: appointmentData.date,
+                date: transactionDate,
                 profit: 0
               };
 

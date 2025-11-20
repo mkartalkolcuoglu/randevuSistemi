@@ -413,6 +413,10 @@ async function createAppointmentTransaction(appointment: any) {
     });
 
     // Create transaction
+    // Bugünün tarihini al (ödemenin yapıldığı gün)
+    const today = new Date();
+    const transactionDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+
     const transaction = await prisma.transaction.create({
       data: {
         tenantId: appointment.tenantId,
@@ -423,7 +427,7 @@ async function createAppointmentTransaction(appointment: any) {
         customerId: appointment.customerId,
         customerName: appointment.customerName,
         appointmentId: appointment.id,
-        date: appointment.date,
+        date: transactionDate,
         profit: 0 // Appointments don't have cost/profit calculation
       }
     });
