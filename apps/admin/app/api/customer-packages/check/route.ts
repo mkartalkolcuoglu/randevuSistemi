@@ -78,25 +78,47 @@ export async function POST(request: NextRequest) {
         tenantId: actualTenantId,
         status: 'active'
       },
-      include: {
-        package: {
-          include: {
-            items: true
-          }
-        },
-        usages: {
-          where: {
-            remainingQuantity: {
-              gt: 0 // Only show items with remaining quantity
-            }
-          }
-        }
-      },
       orderBy: { assignedAt: 'desc' }
     });
 
+    console.log('📦 Customer packages found:', customerPackages.length);
+
+    // Get package details and usages for each customer package
+    const packagesWithDetails = await Promise.all(
+      customerPackages.map(async (cp) => {
+        // Get package info
+        const packageInfo = await prisma.package.findUnique({
+          where: { id: cp.packageId }
+        });
+
+        // Get package items
+        const packageItems = await prisma.packageItem.findMany({
+          where: { packageId: cp.packageId }
+        });
+
+        // Get usage info
+        const usages = await prisma.customerPackageUsage.findMany({
+          where: {
+            customerPackageId: cp.id,
+            remainingQuantity: {
+              gt: 0
+            }
+          }
+        });
+
+        return {
+          ...cp,
+          package: packageInfo,
+          packageItems,
+          usages
+        };
+      })
+    );
+
     // Filter out packages with no remaining items
-    const activePackages = customerPackages.filter(cp => cp.usages.length > 0);
+    const activePackages = packagesWithDetails.filter(cp => cp.usages.length > 0);
+
+    console.log('✅ Active packages with remaining items:', activePackages.length);
 
     return NextResponse.json({
       success: true,
