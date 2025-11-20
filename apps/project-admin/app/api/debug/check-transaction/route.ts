@@ -17,6 +17,7 @@ export async function GET(req: NextRequest) {
       take: 10,
       select: {
         id: true,
+        tenantId: true,
         customerName: true,
         date: true,
         time: true,
@@ -37,6 +38,7 @@ export async function GET(req: NextRequest) {
         return {
           appointment: {
             id: apt.id,
+            tenantId: apt.tenantId,
             customerName: apt.customerName,
             date: apt.date,
             time: apt.time,
@@ -48,8 +50,10 @@ export async function GET(req: NextRequest) {
           hasTransaction: !!transaction,
           transaction: transaction ? {
             id: transaction.id,
+            tenantId: transaction.tenantId,
             amount: transaction.amount,
             paymentType: transaction.paymentType,
+            date: transaction.date,
             createdAt: transaction.createdAt.toISOString()
           } : null
         };
