@@ -110,7 +110,9 @@ async function getCancelledCardPayments() {
     const appointments = await prisma.appointment.findMany({
       where: {
         status: 'cancelled',
-        paymentType: 'card'
+        paymentType: {
+          in: ['card', 'credit_card']
+        }
       },
       orderBy: {
         updatedAt: 'desc'
