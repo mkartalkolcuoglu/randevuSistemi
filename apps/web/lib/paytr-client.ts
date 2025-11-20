@@ -235,11 +235,14 @@ export async function initiatePayment(
       user_phone: '5555555555',
       merchant_ok_url: params.successUrl || `${baseUrl}/payment/success`,
       merchant_fail_url: params.failUrl || `${baseUrl}/payment/failed`,
-      merchant_callback_url: `${baseUrl}/api/payment/callback`, // ÖNEMLİ: Callback URL!
       timeout_limit: '30',
       currency: currency,
-      test_mode: PAYTR_TEST_MODE
+      test_mode: PAYTR_TEST_MODE,
+      lang: 'tr' // Dil parametresi
     });
+
+    // NOT: merchant_callback_url parametresi ayrı ekleniyor (PayTR dokümantasyonunda belirtilmiyor ama gerekli olabilir)
+    // Eğer callback gerekiyorsa buraya eklenir, ancak standart parametreler yukarıda
 
     console.log('🚀 [PAYTR] Sending request to PayTR API...');
     console.log('📝 [PAYTR] All parameters:', {
