@@ -3,12 +3,12 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button, Card, CardContent, Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, formatPhone, normalizePhone, PHONE_PLACEHOLDER, PHONE_MAX_LENGTH } from "../components/ui";
-import { 
-  Calendar, 
-  Users, 
-  BarChart3, 
-  CheckCircle, 
-  ArrowRight, 
+import {
+  Calendar,
+  Users,
+  BarChart3,
+  CheckCircle,
+  ArrowRight,
   Star,
   Clock,
   Smartphone,
@@ -17,7 +17,9 @@ import {
   MessageCircle,
   Check,
   ChevronDown,
-  User
+  User,
+  CreditCard,
+  Zap
 } from "lucide-react";
 import { useState, useEffect } from "react";
 
@@ -461,6 +463,164 @@ export default function Home() {
                 )}
               </div>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Credit Card Payment Section */}
+      <section className="py-20 bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+            {/* Left Side - Content */}
+            <div>
+              <div className="inline-block mb-4 px-4 py-2 bg-green-100 rounded-full">
+                <span className="text-green-700 font-medium text-sm">✨ Herhangi Bir Başvuru Gerektirmez</span>
+              </div>
+              <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-6">
+                Kredi Kartı ile Ödeme Alın
+              </h2>
+              <p className="text-xl text-gray-600 mb-8 leading-relaxed">
+                İşletmeniz için özel başvuru yapmadan, anında kredi kartı ile ödeme almaya başlayın.
+                PayTR güvenli ödeme altyapısı ile tüm banka kartları desteklenir.
+              </p>
+
+              <div className="space-y-4 mb-8">
+                <div className="flex items-start">
+                  <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center mr-4 flex-shrink-0">
+                    <Zap className="w-6 h-6 text-green-600" />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-gray-900 mb-1">Anında Aktif</h3>
+                    <p className="text-gray-600">
+                      Hesap açar açmaz kredi kartı ödemesi alabilirsiniz. Hiçbir evrak, başvuru veya bekleme süresi yok.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-start">
+                  <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center mr-4 flex-shrink-0">
+                    <Shield className="w-6 h-6 text-blue-600" />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-gray-900 mb-1">Güvenli Ödeme</h3>
+                    <p className="text-gray-600">
+                      PayTR güvenli ödeme altyapısı ile 3D Secure destekli, şifreli ödeme işlemleri.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-start">
+                  <div className="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center mr-4 flex-shrink-0">
+                    <CreditCard className="w-6 h-6 text-purple-600" />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-gray-900 mb-1">Tüm Kartlar Kabul Edilir</h3>
+                    <p className="text-gray-600">
+                      Visa, Mastercard, Troy ve diğer tüm banka kartları ile ödeme alın.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-start">
+                  <div className="w-12 h-12 bg-orange-100 rounded-xl flex items-center justify-center mr-4 flex-shrink-0">
+                    <TrendingUp className="w-6 h-6 text-orange-600" />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-gray-900 mb-1">Gelirlerinizi Artırın</h3>
+                    <p className="text-gray-600">
+                      Müşterileriniz randevu alırken online ödeme yapabilir. Ön ödeme ile iptal oranlarını azaltın.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <Link href="/register">
+                <Button size="lg" className="bg-[#163974] hover:bg-[#0F2A52] text-white">
+                  <CreditCard className="w-5 h-5 mr-2" />
+                  Hemen Başla
+                </Button>
+              </Link>
+            </div>
+
+            {/* Right Side - Visual */}
+            <div className="relative">
+              <div className="bg-white rounded-2xl shadow-2xl p-8 border-2 border-gray-100">
+                {/* Mock Payment Card */}
+                <div className="mb-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="font-bold text-gray-900">Ödeme Bilgileri</h3>
+                    <div className="flex space-x-2">
+                      <div className="w-10 h-6 bg-blue-600 rounded flex items-center justify-center">
+                        <span className="text-white text-xs font-bold">VISA</span>
+                      </div>
+                      <div className="w-10 h-6 bg-red-500 rounded flex items-center justify-center">
+                        <span className="text-white text-xs font-bold">MC</span>
+                      </div>
+                      <div className="w-10 h-6 bg-orange-500 rounded flex items-center justify-center">
+                        <span className="text-white text-xs font-bold">TROY</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    <div>
+                      <label className="text-sm text-gray-600 mb-1 block">Kart Numarası</label>
+                      <div className="w-full h-12 bg-gray-50 border-2 border-gray-200 rounded-lg flex items-center px-4">
+                        <span className="text-gray-400">•••• •••• •••• ••••</span>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="text-sm text-gray-600 mb-1 block">Son Kullanma</label>
+                        <div className="h-12 bg-gray-50 border-2 border-gray-200 rounded-lg flex items-center px-4">
+                          <span className="text-gray-400">AA/YY</span>
+                        </div>
+                      </div>
+                      <div>
+                        <label className="text-sm text-gray-600 mb-1 block">CVV</label>
+                        <div className="h-12 bg-gray-50 border-2 border-gray-200 rounded-lg flex items-center px-4">
+                          <span className="text-gray-400">•••</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Payment Amount */}
+                <div className="bg-gradient-to-br from-green-50 to-blue-50 rounded-xl p-6 mb-6">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-gray-600">Randevu Ücreti</span>
+                    <span className="text-2xl font-bold text-gray-900">₺150</span>
+                  </div>
+                  <div className="flex items-center text-sm text-green-600">
+                    <Shield className="w-4 h-4 mr-1" />
+                    <span>Güvenli Ödeme</span>
+                  </div>
+                </div>
+
+                {/* Pay Button */}
+                <button className="w-full bg-gradient-to-r from-green-400 to-blue-500 text-white font-bold py-4 rounded-xl hover:shadow-lg transition">
+                  Ödemeyi Tamamla
+                </button>
+
+                {/* Security Badges */}
+                <div className="flex items-center justify-center mt-6 space-x-4 text-xs text-gray-500">
+                  <div className="flex items-center">
+                    <Shield className="w-4 h-4 mr-1" />
+                    <span>3D Secure</span>
+                  </div>
+                  <div className="flex items-center">
+                    <Shield className="w-4 h-4 mr-1" />
+                    <span>SSL Şifreli</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Decorative Elements */}
+              <div className="absolute -top-6 -right-6 w-24 h-24 bg-gradient-to-br from-green-400 to-blue-500 rounded-full opacity-20 blur-2xl"></div>
+              <div className="absolute -bottom-6 -left-6 w-32 h-32 bg-gradient-to-br from-purple-400 to-pink-500 rounded-full opacity-20 blur-2xl"></div>
+            </div>
           </div>
         </div>
       </section>
