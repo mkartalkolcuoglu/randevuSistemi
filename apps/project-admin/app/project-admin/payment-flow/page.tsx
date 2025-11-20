@@ -106,6 +106,8 @@ async function getPayments() {
 
 async function getCancelledCardPayments() {
   try {
+    console.log('🔍 Querying cancelled card payments...');
+
     // İptal edilmiş randevuları al (kredi kartı ödemeli)
     const appointments = await prisma.appointment.findMany({
       where: {
@@ -137,6 +139,11 @@ async function getCancelledCardPayments() {
         updatedAt: true
       }
     });
+
+    console.log(`📊 Raw query returned ${appointments.length} appointments`);
+    if (appointments.length > 0) {
+      console.log('Sample appointment:', JSON.stringify(appointments[0], null, 2));
+    }
 
     // Her appointment için tenant bilgisini al
     const appointmentsWithDetails = await Promise.all(

@@ -424,12 +424,11 @@ export default function PaymentFlowClient({ payments, cancelledCardPayments }: P
                 </p>
               </div>
             ) : (
-              <DataTable
-                data={filteredPayments}
-                columns={columns}
-                keyExtractor={(payment) => payment.id}
-                emptyMessage="Ödeme bulunamadı"
-              />
+              <div className="overflow-x-auto">
+                <p className="text-sm text-gray-600 mb-4">
+                  {filteredPayments.length} ödeme bulundu (DataTable geçici olarak devre dışı)
+                </p>
+              </div>
             )}
           </CardContent>
         </Card>
