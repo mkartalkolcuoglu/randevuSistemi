@@ -39,8 +39,8 @@ export async function POST(
       );
     }
 
-    // Status kontrolü
-    if (appointment.status !== 'pending') {
+    // Status kontrolü - cancelled ve completed iptal edilemez
+    if (appointment.status === 'cancelled' || appointment.status === 'completed') {
       return NextResponse.json(
         { success: false, error: 'Bu randevu iptal edilemez' },
         { status: 400 }
