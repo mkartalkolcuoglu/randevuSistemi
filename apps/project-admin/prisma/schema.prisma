@@ -116,7 +116,10 @@ model Appointment {
   paymentType  String   @default("cash")
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
-  
+  refundCompleted   Boolean?  @default(false)
+  refundCompletedAt DateTime? @db.Timestamp(6)
+  refundNotes       String?
+
   @@map("appointments")
 }
 
