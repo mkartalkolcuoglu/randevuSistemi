@@ -12,7 +12,6 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Randevuyu bul ve iade i_aretini güncelle
     const appointment = await prisma.appointment.update({
       where: { id: appointmentId },
       data: {
@@ -28,7 +27,7 @@ export async function POST(req: NextRequest) {
   } catch (error) {
     console.error('Error marking refund:', error);
     return NextResponse.json(
-      { success: false, error: '0ade i_areti kaydedilemedi' },
+      { success: false, error: 'Iade isareti kaydedilemedi' },
       { status: 500 }
     );
   }
