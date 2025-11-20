@@ -46,6 +46,13 @@ interface PaymentFlowClientProps {
 }
 
 export default function PaymentFlowClient({ payments, cancelledCardPayments }: PaymentFlowClientProps) {
+  // Debug log
+  console.log('🔍 PaymentFlowClient rendered with:', {
+    paymentsCount: payments.length,
+    cancelledCardPaymentsCount: cancelledCardPayments.length,
+    cancelledSample: cancelledCardPayments[0]
+  });
+
   const [dateFilter, setDateFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [tenantFilter, setTenantFilter] = useState('');
@@ -433,6 +440,13 @@ export default function PaymentFlowClient({ payments, cancelledCardPayments }: P
           <p className="text-sm text-gray-600 mb-6">
             İptal edilen kredi kartı ödemelerini takip edin ve iade işlemlerini yönetin
           </p>
+
+          {/* Debug info */}
+          <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded">
+            <p className="text-sm text-blue-800">
+              <strong>Debug:</strong> {localCancelledPayments.length} cancelled payment(s) loaded
+            </p>
+          </div>
 
           {/* Refund Stats */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
