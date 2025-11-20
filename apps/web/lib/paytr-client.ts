@@ -12,7 +12,7 @@ const PAYTR_MERCHANT_KEY = process.env.PAYTR_MERCHANT_KEY || 'rL2TjcA26mJbEgLE';
 const PAYTR_MERCHANT_SALT = process.env.PAYTR_MERCHANT_SALT || 'dSDLbyHHk7Mm2xnt';
 
 // Test mode: '1' for test, '0' for production
-const PAYTR_TEST_MODE = process.env.PAYTR_TEST_MODE || '1';
+const PAYTR_TEST_MODE = process.env.PAYTR_TEST_MODE || '0';
 
 /**
  * Sepet ürünü arayüzü
