@@ -106,8 +106,6 @@ async function getPayments() {
 
 async function getCancelledCardPayments() {
   try {
-    console.log('🔍 Querying cancelled card payments...');
-
     // İptal edilmiş randevuları al (kredi kartı ödemeli)
     const appointments = await prisma.appointment.findMany({
       where: {
@@ -140,11 +138,6 @@ async function getCancelledCardPayments() {
       }
     });
 
-    console.log(`📊 Raw query returned ${appointments.length} appointments`);
-    if (appointments.length > 0) {
-      console.log('Sample appointment:', JSON.stringify(appointments[0], null, 2));
-    }
-
     // Her appointment için tenant bilgisini al
     const appointmentsWithDetails = await Promise.all(
       appointments.map(async (appointment) => {
@@ -171,7 +164,6 @@ async function getCancelledCardPayments() {
       })
     );
 
-    console.log('✅ Found cancelled card payments:', appointmentsWithDetails.length);
     return appointmentsWithDetails;
   } catch (error) {
     console.error('Error fetching cancelled card payments:', error);
@@ -183,11 +175,6 @@ export default async function PaymentFlowPage() {
   // Middleware already handles authentication
   const payments = await getPayments();
   const cancelledCardPayments = await getCancelledCardPayments();
-
-  console.log('📊 Payment Flow Data:', {
-    paymentsCount: payments.length,
-    cancelledCardPaymentsCount: cancelledCardPayments.length
-  });
 
   return <PaymentFlowClient payments={payments} cancelledCardPayments={cancelledCardPayments} />;
 }
