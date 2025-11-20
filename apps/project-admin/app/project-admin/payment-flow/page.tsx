@@ -5,48 +5,46 @@ export const dynamic = 'force-dynamic';
 
 async function getPayments() {
   try {
-    // Tüm başarılı ödemeleri al (kredi kartı ve EFT)
-    const payments = await prisma.payment.findMany({
+    // İptal edilmiş randevuları al (kredi kartı ödemeli)
+    const appointments = await prisma.appointment.findMany({
       where: {
-        status: 'success',
-        paymentType: {
-          in: ['card', 'eft']
-        }
+        status: 'cancelled',
+        paymentType: 'card',
+        paymentStatus: 'paid' // Ödemesi alınmış olan
       },
       orderBy: {
-        paidAt: 'desc'
+        updatedAt: 'desc'
       },
       select: {
         id: true,
         tenantId: true,
-        appointmentId: true,
         customerId: true,
         customerName: true,
         customerEmail: true,
         customerPhone: true,
-        merchantOid: true,
-        amount: true,
+        serviceName: true,
+        staffName: true,
+        date: true,
+        time: true,
+        price: true,
         paymentType: true,
-        status: true,
-        paidAt: true,
+        refundCompleted: true,
+        refundCompletedAt: true,
+        refundNotes: true,
         createdAt: true,
-        userBasket: true,
-        productName: true  // Paket/ürün adı
+        updatedAt: true
       }
     });
 
-    // Her payment için tenant ve randevu bilgilerini al
-    const paymentsWithDetails = await Promise.all(
-      payments.map(async (payment) => {
+    // Her appointment için tenant bilgisini al
+    const appointmentsWithDetails = await Promise.all(
+      appointments.map(async (appointment) => {
         let tenantName = 'Bilinmiyor';
-        let serviceName = null;
-        let packageName = null;
-        let productName = payment.productName || null; // Veritabanından gelen productName'i kullan
 
         // Tenant bilgisi
-        if (payment.tenantId) {
+        if (appointment.tenantId) {
           const tenant = await prisma.tenant.findUnique({
-            where: { id: payment.tenantId },
+            where: { id: appointment.tenantId },
             select: { businessName: true }
           });
           if (tenant) {
@@ -54,57 +52,14 @@ async function getPayments() {
           }
         }
 
-        // Appointment bilgisi
-        if (payment.appointmentId) {
-          const appointment = await prisma.appointment.findUnique({
-            where: { id: payment.appointmentId },
-            select: { serviceName: true }
-          });
-          if (appointment) {
-            serviceName = appointment.serviceName;
-          }
-        }
-
-        // Eğer productName yoksa (eski kayıtlar), userBasket'ten parse et
-        if (!productName && payment.userBasket) {
-          try {
-            // userBasket base64 encoded JSON olabilir
-            let basket = payment.userBasket;
-            try {
-              basket = Buffer.from(payment.userBasket, 'base64').toString('utf-8');
-            } catch (e) {
-              // Base64 değilse, direkt kullan
-            }
-
-            const basketData = JSON.parse(basket);
-            // Basket formatı: [["Ürün Adı", "Fiyat", "Miktar"]]
-            if (Array.isArray(basketData) && basketData.length > 0 && Array.isArray(basketData[0])) {
-              const itemName = basketData[0][0];
-              // Eğer "Paket" kelimesi içeriyorsa paket, değilse ürün olarak kabul et
-              if (itemName.toLowerCase().includes('paket') || itemName.toLowerCase().includes('package')) {
-                packageName = itemName;
-              } else if (!serviceName) {
-                // Sadece servis yoksa ürün olarak kabul et
-                productName = itemName;
-              }
-            }
-          } catch (e) {
-            // JSON parse hatası, devam et
-            console.error('Error parsing userBasket:', e);
-          }
-        }
-
         return {
-          ...payment,
-          tenantName,
-          serviceName,
-          packageName,
-          productName
+          ...appointment,
+          tenantName
         };
       })
     );
 
-    return paymentsWithDetails;
+    return appointmentsWithDetails;
   } catch (error) {
     console.error('Error fetching payments:', error);
     return [];

@@ -77,14 +77,15 @@ function RandevularimContent() {
   };
 
   const canCancelAppointment = (appointment: Appointment): boolean => {
-    if (appointment.status !== 'pending') return false;
-    
+    // İptal edilmiş veya tamamlanmış randevular iptal edilemez
+    if (appointment.status === 'cancelled' || appointment.status === 'completed') return false;
+
     // Randevu tarih ve saatini birleştir
     const appointmentDateTime = parseISO(`${appointment.date}T${appointment.time}`);
-    
+
     // 6 saat öncesini hesapla
     const sixHoursBefore = addHours(appointmentDateTime, -6);
-    
+
     // Şu anki zaman 6 saat öncesinden önce mi?
     return isBefore(new Date(), sixHoursBefore);
   };
@@ -533,7 +534,7 @@ function RandevularimContent() {
                           </Button>
                         )}
                         
-                        {!canCancel && appointment.status === 'pending' && (
+                        {!canCancel && (appointment.status === 'pending' || appointment.status === 'confirmed') && (
                           <div className="text-xs text-gray-500 text-center">
                             İptal süresi geçti<br/>(Randevuya 6 saatten az kaldı)
                           </div>

@@ -1,6 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -11,34 +8,31 @@ datasource db {
 }
 
 model Staff {
-  id            String   @id @default(cuid())
-  tenantId      String
-  firstName     String
-  lastName      String
-  email         String   @unique
-  phone         String?
-  position      String
-  status        String   @default("active")
-  avatar        String?
-  salary        Float?
-  hireDate      String?
-  specializations String? // JSON string for array of specializations
-  experience    Int?     // years of experience
-  rating        Float?   @default(4.0)
-  workingHours  String?  // JSON string for working hours
-  notes         String?
-  
-  // Authentication fields
-  username      String?  @unique
-  password      String?
-  role          String?  @default("staff") // "owner", "manager", "staff"
-  permissions   String?  @db.Text // JSON string for page permissions
-  canLogin      Boolean  @default(false) @map("can_login")
-  lastLogin     DateTime? @map("last_login")
-  
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-  
+  id              String    @id @default(cuid())
+  tenantId        String
+  firstName       String
+  lastName        String
+  email           String    @unique
+  phone           String?
+  position        String
+  status          String    @default("active")
+  avatar          String?
+  salary          Float?
+  hireDate        String?
+  specializations String?
+  experience      Int?
+  rating          Float?    @default(4.0)
+  workingHours    String?
+  notes           String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  username        String?   @unique
+  password        String?
+  role            String?   @default("staff")
+  permissions     String?
+  canLogin        Boolean   @default(false) @map("can_login")
+  lastLogin       DateTime? @map("last_login")
+
   @@map("staff")
 }
 
@@ -54,16 +48,15 @@ model Customer {
   address               String?
   notes                 String?
   status                String    @default("active")
-  noShowCount           Int       @default(0) @map("no_show_count")
-  isBlacklisted         Boolean   @default(false) @map("is_blacklisted")
-  blacklistedAt         DateTime? @map("blacklisted_at")
-  whatsappNotifications Boolean   @default(true) @map("whatsapp_notifications") // WhatsApp bildirim tercihi
   createdAt             DateTime  @default(now())
   updatedAt             DateTime  @updatedAt
-  
-  customerPackages CustomerPackage[]
-  
+  noShowCount           Int?      @default(0) @map("no_show_count")
+  isBlacklisted         Boolean?  @default(false) @map("is_blacklisted")
+  blacklistedAt         DateTime? @map("blacklisted_at") @db.Timestamp(6)
+  whatsappNotifications Boolean?  @default(true) @map("whatsapp_notifications")
+
   @@unique([tenantId, email])
+  @@index([whatsappNotifications], map: "idx_customers_whatsapp_notifications")
   @@map("customers")
 }
 
@@ -73,65 +66,74 @@ model Service {
   name        String
   description String?
   price       Float
-  duration    Int      // in minutes
+  duration    Int
   category    String?
   status      String   @default("active")
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-  
+
   @@map("services")
 }
 
 model Appointment {
-  id           String   @id @default(cuid())
-  tenantId     String
-  customerId   String
-  customerName String
-  customerPhone String?
-  customerEmail String?
-  serviceId    String
-  serviceName  String
-  staffId      String
-  staffName    String
-  date         String
-  time         String
-  status       String   @default("scheduled")
-  notes        String?
-  price        Float?
-  duration     Int?     // in minutes
-  paymentType  String   @default("cash")
-  packageInfo  String?  @db.Text // JSON string containing package usage info
+  id               String    @id @default(cuid())
+  tenantId         String
+  customerId       String
+  customerName     String
+  customerPhone    String?
+  customerEmail    String?
+  serviceId        String
+  serviceName      String
+  staffId          String
+  staffName        String
+  date             String
+  time             String
+  status           String    @default("scheduled")
+  notes            String?
+  price            Float?
+  duration         Int?
+  paymentType      String    @default("cash")
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  packageInfo      String?
+  whatsapp_sent    Boolean?  @default(false)
+  whatsapp_sent_at DateTime? @db.Timestamp(6)
+  reminder_sent    Boolean?  @default(false)
+  reminder_sent_at DateTime? @db.Timestamp(6)
+  payment_status   String?   @default("pending")
+  payment_id       String?
+  whatsappSent     Boolean?  @default(false)
+  whatsappSentAt   DateTime? @db.Timestamp(6)
+  reminderSent     Boolean?  @default(false)
+  reminderSentAt   DateTime? @db.Timestamp(6)
+  paymentStatus    String?   @default("pending")
+  paymentId        String?
+  refundCompleted   Boolean?  @default(false)
+  refundCompletedAt DateTime? @db.Timestamp(6)
+  refundNotes       String?
 
-  // Payment fields
-  paymentStatus String  @default("pending") // pending, paid, package_used, failed
-  paymentId     String? // Link to Payment record
-
-  // WhatsApp notification tracking
-  whatsappSent   Boolean   @default(false)
-  whatsappSentAt DateTime?
-  reminderSent   Boolean   @default(false)
-  reminderSentAt DateTime?
-
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-
-  @@index([paymentStatus])
-  @@index([paymentId])
+  @@index([payment_id], map: "idx_appointment_payment_id")
+  @@index([payment_status], map: "idx_appointment_payment_status")
+  @@index([paymentId], map: "idx_appointments_payment_id")
+  @@index([paymentStatus], map: "idx_appointments_payment_status")
+  @@index([reminder_sent], map: "idx_appointments_reminder_sent")
+  @@index([status, date], map: "idx_appointments_status_date")
+  @@index([whatsapp_sent], map: "idx_appointments_whatsapp_sent")
   @@map("appointments")
 }
 
 model Task {
-  id          String   @id @default(cuid())
+  id          String    @id @default(cuid())
   tenantId    String
   title       String
   description String?
   assignedTo  String
-  priority    String   @default("medium")
-  status      String   @default("pending")
+  priority    String    @default("medium")
+  status      String    @default("pending")
   dueDate     DateTime?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
   @@map("tasks")
 }
 
@@ -142,51 +144,45 @@ model Settings {
   businessAddress         String?
   businessPhone           String?
   businessEmail           String?
-  workingHours            String?  // JSON string
-  appointmentTimeInterval Int?     @default(30) @map("appointment_time_interval") // Appointment time slot interval in minutes (5, 10, 15, 20, 30, 45, 60)
-  blacklistThreshold      Int?     @default(3) @map("blacklist_threshold") // Number of no-shows before blacklisting (1-10)
-  reminderMinutes         Int?     @default(120) @map("reminder_minutes") // Minutes before appointment to send reminder (10, 30, 60, 120, 1440)
-  notificationSettings    String?  // JSON string
-  paymentSettings         String?  // JSON string
-  themeSettings           String?  // JSON string for colors, fonts, etc.
+  workingHours            String?
+  notificationSettings    String?
+  paymentSettings         String?
+  themeSettings           String?
   updatedAt               DateTime @updatedAt
+  appointmentTimeInterval Int?     @default(30) @map("appointment_time_interval")
+  blacklistThreshold      Int?     @default(3) @map("blacklist_threshold")
+  reminderMinutes         Int?     @default(120) @map("reminder_minutes")
 
   @@map("settings")
 }
 
 model Tenant {
-  id                  String   @id @default(cuid())
+  id                  String    @id @default(cuid())
   businessName        String
-  slug                String   @unique
-  domain              String   @unique
-  username            String   @unique
+  slug                String    @unique
+  domain              String    @unique
+  username            String    @unique
   password            String
-  ownerName          String
-  ownerEmail         String
-  phone              String?
-  plan               String   @default("Standard")
-  status             String   @default("active")
-  address            String?
-  businessType       String   @default("other")
+  ownerName           String
+  ownerEmail          String
+  phone               String?
+  plan                String    @default("Standard")
+  status              String    @default("active")
+  address             String?
+  businessType        String    @default("other")
   businessDescription String?
-  monthlyRevenue     Int      @default(0)
-  appointmentCount   Int      @default(0)
-  customerCount      Int      @default(0)
-  createdAt          DateTime @default(now())
-  lastLogin          DateTime?
-  
-  // Subscription package fields
-  subscriptionPlan   String?  // "trial", "monthly", "yearly"
-  subscriptionStart  DateTime?
-  subscriptionEnd    DateTime?
-  hasUsedTrial       Boolean  @default(false) @map("has_used_trial") // Trial paketini kullanıp kullanmadığı
-
-  // JSON fields for complex data
-  workingHours       String?  // JSON string
-  theme              String?  // JSON string
-
-  // Payment settings
-  cardPaymentEnabled Boolean  @default(true) @map("card_payment_enabled")
+  monthlyRevenue      Int       @default(0)
+  appointmentCount    Int       @default(0)
+  customerCount       Int       @default(0)
+  createdAt           DateTime  @default(now())
+  lastLogin           DateTime?
+  workingHours        String?
+  theme               String?
+  subscriptionPlan    String?
+  subscriptionStart   DateTime?
+  subscriptionEnd     DateTime?
+  hasUsedTrial        Boolean   @default(false) @map("has_used_trial")
+  cardPaymentEnabled  Boolean?  @default(true) @map("card_payment_enabled")
 
   @@map("tenants")
 }
@@ -207,46 +203,48 @@ model Product {
   status      String   @default("active")
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-  
+
   @@map("products")
 }
 
 model Transaction {
-  id              String   @id @default(cuid())
-  tenantId        String
-  type            String   // 'income' (gelir), 'expense' (gider), 'sale' (satış), 'appointment' (randevu), 'package' (paket satışı)
-  amount          Float
-  description     String
-  paymentType     String?  // 'cash', 'card', 'transfer'
-  customerId      String?  // For sales
-  customerName    String?
-  productId       String?  // For sales
-  productName     String?
-  quantity        Int?     // For sales
-  cost            Float?   // Product cost for profit calculation
-  profit          Float?   // Calculated profit (amount - cost)
-  appointmentId   String?  // Link to appointment if type is 'appointment'
-  packageId       String?  // Link to package if type is 'package'
-  staffId         String?  // Staff member who made the sale/transaction
-  staffName       String?  // Staff member name
-  date            String   // Transaction date
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  
+  id            String   @id @default(cuid())
+  tenantId      String
+  type          String
+  amount        Float
+  description   String
+  paymentType   String?
+  customerId    String?
+  customerName  String?
+  productId     String?
+  productName   String?
+  quantity      Int?
+  cost          Float?
+  profit        Float?
+  appointmentId String?
+  date          String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  packageId     String?
+  staffId       String?
+  staffName     String?
+
   @@map("transactions")
 }
 
 model Notification {
-  id          String   @id @default(cuid())
-  tenantId    String
-  type        String   // 'new_appointment', 'appointment_cancelled', etc.
-  title       String
-  message     String
-  link        String?  // Link to related page
-  read        Boolean  @default(false)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  
+  id        String    @id @default(cuid())
+  tenantId  String
+  type      String
+  title     String
+  message   String
+  link      String?
+  read      Boolean?  @default(false)
+  createdAt DateTime? @default(now()) @db.Timestamp(6)
+  updatedAt DateTime? @default(now()) @updatedAt @db.Timestamp(6)
+
+  @@index([createdAt(sort: Desc)], map: "idx_notifications_created_at")
+  @@index([tenantId, read], map: "idx_notifications_tenant_read")
   @@map("notifications")
 }
 
@@ -259,157 +257,159 @@ model Package {
   isActive    Boolean  @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-  
-  items       PackageItem[]
-  customerPackages CustomerPackage[]
-  
+
   @@map("packages")
 }
 
 model PackageItem {
-  id          String   @id @default(cuid())
-  packageId   String
-  itemType    String   // 'service' or 'product'
-  itemId      String   // serviceId or productId
-  itemName    String   // service name or product name
-  quantity    Int      // number of sessions/items
-  createdAt   DateTime @default(now())
-  
-  package     Package  @relation(fields: [packageId], references: [id], onDelete: Cascade)
-  
+  id        String   @id @default(cuid())
+  packageId String
+  itemType  String
+  itemId    String
+  itemName  String
+  quantity  Int
+  createdAt DateTime @default(now())
+
   @@map("package_items")
 }
 
 model CustomerPackage {
-  id          String   @id @default(cuid())
-  customerId  String
-  packageId   String
-  tenantId    String
-  assignedAt  DateTime @default(now())
-  expiresAt   DateTime?
-  status      String   @default("active") // active, completed, expired
-  staffId     String?  // Staff member who assigned/sold the package
-  staffName   String?  // Staff member name
-  
-  customer    Customer @relation(fields: [customerId], references: [id])
-  package     Package  @relation(fields: [packageId], references: [id])
-  usages      CustomerPackageUsage[]
-  
-  @@unique([customerId, packageId]) // Prevent duplicate assignments
+  id         String    @id @default(cuid())
+  customerId String
+  packageId  String
+  tenantId   String
+  assignedAt DateTime  @default(now())
+  expiresAt  DateTime?
+  status     String    @default("active")
+  staffId    String?
+  staffName  String?
+
+  @@unique([customerId, packageId])
   @@map("customer_packages")
 }
 
 model CustomerPackageUsage {
-  id                  String   @id @default(cuid())
-  customerPackageId   String
-  itemType            String   // 'service' or 'product'
-  itemId              String
-  itemName            String
-  totalQuantity       Int      // Starting quantity (e.g., 10)
-  usedQuantity        Int      @default(0) // Used (e.g., 3)
-  remainingQuantity   Int      // Remaining (e.g., 7)
-  createdAt           DateTime @default(now())
-  updatedAt           DateTime @updatedAt
-  
-  customerPackage     CustomerPackage @relation(fields: [customerPackageId], references: [id], onDelete: Cascade)
-  
+  id                String   @id @default(cuid())
+  customerPackageId String
+  itemType          String
+  itemId            String
+  itemName          String
+  totalQuantity     Int
+  usedQuantity      Int      @default(0)
+  remainingQuantity Int
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
   @@map("customer_package_usage")
 }
 
 model Feedback {
   id              String   @id @default(cuid())
   tenantId        String
-  appointmentId   String   @unique // Her randevuya 1 kere feedback
+  appointmentId   String   @unique
   customerName    String
   customerPhone   String
-  rating          Int      // 1-5 yıldız
-  comment         String?  // Opsiyonel yorum
+  rating          Int
+  comment         String?
   serviceName     String
   staffName       String
   appointmentDate String
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
+  @@index([createdAt(sort: Desc)])
+  @@index([tenantId])
   @@map("feedbacks")
 }
 
 model OtpVerification {
-  id          String   @id @default(cuid())
-  phone       String   // Telefon numarası
-  code        String   // 6 haneli OTP kodu
-  purpose     String   // 'appointment_query', 'subscription', 'password_reset', vb.
-  tenantId    String?  @map("tenant_id") // Opsiyonel: Hangi tenant için (subscription için gerekli)
-  expiresAt   DateTime @map("expires_at") // 120 saniye sonra
-  verified    Boolean  @default(false)
-  verifiedAt  DateTime? @map("verified_at")
-  attempts    Int      @default(0) // Kaç kere denendi
-  ipAddress   String?  @map("ip_address") // Güvenlik için IP kaydı
-  createdAt   DateTime @default(now()) @map("created_at")
+  id         String    @id @default(cuid())
+  phone      String
+  code       String
+  purpose    String
+  tenantId   String?   @map("tenant_id")
+  expiresAt  DateTime  @map("expires_at") @db.Timestamp(6)
+  verified   Boolean   @default(false)
+  verifiedAt DateTime? @map("verified_at") @db.Timestamp(6)
+  attempts   Int       @default(0)
+  ipAddress  String?   @map("ip_address")
+  createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamp(6)
 
-  @@index([phone, purpose]) // Hızlı sorgulama için
-  @@index([expiresAt]) // Cleanup için
+  @@index([expiresAt], map: "idx_otp_expires_at")
+  @@index([phone, purpose], map: "idx_otp_phone_purpose")
   @@map("otp_verifications")
 }
 
 model Payment {
-  id              String   @id @default(cuid())
-  tenantId        String?  @map("tenant_id") // Nullable: İşletme kaydı için henüz tenant yok
-  appointmentId   String?  @map("appointment_id") // Randevu için ödeme ise
-  customerId      String?  @map("customer_id")
-  customerName    String?  @map("customer_name")
-  customerEmail   String?  @map("customer_email")
-  customerPhone   String?  @map("customer_phone")
-  productName     String?  @map("product_name") // Ürün/hizmet adı (subscription paket adı vb.)
+  id            String    @id @default(cuid())
+  tenantId      String?   @map("tenant_id")
+  appointmentId String?   @map("appointment_id")
+  customerId    String?   @map("customer_id")
+  customerName  String?   @map("customer_name")
+  customerEmail String?   @map("customer_email")
+  customerPhone String?   @map("customer_phone")
+  merchantOid   String    @unique @map("merchant_oid")
+  amount        Float
+  paymentAmount Int       @map("payment_amount")
+  currency      String    @default("TL")
+  status        String    @default("pending")
+  paymentType   String?   @map("payment_type")
+  paytrToken    String?   @map("paytr_token")
+  paytrHash     String?   @map("paytr_hash")
+  failedReason  String?   @map("failed_reason")
+  refundStatus  String?   @map("refund_status")
+  refundAmount  Float?    @map("refund_amount")
+  refundedAt    DateTime? @map("refunded_at") @db.Timestamp(6)
+  refundReason  String?   @map("refund_reason")
+  userIp        String?   @map("user_ip")
+  userBasket    String?   @map("user_basket")
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt     DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamp(6)
+  paidAt        DateTime? @map("paid_at") @db.Timestamp(6)
+  productName   String?   @map("product_name") @db.VarChar(255)
 
-  // PayTR Bilgileri
-  merchantOid     String   @unique @map("merchant_oid") // PayTR sipariş no (unique order ID)
-  amount          Float    // Tutar (TL cinsinden, örn: 34.56)
-  paymentAmount   Int      @map("payment_amount") // PayTR'a gönderilen tutar (3456 = 34.56 * 100)
-  currency        String   @default("TL")
-
-  // Ödeme Durumu
-  status          String   @default("pending") // pending, success, failed
-  paymentType     String?  @map("payment_type") // card, eft (PayTR'dan gelir)
-
-  // PayTR Callback Bilgileri
-  paytrToken      String?  @map("paytr_token") @db.Text // İlk alınan iframe token (log için)
-  paytrHash       String?  @map("paytr_hash") // Callback'ten gelen hash
-  failedReason    String?  @map("failed_reason") // Hata kodu/mesajı (failed_reason_code + failed_reason_msg)
-
-  // Refund (İade) Bilgileri
-  refundStatus    String?  @map("refund_status") // null, requested, processing, completed, failed
-  refundAmount    Float?   @map("refund_amount") // İade tutarı
-  refundedAt      DateTime? @map("refunded_at")
-  refundReason    String?  @map("refund_reason") @db.Text
-
-  // Meta Bilgiler
-  userIp          String?  @map("user_ip")
-  userBasket      String?  @map("user_basket") @db.Text // JSON: Sepet bilgisi (PayTR'a gönderilen)
-
-  createdAt       DateTime @default(now()) @map("created_at")
-  updatedAt       DateTime @updatedAt @map("updated_at")
-  paidAt          DateTime? @map("paid_at") // Ödeme başarılı olduğu an
-
-  @@index([merchantOid])
-  @@index([appointmentId])
-  @@index([status])
-  @@index([tenantId])
+  @@index([appointmentId], map: "idx_payment_appointment_id")
+  @@index([merchantOid], map: "idx_payment_merchant_oid")
+  @@index([status], map: "idx_payment_status")
+  @@index([tenantId], map: "idx_payment_tenant_id")
   @@map("payments")
 }
 
 model SubscriptionPackage {
   id           String   @id @default(cuid())
-  name         String   // "15 Günlük Deneme", "Aylık Premium"
-  slug         String   @unique // "trial", "monthly", "yearly"
-  durationDays Int      // 15, 30, 365
-  price        Float    @default(0) // 0 = ücretsiz
+  name         String
+  slug         String   @unique
+  durationDays Int
+  price        Float    @default(0)
   isActive     Boolean  @default(true)
-  isFeatured   Boolean  @default(false) // Öne çıkan paket (özel badge)
+  isFeatured   Boolean  @default(false)
   displayOrder Int      @default(0)
-  features     String?  @db.Text // JSON array: ["Sınırsız randevu", "100 müşteri"]
-  description  String?  // Kısa açıklama
+  features     String?
+  description  String?
   createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  updatedAt    DateTime @default(now()) @updatedAt
 
   @@map("subscription_packages")
+}
+
+model admins {
+  id        String    @id
+  username  String    @unique
+  password  String
+  createdAt DateTime  @default(now()) @db.Timestamp(6)
+  updatedAt DateTime  @default(now()) @db.Timestamp(6)
+  lastLogin DateTime? @db.Timestamp(6)
+}
+
+model pages {
+  id        String   @id
+  slug      String   @unique
+  title     String
+  content   String
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now()) @db.Timestamp(6)
+  updatedAt DateTime @default(now()) @db.Timestamp(6)
+
+  @@index([isActive], map: "idx_pages_is_active")
+  @@index([slug], map: "idx_pages_slug")
 }

@@ -425,7 +425,7 @@ export default function AppointmentDetailPage() {
               
               <div>
                 <label className="text-sm font-medium text-gray-600">Ödeme Tipi</label>
-                <div className="mt-1">
+                <div className="mt-1 space-y-2">
                   {appointment.packageInfo ? (
                     <Badge className="bg-green-100 text-green-800">
                       🎁 Paket Kullanımı
@@ -434,6 +434,22 @@ export default function AppointmentDetailPage() {
                     <Badge className={getPaymentTypeColor(appointment.paymentType)}>
                       {getPaymentTypeText(appointment.paymentType)}
                     </Badge>
+                  )}
+                  {appointment.status === 'cancelled' && appointment.paymentType === 'card' && appointment.refundCompleted && (
+                    <div>
+                      <Badge className="bg-green-100 text-green-800">
+                        ✓ Ödeme İadesi Yapıldı
+                      </Badge>
+                      {appointment.refundCompletedAt && (
+                        <p className="text-xs text-gray-500 mt-1">
+                          {new Date(appointment.refundCompletedAt).toLocaleDateString('tr-TR', {
+                            day: '2-digit',
+                            month: 'long',
+                            year: 'numeric'
+                          })}
+                        </p>
+                      )}
+                    </div>
                   )}
                 </div>
               </div>
