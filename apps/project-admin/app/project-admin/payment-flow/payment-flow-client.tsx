@@ -4,8 +4,6 @@ import { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, Button, Badge } from '@repo/ui';
 import { DollarSign, Calendar, Building2, Package, ShoppingCart, User, CreditCard, CheckCircle, AlertCircle } from 'lucide-react';
 import { DataTable, Column } from '../../../components/DataTable';
-import { format } from 'date-fns';
-import { tr } from 'date-fns/locale';
 
 interface Payment {
   id: string;
@@ -550,7 +548,7 @@ export default function PaymentFlowClient({ payments, cancelledCardPayments }: P
                             {getStatusBadge(payment.refundCompleted)}
                             {payment.refundCompletedAt && (
                               <div className="text-xs text-gray-500 mt-1">
-                                {format(new Date(payment.refundCompletedAt), 'dd MMM yyyy', { locale: tr })}
+                                {new Date(payment.refundCompletedAt).toLocaleDateString('tr-TR')}
                               </div>
                             )}
                           </td>
