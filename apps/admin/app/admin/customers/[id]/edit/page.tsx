@@ -11,6 +11,7 @@ export default function EditCustomerPage() {
   const params = useParams();
   const [isLoading, setIsLoading] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [phoneError, setPhoneError] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
     firstName: '',
@@ -59,6 +60,13 @@ export default function EditCustomerPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Telefon numarası validasyonu
+    if (formData.phone && (formData.phone.length < 10 || formData.phone.length > 11)) {
+      setPhoneError('Telefon numarası 10-11 hane olmalıdır');
+      return;
+    }
+
     setIsLoading(true);
 
     try {
@@ -97,6 +105,33 @@ export default function EditCustomerPage() {
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
+
+    // Telefon numarası validasyonu
+    if (name === 'phone') {
+      // Sadece rakamları kabul et
+      const digitsOnly = value.replace(/\D/g, '');
+
+      // Maksimum 11 hane (05XX XXX XXXX formatı)
+      if (digitsOnly.length > 11) {
+        return;
+      }
+
+      // Hata mesajı kontrolü
+      if (digitsOnly.length > 0 && digitsOnly.length < 10) {
+        setPhoneError('Telefon numarası en az 10 hane olmalıdır');
+      } else if (digitsOnly.length > 11) {
+        setPhoneError('Telefon numarası en fazla 11 hane olabilir');
+      } else {
+        setPhoneError(null);
+      }
+
+      setFormData(prev => ({
+        ...prev,
+        phone: digitsOnly
+      }));
+      return;
+    }
+
     setFormData(prev => ({
       ...prev,
       [name]: value
@@ -174,9 +209,14 @@ export default function EditCustomerPage() {
                   name="phone"
                   value={formData.phone}
                   onChange={handleInputChange}
-                  placeholder="+90 555 123 45 67"
+                  placeholder="05XX XXX XXXX"
                   required
+                  maxLength={11}
+                  className={phoneError ? 'border-red-500' : ''}
                 />
+                {phoneError && (
+                  <p className="text-sm text-red-500">{phoneError}</p>
+                )}
               </div>
 
               <div className="space-y-2">
