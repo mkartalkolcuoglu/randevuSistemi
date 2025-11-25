@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '../../components/ui';
-import { ArrowLeft, Calendar, Clock, MapPin, Phone, Mail, ChevronRight, Scissors, Package, MessageCircle, Home, Star, Info } from 'lucide-react';
+import { ArrowLeft, Calendar, Clock, MapPin, Phone, Mail, ChevronRight, Scissors, MessageCircle, Home } from 'lucide-react';
 
 export default function TenantPage() {
   const params = useParams();
@@ -283,35 +283,22 @@ export default function TenantPage() {
 
       {/* Quick Actions - Mobile Cards */}
       <section className="px-4 -mt-4 relative z-20">
-        <div className="grid grid-cols-2 gap-3">
-          <Link
-            href={`/${slug}/hizmetler`}
-            className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 active:scale-[0.98] transition-transform"
+        <Link
+          href={`/${slug}/hizmetler`}
+          className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 active:scale-[0.98] transition-transform flex items-center gap-4"
+        >
+          <div
+            className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0"
+            style={{ backgroundColor: `${primaryColor}15` }}
           >
-            <div
-              className="w-12 h-12 rounded-xl flex items-center justify-center mb-3"
-              style={{ backgroundColor: `${primaryColor}15` }}
-            >
-              <Scissors className="w-6 h-6" style={{ color: primaryColor }} />
-            </div>
-            <h3 className="font-semibold text-gray-900 text-sm">Hizmetler</h3>
-            <p className="text-xs text-gray-500 mt-1">Tüm hizmetlerimiz</p>
-          </Link>
-
-          <Link
-            href={`/${slug}/paketler`}
-            className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 active:scale-[0.98] transition-transform"
-          >
-            <div
-              className="w-12 h-12 rounded-xl flex items-center justify-center mb-3"
-              style={{ backgroundColor: `${secondaryColor}15` }}
-            >
-              <Package className="w-6 h-6" style={{ color: secondaryColor }} />
-            </div>
-            <h3 className="font-semibold text-gray-900 text-sm">Paketler</h3>
-            <p className="text-xs text-gray-500 mt-1">Avantajlı paketler</p>
-          </Link>
-        </div>
+            <Scissors className="w-6 h-6" style={{ color: primaryColor }} />
+          </div>
+          <div className="flex-1">
+            <h3 className="font-semibold text-gray-900 text-sm">Hizmetlerimiz</h3>
+            <p className="text-xs text-gray-500 mt-0.5">Sunduğumuz tüm hizmetleri görüntüleyin</p>
+          </div>
+          <ChevronRight className="w-5 h-5 text-gray-400 flex-shrink-0" />
+        </Link>
       </section>
 
       {/* Contact Info Card */}
@@ -489,7 +476,7 @@ export default function TenantPage() {
         <div className="flex items-center justify-around py-2">
           <Link
             href={`/${slug}`}
-            className={`flex flex-col items-center gap-1 px-4 py-2 rounded-xl transition-colors ${activeTab === 'home' ? 'text-blue-600' : 'text-gray-400'}`}
+            className={`flex flex-col items-center gap-1 px-5 py-2 rounded-xl transition-colors ${activeTab === 'home' ? 'text-blue-600' : 'text-gray-400'}`}
             onClick={() => setActiveTab('home')}
           >
             <Home className="w-5 h-5" />
@@ -498,7 +485,7 @@ export default function TenantPage() {
 
           <Link
             href={`/${slug}/hizmetler`}
-            className="flex flex-col items-center gap-1 px-4 py-2 rounded-xl text-gray-400 hover:text-gray-600 transition-colors"
+            className="flex flex-col items-center gap-1 px-5 py-2 rounded-xl text-gray-400 hover:text-gray-600 transition-colors"
           >
             <Scissors className="w-5 h-5" />
             <span className="text-[10px] font-medium">Hizmetler</span>
@@ -518,20 +505,20 @@ export default function TenantPage() {
           </Link>
 
           <Link
-            href={`/${slug}/paketler`}
-            className="flex flex-col items-center gap-1 px-4 py-2 rounded-xl text-gray-400 hover:text-gray-600 transition-colors"
-          >
-            <Package className="w-5 h-5" />
-            <span className="text-[10px] font-medium">Paketler</span>
-          </Link>
-
-          <Link
             href={`/${slug}/iletisim`}
-            className="flex flex-col items-center gap-1 px-4 py-2 rounded-xl text-gray-400 hover:text-gray-600 transition-colors"
+            className="flex flex-col items-center gap-1 px-5 py-2 rounded-xl text-gray-400 hover:text-gray-600 transition-colors"
           >
             <MessageCircle className="w-5 h-5" />
             <span className="text-[10px] font-medium">İletişim</span>
           </Link>
+
+          <a
+            href={tenant?.businessPhone ? `tel:${tenant.businessPhone}` : '#'}
+            className="flex flex-col items-center gap-1 px-5 py-2 rounded-xl text-gray-400 hover:text-gray-600 transition-colors"
+          >
+            <Phone className="w-5 h-5" />
+            <span className="text-[10px] font-medium">Ara</span>
+          </a>
         </div>
       </nav>
 
