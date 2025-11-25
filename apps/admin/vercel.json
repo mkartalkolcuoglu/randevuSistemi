@@ -21,7 +21,7 @@
     },
     {
       "path": "/api/cron/daily-owner-summary",
-      "schedule": "36 11 * * *"
+      "schedule": "30 17 * * *"
     }
   ]
 }
