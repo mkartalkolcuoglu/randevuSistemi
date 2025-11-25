@@ -364,29 +364,104 @@ export async function POST(request: NextRequest) {
 
     // Admin panel appointment creation
     console.log('🔧 Admin appointment creation');
-    
+
     // Check permission for creating appointments
     const permissionCheck = await checkApiPermission(request, 'appointments', 'create');
     if (!permissionCheck.authorized) {
       return permissionCheck.error!;
     }
-    
+
     const service = await prisma.service.findUnique({
       where: { id: data.serviceId }
     });
-    
+
     const staff = await prisma.staff.findUnique({
       where: { id: data.staffId }
     });
-    
-    const customer = await prisma.customer.findUnique({
-      where: { id: data.customerId }
-    });
 
-    if (!service || !staff || !customer) {
-      console.error('❌ Service, staff, or customer not found');
+    if (!service || !staff) {
+      console.error('❌ Service or staff not found');
       return NextResponse.json(
-        { success: false, error: 'Service, staff, or customer not found' },
+        { success: false, error: 'Hizmet veya personel bulunamadı' },
+        { status: 400, headers: corsHeaders }
+      );
+    }
+
+    // Get tenant ID from staff
+    const tenantId = staff.tenantId;
+
+    // Handle customer - either find existing or create new
+    let customer;
+    if (data.customerId) {
+      // Existing customer selected
+      customer = await prisma.customer.findUnique({
+        where: { id: data.customerId }
+      });
+
+      if (!customer) {
+        console.error('❌ Customer not found with ID:', data.customerId);
+        return NextResponse.json(
+          { success: false, error: 'Müşteri bulunamadı' },
+          { status: 400, headers: corsHeaders }
+        );
+      }
+    } else if (data.customerName) {
+      // New customer - create one
+      console.log('👤 Creating new customer from admin panel:', data.customerName);
+
+      // Split name into first and last name
+      const nameParts = data.customerName.trim().split(' ');
+      const firstName = nameParts[0] || '';
+      const lastName = nameParts.slice(1).join(' ') || '';
+
+      // Check if customer with same phone already exists
+      if (data.customerPhone) {
+        const existingByPhone = await prisma.customer.findFirst({
+          where: {
+            tenantId: tenantId,
+            phone: data.customerPhone
+          }
+        });
+
+        if (existingByPhone) {
+          console.log('📱 Found existing customer by phone:', existingByPhone.id);
+          customer = existingByPhone;
+        }
+      }
+
+      // Check if customer with same email already exists
+      if (!customer && data.customerEmail) {
+        const existingByEmail = await prisma.customer.findFirst({
+          where: {
+            tenantId: tenantId,
+            email: data.customerEmail
+          }
+        });
+
+        if (existingByEmail) {
+          console.log('📧 Found existing customer by email:', existingByEmail.id);
+          customer = existingByEmail;
+        }
+      }
+
+      // Create new customer if not found
+      if (!customer) {
+        customer = await prisma.customer.create({
+          data: {
+            tenantId: tenantId,
+            firstName,
+            lastName,
+            email: data.customerEmail || `${Date.now()}@noemail.com`,
+            phone: data.customerPhone || '',
+            status: 'active'
+          }
+        });
+        console.log('✨ Created new customer:', customer.id);
+      }
+    } else {
+      console.error('❌ No customer ID or name provided');
+      return NextResponse.json(
+        { success: false, error: 'Müşteri adı veya seçimi gerekli' },
         { status: 400, headers: corsHeaders }
       );
     }
@@ -411,8 +486,8 @@ export async function POST(request: NextRequest) {
     
     const newAppointment = await prisma.appointment.create({
       data: {
-        tenantId: customer.tenantId,
-        customerId: data.customerId,
+        tenantId: tenantId,
+        customerId: customer.id,
         customerName: `${customer.firstName} ${customer.lastName}`,
         customerPhone: customer.phone || '',
         customerEmail: customer.email,
@@ -444,7 +519,7 @@ export async function POST(request: NextRequest) {
 
           const transaction = await prisma.transaction.create({
             data: {
-              tenantId: customer.tenantId,
+              tenantId: tenantId,
               type: 'appointment',
               amount: newAppointment.price || 0,
               description: `Randevu: ${service.name} - ${customer.firstName} ${customer.lastName}`,
@@ -466,18 +541,18 @@ export async function POST(request: NextRequest) {
     }
 
     // Create notification for new appointment (non-blocking)
-    console.log('🔔 [ADMIN-APPOINTMENT] Creating notification for tenantId:', customer.tenantId);
+    console.log('🔔 [ADMIN-APPOINTMENT] Creating notification for tenantId:', tenantId);
     prisma.notification.create({
       data: {
-        tenantId: customer.tenantId,
+        tenantId: tenantId,
         type: 'new_appointment',
         title: 'Yeni Randevu',
         message: `${customer.firstName} ${customer.lastName} - ${service.name} (${data.date} ${data.time})`,
         link: `/admin/appointments/${newAppointment.id}`
       }
-    }).then(notification => {
+    }).then((notification: { id: string }) => {
       console.log('🔔 [ADMIN-APPOINTMENT] Notification created:', notification.id);
-    }).catch(error => {
+    }).catch((error: Error) => {
       console.error('🔔 [ADMIN-APPOINTMENT] Failed to create notification:', error);
     });
 
