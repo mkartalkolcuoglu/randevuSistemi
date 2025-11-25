@@ -21,6 +21,7 @@ export default function NewAppointmentPage() {
   const [timeInterval, setTimeInterval] = useState<number>(30); // Default: 30 minutes
   const [workingHours, setWorkingHours] = useState<WorkingHours | null>(null);
   const [blacklistWarning, setBlacklistWarning] = useState<string | null>(null);
+  const [phoneError, setPhoneError] = useState<string | null>(null);
 
   // Form state
   const [formData, setFormData] = useState({
@@ -232,6 +233,13 @@ export default function NewAppointmentPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Telefon numarası validasyonu
+    if (formData.customerPhone && (formData.customerPhone.length < 10 || formData.customerPhone.length > 11)) {
+      setPhoneError('Telefon numarası 10-11 hane olmalıdır');
+      return;
+    }
+
     setIsLoading(true);
 
     try {
@@ -262,6 +270,33 @@ export default function NewAppointmentPage() {
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
+
+    // Telefon numarası validasyonu
+    if (name === 'customerPhone') {
+      // Sadece rakamları kabul et
+      const digitsOnly = value.replace(/\D/g, '');
+
+      // Maksimum 11 hane (05XX XXX XXXX formatı)
+      if (digitsOnly.length > 11) {
+        return;
+      }
+
+      // Hata mesajı kontrolü
+      if (digitsOnly.length > 0 && digitsOnly.length < 10) {
+        setPhoneError('Telefon numarası en az 10 hane olmalıdır');
+      } else if (digitsOnly.length > 11) {
+        setPhoneError('Telefon numarası en fazla 11 hane olabilir');
+      } else {
+        setPhoneError(null);
+      }
+
+      setFormData(prev => ({
+        ...prev,
+        customerPhone: digitsOnly
+      }));
+      return;
+    }
+
     setFormData(prev => ({
       ...prev,
       [name]: value
@@ -334,9 +369,14 @@ export default function NewAppointmentPage() {
                   name="customerPhone"
                   value={formData.customerPhone}
                   onChange={handleInputChange}
-                  placeholder="Telefon numarası"
+                  placeholder="05XX XXX XXXX"
                   readOnly={!!formData.customerId}
+                  maxLength={11}
+                  className={phoneError ? 'border-red-500' : ''}
                 />
+                {phoneError && (
+                  <p className="text-sm text-red-500">{phoneError}</p>
+                )}
               </div>
             </div>
 
