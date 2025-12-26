@@ -61,59 +61,39 @@ export async function POST(request: NextRequest) {
     // Find user in different contexts
     const phoneLastDigits = phone.replace(/^0/, '').slice(-10);
 
-    // Check customers (only those with valid tenant)
-    const customers = await prisma.customer.findMany({
-      where: {
-        phone: {
-          contains: phoneLastDigits,
-        },
-      },
-      select: {
-        id: true,
-        firstName: true,
-        lastName: true,
-        email: true,
-        tenantId: true,
-        tenant: {
-          select: {
-            id: true,
-            businessName: true,
-            slug: true,
-          },
-        },
-      },
+    // Get all valid tenant IDs first
+    const allTenantIds = await prisma.tenant.findMany({
+      select: { id: true }
     });
+    const validTenantIds = new Set(allTenantIds.map(t => t.id));
 
-    // Filter out any customers with null tenant (orphan records)
-    const validCustomers = customers.filter(c => c.tenant !== null);
+    // Check customers - get basic info without tenant relation
+    const customersRaw = await prisma.$queryRawUnsafe<Array<{
+      id: string;
+      firstName: string;
+      lastName: string;
+      email: string;
+      tenantId: string;
+    }>>(`
+      SELECT id, "firstName", "lastName", email, "tenantId"
+      FROM customers
+      WHERE phone LIKE '%${phoneLastDigits}%'
+    `);
 
-    // Check staff (only those with valid tenant) - use select to avoid missing columns
-    const staffMembers = await prisma.staff.findMany({
-      where: {
-        phone: {
-          contains: phoneLastDigits,
-        },
-      },
-      select: {
-        id: true,
-        firstName: true,
-        lastName: true,
-        email: true,
-        tenantId: true,
-        tenant: {
-          select: {
-            id: true,
-            businessName: true,
-            slug: true,
-          },
-        },
-      },
-    });
+    // Check staff - get basic info without tenant relation
+    const staffRaw = await prisma.$queryRawUnsafe<Array<{
+      id: string;
+      firstName: string;
+      lastName: string;
+      email: string;
+      tenantId: string;
+    }>>(`
+      SELECT id, "firstName", "lastName", email, "tenantId"
+      FROM staff
+      WHERE phone LIKE '%${phoneLastDigits}%'
+    `);
 
-    // Filter out any staff with null tenant (orphan records)
-    const validStaff = staffMembers.filter(s => s.tenant !== null);
-
-    // Check owners (using phone field since ownerPhone may not exist)
+    // Check owners (using phone field)
     const ownedTenants = await prisma.tenant.findMany({
       where: {
         phone: {
@@ -129,14 +109,33 @@ export async function POST(request: NextRequest) {
       },
     });
 
+    // Filter to only valid tenants
+    const validCustomers = customersRaw.filter(c => validTenantIds.has(c.tenantId));
+    const validStaff = staffRaw.filter(s => validTenantIds.has(s.tenantId));
+
+    // Get tenant details for valid customers and staff
+    const customerTenantIds = [...new Set(validCustomers.map(c => c.tenantId))];
+    const staffTenantIds = [...new Set(validStaff.map(s => s.tenantId))];
+    const allNeededTenantIds = [...new Set([...customerTenantIds, ...staffTenantIds])];
+
+    const tenantsData = allNeededTenantIds.length > 0
+      ? await prisma.tenant.findMany({
+          where: { id: { in: allNeededTenantIds } },
+          select: { id: true, businessName: true, slug: true }
+        })
+      : [];
+
+    const tenantsById = new Map(tenantsData.map(t => [t.id, t]));
+
     // Collect all unique tenants
     const tenantsMap = new Map();
 
     // Add customer tenants
     validCustomers.forEach((c) => {
-      if (!tenantsMap.has(c.tenant.id)) {
-        tenantsMap.set(c.tenant.id, {
-          ...c.tenant,
+      const tenant = tenantsById.get(c.tenantId);
+      if (tenant && !tenantsMap.has(tenant.id)) {
+        tenantsMap.set(tenant.id, {
+          ...tenant,
           userType: 'customer',
           customerId: c.id,
           firstName: c.firstName,
@@ -148,27 +147,30 @@ export async function POST(request: NextRequest) {
 
     // Add staff tenants (override customer if same tenant)
     validStaff.forEach((s) => {
-      if (!tenantsMap.has(s.tenant.id)) {
-        tenantsMap.set(s.tenant.id, {
-          ...s.tenant,
-          userType: 'staff',
-          staffId: s.id,
-          firstName: s.firstName,
-          lastName: s.lastName,
-          email: s.email,
-        });
-      } else {
-        // If already exists as customer, upgrade to staff
-        const existing = tenantsMap.get(s.tenant.id);
-        if (existing.userType === 'customer') {
-          tenantsMap.set(s.tenant.id, {
-            ...existing,
+      const tenant = tenantsById.get(s.tenantId);
+      if (tenant) {
+        if (!tenantsMap.has(tenant.id)) {
+          tenantsMap.set(tenant.id, {
+            ...tenant,
             userType: 'staff',
             staffId: s.id,
             firstName: s.firstName,
             lastName: s.lastName,
             email: s.email,
           });
+        } else {
+          // If already exists as customer, upgrade to staff
+          const existing = tenantsMap.get(tenant.id);
+          if (existing.userType === 'customer') {
+            tenantsMap.set(tenant.id, {
+              ...existing,
+              userType: 'staff',
+              staffId: s.id,
+              firstName: s.firstName,
+              lastName: s.lastName,
+              email: s.email,
+            });
+          }
         }
       }
     });
