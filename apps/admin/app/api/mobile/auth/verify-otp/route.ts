@@ -21,6 +21,10 @@ export async function POST(request: NextRequest) {
       formattedPhone = '90' + formattedPhone;
     }
 
+    console.log('📱 Verify OTP - Input phone:', phone);
+    console.log('📱 Verify OTP - Formatted phone:', formattedPhone);
+    console.log('📱 Verify OTP - Code:', code);
+
     // Find OTP record
     const otpRecord = await prisma.otpVerification.findFirst({
       where: {
@@ -31,6 +35,16 @@ export async function POST(request: NextRequest) {
         },
       },
     });
+
+    console.log('📱 Verify OTP - OTP Record found:', otpRecord ? 'Yes' : 'No');
+
+    // For debugging, also check if any OTP exists for this phone
+    if (!otpRecord) {
+      const anyOtp = await prisma.otpVerification.findFirst({
+        where: { phone: formattedPhone },
+      });
+      console.log('📱 Verify OTP - Any OTP for phone:', anyOtp ? `Yes (code: ${anyOtp.code}, expires: ${anyOtp.expiresAt})` : 'No');
+    }
 
     if (!otpRecord) {
       return NextResponse.json(
