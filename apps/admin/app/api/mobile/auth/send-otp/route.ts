@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '../../../../../lib/prisma';
 
-const NETGSM_API_URL = 'https://api.netgsm.com.tr/sms/send/otp';
+// Use regular SMS API instead of OTP API (OTP package not active on account)
+const NETGSM_API_URL = 'https://api.netgsm.com.tr/sms/send/get';
 const NETGSM_USERCODE = process.env.NETGSM_USERCODE;
 const NETGSM_PASSWORD = process.env.NETGSM_PASSWORD;
 const NETGSM_MSGHEADER = process.env.NETGSM_MSGHEADER;
@@ -81,33 +82,24 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // Send OTP via NetGSM
+    // Send OTP via NetGSM (using regular SMS API)
     const message = `Net Randevu dogrulama kodunuz: ${otpCode}. Bu kod 5 dakika gecerlidir.`;
 
-    const netgsmResponse = await fetch(NETGSM_API_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/xml',
-      },
-      body: `<?xml version="1.0" encoding="UTF-8"?>
-        <mainbody>
-          <header>
-            <usercode>${NETGSM_USERCODE}</usercode>
-            <password>${NETGSM_PASSWORD}</password>
-            <msgheader>${NETGSM_MSGHEADER}</msgheader>
-          </header>
-          <body>
-            <msg><![CDATA[${message}]]></msg>
-            <no>${formattedPhone}</no>
-          </body>
-        </mainbody>`,
-    });
+    // Use GET API with query params
+    const smsUrl = new URL(NETGSM_API_URL);
+    smsUrl.searchParams.set('usercode', NETGSM_USERCODE || '');
+    smsUrl.searchParams.set('password', NETGSM_PASSWORD || '');
+    smsUrl.searchParams.set('gsmno', formattedPhone);
+    smsUrl.searchParams.set('message', message);
+    smsUrl.searchParams.set('msgheader', NETGSM_MSGHEADER || '');
 
+    const netgsmResponse = await fetch(smsUrl.toString());
     const responseText = await netgsmResponse.text();
     console.log('NetGSM Response:', responseText);
 
     // Check if SMS was sent successfully (NetGSM returns codes starting with 00 for success)
-    if (!responseText.startsWith('00')) {
+    const isSuccess = responseText.trim().startsWith('00') || responseText.includes('<code>00</code>');
+    if (!isSuccess) {
       console.error('NetGSM Error:', responseText);
       // In development, still return success for testing
       if (process.env.NODE_ENV === 'development') {
