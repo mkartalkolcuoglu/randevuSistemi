@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
         slug: true,
         logo: true,
         primaryColor: true,
-        ownerPhone: true,
+        phone: true,
         ownerName: true,
         ownerEmail: true,
       },
@@ -60,8 +60,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check if user is owner
-    const isOwner = tenant.ownerPhone?.includes(phoneLastDigits);
+    // Check if user is owner (using phone field since ownerPhone may not exist)
+    const isOwner = tenant.phone?.includes(phoneLastDigits);
 
     // Check if user is staff
     const staff = await prisma.staff.findFirst({

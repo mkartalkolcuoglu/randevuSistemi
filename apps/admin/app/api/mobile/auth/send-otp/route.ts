@@ -42,9 +42,10 @@ export async function POST(request: NextRequest) {
       select: { id: true, tenantId: true },
     });
 
+    // Check by tenant phone field (ownerPhone may not exist in older DBs)
     const owners = await prisma.tenant.findMany({
       where: {
-        ownerPhone: {
+        phone: {
           contains: phone.replace(/^0/, '').slice(-10),
         },
       },

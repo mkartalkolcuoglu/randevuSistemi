@@ -87,10 +87,10 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // Check owners
+    // Check owners (using phone field since ownerPhone may not exist)
     const ownedTenants = await prisma.tenant.findMany({
       where: {
-        ownerPhone: {
+        phone: {
           contains: phoneLastDigits,
         },
       },
