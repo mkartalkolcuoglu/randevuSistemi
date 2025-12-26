@@ -22,7 +22,9 @@
   },
   "packageManager": "npm@10.2.4",
   "workspaces": [
-    "apps/*",
+    "apps/web",
+    "apps/admin",
+    "apps/project-admin",
     "packages/*"
   ],
   "dependencies": {
