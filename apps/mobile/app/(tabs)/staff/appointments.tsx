@@ -60,10 +60,11 @@ export default function StaffAppointmentsScreen() {
     else setIsLoading(true);
 
     try {
-      const data = await appointmentService.getStaffAppointments();
-      setAppointments(data);
+      const response = await appointmentService.getStaffAppointments();
+      setAppointments(response.data || []);
     } catch (error) {
       console.error('Error fetching appointments:', error);
+      setAppointments([]);
     } finally {
       setIsLoading(false);
       setIsRefreshing(false);

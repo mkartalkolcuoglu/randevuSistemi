@@ -70,7 +70,7 @@ export async function GET(request: NextRequest) {
       where.status = status;
     }
 
-    // Get appointments with related data
+    // Get appointments - use denormalized fields (no relations in this schema)
     const [appointments, total] = await Promise.all([
       prisma.appointment.findMany({
         where,
@@ -81,8 +81,13 @@ export async function GET(request: NextRequest) {
           id: true,
           tenantId: true,
           customerId: true,
+          customerName: true,
+          customerPhone: true,
+          customerEmail: true,
           staffId: true,
+          staffName: true,
           serviceId: true,
+          serviceName: true,
           date: true,
           time: true,
           duration: true,
@@ -91,30 +96,6 @@ export async function GET(request: NextRequest) {
           notes: true,
           paymentType: true,
           createdAt: true,
-          customer: {
-            select: {
-              id: true,
-              firstName: true,
-              lastName: true,
-              phone: true,
-              email: true,
-            },
-          },
-          staff: {
-            select: {
-              id: true,
-              firstName: true,
-              lastName: true,
-            },
-          },
-          service: {
-            select: {
-              id: true,
-              name: true,
-              price: true,
-              duration: true,
-            },
-          },
         },
       }),
       prisma.appointment.count({ where }),
@@ -125,22 +106,18 @@ export async function GET(request: NextRequest) {
       id: apt.id,
       tenantId: apt.tenantId,
       customerId: apt.customerId,
-      customerName: apt.customer
-        ? `${apt.customer.firstName} ${apt.customer.lastName}`
-        : 'Bilinmiyor',
-      customerPhone: apt.customer?.phone,
-      customerEmail: apt.customer?.email,
+      customerName: apt.customerName || 'Bilinmiyor',
+      customerPhone: apt.customerPhone,
+      customerEmail: apt.customerEmail,
       staffId: apt.staffId,
-      staffName: apt.staff
-        ? `${apt.staff.firstName} ${apt.staff.lastName}`
-        : 'Bilinmiyor',
+      staffName: apt.staffName || 'Bilinmiyor',
       serviceId: apt.serviceId,
-      serviceName: apt.service?.name || 'Bilinmiyor',
+      serviceName: apt.serviceName || 'Bilinmiyor',
       date: apt.date,
       time: apt.time,
-      duration: apt.duration || apt.service?.duration || 30,
+      duration: apt.duration || 30,
       status: apt.status,
-      price: apt.price || apt.service?.price || 0,
+      price: apt.price || 0,
       notes: apt.notes,
       paymentType: apt.paymentType,
       createdAt: apt.createdAt,
@@ -154,10 +131,10 @@ export async function GET(request: NextRequest) {
       limit,
       totalPages: Math.ceil(total / limit),
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Get staff appointments error:', error);
     return NextResponse.json(
-      { success: false, message: 'Bir hata oluştu' },
+      { success: false, message: 'Bir hata oluştu', error: error?.message || String(error) },
       { status: 500 }
     );
   }
@@ -207,6 +184,12 @@ export async function POST(request: NextRequest) {
     // Get service for duration and price
     const service = await prisma.service.findUnique({
       where: { id: serviceId },
+      select: {
+        id: true,
+        name: true,
+        duration: true,
+        price: true,
+      },
     });
 
     if (!service) {
@@ -216,7 +199,23 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Get staff name
+    const staffRecord = await prisma.staff.findUnique({
+      where: { id: staffId },
+      select: { firstName: true, lastName: true },
+    });
+
+    if (!staffRecord) {
+      return NextResponse.json(
+        { success: false, message: 'Personel bulunamadı' },
+        { status: 404 }
+      );
+    }
+
     let finalCustomerId = customerId;
+    let finalCustomerName = customerName || 'Misafir';
+    let finalCustomerPhone = customerPhone;
+    let finalCustomerEmail = customerEmail;
 
     // If no customerId but have phone, find or create customer
     if (!finalCustomerId && customerPhone) {
@@ -228,6 +227,13 @@ export async function POST(request: NextRequest) {
           phone: {
             contains: phoneDigits,
           },
+        },
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          phone: true,
+          email: true,
         },
       });
 
@@ -241,21 +247,38 @@ export async function POST(request: NextRequest) {
             phone: customerPhone,
             email: customerEmail,
           },
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            phone: true,
+            email: true,
+          },
         });
       }
 
       if (customer) {
         finalCustomerId = customer.id;
+        finalCustomerName = `${customer.firstName} ${customer.lastName}`;
+        finalCustomerPhone = customer.phone;
+        finalCustomerEmail = customer.email;
       }
     }
 
-    // Create appointment
+    const staffName = `${staffRecord.firstName} ${staffRecord.lastName}`;
+
+    // Create appointment with denormalized fields
     const appointment = await prisma.appointment.create({
       data: {
         tenantId: auth.tenantId,
-        customerId: finalCustomerId,
+        customerId: finalCustomerId || '',
+        customerName: finalCustomerName,
+        customerPhone: finalCustomerPhone,
+        customerEmail: finalCustomerEmail,
         staffId,
+        staffName,
         serviceId,
+        serviceName: service.name,
         date,
         time,
         duration: service.duration,
@@ -263,29 +286,6 @@ export async function POST(request: NextRequest) {
         status: 'confirmed',
         notes,
         paymentType: paymentType || 'cash',
-      },
-      include: {
-        customer: {
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-            phone: true,
-          },
-        },
-        staff: {
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-          },
-        },
-        service: {
-          select: {
-            id: true,
-            name: true,
-          },
-        },
       },
     });
 
@@ -297,11 +297,9 @@ export async function POST(request: NextRequest) {
         date: appointment.date,
         time: appointment.time,
         status: appointment.status,
-        customerName: appointment.customer
-          ? `${appointment.customer.firstName} ${appointment.customer.lastName}`
-          : customerName,
-        staffName: `${appointment.staff.firstName} ${appointment.staff.lastName}`,
-        serviceName: appointment.service.name,
+        customerName: finalCustomerName,
+        staffName,
+        serviceName: service.name,
       },
     });
   } catch (error) {
