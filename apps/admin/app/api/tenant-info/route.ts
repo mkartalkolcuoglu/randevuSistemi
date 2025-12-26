@@ -10,7 +10,7 @@ export const dynamic = 'force-dynamic';
  */
 export async function GET() {
   try {
-    const cookieStore = cookies();
+    const cookieStore = await cookies();
     const sessionCookie = cookieStore.get('tenant-session');
 
     if (!sessionCookie) {
@@ -91,7 +91,7 @@ export async function GET() {
  */
 export async function PUT(request: Request) {
   try {
-    const cookieStore = cookies();
+    const cookieStore = await cookies();
     const sessionCookie = cookieStore.get('tenant-session');
 
     if (!sessionCookie) {
