@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import prisma from '@/lib/prisma';
+import { prisma } from '../../../../../lib/prisma';
 
 const NETGSM_API_URL = 'https://api.netgsm.com.tr/sms/send/otp';
 const NETGSM_USERCODE = process.env.NETGSM_USERCODE;
