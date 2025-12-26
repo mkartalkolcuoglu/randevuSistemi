@@ -119,7 +119,7 @@ export async function POST(request: NextRequest) {
         });
       }
       return NextResponse.json(
-        { success: false, message: 'SMS gönderilemedi. Lütfen tekrar deneyin.' },
+        { success: false, message: 'SMS gönderilemedi. Lütfen tekrar deneyin.', netgsmError: responseText },
         { status: 500 }
       );
     }
