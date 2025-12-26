@@ -77,7 +77,7 @@ export default function StaffAppointmentsScreen() {
     }, [])
   );
 
-  const filteredAppointments = appointments
+  const filteredAppointments = (appointments || [])
     .filter((apt) => apt.date === selectedDate.toISOString().split('T')[0])
     .sort((a, b) => a.time.localeCompare(b.time));
 
