@@ -255,10 +255,10 @@ export async function POST(request: NextRequest) {
         primaryColor: t.primaryColor,
       })),
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Verify OTP error:', error);
     return NextResponse.json(
-      { success: false, message: 'Bir hata oluştu' },
+      { success: false, message: 'Bir hata oluştu', error: error?.message || String(error) },
       { status: 500 }
     );
   }
