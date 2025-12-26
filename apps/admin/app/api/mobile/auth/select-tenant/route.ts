@@ -45,8 +45,6 @@ export async function POST(request: NextRequest) {
         id: true,
         businessName: true,
         slug: true,
-        logo: true,
-        primaryColor: true,
         phone: true,
         ownerName: true,
         ownerEmail: true,
@@ -63,7 +61,7 @@ export async function POST(request: NextRequest) {
     // Check if user is owner (using phone field since ownerPhone may not exist)
     const isOwner = tenant.phone?.includes(phoneLastDigits);
 
-    // Check if user is staff
+    // Check if user is staff - use select to avoid missing columns
     const staff = await prisma.staff.findFirst({
       where: {
         tenantId,
@@ -71,15 +69,27 @@ export async function POST(request: NextRequest) {
           contains: phoneLastDigits,
         },
       },
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        email: true,
+      },
     });
 
-    // Check if user is customer
+    // Check if user is customer - use select to avoid missing columns
     const customer = await prisma.customer.findFirst({
       where: {
         tenantId,
         phone: {
           contains: phoneLastDigits,
         },
+      },
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        email: true,
       },
     });
 
@@ -153,8 +163,6 @@ export async function POST(request: NextRequest) {
         id: tenant.id,
         businessName: tenant.businessName,
         slug: tenant.slug,
-        logo: tenant.logo,
-        primaryColor: tenant.primaryColor,
       },
     });
   } catch (error) {
