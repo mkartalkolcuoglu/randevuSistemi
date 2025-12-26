@@ -62,6 +62,11 @@ export const authService = {
       });
 
       if (response.data.success) {
+        // Save new token with userType info
+        if (response.data.token) {
+          await SecureStore.setItemAsync('authToken', response.data.token);
+        }
+
         await SecureStore.setItemAsync('selectedTenantId', tenantId);
 
         if (response.data.user) {

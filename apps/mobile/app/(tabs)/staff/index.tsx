@@ -41,7 +41,8 @@ export default function StaffHomeScreen() {
     else setIsLoading(true);
 
     try {
-      const appointments = await appointmentService.getStaffAppointments();
+      const response = await appointmentService.getStaffAppointments();
+      const appointments = response.data || [];
       const today = new Date().toISOString().split('T')[0];
 
       const todayApts = appointments.filter((apt) => apt.date === today);
@@ -51,7 +52,7 @@ export default function StaffHomeScreen() {
       const completedToday = todayApts.filter((apt) => apt.status === 'completed').length;
       const revenueToday = todayApts
         .filter((apt) => apt.status === 'completed')
-        .reduce((sum, apt) => sum + apt.price, 0);
+        .reduce((sum, apt) => sum + (apt.price || 0), 0);
 
       setStats({
         today: todayApts.length,
