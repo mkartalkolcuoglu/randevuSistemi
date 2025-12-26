@@ -128,10 +128,10 @@ export async function POST(request: NextRequest) {
       message: 'Doğrulama kodu gönderildi',
       otpId: otpRecord.id,
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Send OTP error:', error);
     return NextResponse.json(
-      { success: false, message: 'Bir hata oluştu' },
+      { success: false, message: 'Bir hata oluştu', error: error?.message || String(error) },
       { status: 500 }
     );
   }
