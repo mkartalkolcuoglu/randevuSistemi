@@ -61,12 +61,15 @@ export async function POST(request: NextRequest) {
     // Find user in different contexts
     const phoneLastDigits = phone.replace(/^0/, '').slice(-10);
 
-    // Check customers
+    // Check customers (only those with valid tenant)
     const customers = await prisma.customer.findMany({
       where: {
         phone: {
           contains: phoneLastDigits,
         },
+        tenant: {
+          id: { not: undefined }
+        }
       },
       include: {
         tenant: {
@@ -79,12 +82,18 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // Check staff
+    // Filter out any customers with null tenant (orphan records)
+    const validCustomers = customers.filter(c => c.tenant !== null);
+
+    // Check staff (only those with valid tenant)
     const staffMembers = await prisma.staff.findMany({
       where: {
         phone: {
           contains: phoneLastDigits,
         },
+        tenant: {
+          id: { not: undefined }
+        }
       },
       include: {
         tenant: {
@@ -96,6 +105,9 @@ export async function POST(request: NextRequest) {
         },
       },
     });
+
+    // Filter out any staff with null tenant (orphan records)
+    const validStaff = staffMembers.filter(s => s.tenant !== null);
 
     // Check owners (using phone field since ownerPhone may not exist)
     const ownedTenants = await prisma.tenant.findMany({
@@ -117,7 +129,7 @@ export async function POST(request: NextRequest) {
     const tenantsMap = new Map();
 
     // Add customer tenants
-    customers.forEach((c) => {
+    validCustomers.forEach((c) => {
       if (!tenantsMap.has(c.tenant.id)) {
         tenantsMap.set(c.tenant.id, {
           ...c.tenant,
@@ -131,7 +143,7 @@ export async function POST(request: NextRequest) {
     });
 
     // Add staff tenants (override customer if same tenant)
-    staffMembers.forEach((s) => {
+    validStaff.forEach((s) => {
       if (!tenantsMap.has(s.tenant.id)) {
         tenantsMap.set(s.tenant.id, {
           ...s.tenant,
