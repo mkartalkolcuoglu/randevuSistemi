@@ -182,10 +182,10 @@ export async function POST(request: NextRequest) {
         slug: staffTenant.slug
       }
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Login error:', error);
     return NextResponse.json(
-      { success: false, error: 'Giriş işlemi sırasında hata oluştu' },
+      { success: false, error: 'Giriş işlemi sırasında hata oluştu', details: error?.message || String(error) },
       { status: 500 }
     );
   }
