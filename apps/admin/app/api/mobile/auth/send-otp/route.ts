@@ -75,6 +75,7 @@ export async function POST(request: NextRequest) {
       data: {
         phone: formattedPhone,
         code: otpCode,
+        purpose: 'mobile_login',
         expiresAt,
       },
     });
