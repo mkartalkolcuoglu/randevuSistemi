@@ -67,11 +67,13 @@ export async function POST(request: NextRequest) {
         phone: {
           contains: phoneLastDigits,
         },
-        tenant: {
-          id: { not: undefined }
-        }
       },
-      include: {
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        email: true,
+        tenantId: true,
         tenant: {
           select: {
             id: true,
@@ -85,17 +87,19 @@ export async function POST(request: NextRequest) {
     // Filter out any customers with null tenant (orphan records)
     const validCustomers = customers.filter(c => c.tenant !== null);
 
-    // Check staff (only those with valid tenant)
+    // Check staff (only those with valid tenant) - use select to avoid missing columns
     const staffMembers = await prisma.staff.findMany({
       where: {
         phone: {
           contains: phoneLastDigits,
         },
-        tenant: {
-          id: { not: undefined }
-        }
       },
-      include: {
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        email: true,
+        tenantId: true,
         tenant: {
           select: {
             id: true,
