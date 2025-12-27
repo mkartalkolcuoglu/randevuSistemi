@@ -15,11 +15,12 @@ async function verifyAuth(request: NextRequest) {
 
   try {
     const decoded = jwt.verify(token, JWT_SECRET) as {
-      phone: string;
       userType: string;
       tenantId: string;
       customerId?: string;
       staffId?: string;
+      ownerId?: string;
+      phone?: string;
     };
     return decoded;
   } catch (err) {

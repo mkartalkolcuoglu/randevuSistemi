@@ -15,11 +15,12 @@ async function verifyAuth(request: NextRequest) {
 
   try {
     const decoded = jwt.verify(token, JWT_SECRET) as {
-      phone: string;
       userType: string;
       tenantId: string;
       customerId?: string;
       staffId?: string;
+      ownerId?: string;
+      phone?: string;
     };
     return decoded;
   } catch (err) {
@@ -68,7 +69,7 @@ export async function POST(request: NextRequest) {
     }
 
     // For now, just acknowledge receipt
-    console.log(`Push token registered for ${auth.phone}: ${token}`);
+    console.log(`Push token registered for user ${auth.staffId || auth.ownerId || auth.customerId}: ${token}`);
 
     return NextResponse.json({
       success: true,
@@ -96,7 +97,7 @@ export async function DELETE(request: NextRequest) {
 
     const { token } = await request.json();
 
-    console.log(`Push token removed for ${auth.phone}: ${token}`);
+    console.log(`Push token removed for user ${auth.staffId || auth.ownerId || auth.customerId}: ${token}`);
 
     return NextResponse.json({
       success: true,

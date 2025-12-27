@@ -1,6 +1,12 @@
 import { Tabs } from 'expo-router';
+import { Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../../src/store/auth.store';
+
+// HIG Compliant values
+const TAB_BAR_HEIGHT = Platform.OS === 'ios' ? 88 : 64; // iOS: 49 + safe area, Android: 64dp
+const TAB_ICON_SIZE = Platform.OS === 'ios' ? 28 : 24;
+const TAB_LABEL_SIZE = Platform.OS === 'ios' ? 10 : 12;
 
 export default function TabLayout() {
   const { user } = useAuthStore();
