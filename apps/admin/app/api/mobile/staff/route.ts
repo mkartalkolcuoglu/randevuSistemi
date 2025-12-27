@@ -65,17 +65,32 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    const formattedStaff = staff.map((s) => ({
-      id: s.id,
-      tenantId: s.tenantId,
-      firstName: s.firstName,
-      lastName: s.lastName,
-      email: s.email,
-      phone: s.phone,
-      position: s.position,
-      avatar: s.avatar,
-      isActive: s.status === 'active',
-    }));
+    const formattedStaff = staff.map((s) => {
+      // Parse workingHours if it's a string
+      let workingHours = null;
+      if (s.workingHours) {
+        try {
+          workingHours = typeof s.workingHours === 'string'
+            ? JSON.parse(s.workingHours as string)
+            : s.workingHours;
+        } catch (e) {
+          console.error('Error parsing staff workingHours:', e);
+        }
+      }
+
+      return {
+        id: s.id,
+        tenantId: s.tenantId,
+        firstName: s.firstName,
+        lastName: s.lastName,
+        email: s.email,
+        phone: s.phone,
+        position: s.position,
+        avatar: s.avatar,
+        isActive: s.status === 'active',
+        workingHours,
+      };
+    });
 
     return NextResponse.json({
       success: true,
