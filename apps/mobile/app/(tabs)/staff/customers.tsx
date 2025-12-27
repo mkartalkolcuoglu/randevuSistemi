@@ -27,6 +27,11 @@ import DrawerMenu from '../../../src/components/DrawerMenu';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
+// HIG/Material Design compliant header values
+const IS_IOS = Platform.OS === 'ios';
+const HEADER_BTN_SIZE = IS_IOS ? 44 : 48; // iOS HIG: 44pt min, Android: 48dp min
+const HEADER_BTN_RADIUS = IS_IOS ? 20 : 24; // Circular buttons
+
 // Status configuration with gradients
 const STATUS_CONFIG: Record<string, { bg: string; text: string; label: string; icon: string; gradient: [string, string] }> = {
   all: { bg: '#F3F4F6', text: '#374151', label: 'Tümü', icon: 'people', gradient: ['#6B7280', '#4B5563'] },
@@ -1499,11 +1504,11 @@ const styles = StyleSheet.create({
     backgroundColor: '#F9FAFB',
   },
 
-  // Header - Premium gradient style
+  // Header - HIG/Material Design Compliant Premium gradient style
   header: {
-    paddingHorizontal: 20,
-    paddingTop: 16,
-    paddingBottom: 16,
+    paddingHorizontal: IS_IOS ? 20 : 16,
+    paddingTop: IS_IOS ? 16 : 12,
+    paddingBottom: IS_IOS ? 16 : 12,
   },
   headerTop: {
     flexDirection: 'row',
@@ -1511,9 +1516,9 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   menuBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: HEADER_BTN_SIZE,
+    height: HEADER_BTN_SIZE,
+    borderRadius: HEADER_BTN_RADIUS,
     backgroundColor: 'rgba(255,255,255,0.15)',
     alignItems: 'center',
     justifyContent: 'center',
@@ -1523,20 +1528,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   title: {
-    fontSize: 22,
-    fontWeight: '700',
+    fontSize: IS_IOS ? 22 : 24,
+    fontWeight: IS_IOS ? '700' : '600',
     color: '#fff',
-    letterSpacing: -0.3,
+    letterSpacing: IS_IOS ? -0.3 : 0,
   },
   subtitle: {
-    fontSize: 13,
+    fontSize: IS_IOS ? 13 : 14,
     color: 'rgba(255,255,255,0.7)',
     marginTop: 2,
   },
   searchBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: HEADER_BTN_SIZE,
+    height: HEADER_BTN_SIZE,
+    borderRadius: HEADER_BTN_RADIUS,
     backgroundColor: 'rgba(255,255,255,0.15)',
     alignItems: 'center',
     justifyContent: 'center',
@@ -1650,25 +1655,29 @@ const styles = StyleSheet.create({
     paddingBottom: 100,
   },
 
-  // Customer card - Compact modern design
+  // Customer card - HIG/Material Design Compliant
   customerCard: {
     flexDirection: 'row',
     backgroundColor: '#fff',
-    borderRadius: 12,
-    marginBottom: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
+    borderRadius: IS_IOS ? 12 : 16, // iOS: 12pt, Android M3: 16dp
+    marginBottom: IS_IOS ? 8 : 12,
     overflow: 'hidden',
+    // Platform-specific shadows
+    ...(IS_IOS ? {
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 1 },
+      shadowOpacity: 0.05,
+      shadowRadius: 4,
+    } : {
+      elevation: 2,
+    }),
   },
   cardAccent: {
-    width: 4,
+    width: IS_IOS ? 4 : 6, // Slightly thicker on Android for visibility
   },
   cardContent: {
     flex: 1,
-    padding: 12,
+    padding: IS_IOS ? 12 : 16, // Android M3: more padding
   },
   cardTopRow: {
     flexDirection: 'row',
@@ -1825,21 +1834,25 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
 
-  // FAB with gradient
+  // FAB with gradient - HIG/Material Design Compliant
   fab: {
     position: 'absolute',
-    right: 20,
-    bottom: 24,
-    shadowColor: '#163974',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
-    shadowRadius: 8,
-    elevation: 8,
+    right: IS_IOS ? 20 : 16,
+    bottom: IS_IOS ? 24 : 16,
+    // Platform-specific shadows
+    ...(IS_IOS ? {
+      shadowColor: '#163974',
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.4,
+      shadowRadius: 8,
+    } : {
+      elevation: 8,
+    }),
   },
   fabGradient: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    width: IS_IOS ? 50 : 56, // iOS: 50pt, Android Material 3: 56dp
+    height: IS_IOS ? 50 : 56,
+    borderRadius: IS_IOS ? 25 : 16, // iOS: circular, Android M3: 16dp rounded
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -2104,29 +2117,30 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   formLabel: {
-    fontSize: 14,
+    fontSize: IS_IOS ? 14 : 12, // iOS: 14pt, Android M3: 12sp for labels
     fontWeight: '600',
-    color: '#374151',
-    marginBottom: 8,
+    color: IS_IOS ? '#374151' : '#49454F', // Android M3 onSurfaceVariant
+    marginBottom: IS_IOS ? 8 : 4,
+    ...(IS_IOS ? {} : { textTransform: 'uppercase' as const, letterSpacing: 0.5 }),
   },
   formInput: {
-    backgroundColor: '#F3F4F6',
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 12,
-    fontSize: 14,
+    backgroundColor: IS_IOS ? '#F3F4F6' : '#E7E0EC', // Android M3 surfaceVariant
+    borderRadius: IS_IOS ? 12 : 4, // iOS: 12pt, Android M3: 4dp (sharp corners)
+    paddingHorizontal: IS_IOS ? 12 : 16,
+    paddingVertical: IS_IOS ? 12 : 16,
+    fontSize: IS_IOS ? 14 : 16, // Android M3: 16sp for body
     color: '#1F2937',
-    minHeight: 46,
+    minHeight: IS_IOS ? 46 : 56, // iOS: 44-46pt, Android M3: 56dp
   },
   formTextarea: {
-    minHeight: 100,
-    paddingTop: 14,
+    minHeight: IS_IOS ? 100 : 120,
+    paddingTop: IS_IOS ? 14 : 16,
   },
   phoneInputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F3F4F6',
-    borderRadius: 12,
+    backgroundColor: IS_IOS ? '#F3F4F6' : '#E7E0EC',
+    borderRadius: IS_IOS ? 12 : 4,
     overflow: 'hidden',
   },
   phonePrefix: {

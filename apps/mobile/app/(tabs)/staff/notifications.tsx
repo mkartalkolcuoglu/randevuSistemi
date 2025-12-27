@@ -8,6 +8,7 @@ import {
   RefreshControl,
   ActivityIndicator,
   Alert,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -16,6 +17,11 @@ import { LinearGradient } from 'expo-linear-gradient';
 import api from '../../../src/services/api';
 
 const THEME_COLOR = '#163974';
+
+// HIG/Material Design compliant header values
+const IS_IOS = Platform.OS === 'ios';
+const HEADER_BTN_SIZE = IS_IOS ? 44 : 48;
+const HEADER_BTN_RADIUS = IS_IOS ? 12 : 16;
 
 interface Notification {
   id: string;
@@ -238,39 +244,42 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
 
-  // Header
+  // Header - HIG/Material Design Compliant
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingTop: 16,
-    paddingBottom: 12,
+    paddingHorizontal: IS_IOS ? 20 : 16,
+    paddingTop: IS_IOS ? 16 : 12,
+    paddingBottom: IS_IOS ? 12 : 8,
   },
   backButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
+    width: HEADER_BTN_SIZE,
+    height: HEADER_BTN_SIZE,
+    borderRadius: HEADER_BTN_RADIUS,
     backgroundColor: '#fff',
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 8,
-    elevation: 2,
+    ...(IS_IOS ? {
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.04,
+      shadowRadius: 8,
+    } : {
+      elevation: 2,
+    }),
   },
   headerContent: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    marginLeft: 12,
+    marginLeft: IS_IOS ? 12 : 16,
     gap: 10,
   },
   title: {
-    fontSize: 24,
-    fontWeight: '700',
+    fontSize: IS_IOS ? 24 : 22,
+    fontWeight: IS_IOS ? '700' : '600',
     color: '#1F2937',
-    letterSpacing: -0.5,
+    letterSpacing: IS_IOS ? -0.5 : 0,
   },
   unreadBadge: {
     backgroundColor: '#EF4444',

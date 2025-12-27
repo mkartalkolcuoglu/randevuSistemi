@@ -25,6 +25,11 @@ import api from '../../../src/services/api';
 
 const THEME_COLOR = '#163974';
 
+// HIG/Material Design compliant header values
+const IS_IOS = Platform.OS === 'ios';
+const HEADER_BTN_SIZE = IS_IOS ? 44 : 48;
+const HEADER_BTN_RADIUS = IS_IOS ? 12 : 16;
+
 interface WorkingDay {
   start: string;
   end: string;
@@ -1140,36 +1145,36 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
 
-  // Header
+  // Header - HIG/Material Design Compliant
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingTop: 16,
-    paddingBottom: 12,
+    paddingHorizontal: IS_IOS ? 20 : 16,
+    paddingTop: IS_IOS ? 16 : 12,
+    paddingBottom: IS_IOS ? 12 : 8,
   },
   headerLeft: {
     flex: 1,
   },
   title: {
-    fontSize: 28,
-    fontWeight: '700',
+    fontSize: IS_IOS ? 28 : 24,
+    fontWeight: IS_IOS ? '700' : '600',
     color: '#1F2937',
-    letterSpacing: -0.5,
+    letterSpacing: IS_IOS ? -0.5 : 0,
   },
   subtitle: {
-    fontSize: 14,
-    color: '#6B7280',
+    fontSize: IS_IOS ? 14 : 12,
+    color: IS_IOS ? '#6B7280' : '#49454F',
     marginTop: 2,
   },
   saveButton: {
-    marginLeft: 12,
+    marginLeft: IS_IOS ? 12 : 16,
   },
   saveButtonGradient: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
+    width: HEADER_BTN_SIZE,
+    height: HEADER_BTN_SIZE,
+    borderRadius: HEADER_BTN_RADIUS,
     justifyContent: 'center',
     alignItems: 'center',
   },

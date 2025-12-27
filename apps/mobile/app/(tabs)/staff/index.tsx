@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
   Dimensions,
   Alert,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useFocusEffect } from 'expo-router';
@@ -22,6 +23,12 @@ import api from '../../../src/services/api';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const THEME_COLOR = '#163974';
+
+// HIG/Material Design compliant header values
+const IS_IOS = Platform.OS === 'ios';
+const HEADER_BTN_SIZE = IS_IOS ? 44 : 48; // iOS HIG: 44pt min, Android: 48dp min
+const HEADER_BTN_RADIUS = IS_IOS ? 12 : 16; // iOS: 12pt, Android: 16dp (Material 3)
+const HEADER_ICON_SIZE = IS_IOS ? 24 : 24; // Both: 24pt/dp
 
 // Status configuration
 const STATUS_CONFIG: Record<string, { bg: string; text: string; label: string; icon: string }> = {
@@ -437,53 +444,61 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
 
-  // Header
+  // Header - HIG/Material Design Compliant
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingTop: 16,
-    paddingBottom: 12,
+    paddingHorizontal: IS_IOS ? 20 : 16,
+    paddingTop: IS_IOS ? 16 : 12,
+    paddingBottom: IS_IOS ? 12 : 8,
   },
   menuButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
+    width: HEADER_BTN_SIZE,
+    height: HEADER_BTN_SIZE,
+    borderRadius: HEADER_BTN_RADIUS,
     backgroundColor: '#fff',
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 8,
-    elevation: 2,
+    // Platform-specific shadows
+    ...(IS_IOS ? {
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.04,
+      shadowRadius: 8,
+    } : {
+      elevation: 2,
+    }),
   },
   headerContent: {
     flex: 1,
-    marginLeft: 12,
+    marginLeft: IS_IOS ? 12 : 16,
   },
   greeting: {
-    fontSize: 13,
-    color: '#6B7280',
+    fontSize: IS_IOS ? 13 : 14,
+    color: IS_IOS ? '#6B7280' : '#49454F',
   },
   userName: {
-    fontSize: 20,
-    fontWeight: '700',
+    fontSize: IS_IOS ? 20 : 22,
+    fontWeight: IS_IOS ? '700' : '600',
     color: '#1F2937',
     marginTop: 2,
   },
   notificationButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
+    width: HEADER_BTN_SIZE,
+    height: HEADER_BTN_SIZE,
+    borderRadius: HEADER_BTN_RADIUS,
     backgroundColor: '#fff',
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 8,
-    elevation: 2,
+    // Platform-specific shadows
+    ...(IS_IOS ? {
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.04,
+      shadowRadius: 8,
+    } : {
+      elevation: 2,
+    }),
   },
   notificationBadge: {
     position: 'absolute',
@@ -658,25 +673,29 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
 
-  // Appointment Card
+  // Appointment Card - HIG/Material Design Compliant
   appointmentCard: {
     flexDirection: 'row',
     backgroundColor: '#fff',
-    borderRadius: 16,
-    marginBottom: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 8,
-    elevation: 2,
+    borderRadius: IS_IOS ? 16 : 16, // Both platforms: 16dp/pt for larger cards
+    marginBottom: IS_IOS ? 12 : 12,
     overflow: 'hidden',
+    // Platform-specific shadows
+    ...(IS_IOS ? {
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.04,
+      shadowRadius: 8,
+    } : {
+      elevation: 2,
+    }),
   },
   appointmentIndicator: {
-    width: 4,
+    width: IS_IOS ? 4 : 6,
   },
   appointmentContent: {
     flex: 1,
-    padding: 16,
+    padding: IS_IOS ? 16 : 16,
   },
   appointmentTop: {
     flexDirection: 'row',
