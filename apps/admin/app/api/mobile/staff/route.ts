@@ -9,6 +9,7 @@ const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 async function verifyAuth(request: NextRequest) {
   const authHeader = request.headers.get('Authorization');
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    console.log('No auth header or invalid format');
     return null;
   }
 
@@ -16,13 +17,17 @@ async function verifyAuth(request: NextRequest) {
 
   try {
     const decoded = jwt.verify(token, JWT_SECRET) as {
-      phone: string;
+      phone?: string;
       userType: string;
       tenantId: string;
       staffId?: string;
+      ownerId?: string;
+      customerId?: string;
     };
+    console.log('Token decoded:', { userType: decoded.userType, tenantId: decoded.tenantId });
     return decoded;
-  } catch (err) {
+  } catch (err: any) {
+    console.log('Token verification failed:', err?.message);
     return null;
   }
 }
