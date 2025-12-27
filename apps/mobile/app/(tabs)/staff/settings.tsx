@@ -61,7 +61,7 @@ export default function StaffSettingsScreen() {
       label: 'Kasa',
       color: '#059669',
       bg: '#D1FAE5',
-      onPress: () => router.push('/settings/cashier'),
+      onPress: () => router.push('/(tabs)/staff/cashier'),
     },
     {
       icon: 'cut-outline',
