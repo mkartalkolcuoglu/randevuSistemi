@@ -53,16 +53,26 @@ export default function TabLayout() {
             ),
           }}
         />
-        {/* Hide staff tabs for customers */}
+        {/* Hide all staff tabs for customers */}
         <Tabs.Screen name="staff/index" options={{ href: null }} />
         <Tabs.Screen name="staff/appointments" options={{ href: null }} />
         <Tabs.Screen name="staff/customers" options={{ href: null }} />
         <Tabs.Screen name="staff/settings" options={{ href: null }} />
+        <Tabs.Screen name="staff/business-settings" options={{ href: null }} />
+        <Tabs.Screen name="staff/calendar" options={{ href: null }} />
+        <Tabs.Screen name="staff/cashier" options={{ href: null }} />
+        <Tabs.Screen name="staff/packages" options={{ href: null }} />
+        <Tabs.Screen name="staff/performance" options={{ href: null }} />
+        <Tabs.Screen name="staff/reports" options={{ href: null }} />
+        <Tabs.Screen name="staff/services" options={{ href: null }} />
+        <Tabs.Screen name="staff/stock" options={{ href: null }} />
+        <Tabs.Screen name="staff/team" options={{ href: null }} />
+        <Tabs.Screen name="staff/kasa" options={{ href: null }} />
       </Tabs>
     );
   }
 
-  // Staff/Owner layout
+  // Staff/Owner layout - Only 3 tabs: Yeni Randevu, Müşteriler, Takvim
   return (
     <Tabs
       screenOptions={{
@@ -82,6 +92,7 @@ export default function TabLayout() {
         headerShown: false,
       }}
     >
+      {/* Visible tabs */}
       <Tabs.Screen
         name="staff/index"
         options={{
@@ -109,8 +120,20 @@ export default function TabLayout() {
           ),
         }}
       />
-      {/* Hide other staff tabs */}
+
+      {/* Hidden staff tabs - accessible via navigation but not shown in tab bar */}
       <Tabs.Screen name="staff/settings" options={{ href: null }} />
+      <Tabs.Screen name="staff/business-settings" options={{ href: null }} />
+      <Tabs.Screen name="staff/calendar" options={{ href: null }} />
+      <Tabs.Screen name="staff/cashier" options={{ href: null }} />
+      <Tabs.Screen name="staff/packages" options={{ href: null }} />
+      <Tabs.Screen name="staff/performance" options={{ href: null }} />
+      <Tabs.Screen name="staff/reports" options={{ href: null }} />
+      <Tabs.Screen name="staff/services" options={{ href: null }} />
+      <Tabs.Screen name="staff/stock" options={{ href: null }} />
+      <Tabs.Screen name="staff/team" options={{ href: null }} />
+      <Tabs.Screen name="staff/kasa" options={{ href: null }} />
+
       {/* Hide customer tabs for staff */}
       <Tabs.Screen name="customer/index" options={{ href: null }} />
       <Tabs.Screen name="customer/new-appointment" options={{ href: null }} />
