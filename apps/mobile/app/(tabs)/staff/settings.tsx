@@ -64,11 +64,11 @@ export default function StaffSettingsScreen() {
       onPress: () => router.push('/(tabs)/staff/cashier'),
     },
     {
-      icon: 'cut-outline',
-      label: 'Hizmetler',
+      icon: 'bar-chart-outline',
+      label: 'Raporlar',
       color: '#3B82F6',
       bg: '#DBEAFE',
-      onPress: () => router.push('/settings/services'),
+      onPress: () => router.push('/(tabs)/staff/reports'),
     },
     {
       icon: 'gift-outline',
