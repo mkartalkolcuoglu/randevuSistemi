@@ -24,13 +24,12 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import api from '../../../src/services/api';
 import { Customer } from '../../../src/types';
 import DrawerMenu from '../../../src/components/DrawerMenu';
+import Header from '../../../src/components/Header';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
-// HIG/Material Design compliant header values
+// HIG/Material Design compliant values
 const IS_IOS = Platform.OS === 'ios';
-const HEADER_BTN_SIZE = IS_IOS ? 44 : 48; // iOS HIG: 44pt min, Android: 48dp min
-const HEADER_BTN_RADIUS = IS_IOS ? 20 : 24; // Circular buttons
 
 // Status configuration with gradients
 const STATUS_CONFIG: Record<string, { bg: string; text: string; label: string; icon: string; gradient: [string, string] }> = {
@@ -1394,57 +1393,19 @@ export default function StaffCustomersScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      {/* Premium Gradient Header */}
-      <LinearGradient
-        colors={['#163974', '#0F2A52']}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.header}
-      >
-        <View style={styles.headerTop}>
-          <TouchableOpacity
-            style={styles.menuBtn}
-            onPress={() => setDrawerOpen(true)}
-          >
-            <Ionicons name="menu" size={24} color="#fff" />
-          </TouchableOpacity>
-
-          <View style={styles.headerCenter}>
-            <Text style={styles.title}>Müşteriler</Text>
-            <Text style={styles.subtitle}>{customers.length} müşteri kayıtlı</Text>
-          </View>
-
-          <TouchableOpacity
-            style={styles.searchBtn}
-            onPress={() => setShowSearch(!showSearch)}
-          >
-            <Ionicons name={showSearch ? 'close' : 'search'} size={22} color="#fff" />
-          </TouchableOpacity>
-        </View>
-
-        {/* Search bar - collapsible */}
-        {showSearch && (
-          <View style={styles.searchContainer}>
-            <View style={styles.searchInputWrapper}>
-              <Ionicons name="search" size={18} color="rgba(255,255,255,0.6)" />
-              <TextInput
-                style={styles.searchInput}
-                placeholder="İsim, telefon veya e-posta ara..."
-                placeholderTextColor="rgba(255,255,255,0.5)"
-                value={searchQuery}
-                onChangeText={setSearchQuery}
-                returnKeyType="search"
-                autoFocus
-              />
-              {searchQuery.length > 0 && (
-                <TouchableOpacity onPress={() => setSearchQuery('')}>
-                  <Ionicons name="close-circle" size={18} color="rgba(255,255,255,0.6)" />
-                </TouchableOpacity>
-              )}
-            </View>
-          </View>
-        )}
-      </LinearGradient>
+      {/* Header */}
+      <Header
+        title="Müşteriler"
+        subtitle={`${customers.length} müşteri kayıtlı`}
+        onMenuPress={() => setDrawerOpen(true)}
+        showSearch
+        searchActive={showSearch}
+        onSearchPress={() => setShowSearch(!showSearch)}
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
+        searchPlaceholder="İsim, telefon veya e-posta ara..."
+        gradientColors={['#163974', '#0F2A52']}
+      />
 
       {/* Filter tabs */}
       <View style={styles.filterTabs}>{renderFilterTabs()}</View>
@@ -1502,66 +1463,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F9FAFB',
-  },
-
-  // Header - HIG/Material Design Compliant Premium gradient style
-  header: {
-    paddingHorizontal: IS_IOS ? 20 : 16,
-    paddingTop: IS_IOS ? 16 : 12,
-    paddingBottom: IS_IOS ? 16 : 12,
-  },
-  headerTop: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  menuBtn: {
-    width: HEADER_BTN_SIZE,
-    height: HEADER_BTN_SIZE,
-    borderRadius: HEADER_BTN_RADIUS,
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  headerCenter: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  title: {
-    fontSize: IS_IOS ? 22 : 24,
-    fontWeight: IS_IOS ? '700' : '600',
-    color: '#fff',
-    letterSpacing: IS_IOS ? -0.3 : 0,
-  },
-  subtitle: {
-    fontSize: IS_IOS ? 13 : 14,
-    color: 'rgba(255,255,255,0.7)',
-    marginTop: 2,
-  },
-  searchBtn: {
-    width: HEADER_BTN_SIZE,
-    height: HEADER_BTN_SIZE,
-    borderRadius: HEADER_BTN_RADIUS,
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  searchContainer: {
-    marginTop: 12,
-  },
-  searchInputWrapper: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    height: 44,
-    gap: 10,
-  },
-  searchInput: {
-    flex: 1,
-    fontSize: 15,
-    color: '#fff',
   },
 
   // Filter tabs - Modern style

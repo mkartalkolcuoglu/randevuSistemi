@@ -19,16 +19,11 @@ import { useAuthStore } from '../../../src/store/auth.store';
 import { appointmentService } from '../../../src/services/appointment.service';
 import { Appointment } from '../../../src/types';
 import DrawerMenu from '../../../src/components/DrawerMenu';
+import Header from '../../../src/components/Header';
 import api from '../../../src/services/api';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const THEME_COLOR = '#163974';
-
-// HIG/Material Design compliant header values
-const IS_IOS = Platform.OS === 'ios';
-const HEADER_BTN_SIZE = IS_IOS ? 44 : 48; // iOS HIG: 44pt min, Android: 48dp min
-const HEADER_BTN_RADIUS = IS_IOS ? 12 : 16; // iOS: 12pt, Android: 16dp (Material 3)
-const HEADER_ICON_SIZE = IS_IOS ? 24 : 24; // Both: 24pt/dp
 
 // Status configuration
 const STATUS_CONFIG: Record<string, { bg: string; text: string; label: string; icon: string }> = {
@@ -195,42 +190,45 @@ export default function StaffHomeScreen() {
         }
       >
         {/* Header */}
-        <View style={styles.header}>
-          <TouchableOpacity
-            style={styles.menuButton}
-            onPress={() => setDrawerOpen(true)}
-          >
-            <Ionicons name="menu" size={24} color="#1F2937" />
-          </TouchableOpacity>
-          <View style={styles.headerContent}>
-            <Text style={styles.greeting}>{getGreeting()}</Text>
-            <Text style={styles.userName}>
-              {user?.firstName || 'Personel'} {user?.lastName?.charAt(0) ? user.lastName.charAt(0) + '.' : ''}
-            </Text>
-          </View>
-          <TouchableOpacity
-            style={styles.notificationButton}
-            onPress={() => router.push('/(tabs)/staff/notifications')}
-          >
-            <Ionicons name="notifications-outline" size={22} color="#1F2937" />
-            {unreadNotifications > 0 && (
-              <View style={styles.notificationBadge}>
-                <Text style={styles.notificationBadgeText}>
-                  {unreadNotifications > 9 ? '9+' : unreadNotifications}
-                </Text>
-              </View>
-            )}
-          </TouchableOpacity>
-        </View>
-
-        {/* Date & Salon Info */}
-        <View style={styles.dateSection}>
-          <View style={styles.dateBadge}>
-            <Ionicons name="calendar" size={16} color={THEME_COLOR} />
-            <Text style={styles.dateText}>{getFormattedDate()}</Text>
-          </View>
-          <Text style={styles.salonName}>{selectedTenant?.businessName || 'Salon'}</Text>
-        </View>
+        <Header
+          title={`${getGreeting()}, ${user?.firstName || 'Personel'}`}
+          subtitle={selectedTenant?.businessName}
+          onMenuPress={() => setDrawerOpen(true)}
+          showNotification
+          notificationCount={unreadNotifications}
+          onNotificationPress={() => router.push('/(tabs)/staff/notifications')}
+          gradientColors={[THEME_COLOR, '#1e4a8f']}
+          stats={[
+            {
+              icon: 'calendar',
+              iconColor: '#3B82F6',
+              iconBg: '#EFF6FF',
+              value: stats.todayTotal,
+              label: 'Bugün',
+            },
+            {
+              icon: 'checkmark',
+              iconColor: '#059669',
+              iconBg: '#D1FAE5',
+              value: stats.todayCompleted,
+              label: 'Tamam',
+            },
+            {
+              icon: 'time',
+              iconColor: '#D97706',
+              iconBg: '#FEF3C7',
+              value: stats.todayPending,
+              label: 'Bekleyen',
+            },
+            {
+              icon: 'cash',
+              iconColor: '#4F46E5',
+              iconBg: '#E0E7FF',
+              value: stats.todayRevenue,
+              label: 'Kazanç ₺',
+            },
+          ]}
+        />
 
         {/* Revenue Card */}
         <View style={styles.section}>
@@ -442,108 +440,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#6B7280',
     marginTop: 8,
-  },
-
-  // Header - HIG/Material Design Compliant
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: IS_IOS ? 20 : 16,
-    paddingTop: IS_IOS ? 16 : 12,
-    paddingBottom: IS_IOS ? 12 : 8,
-  },
-  menuButton: {
-    width: HEADER_BTN_SIZE,
-    height: HEADER_BTN_SIZE,
-    borderRadius: HEADER_BTN_RADIUS,
-    backgroundColor: '#fff',
-    justifyContent: 'center',
-    alignItems: 'center',
-    // Platform-specific shadows
-    ...(IS_IOS ? {
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.04,
-      shadowRadius: 8,
-    } : {
-      elevation: 2,
-    }),
-  },
-  headerContent: {
-    flex: 1,
-    marginLeft: IS_IOS ? 12 : 16,
-  },
-  greeting: {
-    fontSize: IS_IOS ? 13 : 14,
-    color: IS_IOS ? '#6B7280' : '#49454F',
-  },
-  userName: {
-    fontSize: IS_IOS ? 20 : 22,
-    fontWeight: IS_IOS ? '700' : '600',
-    color: '#1F2937',
-    marginTop: 2,
-  },
-  notificationButton: {
-    width: HEADER_BTN_SIZE,
-    height: HEADER_BTN_SIZE,
-    borderRadius: HEADER_BTN_RADIUS,
-    backgroundColor: '#fff',
-    justifyContent: 'center',
-    alignItems: 'center',
-    // Platform-specific shadows
-    ...(IS_IOS ? {
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.04,
-      shadowRadius: 8,
-    } : {
-      elevation: 2,
-    }),
-  },
-  notificationBadge: {
-    position: 'absolute',
-    top: 6,
-    right: 6,
-    minWidth: 16,
-    height: 16,
-    borderRadius: 8,
-    backgroundColor: '#EF4444',
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 4,
-  },
-  notificationBadgeText: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: '#fff',
-  },
-
-  // Date Section
-  dateSection: {
-    paddingHorizontal: 20,
-    marginBottom: 8,
-  },
-  dateBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    alignSelf: 'flex-start',
-    backgroundColor: '#EFF6FF',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
-    gap: 6,
-    marginBottom: 4,
-  },
-  dateText: {
-    fontSize: 13,
-    fontWeight: '500',
-    color: THEME_COLOR,
-    textTransform: 'capitalize',
-  },
-  salonName: {
-    fontSize: 14,
-    color: '#6B7280',
-    marginTop: 4,
   },
 
   // Section

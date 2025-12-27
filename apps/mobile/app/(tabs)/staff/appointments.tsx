@@ -9,7 +9,6 @@ import {
   ActivityIndicator,
   Modal,
   Alert,
-  TextInput,
   ScrollView,
   Dimensions,
   Platform,
@@ -23,13 +22,12 @@ import { useAuthStore } from '../../../src/store/auth.store';
 import { appointmentService } from '../../../src/services/appointment.service';
 import { Appointment, AppointmentStatus } from '../../../src/types';
 import DrawerMenu from '../../../src/components/DrawerMenu';
+import Header from '../../../src/components/Header';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
-// HIG/Material Design compliant header values
+// HIG/Material Design compliant values
 const IS_IOS = Platform.OS === 'ios';
-const HEADER_BTN_SIZE = IS_IOS ? 44 : 48; // iOS HIG: 44pt min, Android: 48dp min
-const HEADER_BTN_RADIUS = IS_IOS ? 12 : 16; // iOS: 12pt, Android: 16dp (Material 3)
 
 // Status configurations with modern colors
 const STATUS_CONFIG: Record<string, { bg: string; text: string; label: string; icon: string; gradient: string[] }> = {
@@ -221,93 +219,52 @@ export default function StaffAppointmentsScreen() {
 
   const formatTime = (time: string) => time.substring(0, 5);
 
-  // Render Header with gradient
+  // Render Header
   const renderHeader = () => (
-    <LinearGradient
-      colors={['#1E3A8A', '#3B82F6']}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 1 }}
-      style={styles.headerGradient}
-    >
-      <View style={styles.headerTop}>
-        <TouchableOpacity
-          style={styles.menuButton}
-          onPress={() => setDrawerOpen(true)}
-        >
-          <Ionicons name="menu" size={24} color="#fff" />
-        </TouchableOpacity>
-        <View style={styles.headerTitleContainer}>
-          <Text style={styles.headerTitle}>Randevular</Text>
-          <Text style={styles.headerSubtitle}>{selectedTenant?.businessName}</Text>
-        </View>
-        <View style={styles.headerActions}>
-          <TouchableOpacity
-            style={styles.headerBtn}
-            onPress={() => router.push('/(tabs)/staff/calendar')}
-          >
-            <Ionicons name="calendar" size={22} color="#fff" />
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.headerBtn, showSearch && styles.headerBtnActive]}
-            onPress={() => setShowSearch(!showSearch)}
-          >
-            <Ionicons name={showSearch ? 'close' : 'search'} size={22} color="#fff" />
-          </TouchableOpacity>
-        </View>
-      </View>
-
-      {/* Today Stats */}
-      <View style={styles.statsRow}>
-        <View style={styles.statItem}>
-          <View style={styles.statIconBg}>
-            <Ionicons name="calendar" size={16} color="#3B82F6" />
-          </View>
-          <Text style={styles.statNumber}>{todayStats.total}</Text>
-          <Text style={styles.statLabel}>Bugün</Text>
-        </View>
-        <View style={styles.statItem}>
-          <View style={[styles.statIconBg, { backgroundColor: '#D1FAE5' }]}>
-            <Ionicons name="checkmark" size={16} color="#059669" />
-          </View>
-          <Text style={styles.statNumber}>{todayStats.completed}</Text>
-          <Text style={styles.statLabel}>Tamam</Text>
-        </View>
-        <View style={styles.statItem}>
-          <View style={[styles.statIconBg, { backgroundColor: '#FEF3C7' }]}>
-            <Ionicons name="time" size={16} color="#D97706" />
-          </View>
-          <Text style={styles.statNumber}>{todayStats.pending}</Text>
-          <Text style={styles.statLabel}>Bekleyen</Text>
-        </View>
-        <View style={styles.statItem}>
-          <View style={[styles.statIconBg, { backgroundColor: '#E0E7FF' }]}>
-            <Ionicons name="cash" size={16} color="#4F46E5" />
-          </View>
-          <Text style={styles.statNumber}>{todayStats.revenue > 999 ? `${(todayStats.revenue / 1000).toFixed(1)}K` : todayStats.revenue}</Text>
-          <Text style={styles.statLabel}>Kazanç ₺</Text>
-        </View>
-      </View>
-
-      {/* Search */}
-      {showSearch && (
-        <View style={styles.searchContainer}>
-          <Ionicons name="search" size={20} color="rgba(255,255,255,0.6)" />
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Müşteri, telefon veya hizmet ara..."
-            placeholderTextColor="rgba(255,255,255,0.5)"
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-            autoFocus
-          />
-          {searchQuery.length > 0 && (
-            <TouchableOpacity onPress={() => setSearchQuery('')}>
-              <Ionicons name="close-circle" size={20} color="rgba(255,255,255,0.6)" />
-            </TouchableOpacity>
-          )}
-        </View>
-      )}
-    </LinearGradient>
+    <Header
+      title="Randevular"
+      subtitle={selectedTenant?.businessName}
+      onMenuPress={() => setDrawerOpen(true)}
+      showCalendar
+      onCalendarPress={() => router.push('/(tabs)/staff/calendar')}
+      showSearch
+      searchActive={showSearch}
+      onSearchPress={() => setShowSearch(!showSearch)}
+      searchQuery={searchQuery}
+      onSearchChange={setSearchQuery}
+      searchPlaceholder="Müşteri, telefon veya hizmet ara..."
+      gradientColors={['#1E3A8A', '#3B82F6']}
+      stats={[
+        {
+          icon: 'calendar',
+          iconColor: '#3B82F6',
+          iconBg: '#EFF6FF',
+          value: todayStats.total,
+          label: 'Bugün',
+        },
+        {
+          icon: 'checkmark',
+          iconColor: '#059669',
+          iconBg: '#D1FAE5',
+          value: todayStats.completed,
+          label: 'Tamam',
+        },
+        {
+          icon: 'time',
+          iconColor: '#D97706',
+          iconBg: '#FEF3C7',
+          value: todayStats.pending,
+          label: 'Bekleyen',
+        },
+        {
+          icon: 'cash',
+          iconColor: '#4F46E5',
+          iconBg: '#E0E7FF',
+          value: todayStats.revenue,
+          label: 'Kazanç ₺',
+        },
+      ]}
+    />
   );
 
   // Render Date Selector
@@ -832,109 +789,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F8FAFC',
-  },
-
-  // Header - HIG/Material Design Compliant
-  headerGradient: {
-    paddingHorizontal: IS_IOS ? 20 : 16,
-    paddingTop: IS_IOS ? 16 : 12,
-    paddingBottom: IS_IOS ? 20 : 16,
-  },
-  headerTop: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  menuButton: {
-    width: HEADER_BTN_SIZE,
-    height: HEADER_BTN_SIZE,
-    borderRadius: HEADER_BTN_RADIUS,
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  headerTitleContainer: {
-    flex: 1,
-    marginLeft: IS_IOS ? 14 : 16,
-  },
-  headerTitle: {
-    fontSize: IS_IOS ? 26 : 24,
-    fontWeight: IS_IOS ? '700' : '600',
-    color: '#fff',
-  },
-  headerSubtitle: {
-    fontSize: IS_IOS ? 13 : 14,
-    color: 'rgba(255,255,255,0.7)',
-    marginTop: 2,
-  },
-  headerActions: {
-    flexDirection: 'row',
-    gap: IS_IOS ? 10 : 8,
-  },
-  headerBtn: {
-    width: HEADER_BTN_SIZE,
-    height: HEADER_BTN_SIZE,
-    borderRadius: HEADER_BTN_RADIUS,
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  headerBtnActive: {
-    backgroundColor: 'rgba(255,255,255,0.3)',
-  },
-
-  // Stats Row
-  statsRow: {
-    flexDirection: 'row',
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    borderRadius: 16,
-    padding: 12,
-    marginTop: 20,
-    justifyContent: 'space-around',
-  },
-  statItem: {
-    alignItems: 'center',
-    paddingHorizontal: 4,
-  },
-  statIconBg: {
-    width: 32,
-    height: 32,
-    borderRadius: 8,
-    backgroundColor: '#EFF6FF',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 6,
-  },
-  statNumber: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#fff',
-  },
-  statLabel: {
-    fontSize: 10,
-    color: 'rgba(255,255,255,0.8)',
-    marginTop: 2,
-  },
-  statDivider: {
-    width: 1,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-  },
-
-  // Search
-  searchContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    marginTop: 16,
-    height: 48,
-    gap: 10,
-  },
-  searchInput: {
-    flex: 1,
-    fontSize: IS_IOS ? 15 : 16, // Android M3: 16sp
-    color: '#fff',
-    height: IS_IOS ? 44 : 48, // Touch target
   },
 
   // Content
