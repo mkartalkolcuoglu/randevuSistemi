@@ -91,7 +91,7 @@ export default function DrawerMenu({ isOpen, onClose }: DrawerMenuProps) {
       title: 'YÖNETİM',
       items: [
         { id: 'services', label: 'Hizmetler', icon: 'cut', route: '/(tabs)/staff/services', color: '#F59E0B', bgColor: '#FEF3C7' },
-        { id: 'staff', label: 'Personel', icon: 'person', route: '/(tabs)/staff/personnel', color: '#EC4899', bgColor: '#FCE7F3' },
+        { id: 'staff', label: 'Personel', icon: 'people', route: '/(tabs)/staff/team', color: '#EC4899', bgColor: '#FCE7F3' },
         { id: 'packages', label: 'Paketler', icon: 'gift', route: '/(tabs)/staff/packages', color: '#6366F1', bgColor: '#E0E7FF' },
         { id: 'stock', label: 'Stok', icon: 'cube', route: '/(tabs)/staff/stock', color: '#14B8A6', bgColor: '#CCFBF1' },
       ],
