@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -8,13 +8,14 @@ import {
   TextInput,
   ActivityIndicator,
   Alert,
+  Keyboard,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../../src/store/auth.store';
 import { appointmentService } from '../../src/services/appointment.service';
-import { Service, Staff } from '../../src/types';
+import { Service, Staff, Customer } from '../../src/types';
 
 export default function NewAppointmentScreen() {
   const router = useRouter();
@@ -31,6 +32,13 @@ export default function NewAppointmentScreen() {
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
   const [notes, setNotes] = useState('');
+
+  // Customer autocomplete states
+  const [customerSuggestions, setCustomerSuggestions] = useState<Customer[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [isSearching, setIsSearching] = useState(false);
+  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+  const [searchTimeout, setSearchTimeout] = useState<ReturnType<typeof setTimeout> | null>(null);
 
   const [step, setStep] = useState(1); // 1: Service, 2: Staff, 3: DateTime, 4: Customer
 
@@ -53,6 +61,52 @@ export default function NewAppointmentScreen() {
     } finally {
       setIsLoadingData(false);
     }
+  };
+
+  // Customer search with debounce
+  const searchCustomers = useCallback(async (query: string) => {
+    if (query.length < 2) {
+      setCustomerSuggestions([]);
+      setShowSuggestions(false);
+      return;
+    }
+
+    setIsSearching(true);
+    try {
+      const response = await appointmentService.searchCustomers(query);
+      if (response.success && response.data) {
+        setCustomerSuggestions(response.data);
+        setShowSuggestions(response.data.length > 0);
+      }
+    } catch (error) {
+      console.error('Search customers error:', error);
+    } finally {
+      setIsSearching(false);
+    }
+  }, []);
+
+  const handleCustomerNameChange = (text: string) => {
+    setCustomerName(text);
+    setSelectedCustomer(null);
+
+    // Clear previous timeout
+    if (searchTimeout) {
+      clearTimeout(searchTimeout);
+    }
+
+    // Debounce search
+    const timeout = setTimeout(() => {
+      searchCustomers(text);
+    }, 300);
+    setSearchTimeout(timeout);
+  };
+
+  const handleSelectCustomer = (customer: Customer) => {
+    setSelectedCustomer(customer);
+    setCustomerName(`${customer.firstName} ${customer.lastName}`);
+    setCustomerPhone(customer.phone);
+    setShowSuggestions(false);
+    Keyboard.dismiss();
   };
 
   const generateTimeSlots = () => {
@@ -78,13 +132,14 @@ export default function NewAppointmentScreen() {
 
   const handleCreateAppointment = async () => {
     if (!selectedService || !selectedStaff || !selectedTime || !customerName || !customerPhone) {
-      Alert.alert('Hata', 'Lutfen tum alanlari doldurun');
+      Alert.alert('Hata', 'Lütfen tüm alanları doldurun');
       return;
     }
 
     setIsLoading(true);
     try {
       const response = await appointmentService.createAppointmentForCustomer({
+        customerId: selectedCustomer?.id,
         serviceId: selectedService.id,
         staffId: selectedStaff.id,
         date: selectedDate.toISOString().split('T')[0],
@@ -95,14 +150,14 @@ export default function NewAppointmentScreen() {
       });
 
       if (response.success) {
-        Alert.alert('Basarili', 'Randevu olusturuldu', [
+        Alert.alert('Başarılı', 'Randevu oluşturuldu', [
           { text: 'Tamam', onPress: () => router.back() },
         ]);
       } else {
-        Alert.alert('Hata', response.error || 'Randevu olusturulamadi');
+        Alert.alert('Hata', response.error || 'Randevu oluşturulamadı');
       }
     } catch (error) {
-      Alert.alert('Hata', 'Bir hata olustu');
+      Alert.alert('Hata', 'Bir hata oluştu');
     } finally {
       setIsLoading(false);
     }
@@ -151,7 +206,7 @@ export default function NewAppointmentScreen() {
         {/* Step 1: Service Selection */}
         {step === 1 && (
           <View>
-            <Text style={styles.stepTitle}>Hizmet Secin</Text>
+            <Text style={styles.stepTitle}>Hizmet Seçin</Text>
             {services.map((service) => (
               <TouchableOpacity
                 key={service.id}
@@ -164,7 +219,7 @@ export default function NewAppointmentScreen() {
                 <View style={styles.optionInfo}>
                   <Text style={styles.optionTitle}>{service.name}</Text>
                   <Text style={styles.optionSubtitle}>
-                    {service.duration} dk - {service.price} TL
+                    {service.duration} dk - {service.price} ₺
                   </Text>
                 </View>
                 {selectedService?.id === service.id && (
@@ -178,7 +233,7 @@ export default function NewAppointmentScreen() {
         {/* Step 2: Staff Selection */}
         {step === 2 && (
           <View>
-            <Text style={styles.stepTitle}>Personel Secin</Text>
+            <Text style={styles.stepTitle}>Personel Seçin</Text>
             {staffList.map((staff) => (
               <TouchableOpacity
                 key={staff.id}
@@ -258,23 +313,69 @@ export default function NewAppointmentScreen() {
         {/* Step 4: Customer Info */}
         {step === 4 && (
           <View>
-            <Text style={styles.stepTitle}>Musteri Bilgileri</Text>
+            <Text style={styles.stepTitle}>Müşteri Bilgileri</Text>
 
             <Text style={styles.label}>Ad Soyad *</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Musteri adi"
-              value={customerName}
-              onChangeText={setCustomerName}
-            />
+            <View style={styles.autocompleteContainer}>
+              <View style={styles.inputWrapper}>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Müşteri adı yazın..."
+                  value={customerName}
+                  onChangeText={handleCustomerNameChange}
+                  onFocus={() => customerSuggestions.length > 0 && setShowSuggestions(true)}
+                />
+                {isSearching && (
+                  <ActivityIndicator
+                    style={styles.searchIndicator}
+                    size="small"
+                    color="#3B82F6"
+                  />
+                )}
+                {selectedCustomer && (
+                  <Ionicons
+                    name="checkmark-circle"
+                    size={20}
+                    color="#10B981"
+                    style={styles.selectedIcon}
+                  />
+                )}
+              </View>
+
+              {/* Customer Suggestions */}
+              {showSuggestions && (
+                <View style={styles.suggestionsContainer}>
+                  {customerSuggestions.map((customer) => (
+                    <TouchableOpacity
+                      key={customer.id}
+                      style={styles.suggestionItem}
+                      onPress={() => handleSelectCustomer(customer)}
+                    >
+                      <View style={styles.customerAvatar}>
+                        <Text style={styles.customerInitial}>
+                          {customer.firstName.charAt(0)}
+                        </Text>
+                      </View>
+                      <View style={styles.customerInfo}>
+                        <Text style={styles.customerName}>
+                          {customer.firstName} {customer.lastName}
+                        </Text>
+                        <Text style={styles.customerPhone}>{customer.phone}</Text>
+                      </View>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
+            </View>
 
             <Text style={styles.label}>Telefon *</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, selectedCustomer && styles.inputDisabled]}
               placeholder="5XX XXX XXXX"
               keyboardType="phone-pad"
               value={customerPhone}
               onChangeText={setCustomerPhone}
+              editable={!selectedCustomer}
             />
 
             <Text style={styles.label}>Notlar</Text>
@@ -289,7 +390,7 @@ export default function NewAppointmentScreen() {
 
             {/* Summary */}
             <View style={styles.summary}>
-              <Text style={styles.summaryTitle}>Randevu Ozeti</Text>
+              <Text style={styles.summaryTitle}>Randevu Özeti</Text>
               <View style={styles.summaryRow}>
                 <Text style={styles.summaryLabel}>Hizmet:</Text>
                 <Text style={styles.summaryValue}>{selectedService?.name}</Text>
@@ -307,8 +408,8 @@ export default function NewAppointmentScreen() {
                 </Text>
               </View>
               <View style={styles.summaryRow}>
-                <Text style={styles.summaryLabel}>Ucret:</Text>
-                <Text style={styles.summaryValueBold}>{selectedService?.price} TL</Text>
+                <Text style={styles.summaryLabel}>Ücret:</Text>
+                <Text style={styles.summaryValueBold}>{selectedService?.price} ₺</Text>
               </View>
             </View>
           </View>
@@ -348,7 +449,7 @@ export default function NewAppointmentScreen() {
             disabled={isLoading}
           >
             <Text style={styles.nextBtnText}>
-              {isLoading ? 'Olusturuluyor...' : 'Randevu Olustur'}
+              {isLoading ? 'Oluşturuluyor...' : 'Randevu Oluştur'}
             </Text>
           </TouchableOpacity>
         )}
@@ -548,9 +649,79 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#1F2937',
   },
+  inputDisabled: {
+    backgroundColor: '#F3F4F6',
+    color: '#6B7280',
+  },
   textArea: {
     height: 80,
     textAlignVertical: 'top',
+  },
+  autocompleteContainer: {
+    position: 'relative',
+    zIndex: 1000,
+  },
+  inputWrapper: {
+    position: 'relative',
+  },
+  searchIndicator: {
+    position: 'absolute',
+    right: 16,
+    top: 18,
+  },
+  selectedIcon: {
+    position: 'absolute',
+    right: 16,
+    top: 18,
+  },
+  suggestionsContainer: {
+    position: 'absolute',
+    top: 56,
+    left: 0,
+    right: 0,
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    maxHeight: 200,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 5,
+    zIndex: 1001,
+  },
+  suggestionItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+  },
+  customerAvatar: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#3B82F6',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  customerInitial: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#fff',
+  },
+  customerInfo: {
+    flex: 1,
+  },
+  customerName: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1F2937',
+  },
+  customerPhone: {
+    fontSize: 12,
+    color: '#6B7280',
+    marginTop: 2,
   },
   summary: {
     backgroundColor: '#fff',

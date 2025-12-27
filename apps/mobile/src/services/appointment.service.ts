@@ -6,6 +6,7 @@ import {
   Service,
   Staff,
   TimeSlot,
+  Customer,
 } from '../types';
 
 export const appointmentService = {
@@ -231,6 +232,33 @@ export const appointmentService = {
   },
 
   /**
+   * Update appointment (staff/owner)
+   */
+  async updateAppointment(
+    id: string,
+    data: {
+      serviceId?: string;
+      staffId?: string;
+      date?: string;
+      time?: string;
+      customerName?: string;
+      customerPhone?: string;
+      notes?: string;
+    }
+  ): Promise<ApiResponse<Appointment>> {
+    try {
+      const response = await api.put(`/api/mobile/appointments/${id}`, data);
+      return response.data;
+    } catch (error: any) {
+      console.error('Update appointment error:', error);
+      return {
+        success: false,
+        error: error.response?.data?.error || 'Randevu güncellenemedi',
+      };
+    }
+  },
+
+  /**
    * Delete appointment (staff/owner)
    */
   async deleteAppointment(id: string): Promise<ApiResponse<void>> {
@@ -242,6 +270,25 @@ export const appointmentService = {
       return {
         success: false,
         error: error.response?.data?.error || 'Randevu silinemedi',
+      };
+    }
+  },
+
+  /**
+   * Search customers for autocomplete (staff/owner)
+   */
+  async searchCustomers(search: string): Promise<ApiResponse<Customer[]>> {
+    try {
+      const response = await api.get('/api/mobile/customers', {
+        params: { search, limit: 10 },
+      });
+      return response.data;
+    } catch (error: any) {
+      console.error('Search customers error:', error);
+      return {
+        success: false,
+        data: [],
+        error: error.response?.data?.error || 'Müşteri araması başarısız',
       };
     }
   },
