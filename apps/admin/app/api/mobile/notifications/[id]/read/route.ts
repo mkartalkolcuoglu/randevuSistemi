@@ -4,16 +4,26 @@ import jwt from 'jsonwebtoken';
 
 export const dynamic = 'force-dynamic';
 
-// Helper: Get tenantId from JWT
-function getTenantIdFromRequest(request: NextRequest): string | null {
-  const authHeader = request.headers.get('authorization');
-  if (!authHeader?.startsWith('Bearer ')) return null;
+const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
+
+// Helper to verify token and get user info
+async function verifyAuth(request: NextRequest) {
+  const authHeader = request.headers.get('Authorization');
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return null;
+  }
+
+  const token = authHeader.split(' ')[1];
 
   try {
-    const token = authHeader.split(' ')[1];
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback-secret') as any;
-    return decoded.tenantId || null;
-  } catch {
+    const decoded = jwt.verify(token, JWT_SECRET) as unknown as {
+      userType: string;
+      tenantId: string;
+      staffId?: string;
+      ownerId?: string;
+    };
+    return decoded;
+  } catch (err) {
     return null;
   }
 }
@@ -24,15 +34,17 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const tenantId = getTenantIdFromRequest(request);
+    const auth = await verifyAuth(request);
     const { id } = await params;
 
-    if (!tenantId) {
+    if (!auth) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },
         { status: 401 }
       );
     }
+
+    const tenantId = auth.tenantId;
 
     // Verify notification belongs to tenant
     const notification = await prisma.notification.findFirst({

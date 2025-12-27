@@ -42,10 +42,15 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
-    if (error.response?.status === 401) {
-      // Token expired or invalid - clear auth data
+    const originalRequest = error.config;
+
+    // Only clear auth on 401 if we actually sent a token
+    // This prevents clearing auth when token was never sent
+    if (error.response?.status === 401 && originalRequest?.headers?.Authorization) {
+      console.log('🚫 401 with token - clearing auth data');
       await SecureStore.deleteItemAsync('authToken');
       await SecureStore.deleteItemAsync('userData');
+      await SecureStore.deleteItemAsync('selectedTenantId');
       // Navigation will be handled by auth state change
     }
     return Promise.reject(error);
