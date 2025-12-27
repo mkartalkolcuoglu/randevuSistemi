@@ -14,6 +14,7 @@ import {
   Image,
   KeyboardAvoidingView,
   Platform,
+  Dimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -22,6 +23,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import api from '../../../src/services/api';
 
 const THEME_COLOR = '#163974';
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 interface WorkingDay {
   start: string;
@@ -256,7 +258,6 @@ export default function BusinessSettingsScreen() {
   };
 
   const formatIBAN = (text: string) => {
-    // Remove non-alphanumeric characters and convert to uppercase
     const cleaned = text.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
     return cleaned.slice(0, 26);
   };
@@ -292,31 +293,38 @@ export default function BusinessSettingsScreen() {
         style={{ flex: 1 }}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
-        {/* Header */}
+        {/* Header - Diğer sayfalara uygun */}
         <View style={styles.header}>
           <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
             <Ionicons name="arrow-back" size={24} color="#1F2937" />
           </TouchableOpacity>
-          <View style={styles.headerTitle}>
+          <View style={styles.headerContent}>
             <Text style={styles.title}>İşletme Ayarları</Text>
             <Text style={styles.subtitle}>{data.businessName}</Text>
           </View>
           {(hasChanges || newPassword) && (
             <TouchableOpacity
-              style={[styles.saveButton, saving && styles.saveButtonDisabled]}
+              style={styles.saveButton}
               onPress={handleSave}
               disabled={saving}
             >
-              {saving ? (
-                <ActivityIndicator size="small" color="#fff" />
-              ) : (
-                <Ionicons name="checkmark" size={22} color="#fff" />
-              )}
+              <LinearGradient
+                colors={['#059669', '#047857']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.saveButtonGradient}
+              >
+                {saving ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <Ionicons name="checkmark" size={20} color="#fff" />
+                )}
+              </LinearGradient>
             </TouchableOpacity>
           )}
         </View>
 
-        {/* Tabs - Web ile aynı sırada */}
+        {/* Tabs - Diğer sayfalara uygun */}
         <View style={styles.tabContainer}>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tabScroll}>
             {TABS.map((tab) => (
@@ -354,16 +362,25 @@ export default function BusinessSettingsScreen() {
           {/* 1. TEMA TAB */}
           {activeTab === 'theme' && (
             <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Tema Ayarları</Text>
+
               {/* Ana Renk */}
               <View style={styles.card}>
-                <Text style={styles.cardTitle}>Ana Renk</Text>
-                <Text style={styles.cardDescription}>İşletmenizin ana rengi</Text>
+                <View style={styles.cardHeader}>
+                  <View style={[styles.cardIcon, { backgroundColor: '#DBEAFE' }]}>
+                    <Ionicons name="color-palette" size={20} color="#3B82F6" />
+                  </View>
+                  <View style={styles.cardTitleContainer}>
+                    <Text style={styles.cardTitle}>Ana Renk</Text>
+                    <Text style={styles.cardDescription}>İşletmenizin ana rengi</Text>
+                  </View>
+                </View>
                 <View style={styles.colorRow}>
                   <View
-                    style={[styles.colorPreviewLarge, { backgroundColor: formData.theme?.primaryColor || THEME_COLOR }]}
+                    style={[styles.colorPreview, { backgroundColor: formData.theme?.primaryColor || THEME_COLOR }]}
                   />
                   <TextInput
-                    style={styles.colorInputLarge}
+                    style={styles.colorInput}
                     value={formData.theme?.primaryColor || THEME_COLOR}
                     onChangeText={(text) => updateNestedFormData('theme', 'primaryColor', text)}
                     placeholder="#163974"
@@ -374,14 +391,21 @@ export default function BusinessSettingsScreen() {
 
               {/* İkincil Renk */}
               <View style={styles.card}>
-                <Text style={styles.cardTitle}>İkincil Renk</Text>
-                <Text style={styles.cardDescription}>İkinci derecede kullanılan renk</Text>
+                <View style={styles.cardHeader}>
+                  <View style={[styles.cardIcon, { backgroundColor: '#E0E7FF' }]}>
+                    <Ionicons name="color-fill" size={20} color="#6366F1" />
+                  </View>
+                  <View style={styles.cardTitleContainer}>
+                    <Text style={styles.cardTitle}>İkincil Renk</Text>
+                    <Text style={styles.cardDescription}>İkinci derecede kullanılan renk</Text>
+                  </View>
+                </View>
                 <View style={styles.colorRow}>
                   <View
-                    style={[styles.colorPreviewLarge, { backgroundColor: formData.theme?.secondaryColor || '#0F2A52' }]}
+                    style={[styles.colorPreview, { backgroundColor: formData.theme?.secondaryColor || '#0F2A52' }]}
                   />
                   <TextInput
-                    style={styles.colorInputLarge}
+                    style={styles.colorInput}
                     value={formData.theme?.secondaryColor || '#0F2A52'}
                     onChangeText={(text) => updateNestedFormData('theme', 'secondaryColor', text)}
                     placeholder="#0F2A52"
@@ -392,33 +416,44 @@ export default function BusinessSettingsScreen() {
 
               {/* Logo */}
               <View style={styles.card}>
-                <Text style={styles.cardTitle}>Logo</Text>
-                <Text style={styles.cardDescription}>İşletmenizin logosu (max 3MB)</Text>
+                <View style={styles.cardHeader}>
+                  <View style={[styles.cardIcon, { backgroundColor: '#FEF3C7' }]}>
+                    <Ionicons name="image" size={20} color="#F59E0B" />
+                  </View>
+                  <View style={styles.cardTitleContainer}>
+                    <Text style={styles.cardTitle}>Logo</Text>
+                    <Text style={styles.cardDescription}>İşletmenizin logosu (max 3MB)</Text>
+                  </View>
+                </View>
                 <TouchableOpacity style={styles.imagePickerContainer} onPress={() => pickImage('logo')}>
                   {formData.theme?.logo ? (
                     <Image source={{ uri: formData.theme.logo }} style={styles.logoPreview} />
                   ) : (
                     <View style={styles.imagePlaceholder}>
-                      <Ionicons name="image-outline" size={40} color="#9CA3AF" />
+                      <Ionicons name="image-outline" size={32} color="#9CA3AF" />
                       <Text style={styles.imagePlaceholderText}>Logo Seç</Text>
                     </View>
                   )}
-                  <View style={styles.imageOverlay}>
-                    <Ionicons name="camera" size={20} color="#fff" />
-                  </View>
                 </TouchableOpacity>
               </View>
 
               {/* Header Görseli */}
               <View style={styles.card}>
-                <Text style={styles.cardTitle}>Header Görseli</Text>
-                <Text style={styles.cardDescription}>Üst kısımda görünecek görsel (max 3MB)</Text>
+                <View style={styles.cardHeader}>
+                  <View style={[styles.cardIcon, { backgroundColor: '#D1FAE5' }]}>
+                    <Ionicons name="albums" size={20} color="#059669" />
+                  </View>
+                  <View style={styles.cardTitleContainer}>
+                    <Text style={styles.cardTitle}>Header Görseli</Text>
+                    <Text style={styles.cardDescription}>Üst kısımda görünecek görsel</Text>
+                  </View>
+                </View>
                 <TouchableOpacity style={styles.headerImageContainer} onPress={() => pickImage('headerImage')}>
                   {formData.theme?.headerImage ? (
                     <Image source={{ uri: formData.theme.headerImage }} style={styles.headerImagePreview} />
                   ) : (
                     <View style={styles.headerImagePlaceholder}>
-                      <Ionicons name="image-outline" size={32} color="#9CA3AF" />
+                      <Ionicons name="image-outline" size={28} color="#9CA3AF" />
                       <Text style={styles.imagePlaceholderText}>Header Görseli Seç</Text>
                     </View>
                   )}
@@ -430,9 +465,9 @@ export default function BusinessSettingsScreen() {
           {/* 2. İŞLETME TAB */}
           {activeTab === 'business' && (
             <View style={styles.section}>
-              <View style={styles.card}>
-                <Text style={styles.cardTitle}>İşletme Bilgileri</Text>
+              <Text style={styles.sectionTitle}>İşletme Bilgileri</Text>
 
+              <View style={styles.card}>
                 <View style={styles.inputGroup}>
                   <Text style={styles.inputLabel}>İşletme Adı</Text>
                   <TextInput
@@ -468,7 +503,7 @@ export default function BusinessSettingsScreen() {
                   />
                 </View>
 
-                <View style={styles.inputGroup}>
+                <View style={styles.inputGroupLast}>
                   <Text style={styles.inputLabel}>İşletme Adresi</Text>
                   <TextInput
                     style={[styles.input, styles.textArea]}
@@ -486,9 +521,9 @@ export default function BusinessSettingsScreen() {
           {/* 3. YÖNETİCİ TAB */}
           {activeTab === 'owner' && (
             <View style={styles.section}>
-              <View style={styles.card}>
-                <Text style={styles.cardTitle}>Yönetici Bilgileri</Text>
+              <Text style={styles.sectionTitle}>Yönetici Bilgileri</Text>
 
+              <View style={styles.card}>
                 <View style={styles.inputGroup}>
                   <Text style={styles.inputLabel}>Adı Soyadı</Text>
                   <TextInput
@@ -511,7 +546,7 @@ export default function BusinessSettingsScreen() {
                   />
                 </View>
 
-                <View style={styles.inputGroup}>
+                <View style={styles.inputGroupLast}>
                   <Text style={styles.inputLabel}>Telefon</Text>
                   <TextInput
                     style={styles.input}
@@ -528,9 +563,9 @@ export default function BusinessSettingsScreen() {
           {/* 4. GİRİŞ TAB */}
           {activeTab === 'login' && (
             <View style={styles.section}>
-              <View style={styles.card}>
-                <Text style={styles.cardTitle}>Giriş Bilgileri</Text>
+              <Text style={styles.sectionTitle}>Giriş Bilgileri</Text>
 
+              <View style={styles.card}>
                 <View style={styles.inputGroup}>
                   <Text style={styles.inputLabel}>Kullanıcı Adı</Text>
                   <TextInput
@@ -542,7 +577,7 @@ export default function BusinessSettingsScreen() {
                   <Text style={styles.inputHint}>Kullanıcı adı değiştirilemez</Text>
                 </View>
 
-                <View style={styles.inputGroup}>
+                <View style={styles.inputGroupLast}>
                   <Text style={styles.inputLabel}>Yeni Şifre</Text>
                   <TextInput
                     style={styles.input}
@@ -560,9 +595,18 @@ export default function BusinessSettingsScreen() {
           {/* 5. KONUM TAB */}
           {activeTab === 'location' && (
             <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Konum Bilgileri</Text>
+
               <View style={styles.card}>
-                <Text style={styles.cardTitle}>Konum Bilgileri</Text>
-                <Text style={styles.cardDescription}>İşletmenizin harita üzerindeki konumu</Text>
+                <View style={styles.cardHeader}>
+                  <View style={[styles.cardIcon, { backgroundColor: '#FEE2E2' }]}>
+                    <Ionicons name="location" size={20} color="#EF4444" />
+                  </View>
+                  <View style={styles.cardTitleContainer}>
+                    <Text style={styles.cardTitle}>Harita Konumu</Text>
+                    <Text style={styles.cardDescription}>İşletmenizin harita üzerindeki konumu</Text>
+                  </View>
+                </View>
 
                 <View style={styles.inputGroup}>
                   <Text style={styles.inputLabel}>Enlem (Latitude)</Text>
@@ -586,7 +630,7 @@ export default function BusinessSettingsScreen() {
                   />
                 </View>
 
-                <View style={styles.inputGroup}>
+                <View style={styles.inputGroupLast}>
                   <Text style={styles.inputLabel}>Harita Adresi</Text>
                   <TextInput
                     style={[styles.input, styles.textArea]}
@@ -604,17 +648,21 @@ export default function BusinessSettingsScreen() {
           {/* 6. ÇALIŞMA TAB */}
           {activeTab === 'working' && (
             <View style={styles.section}>
-              {/* Çalışma Saatleri */}
-              <View style={styles.card}>
-                <Text style={styles.cardTitle}>Çalışma Saatleri</Text>
-                <Text style={styles.cardDescription}>Her gün için açılış ve kapanış saatlerini belirleyin</Text>
+              <Text style={styles.sectionTitle}>Çalışma Saatleri</Text>
 
-                {DAYS.map((day) => {
+              <View style={styles.card}>
+                {DAYS.map((day, index) => {
                   const dayData = (formData.workingHours as WorkingHours)?.[day.key as keyof WorkingHours];
                   const isClosed = dayData?.closed || false;
 
                   return (
-                    <View key={day.key} style={styles.dayRow}>
+                    <View
+                      key={day.key}
+                      style={[
+                        styles.dayRow,
+                        index === DAYS.length - 1 && styles.dayRowLast
+                      ]}
+                    >
                       <View style={styles.dayHeader}>
                         <Text style={[styles.dayLabel, isClosed && styles.dayLabelClosed]}>
                           {day.label}
@@ -636,7 +684,7 @@ export default function BusinessSettingsScreen() {
                             style={styles.timeButton}
                             onPress={() => setShowTimePicker({ day: day.key, field: 'start' })}
                           >
-                            <Ionicons name="time-outline" size={16} color="#6B7280" />
+                            <Ionicons name="time-outline" size={16} color={THEME_COLOR} />
                             <Text style={styles.timeText}>{dayData?.start || '09:00'}</Text>
                           </TouchableOpacity>
                           <Text style={styles.timeSeparator}>-</Text>
@@ -644,7 +692,7 @@ export default function BusinessSettingsScreen() {
                             style={styles.timeButton}
                             onPress={() => setShowTimePicker({ day: day.key, field: 'end' })}
                           >
-                            <Ionicons name="time-outline" size={16} color="#6B7280" />
+                            <Ionicons name="time-outline" size={16} color={THEME_COLOR} />
                             <Text style={styles.timeText}>{dayData?.end || '18:00'}</Text>
                           </TouchableOpacity>
                         </View>
@@ -655,9 +703,9 @@ export default function BusinessSettingsScreen() {
               </View>
 
               {/* Randevu Ayarları */}
-              <View style={styles.card}>
-                <Text style={styles.cardTitle}>Randevu Ayarları</Text>
+              <Text style={[styles.sectionTitle, { marginTop: 24 }]}>Randevu Ayarları</Text>
 
+              <View style={styles.card}>
                 {/* Takvim Zaman Aralıkları */}
                 <View style={styles.settingRow}>
                   <View style={styles.settingInfo}>
@@ -688,7 +736,7 @@ export default function BusinessSettingsScreen() {
                     </View>
                     <View style={styles.settingTextContainer}>
                       <Text style={styles.settingLabel}>Kara Liste Eşiği</Text>
-                      <Text style={styles.settingDescription}>Kaç kez gelmezse otomatik kara listeye alınır</Text>
+                      <Text style={styles.settingDescription}>Kaç kez gelmezse kara listeye alınır</Text>
                     </View>
                   </View>
                   <View style={styles.counterContainer}>
@@ -721,7 +769,7 @@ export default function BusinessSettingsScreen() {
                       <Ionicons name="notifications-outline" size={20} color="#059669" />
                     </View>
                     <View style={styles.settingTextContainer}>
-                      <Text style={styles.settingLabel}>Randevu Hatırlatma Süresi</Text>
+                      <Text style={styles.settingLabel}>Hatırlatma Süresi</Text>
                       <Text style={styles.settingDescription}>WhatsApp hatırlatma zamanı</Text>
                     </View>
                   </View>
@@ -737,13 +785,13 @@ export default function BusinessSettingsScreen() {
                 </View>
 
                 {/* Kredi Kartı ile Ödeme */}
-                <View style={styles.settingRow}>
+                <View style={[styles.settingRow, styles.settingRowLast]}>
                   <View style={styles.settingInfo}>
                     <View style={[styles.settingIcon, { backgroundColor: '#FEF3C7' }]}>
                       <Ionicons name="card-outline" size={20} color="#D97706" />
                     </View>
                     <View style={styles.settingTextContainer}>
-                      <Text style={styles.settingLabel}>Kredi Kartı ile Ödeme</Text>
+                      <Text style={styles.settingLabel}>Kart ile Ödeme</Text>
                       <Text style={styles.settingDescription}>Müşteriler kart ile ödeme yapabilir</Text>
                     </View>
                   </View>
@@ -761,15 +809,24 @@ export default function BusinessSettingsScreen() {
           {/* 7. BELGELER TAB */}
           {activeTab === 'documents' && (
             <View style={styles.section}>
+              <Text style={styles.sectionTitle}>İşletme Belgeleri</Text>
+
               <View style={styles.card}>
-                <Text style={styles.cardTitle}>İşletme Belgeleri</Text>
-                <Text style={styles.cardDescription}>Ödeme alabilmek için gerekli belgeler</Text>
+                <View style={styles.cardHeader}>
+                  <View style={[styles.cardIcon, { backgroundColor: '#E0E7FF' }]}>
+                    <Ionicons name="document-text" size={20} color="#6366F1" />
+                  </View>
+                  <View style={styles.cardTitleContainer}>
+                    <Text style={styles.cardTitle}>Ödeme Belgeleri</Text>
+                    <Text style={styles.cardDescription}>Ödeme alabilmek için gerekli belgeler</Text>
+                  </View>
+                </View>
 
                 {/* Kimlik Belgesi */}
                 <View style={styles.documentRow}>
                   <View style={styles.documentInfo}>
                     <View style={[styles.documentIcon, { backgroundColor: '#DBEAFE' }]}>
-                      <Ionicons name="card-outline" size={20} color="#3B82F6" />
+                      <Ionicons name="card-outline" size={18} color="#3B82F6" />
                     </View>
                     <View>
                       <Text style={styles.documentLabel}>Kimlik Belgesi</Text>
@@ -796,7 +853,7 @@ export default function BusinessSettingsScreen() {
                 <View style={styles.documentRow}>
                   <View style={styles.documentInfo}>
                     <View style={[styles.documentIcon, { backgroundColor: '#D1FAE5' }]}>
-                      <Ionicons name="document-text-outline" size={20} color="#059669" />
+                      <Ionicons name="document-text-outline" size={18} color="#059669" />
                     </View>
                     <View>
                       <Text style={styles.documentLabel}>Vergi Levhası</Text>
@@ -834,10 +891,10 @@ export default function BusinessSettingsScreen() {
                 </View>
 
                 {/* İmza Sirküleri */}
-                <View style={styles.documentRow}>
+                <View style={[styles.documentRow, styles.documentRowLast]}>
                   <View style={styles.documentInfo}>
                     <View style={[styles.documentIcon, { backgroundColor: '#FEF3C7' }]}>
-                      <Ionicons name="create-outline" size={20} color="#D97706" />
+                      <Ionicons name="create-outline" size={18} color="#D97706" />
                     </View>
                     <View>
                       <Text style={styles.documentLabel}>İmza Sirküleri</Text>
@@ -862,22 +919,31 @@ export default function BusinessSettingsScreen() {
               </View>
 
               {/* Abonelik Bilgisi */}
+              <Text style={[styles.sectionTitle, { marginTop: 24 }]}>Abonelik Bilgisi</Text>
+
               <View style={styles.card}>
-                <Text style={styles.cardTitle}>Abonelik Bilgisi</Text>
-                <View style={styles.subscriptionInfo}>
-                  <View style={styles.subscriptionRow}>
+                <View style={styles.subscriptionRow}>
+                  <View style={styles.subscriptionInfo}>
+                    <View style={[styles.subscriptionIcon, { backgroundColor: '#EFF6FF' }]}>
+                      <Ionicons name="ribbon-outline" size={20} color={THEME_COLOR} />
+                    </View>
                     <Text style={styles.subscriptionLabel}>Plan</Text>
-                    <View style={styles.planBadge}>
-                      <Text style={styles.planText}>{data.plan}</Text>
-                    </View>
                   </View>
-                  <View style={styles.subscriptionRow}>
-                    <Text style={styles.subscriptionLabel}>Durum</Text>
-                    <View style={[styles.statusBadge, data.status === 'active' && styles.statusActive]}>
-                      <Text style={[styles.statusText, data.status === 'active' && styles.statusTextActive]}>
-                        {data.status === 'active' ? 'Aktif' : data.status}
-                      </Text>
+                  <View style={styles.planBadge}>
+                    <Text style={styles.planText}>{data.plan}</Text>
+                  </View>
+                </View>
+                <View style={[styles.subscriptionRow, styles.subscriptionRowLast]}>
+                  <View style={styles.subscriptionInfo}>
+                    <View style={[styles.subscriptionIcon, { backgroundColor: '#D1FAE5' }]}>
+                      <Ionicons name="checkmark-circle-outline" size={20} color="#059669" />
                     </View>
+                    <Text style={styles.subscriptionLabel}>Durum</Text>
+                  </View>
+                  <View style={[styles.statusBadge, data.status === 'active' && styles.statusActive]}>
+                    <Text style={[styles.statusText, data.status === 'active' && styles.statusTextActive]}>
+                      {data.status === 'active' ? 'Aktif' : data.status}
+                    </Text>
                   </View>
                 </View>
               </View>
@@ -1085,54 +1151,59 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
 
-  // Header
+  // Header - Diğer sayfalara uygun
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: '#fff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    paddingBottom: 12,
   },
   backButton: {
-    padding: 8,
-    marginRight: 8,
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: '#fff',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    elevation: 2,
   },
-  headerTitle: {
+  headerContent: {
     flex: 1,
   },
   title: {
-    fontSize: 18,
+    fontSize: 24,
     fontWeight: '700',
     color: '#1F2937',
+    letterSpacing: -0.5,
   },
   subtitle: {
-    fontSize: 12,
+    fontSize: 13,
     color: '#6B7280',
     marginTop: 2,
   },
   saveButton: {
+    marginLeft: 12,
+  },
+  saveButtonGradient: {
     width: 40,
     height: 40,
-    borderRadius: 20,
-    backgroundColor: '#059669',
+    borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  saveButtonDisabled: {
-    opacity: 0.6,
-  },
 
-  // Tabs
+  // Tabs - Diğer sayfalara uygun
   tabContainer: {
-    backgroundColor: '#fff',
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
+    marginTop: 8,
   },
   tabScroll: {
-    paddingHorizontal: 16,
+    paddingHorizontal: 20,
     gap: 8,
   },
   tabWrapper: {
@@ -1142,7 +1213,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 14,
-    paddingVertical: 8,
+    paddingVertical: 10,
     borderRadius: 20,
     gap: 6,
   },
@@ -1150,9 +1221,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 14,
-    paddingVertical: 8,
+    paddingVertical: 10,
     borderRadius: 20,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
     gap: 6,
   },
   tabTextActive: {
@@ -1167,52 +1240,77 @@ const styles = StyleSheet.create({
   },
 
   scrollContent: {
-    padding: 16,
+    paddingTop: 20,
   },
 
-  // Section
+  // Section - Diğer sayfalara uygun
   section: {
-    gap: 16,
+    paddingHorizontal: 20,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1F2937',
+    marginBottom: 12,
   },
 
-  // Card
+  // Card - Diğer sayfalara uygun
   card: {
     backgroundColor: '#fff',
     borderRadius: 16,
     padding: 16,
+    marginBottom: 16,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.04,
     shadowRadius: 8,
     elevation: 2,
   },
+  cardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  cardIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  cardTitleContainer: {
+    flex: 1,
+    marginLeft: 12,
+  },
   cardTitle: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '600',
     color: '#1F2937',
-    marginBottom: 4,
   },
   cardDescription: {
     fontSize: 12,
     color: '#9CA3AF',
-    marginBottom: 16,
+    marginTop: 2,
   },
 
   // Input
   inputGroup: {
     marginBottom: 16,
   },
+  inputGroupLast: {
+    marginBottom: 0,
+  },
   inputLabel: {
     fontSize: 13,
     fontWeight: '500',
     color: '#4B5563',
-    marginBottom: 6,
+    marginBottom: 8,
   },
   input: {
     backgroundColor: '#F9FAFB',
     borderWidth: 1,
     borderColor: '#E5E7EB',
-    borderRadius: 10,
+    borderRadius: 12,
     paddingHorizontal: 14,
     paddingVertical: 12,
     fontSize: 15,
@@ -1229,7 +1327,7 @@ const styles = StyleSheet.create({
   inputHint: {
     fontSize: 11,
     color: '#9CA3AF',
-    marginTop: 4,
+    marginTop: 6,
   },
 
   // Select
@@ -1240,7 +1338,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#F9FAFB',
     borderWidth: 1,
     borderColor: '#E5E7EB',
-    borderRadius: 10,
+    borderRadius: 12,
     paddingHorizontal: 14,
     paddingVertical: 12,
   },
@@ -1255,19 +1353,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 12,
   },
-  colorPreviewLarge: {
+  colorPreview: {
     width: 48,
     height: 48,
     borderRadius: 12,
     borderWidth: 2,
     borderColor: '#E5E7EB',
   },
-  colorInputLarge: {
+  colorInput: {
     flex: 1,
     backgroundColor: '#F9FAFB',
     borderWidth: 1,
     borderColor: '#E5E7EB',
-    borderRadius: 10,
+    borderRadius: 12,
     paddingHorizontal: 14,
     paddingVertical: 12,
     fontSize: 15,
@@ -1276,19 +1374,17 @@ const styles = StyleSheet.create({
 
   // Image Picker
   imagePickerContainer: {
-    position: 'relative',
     alignSelf: 'center',
-    marginTop: 8,
   },
   logoPreview: {
-    width: 120,
-    height: 120,
+    width: 100,
+    height: 100,
     borderRadius: 16,
     backgroundColor: '#F3F4F6',
   },
   imagePlaceholder: {
-    width: 120,
-    height: 120,
+    width: 100,
+    height: 100,
     borderRadius: 16,
     backgroundColor: '#F3F4F6',
     justifyContent: 'center',
@@ -1298,33 +1394,22 @@ const styles = StyleSheet.create({
     borderStyle: 'dashed',
   },
   imagePlaceholderText: {
-    fontSize: 12,
+    fontSize: 11,
     color: '#9CA3AF',
-    marginTop: 8,
-  },
-  imageOverlay: {
-    position: 'absolute',
-    bottom: 8,
-    right: 8,
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: THEME_COLOR,
-    justifyContent: 'center',
-    alignItems: 'center',
+    marginTop: 6,
   },
   headerImageContainer: {
-    marginTop: 8,
+    marginTop: 4,
   },
   headerImagePreview: {
     width: '100%',
-    height: 120,
+    height: 100,
     borderRadius: 12,
     backgroundColor: '#F3F4F6',
   },
   headerImagePlaceholder: {
     width: '100%',
-    height: 120,
+    height: 100,
     borderRadius: 12,
     backgroundColor: '#F3F4F6',
     justifyContent: 'center',
@@ -1341,11 +1426,16 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#F3F4F6',
   },
+  dayRowLast: {
+    marginBottom: 0,
+    paddingBottom: 0,
+    borderBottomWidth: 0,
+  },
   dayHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 8,
+    marginBottom: 10,
   },
   dayLabel: {
     fontSize: 15,
@@ -1376,8 +1466,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#F9FAFB',
     borderWidth: 1,
     borderColor: '#E5E7EB',
-    borderRadius: 10,
-    paddingHorizontal: 12,
+    borderRadius: 12,
+    paddingHorizontal: 14,
     paddingVertical: 10,
     gap: 8,
   },
@@ -1389,6 +1479,7 @@ const styles = StyleSheet.create({
   timeSeparator: {
     fontSize: 16,
     color: '#9CA3AF',
+    fontWeight: '500',
   },
 
   // Settings Row
@@ -1396,9 +1487,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: 12,
+    paddingVertical: 14,
     borderBottomWidth: 1,
     borderBottomColor: '#F3F4F6',
+  },
+  settingRowLast: {
+    borderBottomWidth: 0,
+    paddingBottom: 0,
   },
   settingInfo: {
     flexDirection: 'row',
@@ -1409,7 +1504,7 @@ const styles = StyleSheet.create({
   settingIcon: {
     width: 40,
     height: 40,
-    borderRadius: 10,
+    borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -1441,12 +1536,12 @@ const styles = StyleSheet.create({
   counterContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 10,
   },
   counterButton: {
     width: 32,
     height: 32,
-    borderRadius: 8,
+    borderRadius: 10,
     backgroundColor: '#EFF6FF',
     justifyContent: 'center',
     alignItems: 'center',
@@ -1464,9 +1559,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: 12,
+    paddingVertical: 14,
     borderBottomWidth: 1,
     borderBottomColor: '#F3F4F6',
+  },
+  documentRowLast: {
+    borderBottomWidth: 0,
+    paddingBottom: 0,
   },
   documentInfo: {
     flexDirection: 'row',
@@ -1475,8 +1574,8 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   documentIcon: {
-    width: 40,
-    height: 40,
+    width: 36,
+    height: 36,
     borderRadius: 10,
     justifyContent: 'center',
     alignItems: 'center',
@@ -1494,7 +1593,7 @@ const styles = StyleSheet.create({
   documentButton: {
     paddingHorizontal: 16,
     paddingVertical: 8,
-    borderRadius: 8,
+    borderRadius: 10,
     backgroundColor: '#F3F4F6',
   },
   documentButtonUploaded: {
@@ -1510,22 +1609,39 @@ const styles = StyleSheet.create({
   },
 
   // Subscription
-  subscriptionInfo: {
-    gap: 12,
-  },
   subscriptionRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+  },
+  subscriptionRowLast: {
+    borderBottomWidth: 0,
+    paddingBottom: 0,
+  },
+  subscriptionInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  subscriptionIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   subscriptionLabel: {
     fontSize: 14,
-    color: '#6B7280',
+    fontWeight: '500',
+    color: '#4B5563',
   },
   planBadge: {
     backgroundColor: '#EFF6FF',
-    paddingHorizontal: 12,
-    paddingVertical: 4,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
     borderRadius: 12,
   },
   planText: {
@@ -1535,8 +1651,8 @@ const styles = StyleSheet.create({
   },
   statusBadge: {
     backgroundColor: '#F3F4F6',
-    paddingHorizontal: 12,
-    paddingVertical: 4,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
     borderRadius: 12,
   },
   statusActive: {
