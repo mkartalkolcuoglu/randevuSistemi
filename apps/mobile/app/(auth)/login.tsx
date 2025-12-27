@@ -1,119 +1,78 @@
-import { useState } from 'react';
-import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  StyleSheet,
-  KeyboardAvoidingView,
-  Platform,
-  Alert,
-  Image,
-} from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { useAuthStore } from '../../src/store/auth.store';
+import { Ionicons } from '@expo/vector-icons';
 
 export default function LoginScreen() {
   const router = useRouter();
-  const { sendOtp, isLoading } = useAuthStore();
-  const [phone, setPhone] = useState('');
-
-  const formatPhoneNumber = (text: string) => {
-    // Remove non-digits
-    const digits = text.replace(/\D/g, '');
-
-    // Limit to 11 digits
-    if (digits.length > 11) {
-      return phone;
-    }
-
-    return digits;
-  };
-
-  const handlePhoneChange = (text: string) => {
-    setPhone(formatPhoneNumber(text));
-  };
-
-  const handleSendOtp = async () => {
-    if (phone.length < 10) {
-      Alert.alert('Hata', 'Lütfen geçerli bir telefon numarası girin');
-      return;
-    }
-
-    const result = await sendOtp(phone);
-
-    if (result.success) {
-      router.push({
-        pathname: '/(auth)/verify',
-        params: { phone },
-      });
-    } else {
-      Alert.alert('Hata', result.message);
-    }
-  };
 
   return (
     <SafeAreaView style={styles.container}>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={styles.keyboardView}
-      >
-        <View style={styles.content}>
-          {/* Logo */}
-          <View style={styles.logoContainer}>
-            <View style={styles.logoPlaceholder}>
-              <Text style={styles.logoText}>N</Text>
-            </View>
-            <Text style={styles.appName}>Net Randevu</Text>
+      <View style={styles.content}>
+        {/* Logo */}
+        <View style={styles.logoContainer}>
+          <View style={styles.logoPlaceholder}>
+            <Text style={styles.logoText}>N</Text>
           </View>
+          <Text style={styles.appName}>Net Randevu</Text>
+          <Text style={styles.tagline}>Randevu yönetimi artık çok kolay</Text>
+        </View>
 
-          {/* Title */}
+        {/* Welcome Text */}
+        <View style={styles.welcomeContainer}>
           <Text style={styles.title}>Hoş Geldiniz</Text>
           <Text style={styles.subtitle}>
-            Devam etmek için telefon numaranızı girin
-          </Text>
-
-          {/* Phone Input */}
-          <View style={styles.inputContainer}>
-            <View style={styles.countryCode}>
-              <Text style={styles.countryCodeText}>+90</Text>
-            </View>
-            <TextInput
-              style={styles.input}
-              placeholder="5XX XXX XXXX"
-              placeholderTextColor="#9CA3AF"
-              keyboardType="phone-pad"
-              value={phone}
-              onChangeText={handlePhoneChange}
-              maxLength={11}
-              editable={!isLoading}
-            />
-          </View>
-
-          {/* Continue Button */}
-          <TouchableOpacity
-            style={[
-              styles.button,
-              (isLoading || phone.length < 10) && styles.buttonDisabled,
-            ]}
-            onPress={handleSendOtp}
-            disabled={isLoading || phone.length < 10}
-          >
-            <Text style={styles.buttonText}>
-              {isLoading ? 'Gönderiliyor...' : 'Devam Et'}
-            </Text>
-          </TouchableOpacity>
-
-          {/* Terms */}
-          <Text style={styles.terms}>
-            Devam ederek{' '}
-            <Text style={styles.termsLink}>Kullanım Koşulları</Text> ve{' '}
-            <Text style={styles.termsLink}>Gizlilik Politikası</Text>'nı kabul
-            etmiş olursunuz.
+            Devam etmek için giriş türünüzü seçin
           </Text>
         </View>
-      </KeyboardAvoidingView>
+
+        {/* Login Options */}
+        <View style={styles.optionsContainer}>
+          {/* Business Login */}
+          <TouchableOpacity
+            style={styles.optionCard}
+            onPress={() => router.push('/(auth)/business-login')}
+            activeOpacity={0.8}
+          >
+            <View style={[styles.optionIcon, { backgroundColor: '#DBEAFE' }]}>
+              <Ionicons name="business" size={32} color="#3B82F6" />
+            </View>
+            <View style={styles.optionContent}>
+              <Text style={styles.optionTitle}>İşletme Girişi</Text>
+              <Text style={styles.optionDescription}>
+                İşletme sahibi veya personel olarak giriş yapın
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={24} color="#9CA3AF" />
+          </TouchableOpacity>
+
+          {/* Customer Login */}
+          <TouchableOpacity
+            style={styles.optionCard}
+            onPress={() => router.push('/(auth)/customer-login')}
+            activeOpacity={0.8}
+          >
+            <View style={[styles.optionIcon, { backgroundColor: '#D1FAE5' }]}>
+              <Ionicons name="person" size={32} color="#059669" />
+            </View>
+            <View style={styles.optionContent}>
+              <Text style={styles.optionTitle}>Müşteri Girişi</Text>
+              <Text style={styles.optionDescription}>
+                Randevu almak için telefon numaranızla giriş yapın
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={24} color="#9CA3AF" />
+          </TouchableOpacity>
+        </View>
+
+        {/* Footer */}
+        <View style={styles.footer}>
+          <Text style={styles.footerText}>
+            Henüz bir hesabınız yok mu?{' '}
+            <Text style={styles.footerLink}>Bize ulaşın</Text>
+          </Text>
+        </View>
+      </View>
     </SafeAreaView>
   );
 }
@@ -123,17 +82,14 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#fff',
   },
-  keyboardView: {
-    flex: 1,
-  },
   content: {
     flex: 1,
     padding: 24,
-    justifyContent: 'center',
   },
   logoContainer: {
     alignItems: 'center',
-    marginBottom: 40,
+    marginTop: 40,
+    marginBottom: 48,
   },
   logoPlaceholder: {
     width: 80,
@@ -142,7 +98,12 @@ const styles = StyleSheet.create({
     backgroundColor: '#3B82F6',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 16,
+    shadowColor: '#3B82F6',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
   },
   logoText: {
     fontSize: 40,
@@ -150,12 +111,20 @@ const styles = StyleSheet.create({
     color: '#fff',
   },
   appName: {
-    fontSize: 24,
+    fontSize: 28,
     fontWeight: '700',
     color: '#1F2937',
+    marginBottom: 4,
+  },
+  tagline: {
+    fontSize: 14,
+    color: '#6B7280',
+  },
+  welcomeContainer: {
+    marginBottom: 32,
   },
   title: {
-    fontSize: 28,
+    fontSize: 24,
     fontWeight: '700',
     color: '#1F2937',
     textAlign: 'center',
@@ -165,56 +134,55 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#6B7280',
     textAlign: 'center',
-    marginBottom: 32,
   },
-  inputContainer: {
+  optionsContainer: {
+    gap: 16,
+  },
+  optionCard: {
     flexDirection: 'row',
-    marginBottom: 24,
-  },
-  countryCode: {
-    backgroundColor: '#F3F4F6',
-    paddingHorizontal: 16,
-    paddingVertical: 16,
-    borderRadius: 12,
-    marginRight: 12,
-    justifyContent: 'center',
-  },
-  countryCodeText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#374151',
-  },
-  input: {
-    flex: 1,
-    backgroundColor: '#F3F4F6',
-    paddingHorizontal: 16,
-    paddingVertical: 16,
-    borderRadius: 12,
-    fontSize: 16,
-    color: '#1F2937',
-  },
-  button: {
-    backgroundColor: '#3B82F6',
-    paddingVertical: 16,
-    borderRadius: 12,
     alignItems: 'center',
-    marginBottom: 24,
+    backgroundColor: '#F9FAFB',
+    borderRadius: 16,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
   },
-  buttonDisabled: {
-    backgroundColor: '#9CA3AF',
+  optionIcon: {
+    width: 60,
+    height: 60,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  buttonText: {
-    color: '#fff',
-    fontSize: 16,
+  optionContent: {
+    flex: 1,
+    marginLeft: 16,
+    marginRight: 8,
+  },
+  optionTitle: {
+    fontSize: 18,
     fontWeight: '600',
+    color: '#1F2937',
+    marginBottom: 4,
   },
-  terms: {
-    fontSize: 12,
-    color: '#9CA3AF',
-    textAlign: 'center',
+  optionDescription: {
+    fontSize: 13,
+    color: '#6B7280',
     lineHeight: 18,
   },
-  termsLink: {
+  footer: {
+    position: 'absolute',
+    bottom: 32,
+    left: 24,
+    right: 24,
+    alignItems: 'center',
+  },
+  footerText: {
+    fontSize: 14,
+    color: '#6B7280',
+  },
+  footerLink: {
     color: '#3B82F6',
+    fontWeight: '600',
   },
 });

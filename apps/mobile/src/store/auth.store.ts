@@ -5,6 +5,10 @@ import { authService } from '../services/auth.service';
 interface AuthStore extends AuthState {
   // Actions
   initialize: () => Promise<void>;
+  loginWithCredentials: (username: string, password: string) => Promise<{
+    success: boolean;
+    message: string;
+  }>;
   sendOtp: (phone: string) => Promise<{ success: boolean; message: string }>;
   verifyOtp: (phone: string, code: string) => Promise<{
     success: boolean;
@@ -32,36 +36,81 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
       const isAuth = await authService.isAuthenticated();
       if (isAuth) {
         const user = await authService.getStoredUser();
-        if (user) {
-          set({
-            isAuthenticated: true,
-            user,
-            selectedTenant: user.tenantId
-              ? {
-                  id: user.tenantId,
-                  businessName: user.tenantName || '',
-                  slug: '',
-                }
-              : null,
-          });
-        } else {
-          // Token exists but no user data - try to refresh
-          const refreshedUser = await authService.refreshUserData();
-          if (refreshedUser) {
-            set({
-              isAuthenticated: true,
-              user: refreshedUser,
-            });
-          } else {
-            // Failed to get user data - logout
+        if (user && user.tenantId) {
+          // Verify token is still valid by making a test API call
+          try {
+            const refreshedUser = await authService.refreshUserData();
+            if (refreshedUser) {
+              set({
+                isAuthenticated: true,
+                user: refreshedUser,
+                selectedTenant: refreshedUser.tenantId
+                  ? {
+                      id: refreshedUser.tenantId,
+                      businessName: refreshedUser.tenantName || '',
+                      slug: '',
+                    }
+                  : null,
+              });
+            } else {
+              // Token is invalid - logout
+              console.log('Token validation failed - no user data returned');
+              await authService.logout();
+              set({ isAuthenticated: false, user: null, selectedTenant: null });
+            }
+          } catch (error) {
+            // API call failed - token might be expired
+            console.log('Token validation failed, logging out:', error);
             await authService.logout();
-            set({ isAuthenticated: false, user: null });
+            set({ isAuthenticated: false, user: null, selectedTenant: null });
           }
+        } else {
+          // No valid user data - logout
+          console.log('No valid stored user, logging out');
+          await authService.logout();
+          set({ isAuthenticated: false, user: null, selectedTenant: null });
         }
+      } else {
+        // Not authenticated
+        set({ isAuthenticated: false, user: null, selectedTenant: null });
       }
     } catch (error) {
       console.error('Auth initialization error:', error);
-      set({ isAuthenticated: false, user: null });
+      await authService.logout();
+      set({ isAuthenticated: false, user: null, selectedTenant: null });
+    } finally {
+      set({ isLoading: false });
+    }
+  },
+
+  // Login with credentials (for business users)
+  loginWithCredentials: async (username: string, password: string) => {
+    set({ isLoading: true });
+    try {
+      const result = await authService.loginWithCredentials(username, password);
+
+      if (result.success && result.user) {
+        set({
+          isAuthenticated: true,
+          user: result.user,
+          selectedTenant: result.user.tenantId
+            ? {
+                id: result.user.tenantId,
+                businessName: result.user.tenantName || '',
+                slug: '',
+              }
+            : null,
+        });
+        return {
+          success: true,
+          message: 'Giriş başarılı',
+        };
+      }
+
+      return {
+        success: false,
+        message: result.message || 'Giriş başarısız',
+      };
     } finally {
       set({ isLoading: false });
     }

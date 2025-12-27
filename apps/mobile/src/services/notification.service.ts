@@ -9,6 +9,8 @@ Notifications.setNotificationHandler({
     shouldShowAlert: true,
     shouldPlaySound: true,
     shouldSetBadge: true,
+    shouldShowBanner: true,
+    shouldShowList: true,
   }),
 });
 
@@ -110,8 +112,11 @@ class NotificationService {
     data?: Record<string, any>,
     triggerSeconds?: number
   ): Promise<string> {
-    const trigger = triggerSeconds
-      ? { seconds: triggerSeconds }
+    const trigger: Notifications.NotificationTriggerInput = triggerSeconds
+      ? {
+          type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
+          seconds: triggerSeconds
+        }
       : null;
 
     return await Notifications.scheduleNotificationAsync({

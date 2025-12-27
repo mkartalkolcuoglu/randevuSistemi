@@ -1,7 +1,11 @@
 // API Configuration
-// Always use production API (Vercel)
+// Production API
 export const API_BASE_URL = 'https://admin.netrandevu.com';
 export const WEB_BASE_URL = 'https://netrandevu.com';
+
+// Local development (uncomment and update IP for local testing)
+// export const API_BASE_URL = 'http://192.168.1.104:3001';
+// export const WEB_BASE_URL = 'http://192.168.1.104:3000';
 
 // App Configuration
 export const APP_NAME = 'Net Randevu';

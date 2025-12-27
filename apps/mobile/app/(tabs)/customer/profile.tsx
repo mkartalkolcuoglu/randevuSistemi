@@ -37,17 +37,17 @@ export default function CustomerProfileScreen() {
     {
       icon: 'notifications-outline',
       label: 'Bildirim Ayarları',
-      onPress: () => router.push('/profile/notifications'),
+      onPress: () => Alert.alert('Bildirim Ayarları', 'Bu özellik yakında eklenecek'),
     },
     {
       icon: 'help-circle-outline',
       label: 'Yardım & Destek',
-      onPress: () => router.push('/profile/help'),
+      onPress: () => Alert.alert('Yardım', 'Destek için: destek@netrandevu.com'),
     },
     {
       icon: 'document-text-outline',
       label: 'Gizlilik Politikası',
-      onPress: () => router.push('/profile/privacy'),
+      onPress: () => Alert.alert('Gizlilik Politikası', 'Bu özellik yakında eklenecek'),
     },
   ];
 

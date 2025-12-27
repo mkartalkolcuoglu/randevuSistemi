@@ -4,6 +4,40 @@ import { OtpResponse, VerifyOtpResponse, User, Tenant } from '../types';
 
 export const authService = {
   /**
+   * Login with username and password (for business users)
+   */
+  async loginWithCredentials(
+    username: string,
+    password: string
+  ): Promise<{ success: boolean; message: string; user?: User; tenants?: Tenant[] }> {
+    try {
+      const response = await api.post('/api/mobile/auth/login', {
+        username,
+        password,
+      });
+
+      if (response.data.success && response.data.token) {
+        await SecureStore.setItemAsync('authToken', response.data.token);
+
+        if (response.data.user) {
+          await SecureStore.setItemAsync(
+            'userData',
+            JSON.stringify(response.data.user)
+          );
+        }
+      }
+
+      return response.data;
+    } catch (error: any) {
+      console.error('Login error:', error);
+      return {
+        success: false,
+        message: error.response?.data?.error || 'Giriş başarısız',
+      };
+    }
+  },
+
+  /**
    * Send OTP to phone number
    */
   async sendOtp(phone: string): Promise<OtpResponse> {

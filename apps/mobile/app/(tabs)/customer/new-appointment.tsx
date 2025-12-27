@@ -129,6 +129,7 @@ export default function NewAppointmentScreen() {
     setIsSubmitting(true);
     try {
       await appointmentService.createAppointment({
+        tenantId: selectedTenant?.id || '',
         serviceId: selectedService.id,
         staffId: selectedStaff.id,
         date: selectedDate.toISOString().split('T')[0],

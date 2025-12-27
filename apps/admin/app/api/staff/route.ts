@@ -28,6 +28,13 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    if (!tenantId) {
+      return NextResponse.json(
+        { success: false, error: 'Tenant ID bulunamadı' },
+        { status: 401 }
+      );
+    }
+
     const { searchParams } = new URL(request.url);
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '20');
@@ -41,10 +48,10 @@ export async function GET(request: NextRequest) {
     
     if (search) {
       where.OR = [
-        { firstName: { contains: search } },
-        { lastName: { contains: search } },
-        { email: { contains: search } },
-        { position: { contains: search } }
+        { firstName: { contains: search, mode: 'insensitive' } },
+        { lastName: { contains: search, mode: 'insensitive' } },
+        { email: { contains: search, mode: 'insensitive' } },
+        { position: { contains: search, mode: 'insensitive' } }
       ];
     }
     

@@ -35,8 +35,8 @@ export default function CustomerAppointmentsScreen() {
     else setIsLoading(true);
 
     try {
-      const data = await appointmentService.getMyAppointments();
-      setAppointments(data);
+      const response = await appointmentService.getMyAppointments();
+      setAppointments(response.data || []);
     } catch (error) {
       console.error('Error fetching appointments:', error);
     } finally {

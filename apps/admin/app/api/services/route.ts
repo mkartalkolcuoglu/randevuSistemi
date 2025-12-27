@@ -27,6 +27,13 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    if (!tenantId) {
+      return NextResponse.json(
+        { success: false, error: 'Tenant ID bulunamadı' },
+        { status: 401 }
+      );
+    }
+
     const { searchParams } = new URL(request.url);
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '20');
@@ -40,9 +47,9 @@ export async function GET(request: NextRequest) {
     
     if (search) {
       where.OR = [
-        { name: { contains: search } },
-        { description: { contains: search } },
-        { category: { contains: search } }
+        { name: { contains: search, mode: 'insensitive' } },
+        { description: { contains: search, mode: 'insensitive' } },
+        { category: { contains: search, mode: 'insensitive' } }
       ];
     }
     
@@ -69,10 +76,11 @@ export async function GET(request: NextRequest) {
       limit,
       totalPages: Math.ceil(total / limit)
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error fetching services:', error);
+    console.error('Error details:', error.message);
     return NextResponse.json(
-      { success: false, error: 'Failed to fetch services' },
+      { success: false, error: error.message || 'Failed to fetch services' },
       { status: 500 }
     );
   }

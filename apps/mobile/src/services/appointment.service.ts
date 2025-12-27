@@ -229,4 +229,20 @@ export const appointmentService = {
       };
     }
   },
+
+  /**
+   * Delete appointment (staff/owner)
+   */
+  async deleteAppointment(id: string): Promise<ApiResponse<void>> {
+    try {
+      const response = await api.delete(`/api/mobile/appointments/${id}`);
+      return response.data;
+    } catch (error: any) {
+      console.error('Delete appointment error:', error);
+      return {
+        success: false,
+        error: error.response?.data?.error || 'Randevu silinemedi',
+      };
+    }
+  },
 };
