@@ -23,9 +23,10 @@ export async function POST(request: NextRequest) {
       where: {
         OR: [
           { email: username.toLowerCase() },
-          { username: username.toLowerCase() },
+          { username: username },
         ],
         status: 'active',
+        canLogin: true,
       },
       include: {
         tenant: {
@@ -80,7 +81,7 @@ export async function POST(request: NextRequest) {
     const tenant = await prisma.tenant.findFirst({
       where: {
         OR: [
-          { username: username.toLowerCase() },
+          { username: username },
           { ownerEmail: username.toLowerCase() },
           { slug: username.toLowerCase() },
         ],
@@ -88,7 +89,10 @@ export async function POST(request: NextRequest) {
     });
 
     if (tenant && tenant.password) {
-      const isValid = await bcrypt.compare(password, tenant.password);
+      // Web panel uses plain text password for tenant, so check both
+      const isPlainTextMatch = tenant.password === password;
+      const isHashMatch = tenant.password.startsWith('$2') ? await bcrypt.compare(password, tenant.password) : false;
+      const isValid = isPlainTextMatch || isHashMatch;
 
       if (isValid) {
         const user = {

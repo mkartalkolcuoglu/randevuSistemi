@@ -1,188 +1,278 @@
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Image, Dimensions, StatusBar } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
+
+const { width, height } = Dimensions.get('window');
 
 export default function LoginScreen() {
   const router = useRouter();
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.content}>
-        {/* Logo */}
-        <View style={styles.logoContainer}>
-          <View style={styles.logoPlaceholder}>
-            <Text style={styles.logoText}>N</Text>
+    <View style={styles.container}>
+      <StatusBar barStyle="light-content" />
+
+      {/* Background Gradient */}
+      <LinearGradient
+        colors={['#667eea', '#764ba2']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.gradientBackground}
+      />
+
+      {/* Decorative Circles */}
+      <View style={[styles.decorativeCircle, styles.circle1]} />
+      <View style={[styles.decorativeCircle, styles.circle2]} />
+      <View style={[styles.decorativeCircle, styles.circle3]} />
+
+      <SafeAreaView style={styles.safeArea}>
+        <View style={styles.content}>
+          {/* Logo Section */}
+          <View style={styles.logoSection}>
+            <View style={styles.logoContainer}>
+              <View style={styles.logoInner}>
+                <Ionicons name="calendar" size={48} color="#667eea" />
+              </View>
+            </View>
+            <Text style={styles.appName}>Net Randevu</Text>
+            <Text style={styles.tagline}>Profesyonel Randevu Yönetimi</Text>
           </View>
-          <Text style={styles.appName}>Net Randevu</Text>
-          <Text style={styles.tagline}>Randevu yönetimi artık çok kolay</Text>
-        </View>
 
-        {/* Welcome Text */}
-        <View style={styles.welcomeContainer}>
-          <Text style={styles.title}>Hoş Geldiniz</Text>
-          <Text style={styles.subtitle}>
-            Devam etmek için giriş türünüzü seçin
-          </Text>
-        </View>
+          {/* Cards Section */}
+          <View style={styles.cardsSection}>
+            {/* Business Login Card */}
+            <TouchableOpacity
+              style={styles.card}
+              onPress={() => router.push('/(auth)/business-login')}
+              activeOpacity={0.9}
+            >
+              <LinearGradient
+                colors={['#667eea', '#764ba2']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.cardGradient}
+              >
+                <View style={styles.cardIconContainer}>
+                  <Ionicons name="business" size={32} color="#fff" />
+                </View>
+                <View style={styles.cardContent}>
+                  <Text style={styles.cardTitle}>İşletme Girişi</Text>
+                  <Text style={styles.cardDescription}>
+                    İşletme sahibi veya personel olarak giriş yapın
+                  </Text>
+                </View>
+                <View style={styles.cardArrow}>
+                  <Ionicons name="arrow-forward" size={24} color="#fff" />
+                </View>
+              </LinearGradient>
+            </TouchableOpacity>
 
-        {/* Login Options */}
-        <View style={styles.optionsContainer}>
-          {/* Business Login */}
-          <TouchableOpacity
-            style={styles.optionCard}
-            onPress={() => router.push('/(auth)/business-login')}
-            activeOpacity={0.8}
-          >
-            <View style={[styles.optionIcon, { backgroundColor: '#DBEAFE' }]}>
-              <Ionicons name="business" size={32} color="#3B82F6" />
-            </View>
-            <View style={styles.optionContent}>
-              <Text style={styles.optionTitle}>İşletme Girişi</Text>
-              <Text style={styles.optionDescription}>
-                İşletme sahibi veya personel olarak giriş yapın
-              </Text>
-            </View>
-            <Ionicons name="chevron-forward" size={24} color="#9CA3AF" />
-          </TouchableOpacity>
+            {/* Customer Login Card */}
+            <TouchableOpacity
+              style={styles.card}
+              onPress={() => router.push('/(auth)/customer-login')}
+              activeOpacity={0.9}
+            >
+              <View style={styles.cardLight}>
+                <View style={[styles.cardIconContainer, styles.cardIconLight]}>
+                  <Ionicons name="person" size={32} color="#667eea" />
+                </View>
+                <View style={styles.cardContent}>
+                  <Text style={[styles.cardTitle, styles.cardTitleDark]}>Müşteri Girişi</Text>
+                  <Text style={[styles.cardDescription, styles.cardDescriptionDark]}>
+                    Randevularınızı görüntüleyin ve yönetin
+                  </Text>
+                </View>
+                <View style={styles.cardArrow}>
+                  <Ionicons name="arrow-forward" size={24} color="#667eea" />
+                </View>
+              </View>
+            </TouchableOpacity>
+          </View>
 
-          {/* Customer Login */}
-          <TouchableOpacity
-            style={styles.optionCard}
-            onPress={() => router.push('/(auth)/customer-login')}
-            activeOpacity={0.8}
-          >
-            <View style={[styles.optionIcon, { backgroundColor: '#D1FAE5' }]}>
-              <Ionicons name="person" size={32} color="#059669" />
-            </View>
-            <View style={styles.optionContent}>
-              <Text style={styles.optionTitle}>Müşteri Girişi</Text>
-              <Text style={styles.optionDescription}>
-                Randevu almak için telefon numaranızla giriş yapın
-              </Text>
-            </View>
-            <Ionicons name="chevron-forward" size={24} color="#9CA3AF" />
-          </TouchableOpacity>
-        </View>
+          {/* Footer */}
+          <View style={styles.footer}>
+            <Text style={styles.footerText}>
+              Henüz hesabınız yok mu?
+            </Text>
+            <TouchableOpacity>
+              <Text style={styles.footerLink}>İletişime Geçin</Text>
+            </TouchableOpacity>
+          </View>
 
-        {/* Footer */}
-        <View style={styles.footer}>
-          <Text style={styles.footerText}>
-            Henüz bir hesabınız yok mu?{' '}
-            <Text style={styles.footerLink}>Bize ulaşın</Text>
-          </Text>
+          {/* Version */}
+          <Text style={styles.version}>v1.0.0</Text>
         </View>
-      </View>
-    </SafeAreaView>
+      </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: '#667eea',
+  },
+  gradientBackground: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    top: 0,
+    bottom: 0,
+  },
+  decorativeCircle: {
+    position: 'absolute',
+    borderRadius: 1000,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  circle1: {
+    width: width * 0.8,
+    height: width * 0.8,
+    top: -width * 0.3,
+    right: -width * 0.2,
+  },
+  circle2: {
+    width: width * 0.6,
+    height: width * 0.6,
+    bottom: height * 0.1,
+    left: -width * 0.3,
+  },
+  circle3: {
+    width: width * 0.4,
+    height: width * 0.4,
+    bottom: -width * 0.1,
+    right: -width * 0.1,
+  },
+  safeArea: {
+    flex: 1,
   },
   content: {
     flex: 1,
-    padding: 24,
+    paddingHorizontal: 24,
+    justifyContent: 'center',
   },
-  logoContainer: {
+  logoSection: {
     alignItems: 'center',
-    marginTop: 40,
     marginBottom: 48,
   },
-  logoPlaceholder: {
+  logoContainer: {
+    width: 100,
+    height: 100,
+    borderRadius: 28,
+    backgroundColor: '#fff',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.2,
+    shadowRadius: 20,
+    elevation: 10,
+  },
+  logoInner: {
     width: 80,
     height: 80,
     borderRadius: 20,
-    backgroundColor: '#3B82F6',
+    backgroundColor: 'rgba(102, 126, 234, 0.1)',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 16,
-    shadowColor: '#3B82F6',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
-  },
-  logoText: {
-    fontSize: 40,
-    fontWeight: 'bold',
-    color: '#fff',
   },
   appName: {
-    fontSize: 28,
-    fontWeight: '700',
-    color: '#1F2937',
-    marginBottom: 4,
+    fontSize: 36,
+    fontWeight: '800',
+    color: '#fff',
+    letterSpacing: 0.5,
   },
   tagline: {
-    fontSize: 14,
-    color: '#6B7280',
-  },
-  welcomeContainer: {
-    marginBottom: 32,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#1F2937',
-    textAlign: 'center',
-    marginBottom: 8,
-  },
-  subtitle: {
     fontSize: 16,
-    color: '#6B7280',
-    textAlign: 'center',
+    color: 'rgba(255, 255, 255, 0.8)',
+    marginTop: 8,
+    fontWeight: '500',
   },
-  optionsContainer: {
+  cardsSection: {
     gap: 16,
   },
-  optionCard: {
+  card: {
+    borderRadius: 20,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  cardGradient: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F9FAFB',
-    borderRadius: 16,
     padding: 20,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
   },
-  optionIcon: {
+  cardLight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 20,
+    backgroundColor: '#fff',
+  },
+  cardIconContainer: {
     width: 60,
     height: 60,
     borderRadius: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  optionContent: {
+  cardIconLight: {
+    backgroundColor: 'rgba(102, 126, 234, 0.1)',
+  },
+  cardContent: {
     flex: 1,
     marginLeft: 16,
-    marginRight: 8,
   },
-  optionTitle: {
+  cardTitle: {
     fontSize: 18,
-    fontWeight: '600',
-    color: '#1F2937',
+    fontWeight: '700',
+    color: '#fff',
     marginBottom: 4,
   },
-  optionDescription: {
+  cardTitleDark: {
+    color: '#1a1a2e',
+  },
+  cardDescription: {
     fontSize: 13,
-    color: '#6B7280',
+    color: 'rgba(255, 255, 255, 0.85)',
     lineHeight: 18,
   },
-  footer: {
-    position: 'absolute',
-    bottom: 32,
-    left: 24,
-    right: 24,
+  cardDescriptionDark: {
+    color: '#6b7280',
+  },
+  cardArrow: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    justifyContent: 'center',
     alignItems: 'center',
+  },
+  footer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 48,
+    gap: 6,
   },
   footerText: {
     fontSize: 14,
-    color: '#6B7280',
+    color: 'rgba(255, 255, 255, 0.7)',
   },
   footerLink: {
-    color: '#3B82F6',
+    fontSize: 14,
+    color: '#fff',
     fontWeight: '600',
+  },
+  version: {
+    textAlign: 'center',
+    color: 'rgba(255, 255, 255, 0.5)',
+    fontSize: 12,
+    marginTop: 24,
   },
 });
