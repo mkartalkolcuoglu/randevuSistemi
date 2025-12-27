@@ -62,7 +62,12 @@ export async function GET(request: NextRequest) {
         { firstName: { contains: search, mode: 'insensitive' } },
         { lastName: { contains: search, mode: 'insensitive' } },
         { email: { contains: search, mode: 'insensitive' } },
-        { phone: { not: null, contains: search, mode: 'insensitive' } },
+        {
+          AND: [
+            { phone: { not: null } },
+            { phone: { contains: search, mode: 'insensitive' } }
+          ]
+        },
         { position: { contains: search, mode: 'insensitive' } },
       ];
     }
