@@ -86,17 +86,10 @@ export async function GET(request: NextRequest) {
       };
     }
 
+    // Note: services relation temporarily disabled - _ServiceToStaff table doesn't exist
     const staff = await prisma.staff.findMany({
       where: whereClause,
       orderBy: { firstName: 'asc' },
-      include: {
-        services: {
-          select: {
-            id: true,
-            name: true,
-          },
-        },
-      },
     });
 
     const formattedStaff = staff.map((s) => {
@@ -150,7 +143,7 @@ export async function GET(request: NextRequest) {
         notes: s.notes,
         canLogin: s.canLogin,
         role: s.role,
-        services: s.services,
+        services: [], // Temporarily empty - _ServiceToStaff table doesn't exist
         isActive: s.status === 'active',
         createdAt: s.createdAt.toISOString(),
         updatedAt: s.updatedAt.toISOString(),

@@ -18,6 +18,9 @@ api.interceptors.request.use(
       const token = await SecureStore.getItemAsync('authToken');
       if (token) {
         config.headers.Authorization = `Bearer ${token}`;
+        console.log('🔑 Token attached to request:', config.url);
+      } else {
+        console.log('⚠️ No token found for request:', config.url);
       }
 
       // Add tenant ID if available

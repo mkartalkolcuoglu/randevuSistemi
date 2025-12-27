@@ -163,10 +163,14 @@ export default function StaffTeamScreen() {
     else setIsLoading(true);
 
     try {
+      console.log('📡 Fetching staff...');
       const response = await api.get('/api/mobile/staff?includeAll=true');
+      console.log('✅ Staff fetched:', response.data.data?.length || 0, 'items');
       setStaff(response.data.data || []);
-    } catch (error) {
-      console.error('Error fetching staff:', error);
+    } catch (error: any) {
+      console.error('❌ Error fetching staff:', error?.message);
+      console.error('Response status:', error?.response?.status);
+      console.error('Response data:', JSON.stringify(error?.response?.data));
       setStaff([]);
     } finally {
       setIsLoading(false);

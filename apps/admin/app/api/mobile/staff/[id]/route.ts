@@ -43,20 +43,11 @@ export async function GET(
 
     const { id } = await params;
 
+    // Note: services relation temporarily disabled - _ServiceToStaff table doesn't exist
     const staff = await prisma.staff.findFirst({
       where: {
         id,
         tenantId: auth.tenantId,
-      },
-      include: {
-        services: {
-          select: {
-            id: true,
-            name: true,
-            duration: true,
-            price: true,
-          },
-        },
       },
     });
 
@@ -120,7 +111,7 @@ export async function GET(
         canLogin: staff.canLogin,
         role: staff.role,
         permissions: staff.permissions,
-        services: staff.services,
+        services: [], // Temporarily empty - _ServiceToStaff table doesn't exist
         isActive: staff.status === 'active',
         createdAt: staff.createdAt.toISOString(),
         updatedAt: staff.updatedAt.toISOString(),
