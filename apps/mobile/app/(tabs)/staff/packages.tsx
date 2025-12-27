@@ -1554,11 +1554,14 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderBottomWidth: 1,
     borderBottomColor: '#E5E7EB',
+    minHeight: 56,
   },
   filterContent: {
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingTop: 14,
+    paddingBottom: 14,
     gap: 8,
+    alignItems: 'center',
   },
   filterTab: {
     marginRight: 8,
