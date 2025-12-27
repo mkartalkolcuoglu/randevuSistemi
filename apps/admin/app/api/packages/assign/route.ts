@@ -31,10 +31,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get package details with items
+    // Get package details
     const packageData = await prisma.package.findUnique({
-      where: { id: packageId },
-      include: { items: true }
+      where: { id: packageId }
     });
 
     if (!packageData) {
@@ -43,6 +42,11 @@ export async function POST(request: NextRequest) {
         { status: 404 }
       );
     }
+
+    // Get package items separately (no relation in schema)
+    const packageItems = await prisma.packageItem.findMany({
+      where: { packageId }
+    });
 
     // Get customer details
     const customer = await prisma.customer.findUnique({
@@ -100,23 +104,32 @@ export async function POST(request: NextRequest) {
         staffId: staff.id,
         staffName: `${staff.firstName} ${staff.lastName}`,
         expiresAt: expiresAt ? new Date(expiresAt) : null,
-        status: 'active',
-        usages: {
-          create: packageData.items.map(item => ({
+        status: 'active'
+      }
+    });
+
+    // Create usages separately (no relation in schema)
+    const usages = await Promise.all(
+      packageItems.map(item =>
+        prisma.customerPackageUsage.create({
+          data: {
+            customerPackageId: customerPackage.id,
             itemType: item.itemType,
             itemId: item.itemId,
             itemName: item.itemName,
             totalQuantity: item.quantity,
             usedQuantity: 0,
             remainingQuantity: item.quantity
-          }))
-        }
-      },
-      include: {
-        usages: true,
-        package: true
-      }
-    });
+          }
+        })
+      )
+    );
+
+    const customerPackageWithDetails = {
+      ...customerPackage,
+      usages,
+      package: packageData
+    };
 
     // Record transaction in Kasa
     const today = new Date().toISOString().split('T')[0];
@@ -138,7 +151,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      data: customerPackage,
+      data: customerPackageWithDetails,
       message: 'Paket başarıyla müşteriye atandı ve ödeme kaydedildi'
     });
   } catch (error) {
@@ -167,11 +180,21 @@ export async function GET(request: NextRequest) {
     // If packageId is provided, return assigned customers for that package
     if (packageId) {
       console.log('🔍 Fetching assigned customers for packageId:', packageId);
-      
+
       const customerPackages = await prisma.customerPackage.findMany({
         where: { packageId },
-        include: {
-          customer: {
+        orderBy: { assignedAt: 'desc' }
+      });
+
+      // Get related data separately (no relations in schema)
+      const packageData = await prisma.package.findUnique({
+        where: { id: packageId }
+      });
+
+      const customerPackagesWithDetails = await Promise.all(
+        customerPackages.map(async (cp) => {
+          const customer = await prisma.customer.findUnique({
+            where: { id: cp.customerId },
             select: {
               id: true,
               firstName: true,
@@ -179,24 +202,28 @@ export async function GET(request: NextRequest) {
               email: true,
               phone: true
             }
-          },
-          usages: true,
-          package: {
-            select: {
-              id: true,
-              name: true,
-              price: true
-            }
-          }
-        },
-        orderBy: { assignedAt: 'desc' }
-      });
+          });
+          const usages = await prisma.customerPackageUsage.findMany({
+            where: { customerPackageId: cp.id }
+          });
+          return {
+            ...cp,
+            customer,
+            usages,
+            package: packageData ? {
+              id: packageData.id,
+              name: packageData.name,
+              price: packageData.price
+            } : null
+          };
+        })
+      );
 
-      console.log('📦 Found customer packages:', customerPackages.length);
+      console.log('📦 Found customer packages:', customerPackagesWithDetails.length);
 
       return NextResponse.json({
         success: true,
-        data: customerPackages
+        data: customerPackagesWithDetails
       });
     }
 
@@ -214,20 +241,34 @@ export async function GET(request: NextRequest) {
 
     const customerPackages = await prisma.customerPackage.findMany({
       where,
-      include: {
-        package: {
-          include: {
-            items: true
-          }
-        },
-        usages: true
-      },
       orderBy: { assignedAt: 'desc' }
     });
 
+    // Get related data separately (no relations in schema)
+    const customerPackagesWithDetails = await Promise.all(
+      customerPackages.map(async (cp) => {
+        const packageData = await prisma.package.findUnique({
+          where: { id: cp.packageId }
+        });
+        const packageItems = packageData
+          ? await prisma.packageItem.findMany({
+              where: { packageId: packageData.id }
+            })
+          : [];
+        const usages = await prisma.customerPackageUsage.findMany({
+          where: { customerPackageId: cp.id }
+        });
+        return {
+          ...cp,
+          package: packageData ? { ...packageData, items: packageItems } : null,
+          usages
+        };
+      })
+    );
+
     return NextResponse.json({
       success: true,
-      data: customerPackages
+      data: customerPackagesWithDetails
     });
   } catch (error) {
     console.error('Error fetching customer packages:', error);

@@ -17,20 +17,32 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    // Get packages
     const packages = await prisma.package.findMany({
       where: { tenantId },
-      include: {
-        items: true,
-        _count: {
-          select: { customerPackages: true }
-        }
-      },
       orderBy: { createdAt: 'desc' }
     });
 
+    // Get items for each package manually (no relation in schema)
+    const packagesWithItems = await Promise.all(
+      packages.map(async (pkg) => {
+        const items = await prisma.packageItem.findMany({
+          where: { packageId: pkg.id }
+        });
+        const customerCount = await prisma.customerPackage.count({
+          where: { packageId: pkg.id }
+        });
+        return {
+          ...pkg,
+          items,
+          _count: { customerPackages: customerCount }
+        };
+      })
+    );
+
     return NextResponse.json({
       success: true,
-      data: packages
+      data: packagesWithItems
     });
   } catch (error) {
     console.error('Error fetching packages:', error);
@@ -67,30 +79,36 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Create package with items
+    // Create package first
     const newPackage = await prisma.package.create({
       data: {
         tenantId,
         name,
         description: description || null,
-        price: parseFloat(price),
-        items: {
-          create: items.map((item: any) => ({
+        price: parseFloat(price)
+      }
+    });
+
+    // Create items separately (no relation in schema)
+    const createdItems = await Promise.all(
+      items.map((item: any) =>
+        prisma.packageItem.create({
+          data: {
+            packageId: newPackage.id,
             itemType: item.itemType,
             itemId: item.itemId,
             itemName: item.itemName,
             quantity: parseInt(item.quantity)
-          }))
-        }
-      },
-      include: {
-        items: true
-      }
-    });
+          }
+        })
+      )
+    );
+
+    const packageWithItems = { ...newPackage, items: createdItems };
 
     return NextResponse.json({
       success: true,
-      data: newPackage,
+      data: packageWithItems,
       message: 'Paket başarıyla oluşturuldu'
     });
   } catch (error) {
@@ -127,35 +145,42 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    // Delete existing items and create new ones
+    // Delete existing items
     await prisma.packageItem.deleteMany({
       where: { packageId: id }
     });
 
+    // Update package
     const updatedPackage = await prisma.package.update({
       where: { id },
       data: {
         name,
         description: description || null,
         price: parseFloat(price),
-        isActive: isActive !== undefined ? isActive : true,
-        items: {
-          create: items.map((item: any) => ({
+        isActive: isActive !== undefined ? isActive : true
+      }
+    });
+
+    // Create new items separately (no relation in schema)
+    const createdItems = await Promise.all(
+      items.map((item: any) =>
+        prisma.packageItem.create({
+          data: {
+            packageId: id,
             itemType: item.itemType,
             itemId: item.itemId,
             itemName: item.itemName,
             quantity: parseInt(item.quantity)
-          }))
-        }
-      },
-      include: {
-        items: true
-      }
-    });
+          }
+        })
+      )
+    );
+
+    const packageWithItems = { ...updatedPackage, items: createdItems };
 
     return NextResponse.json({
       success: true,
-      data: updatedPackage,
+      data: packageWithItems,
       message: 'Paket başarıyla güncellendi'
     });
   } catch (error) {
