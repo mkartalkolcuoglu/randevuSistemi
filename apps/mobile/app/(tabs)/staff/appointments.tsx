@@ -738,6 +738,15 @@ export default function StaffAppointmentsScreen() {
             {/* Action buttons */}
             <View style={styles.detailActions}>
               <TouchableOpacity
+                style={styles.editButton}
+                onPress={() => {
+                  setShowDetailModal(false);
+                  router.push(`/appointment/edit?id=${selectedAppointment.id}`);
+                }}
+              >
+                <Ionicons name="create-outline" size={20} color="#059669" />
+              </TouchableOpacity>
+              <TouchableOpacity
                 style={styles.changeStatusButton}
                 onPress={() => {
                   setShowDetailModal(false);
@@ -844,6 +853,12 @@ export default function StaffAppointmentsScreen() {
           </View>
           <View style={styles.headerActions}>
             <TouchableOpacity
+              style={styles.headerButton}
+              onPress={() => router.push('/(tabs)/staff/calendar')}
+            >
+              <Ionicons name="calendar" size={22} color="#6B7280" />
+            </TouchableOpacity>
+            <TouchableOpacity
               style={[styles.headerButton, showSearch && styles.headerButtonActive]}
               onPress={() => setShowSearch(!showSearch)}
             >
@@ -915,13 +930,7 @@ export default function StaffAppointmentsScreen() {
       {/* FAB - New Appointment */}
       <TouchableOpacity
         style={styles.fab}
-        onPress={() => {
-          Alert.alert(
-            'Yeni Randevu',
-            'Bu özellik yakında eklenecek',
-            [{ text: 'Tamam' }]
-          );
-        }}
+        onPress={() => router.push('/appointment/new')}
         activeOpacity={0.8}
       >
         <Ionicons name="add" size={28} color="#fff" />
@@ -1546,6 +1555,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     padding: 20,
     gap: 12,
+  },
+  editButton: {
+    width: 52,
+    height: 52,
+    borderRadius: 12,
+    backgroundColor: '#D1FAE5',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   changeStatusButton: {
     flex: 1,

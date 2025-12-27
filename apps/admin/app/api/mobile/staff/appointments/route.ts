@@ -31,6 +31,7 @@ async function verifyAuth(request: NextRequest) {
 
 // GET - Get staff appointments
 export async function GET(request: NextRequest) {
+  console.log('🚀 GET /api/mobile/staff/appointments called');
   try {
     const auth = await verifyAuth(request);
     if (!auth) {
