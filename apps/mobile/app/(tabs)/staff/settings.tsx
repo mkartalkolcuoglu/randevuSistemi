@@ -78,11 +78,11 @@ export default function StaffSettingsScreen() {
       onPress: () => router.push('/(tabs)/staff/packages'),
     },
     {
-      icon: 'stats-chart-outline',
-      label: 'Raporlar',
-      color: '#F59E0B',
-      bg: '#FEF3C7',
-      onPress: () => Alert.alert('Raporlar', 'Bu özellik yakında eklenecek'),
+      icon: 'cube-outline',
+      label: 'Stok',
+      color: '#EC4899',
+      bg: '#FCE7F3',
+      onPress: () => router.push('/(tabs)/staff/stock'),
     },
   ];
 
