@@ -585,7 +585,7 @@ export default function PackagesScreen() {
     );
   };
 
-  // Render package card
+  // Render package card - Compact modern design (like customers page)
   const renderPackageCard = ({ item }: { item: Package }) => {
     const statusConfig = item.isActive ? STATUS_CONFIG.active : STATUS_CONFIG.inactive;
 
@@ -599,75 +599,106 @@ export default function PackagesScreen() {
         }}
         activeOpacity={0.7}
       >
-        <View style={styles.cardHeader}>
-          <View style={styles.cardTitleRow}>
-            <Text style={styles.cardTitle} numberOfLines={1}>
-              {item.name}
-            </Text>
+        {/* Left accent bar */}
+        <LinearGradient
+          colors={statusConfig.gradient}
+          style={styles.cardAccent}
+        />
+
+        <View style={styles.cardBody}>
+          {/* Top Row: Icon + Name + Status + Price */}
+          <View style={styles.cardTopRow}>
+            {/* Package Icon */}
+            <View style={styles.packageIcon}>
+              <Ionicons name="gift" size={18} color="#fff" />
+            </View>
+
+            {/* Name & Description */}
+            <View style={styles.packageInfo}>
+              <View style={styles.nameRow}>
+                <Text style={styles.packageName} numberOfLines={1}>
+                  {item.name}
+                </Text>
+              </View>
+              {item.description && (
+                <Text style={styles.packageDesc} numberOfLines={1}>
+                  {item.description}
+                </Text>
+              )}
+            </View>
+
+            {/* Status Badge */}
             <View style={[styles.statusBadge, { backgroundColor: statusConfig.bg }]}>
               <Ionicons name={statusConfig.icon as any} size={12} color={statusConfig.text} />
-              <Text style={[styles.statusText, { color: statusConfig.text }]}>{statusConfig.label}</Text>
             </View>
           </View>
-          {item.description && (
-            <Text style={styles.cardDescription} numberOfLines={2}>
-              {item.description}
-            </Text>
-          )}
-        </View>
 
-        <Text style={styles.priceText}>{formatPrice(item.price)}</Text>
-
-        <View style={styles.cardContent}>
-          <Text style={styles.contentLabel}>Paket İçeriği:</Text>
-          {item.items.slice(0, 3).map((pkgItem, index) => (
-            <View key={index} style={styles.itemRow}>
-              <View style={styles.itemDot} />
-              <Text style={styles.itemText}>
-                {pkgItem.quantity}x {pkgItem.itemName}
-                <Text style={styles.itemTypeText}> ({pkgItem.itemType === 'service' ? 'Hizmet' : 'Ürün'})</Text>
-              </Text>
+          {/* Middle Row: Price + Items Count */}
+          <View style={styles.cardMiddleRow}>
+            <Text style={styles.priceText}>{formatPrice(item.price)}</Text>
+            <View style={styles.itemsCountBadge}>
+              <Ionicons name="layers-outline" size={12} color="#6B7280" />
+              <Text style={styles.itemsCountText}>{item.items.length} içerik</Text>
             </View>
-          ))}
-          {item.items.length > 3 && (
-            <Text style={styles.moreItems}>+{item.items.length - 3} daha fazla</Text>
-          )}
-        </View>
+            {item.customerCount > 0 && (
+              <TouchableOpacity
+                style={styles.customerCountBadge}
+                onPress={() => openAssignedModal(item)}
+              >
+                <Ionicons name="people" size={12} color="#163974" />
+                <Text style={styles.customerCountText}>{item.customerCount} müşteri</Text>
+              </TouchableOpacity>
+            )}
+          </View>
 
-        {item.customerCount > 0 && (
-          <TouchableOpacity
-            style={styles.customerCountRow}
-            onPress={() => openAssignedModal(item)}
-          >
-            <Ionicons name="people" size={14} color="#6366F1" />
-            <Text style={styles.customerCountText}>{item.customerCount} müşteriye atanmış</Text>
-          </TouchableOpacity>
-        )}
-
-        <View style={styles.cardActions}>
-          <TouchableOpacity
-            style={styles.assignBtn}
-            onPress={() => openAssignModal(item)}
-          >
-            <Ionicons name="person-add" size={16} color="#fff" />
-            <Text style={styles.assignBtnText}>Müşteriye Ata</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.editIconBtn}
-            onPress={() => {
-              setSelectedPackage(item);
-              startEditMode();
-              setShowDetailModal(true);
-            }}
-          >
-            <Ionicons name="create-outline" size={18} color="#6B7280" />
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.deleteIconBtn}
-            onPress={() => handleDeletePackage(item)}
-          >
-            <Ionicons name="trash-outline" size={18} color="#EF4444" />
-          </TouchableOpacity>
+          {/* Bottom Row: Quick Actions */}
+          <View style={styles.cardBottomRow}>
+            <View style={styles.itemsPreview}>
+              {item.items.slice(0, 2).map((pkgItem, index) => (
+                <View key={index} style={styles.itemChip}>
+                  <Text style={styles.itemChipText} numberOfLines={1}>
+                    {pkgItem.quantity}x {pkgItem.itemName}
+                  </Text>
+                </View>
+              ))}
+              {item.items.length > 2 && (
+                <View style={styles.moreChip}>
+                  <Text style={styles.moreChipText}>+{item.items.length - 2}</Text>
+                </View>
+              )}
+            </View>
+            <View style={styles.quickActions}>
+              <TouchableOpacity
+                style={styles.quickActionBtn}
+                onPress={(e) => {
+                  e.stopPropagation();
+                  openAssignModal(item);
+                }}
+              >
+                <Ionicons name="person-add" size={16} color="#10B981" />
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.quickActionBtn}
+                onPress={(e) => {
+                  e.stopPropagation();
+                  setSelectedPackage(item);
+                  startEditMode();
+                  setShowDetailModal(true);
+                }}
+              >
+                <Ionicons name="create-outline" size={16} color="#3B82F6" />
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.quickActionBtn, styles.deleteBtn]}
+                onPress={(e) => {
+                  e.stopPropagation();
+                  handleDeletePackage(item);
+                }}
+              >
+                <Ionicons name="trash-outline" size={16} color="#DC2626" />
+              </TouchableOpacity>
+            </View>
+          </View>
         </View>
       </TouchableOpacity>
     );
@@ -910,7 +941,7 @@ export default function PackagesScreen() {
 
       {/* FAB */}
       <TouchableOpacity style={styles.fab} onPress={() => setShowAddModal(true)} activeOpacity={0.8}>
-        <LinearGradient colors={['#6366F1', '#4F46E5']} style={styles.fabGradient}>
+        <LinearGradient colors={['#1E4A8D', '#163974']} style={styles.fabGradient}>
           <Ionicons name="add" size={28} color="#fff" />
         </LinearGradient>
       </TouchableOpacity>
@@ -1617,7 +1648,7 @@ const styles = StyleSheet.create({
   emptyBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#6366F1',
+    backgroundColor: '#163974',
     paddingHorizontal: 20,
     paddingVertical: 12,
     borderRadius: 12,
@@ -1629,140 +1660,161 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     fontSize: 15,
   },
+  // Card - Compact modern design (like customers page)
   card: {
-    backgroundColor: '#fff',
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  cardHeader: {
-    marginBottom: 8,
-  },
-  cardTitleRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 4,
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    marginBottom: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+    overflow: 'hidden',
   },
-  cardTitle: {
-    fontSize: 17,
+  cardAccent: {
+    width: 4,
+  },
+  cardBody: {
+    flex: 1,
+    padding: 12,
+  },
+  cardTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  packageIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#163974',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  packageInfo: {
+    flex: 1,
+    marginLeft: 10,
+  },
+  nameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  packageName: {
+    fontSize: 14,
     fontWeight: '600',
     color: '#1F2937',
-    flex: 1,
-    marginRight: 8,
+  },
+  packageDesc: {
+    fontSize: 12,
+    color: '#6B7280',
+    marginTop: 2,
   },
   statusBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-    gap: 4,
-  },
-  statusText: {
-    fontSize: 11,
-    fontWeight: '600',
-  },
-  cardDescription: {
-    fontSize: 13,
-    color: '#6B7280',
-    lineHeight: 18,
-  },
-  priceText: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#6366F1',
-    marginBottom: 12,
-  },
-  cardContent: {
-    marginBottom: 12,
-  },
-  contentLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#374151',
-    marginBottom: 6,
-  },
-  itemRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 4,
-  },
-  itemDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: '#6366F1',
-    marginRight: 8,
-  },
-  itemText: {
-    fontSize: 13,
-    color: '#4B5563',
-  },
-  itemTypeText: {
-    fontSize: 11,
-    color: '#9CA3AF',
-  },
-  moreItems: {
-    fontSize: 12,
-    color: '#6366F1',
-    marginTop: 4,
-  },
-  customerCountRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    marginBottom: 12,
-  },
-  customerCountText: {
-    fontSize: 13,
-    color: '#6366F1',
-    fontWeight: '500',
-  },
-  cardActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    borderTopWidth: 1,
-    borderTopColor: '#E5E7EB',
-    paddingTop: 12,
-  },
-  assignBtn: {
-    flex: 1,
-    flexDirection: 'row',
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#10B981',
-    paddingVertical: 10,
-    borderRadius: 10,
+  },
+  cardMiddleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 10,
+    gap: 8,
+  },
+  priceText: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#163974',
+  },
+  itemsCountBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#F3F4F6',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  itemsCountText: {
+    fontSize: 11,
+    color: '#6B7280',
+    fontWeight: '500',
+  },
+  customerCountBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#EFF6FF',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  customerCountText: {
+    fontSize: 11,
+    color: '#163974',
+    fontWeight: '500',
+  },
+  cardBottomRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 10,
+    paddingTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: '#F3F4F6',
+  },
+  itemsPreview: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    flex: 1,
+  },
+  itemChip: {
+    backgroundColor: '#F3F4F6',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    maxWidth: 100,
+  },
+  itemChipText: {
+    fontSize: 10,
+    color: '#4B5563',
+  },
+  moreChip: {
+    backgroundColor: '#E5E7EB',
+    paddingHorizontal: 6,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  moreChipText: {
+    fontSize: 10,
+    color: '#6B7280',
+    fontWeight: '600',
+  },
+  quickActions: {
+    flexDirection: 'row',
     gap: 6,
   },
-  assignBtnText: {
-    color: '#fff',
-    fontWeight: '600',
-    fontSize: 13,
-  },
-  editIconBtn: {
-    padding: 10,
+  quickActionBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     backgroundColor: '#F3F4F6',
-    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  deleteIconBtn: {
-    padding: 10,
+  deleteBtn: {
     backgroundColor: '#FEE2E2',
-    borderRadius: 10,
   },
   fab: {
     position: 'absolute',
     right: 20,
     bottom: 20,
     borderRadius: 28,
-    shadowColor: '#6366F1',
+    shadowColor: '#163974',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
