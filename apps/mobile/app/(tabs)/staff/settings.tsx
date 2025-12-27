@@ -282,30 +282,6 @@ export default function StaffSettingsScreen() {
     return cleaned.slice(0, 26);
   };
 
-  // Quick actions
-  const quickActions = [
-    {
-      icon: 'cash-outline',
-      label: 'Kasa',
-      color: '#059669',
-      bg: '#D1FAE5',
-      onPress: () => router.push('/(tabs)/staff/kasa'),
-    },
-    {
-      icon: 'bar-chart-outline',
-      label: 'Raporlar',
-      color: '#3B82F6',
-      bg: '#DBEAFE',
-      onPress: () => router.push('/(tabs)/staff/reports'),
-    },
-    {
-      icon: 'star-outline',
-      label: 'Performans',
-      color: '#F59E0B',
-      bg: '#FEF3C7',
-      onPress: () => router.push('/(tabs)/staff/performance'),
-    },
-  ];
 
   if (loading) {
     return (
@@ -351,25 +327,6 @@ export default function StaffSettingsScreen() {
             </TouchableOpacity>
           )}
         </View>
-
-        {/* Quick Actions */}
-        {user?.userType === 'owner' && (
-          <View style={styles.quickActionsContainer}>
-            {quickActions.map((action) => (
-              <TouchableOpacity
-                key={action.label}
-                style={styles.quickActionItem}
-                onPress={action.onPress}
-                activeOpacity={0.7}
-              >
-                <View style={[styles.quickActionIcon, { backgroundColor: action.bg }]}>
-                  <Ionicons name={action.icon as any} size={22} color={action.color} />
-                </View>
-                <Text style={styles.quickActionLabel}>{action.label}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        )}
 
         {/* Tabs */}
         <View style={styles.tabContainer}>
@@ -1215,32 +1172,6 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
-  },
-
-  // Quick Actions
-  quickActionsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    paddingHorizontal: 20,
-    paddingBottom: 8,
-    gap: 24,
-  },
-  quickActionItem: {
-    alignItems: 'center',
-  },
-  quickActionIcon: {
-    width: 50,
-    height: 50,
-    borderRadius: 14,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 6,
-  },
-  quickActionLabel: {
-    fontSize: 12,
-    fontWeight: '500',
-    color: '#4B5563',
-    textAlign: 'center',
   },
 
   // Tabs
