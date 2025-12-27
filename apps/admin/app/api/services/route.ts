@@ -44,15 +44,15 @@ export async function GET(request: NextRequest) {
     const where: any = {
       tenantId: tenantId
     };
-    
+
     if (search) {
       where.OR = [
-        { name: { contains: search, mode: 'insensitive' } },
-        { description: { contains: search, mode: 'insensitive' } },
-        { category: { contains: search, mode: 'insensitive' } }
+        { name: { contains: search } },
+        { description: { contains: search } },
+        { category: { contains: search } }
       ];
     }
-    
+
     if (category !== 'all') {
       where.category = category;
     }
