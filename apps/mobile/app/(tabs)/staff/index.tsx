@@ -13,12 +13,14 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useAuthStore } from '../../../src/store/auth.store';
 import { appointmentService } from '../../../src/services/appointment.service';
 import { Appointment } from '../../../src/types';
 import DrawerMenu from '../../../src/components/DrawerMenu';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const THEME_COLOR = '#163974';
 
 // Status configuration
 const STATUS_CONFIG: Record<string, { bg: string; text: string; label: string; icon: string }> = {
@@ -150,7 +152,7 @@ export default function StaffHomeScreen() {
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#3B82F6" />
+          <ActivityIndicator size="large" color={THEME_COLOR} />
           <Text style={styles.loadingText}>Yükleniyor...</Text>
         </View>
       </SafeAreaView>
@@ -165,152 +167,135 @@ export default function StaffHomeScreen() {
           <RefreshControl
             refreshing={isRefreshing}
             onRefresh={() => fetchData(true)}
-            tintColor="#3B82F6"
-            colors={['#3B82F6']}
+            tintColor={THEME_COLOR}
+            colors={[THEME_COLOR]}
           />
         }
       >
-        {/* Header with Menu Button */}
+        {/* Header */}
         <View style={styles.header}>
-          <View style={styles.headerLeft}>
-            <TouchableOpacity
-              style={styles.menuButton}
-              onPress={() => setDrawerOpen(true)}
-            >
-              <Ionicons name="menu" size={24} color="#1F2937" />
-            </TouchableOpacity>
-            <View style={styles.headerTextContainer}>
-              <Text style={styles.greeting}>{getGreeting()}</Text>
-              <Text style={styles.userName}>
-                {user?.firstName || 'Personel'} {user?.lastName?.charAt(0) ? user.lastName.charAt(0) + '.' : ''}
-              </Text>
-            </View>
-          </View>
-          <View style={styles.headerRight}>
-            <TouchableOpacity
-              style={styles.headerButton}
-              onPress={() => Alert.alert('Bildirimler', 'Bu özellik yakında eklenecek')}
-            >
-              <Ionicons name="notifications-outline" size={22} color="#1F2937" />
-              {stats.todayPending > 0 && (
-                <View style={styles.notificationBadge}>
-                  <Text style={styles.notificationBadgeText}>
-                    {stats.todayPending > 9 ? '9+' : stats.todayPending}
-                  </Text>
-                </View>
-              )}
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        {/* Tenant Banner */}
-        <View style={styles.tenantBanner}>
-          <View
-            style={[
-              styles.tenantLogo,
-              { backgroundColor: selectedTenant?.primaryColor || '#3B82F6' },
-            ]}
+          <TouchableOpacity
+            style={styles.menuButton}
+            onPress={() => setDrawerOpen(true)}
           >
-            <Text style={styles.tenantInitial}>
-              {selectedTenant?.businessName?.charAt(0)?.toUpperCase() || 'S'}
+            <Ionicons name="menu" size={24} color="#1F2937" />
+          </TouchableOpacity>
+          <View style={styles.headerContent}>
+            <Text style={styles.greeting}>{getGreeting()}</Text>
+            <Text style={styles.userName}>
+              {user?.firstName || 'Personel'} {user?.lastName?.charAt(0) ? user.lastName.charAt(0) + '.' : ''}
             </Text>
           </View>
-          <View style={styles.tenantInfo}>
-            <Text style={styles.tenantName}>{selectedTenant?.businessName || 'Salon'}</Text>
-            <Text style={styles.dateText}>{getFormattedDate()}</Text>
-          </View>
-        </View>
-
-        {/* Stats Cards */}
-        <View style={styles.statsSection}>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.statsScrollContent}
+          <TouchableOpacity
+            style={styles.notificationButton}
+            onPress={() => Alert.alert('Bildirimler', 'Bu özellik yakında eklenecek')}
           >
-            {/* Today's Revenue Card */}
-            <View style={[styles.statCard, styles.revenueCard]}>
-              <View style={styles.statCardHeader}>
-                <View style={[styles.statIcon, { backgroundColor: 'rgba(255,255,255,0.2)' }]}>
-                  <Ionicons name="cash-outline" size={24} color="#fff" />
-                </View>
-                <Text style={[styles.statCardLabel, { color: 'rgba(255,255,255,0.8)' }]}>
-                  Bugünkü Gelir
+            <Ionicons name="notifications-outline" size={22} color="#1F2937" />
+            {stats.todayPending > 0 && (
+              <View style={styles.notificationBadge}>
+                <Text style={styles.notificationBadgeText}>
+                  {stats.todayPending > 9 ? '9+' : stats.todayPending}
                 </Text>
               </View>
-              <Text style={[styles.statCardValue, { color: '#fff' }]}>
-                {formatCurrency(stats.todayRevenue)}
-              </Text>
-              <Text style={[styles.statCardSubtext, { color: 'rgba(255,255,255,0.7)' }]}>
-                Bu hafta: {formatCurrency(stats.weekRevenue)}
-              </Text>
+            )}
+          </TouchableOpacity>
+        </View>
+
+        {/* Date & Salon Info */}
+        <View style={styles.dateSection}>
+          <View style={styles.dateBadge}>
+            <Ionicons name="calendar" size={16} color={THEME_COLOR} />
+            <Text style={styles.dateText}>{getFormattedDate()}</Text>
+          </View>
+          <Text style={styles.salonName}>{selectedTenant?.businessName || 'Salon'}</Text>
+        </View>
+
+        {/* Revenue Card */}
+        <View style={styles.section}>
+          <LinearGradient
+            colors={[THEME_COLOR, '#1e4a8f']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.revenueCard}
+          >
+            <View style={styles.revenueHeader}>
+              <View style={styles.revenueIconContainer}>
+                <Ionicons name="wallet-outline" size={24} color="#fff" />
+              </View>
+              <Text style={styles.revenueLabel}>Bugünkü Gelir</Text>
+            </View>
+            <Text style={styles.revenueAmount}>{formatCurrency(stats.todayRevenue)}</Text>
+            <View style={styles.revenueFooter}>
+              <View style={styles.revenueSubItem}>
+                <Text style={styles.revenueSubLabel}>Bu Hafta</Text>
+                <Text style={styles.revenueSubValue}>{formatCurrency(stats.weekRevenue)}</Text>
+              </View>
+              <View style={styles.revenueDivider} />
+              <View style={styles.revenueSubItem}>
+                <Text style={styles.revenueSubLabel}>Tamamlanan</Text>
+                <Text style={styles.revenueSubValue}>{stats.todayCompleted} randevu</Text>
+              </View>
+            </View>
+          </LinearGradient>
+        </View>
+
+        {/* Stats Grid */}
+        <View style={styles.section}>
+          <View style={styles.statsGrid}>
+            <View style={styles.statCard}>
+              <View style={[styles.statIconContainer, { backgroundColor: '#EFF6FF' }]}>
+                <Ionicons name="calendar-outline" size={22} color={THEME_COLOR} />
+              </View>
+              <Text style={styles.statValue}>{stats.todayTotal}</Text>
+              <Text style={styles.statLabel}>Bugün</Text>
             </View>
 
-            {/* Today's Appointments Card */}
             <View style={styles.statCard}>
-              <View style={styles.statCardHeader}>
-                <View style={[styles.statIcon, { backgroundColor: '#DBEAFE' }]}>
-                  <Ionicons name="calendar-outline" size={24} color="#3B82F6" />
-                </View>
-                <Text style={styles.statCardLabel}>Bugünkü Randevular</Text>
+              <View style={[styles.statIconContainer, { backgroundColor: '#FEF3C7' }]}>
+                <Ionicons name="time-outline" size={22} color="#D97706" />
               </View>
-              <Text style={styles.statCardValue}>{stats.todayTotal}</Text>
-              <Text style={styles.statCardSubtext}>
-                {stats.upcomingCount} yaklaşan
-              </Text>
+              <Text style={styles.statValue}>{stats.todayPending}</Text>
+              <Text style={styles.statLabel}>Bekleyen</Text>
             </View>
 
-            {/* Pending Card */}
             <View style={styles.statCard}>
-              <View style={styles.statCardHeader}>
-                <View style={[styles.statIcon, { backgroundColor: '#FEF3C7' }]}>
-                  <Ionicons name="time-outline" size={24} color="#D97706" />
-                </View>
-                <Text style={styles.statCardLabel}>Bekleyen</Text>
+              <View style={[styles.statIconContainer, { backgroundColor: '#DBEAFE' }]}>
+                <Ionicons name="checkmark-circle-outline" size={22} color="#2563EB" />
               </View>
-              <Text style={styles.statCardValue}>{stats.todayPending}</Text>
-              <Text style={styles.statCardSubtext}>onay bekliyor</Text>
+              <Text style={styles.statValue}>{stats.todayConfirmed}</Text>
+              <Text style={styles.statLabel}>Onaylanan</Text>
             </View>
 
-            {/* Completed Card */}
             <View style={styles.statCard}>
-              <View style={styles.statCardHeader}>
-                <View style={[styles.statIcon, { backgroundColor: '#D1FAE5' }]}>
-                  <Ionicons name="checkmark-circle-outline" size={24} color="#059669" />
-                </View>
-                <Text style={styles.statCardLabel}>Tamamlanan</Text>
+              <View style={[styles.statIconContainer, { backgroundColor: '#D1FAE5' }]}>
+                <Ionicons name="checkmark-done-outline" size={22} color="#059669" />
               </View>
-              <Text style={styles.statCardValue}>{stats.todayCompleted}</Text>
-              <Text style={styles.statCardSubtext}>bugün</Text>
+              <Text style={styles.statValue}>{stats.todayCompleted}</Text>
+              <Text style={styles.statLabel}>Tamamlanan</Text>
             </View>
-          </ScrollView>
+          </View>
         </View>
 
         {/* Upcoming Appointments */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <View style={styles.sectionTitleRow}>
-              <Ionicons name="time" size={20} color="#3B82F6" />
-              <Text style={styles.sectionTitle}>Yaklaşan Randevular</Text>
-            </View>
+            <Text style={styles.sectionTitle}>Yaklaşan Randevular</Text>
             <TouchableOpacity
               style={styles.seeAllButton}
               onPress={() => router.push('/(tabs)/staff/appointments')}
             >
               <Text style={styles.seeAllText}>Tümü</Text>
-              <Ionicons name="chevron-forward" size={16} color="#3B82F6" />
+              <Ionicons name="chevron-forward" size={16} color={THEME_COLOR} />
             </TouchableOpacity>
           </View>
 
           {upcomingAppointments.length === 0 ? (
-            <View style={styles.emptyState}>
+            <View style={styles.emptyCard}>
               <View style={styles.emptyIconWrapper}>
                 <Ionicons name="checkmark-done-circle-outline" size={40} color="#D1D5DB" />
               </View>
               <Text style={styles.emptyTitle}>Yaklaşan randevu yok</Text>
-              <Text style={styles.emptySubtitle}>
-                Bugünkü tüm randevular tamamlandı
-              </Text>
+              <Text style={styles.emptySubtitle}>Bugünkü tüm randevular tamamlandı</Text>
             </View>
           ) : (
             upcomingAppointments.map((apt, index) => {
@@ -318,42 +303,41 @@ export default function StaffHomeScreen() {
               return (
                 <TouchableOpacity
                   key={apt.id}
-                  style={[
-                    styles.appointmentCard,
-                    index === 0 && styles.appointmentCardFirst,
-                  ]}
+                  style={styles.appointmentCard}
                   onPress={() => router.push('/(tabs)/staff/appointments')}
                   activeOpacity={0.7}
                 >
-                  <View style={[styles.timeIndicator, { backgroundColor: status.text }]} />
+                  <View style={[styles.appointmentIndicator, { backgroundColor: status.text }]} />
                   <View style={styles.appointmentContent}>
-                    <View style={styles.appointmentHeader}>
-                      <View style={styles.timeSection}>
-                        <Text style={styles.aptTime}>{formatTime(apt.time)}</Text>
-                        <Text style={styles.aptDuration}>{apt.duration} dk</Text>
+                    <View style={styles.appointmentTop}>
+                      <View style={styles.appointmentTimeContainer}>
+                        <Text style={styles.appointmentTime}>{formatTime(apt.time)}</Text>
+                        <Text style={styles.appointmentDuration}>{apt.duration} dk</Text>
                       </View>
-                      <View style={[styles.statusBadge, { backgroundColor: status.bg }]}>
+                      <View style={[styles.appointmentStatus, { backgroundColor: status.bg }]}>
                         <Ionicons name={status.icon as any} size={12} color={status.text} />
-                        <Text style={[styles.statusText, { color: status.text }]}>
+                        <Text style={[styles.appointmentStatusText, { color: status.text }]}>
                           {status.label}
                         </Text>
                       </View>
                     </View>
-                    <View style={styles.appointmentBody}>
-                      <View style={styles.customerAvatar}>
-                        <Text style={styles.customerAvatarText}>
-                          {apt.customerName?.charAt(0)?.toUpperCase()}
-                        </Text>
+                    <View style={styles.appointmentBottom}>
+                      <View style={styles.customerInfo}>
+                        <View style={styles.customerAvatar}>
+                          <Text style={styles.customerAvatarText}>
+                            {apt.customerName?.charAt(0)?.toUpperCase()}
+                          </Text>
+                        </View>
+                        <View style={styles.customerDetails}>
+                          <Text style={styles.customerName} numberOfLines={1}>
+                            {apt.customerName}
+                          </Text>
+                          <Text style={styles.serviceName} numberOfLines={1}>
+                            {apt.serviceName}
+                          </Text>
+                        </View>
                       </View>
-                      <View style={styles.appointmentDetails}>
-                        <Text style={styles.aptCustomer} numberOfLines={1}>
-                          {apt.customerName}
-                        </Text>
-                        <Text style={styles.aptService} numberOfLines={1}>
-                          {apt.serviceName}
-                        </Text>
-                      </View>
-                      <Text style={styles.aptPrice}>{formatCurrency(apt.price || 0)}</Text>
+                      <Text style={styles.appointmentPrice}>{formatCurrency(apt.price || 0)}</Text>
                     </View>
                   </View>
                 </TouchableOpacity>
@@ -364,103 +348,91 @@ export default function StaffHomeScreen() {
 
         {/* Quick Actions */}
         <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <View style={styles.sectionTitleRow}>
-              <Ionicons name="flash" size={20} color="#F59E0B" />
-              <Text style={styles.sectionTitle}>Hızlı İşlemler</Text>
-            </View>
-          </View>
-
+          <Text style={styles.sectionTitle}>Hızlı İşlemler</Text>
           <View style={styles.quickActionsGrid}>
             <TouchableOpacity
-              style={styles.quickActionItem}
+              style={styles.quickAction}
               onPress={() => Alert.alert('Yeni Randevu', 'Bu özellik yakında eklenecek')}
               activeOpacity={0.7}
             >
-              <View style={[styles.quickActionIcon, { backgroundColor: '#DBEAFE' }]}>
-                <Ionicons name="add-circle" size={28} color="#3B82F6" />
+              <View style={[styles.quickActionIcon, { backgroundColor: '#EFF6FF' }]}>
+                <Ionicons name="add-circle-outline" size={24} color={THEME_COLOR} />
               </View>
               <Text style={styles.quickActionLabel}>Yeni Randevu</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={styles.quickActionItem}
+              style={styles.quickAction}
               onPress={() => router.push('/(tabs)/staff/customers')}
               activeOpacity={0.7}
             >
               <View style={[styles.quickActionIcon, { backgroundColor: '#D1FAE5' }]}>
-                <Ionicons name="people" size={28} color="#059669" />
+                <Ionicons name="people-outline" size={24} color="#059669" />
               </View>
               <Text style={styles.quickActionLabel}>Müşteriler</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={styles.quickActionItem}
-              onPress={() => router.push('/settings/cashier' as any)}
+              style={styles.quickAction}
+              onPress={() => router.push('/(tabs)/staff/kasa')}
               activeOpacity={0.7}
             >
               <View style={[styles.quickActionIcon, { backgroundColor: '#FEF3C7' }]}>
-                <Ionicons name="cash" size={28} color="#D97706" />
+                <Ionicons name="cash-outline" size={24} color="#D97706" />
               </View>
               <Text style={styles.quickActionLabel}>Kasa</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={styles.quickActionItem}
-              onPress={() => router.push('/(tabs)/staff/settings')}
+              style={styles.quickAction}
+              onPress={() => router.push('/(tabs)/staff/reports')}
               activeOpacity={0.7}
             >
-              <View style={[styles.quickActionIcon, { backgroundColor: '#F3E8FF' }]}>
-                <Ionicons name="settings" size={28} color="#8B5CF6" />
+              <View style={[styles.quickActionIcon, { backgroundColor: '#E0E7FF' }]}>
+                <Ionicons name="bar-chart-outline" size={24} color="#6366F1" />
               </View>
-              <Text style={styles.quickActionLabel}>Ayarlar</Text>
+              <Text style={styles.quickActionLabel}>Raporlar</Text>
             </TouchableOpacity>
           </View>
         </View>
 
-        {/* Today's All Appointments */}
+        {/* Today's Schedule */}
         {todayAppointments.length > 0 && (
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
-              <View style={styles.sectionTitleRow}>
-                <Ionicons name="calendar" size={20} color="#059669" />
-                <Text style={styles.sectionTitle}>Bugünün Programı</Text>
-              </View>
+              <Text style={styles.sectionTitle}>Bugünün Programı</Text>
               <View style={styles.countBadge}>
                 <Text style={styles.countBadgeText}>{todayAppointments.length}</Text>
               </View>
             </View>
 
-            <View style={styles.timelineContainer}>
+            <View style={styles.scheduleCard}>
               {todayAppointments.map((apt, index) => {
                 const status = STATUS_CONFIG[apt.status] || STATUS_CONFIG.pending;
                 const isLast = index === todayAppointments.length - 1;
 
                 return (
-                  <View key={apt.id} style={styles.timelineItem}>
-                    <View style={styles.timelineLeft}>
-                      <Text style={styles.timelineTime}>{formatTime(apt.time)}</Text>
-                      {!isLast && <View style={styles.timelineLine} />}
+                  <View key={apt.id} style={styles.scheduleItem}>
+                    <View style={styles.scheduleTimeColumn}>
+                      <Text style={styles.scheduleTime}>{formatTime(apt.time)}</Text>
+                      {!isLast && <View style={styles.scheduleLine} />}
                     </View>
                     <TouchableOpacity
-                      style={[
-                        styles.timelineCard,
-                        { borderLeftColor: status.text },
-                      ]}
+                      style={[styles.scheduleContent, { borderLeftColor: status.text }]}
                       onPress={() => router.push('/(tabs)/staff/appointments')}
                       activeOpacity={0.7}
                     >
-                      <View style={styles.timelineCardHeader}>
-                        <Text style={styles.timelineCustomer} numberOfLines={1}>
+                      <View style={styles.scheduleHeader}>
+                        <Text style={styles.scheduleCustomer} numberOfLines={1}>
                           {apt.customerName}
                         </Text>
-                        <View style={[styles.timelineBadge, { backgroundColor: status.bg }]}>
-                          <Text style={[styles.timelineBadgeText, { color: status.text }]}>
+                        <View style={[styles.scheduleStatusBadge, { backgroundColor: status.bg }]}>
+                          <Text style={[styles.scheduleStatusText, { color: status.text }]}>
                             {status.label}
                           </Text>
                         </View>
                       </View>
-                      <Text style={styles.timelineService} numberOfLines={1}>
+                      <Text style={styles.scheduleService} numberOfLines={1}>
                         {apt.serviceName} • {apt.duration} dk
                       </Text>
                     </TouchableOpacity>
@@ -494,34 +466,36 @@ const styles = StyleSheet.create({
   loadingText: {
     fontSize: 14,
     color: '#6B7280',
+    marginTop: 8,
   },
 
   // Header
   header: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingVertical: 16,
-    backgroundColor: '#fff',
-  },
-  headerLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    paddingTop: 16,
+    paddingBottom: 12,
   },
   menuButton: {
     width: 44,
     height: 44,
     borderRadius: 12,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: '#fff',
     justifyContent: 'center',
     alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    elevation: 2,
   },
-  headerTextContainer: {
+  headerContent: {
+    flex: 1,
     marginLeft: 12,
   },
   greeting: {
-    fontSize: 14,
+    fontSize: 13,
     color: '#6B7280',
   },
   userName: {
@@ -530,26 +504,26 @@ const styles = StyleSheet.create({
     color: '#1F2937',
     marginTop: 2,
   },
-  headerRight: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  headerButton: {
+  notificationButton: {
     width: 44,
     height: 44,
-    borderRadius: 22,
-    backgroundColor: '#F3F4F6',
+    borderRadius: 12,
+    backgroundColor: '#fff',
     justifyContent: 'center',
     alignItems: 'center',
-    position: 'relative',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    elevation: 2,
   },
   notificationBadge: {
     position: 'absolute',
-    top: 0,
-    right: 0,
-    minWidth: 18,
-    height: 18,
-    borderRadius: 9,
+    top: 6,
+    right: 6,
+    minWidth: 16,
+    height: 16,
+    borderRadius: 8,
     backgroundColor: '#EF4444',
     justifyContent: 'center',
     alignItems: 'center',
@@ -561,114 +535,47 @@ const styles = StyleSheet.create({
     color: '#fff',
   },
 
-  // Tenant Banner
-  tenantBanner: {
+  // Date Section
+  dateSection: {
+    paddingHorizontal: 20,
+    marginBottom: 8,
+  },
+  dateBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#fff',
-    paddingHorizontal: 20,
-    paddingBottom: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
-  },
-  tenantLogo: {
-    width: 40,
-    height: 40,
-    borderRadius: 10,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  tenantInitial: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#fff',
-  },
-  tenantInfo: {
-    marginLeft: 12,
-  },
-  tenantName: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#1F2937',
+    alignSelf: 'flex-start',
+    backgroundColor: '#EFF6FF',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    gap: 6,
+    marginBottom: 4,
   },
   dateText: {
     fontSize: 13,
-    color: '#6B7280',
-    marginTop: 2,
+    fontWeight: '500',
+    color: THEME_COLOR,
     textTransform: 'capitalize',
   },
-
-  // Stats Section
-  statsSection: {
-    marginTop: 16,
-  },
-  statsScrollContent: {
-    paddingHorizontal: 16,
-    gap: 12,
-  },
-  statCard: {
-    width: SCREEN_WIDTH * 0.42,
-    backgroundColor: '#fff',
-    borderRadius: 16,
-    padding: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  revenueCard: {
-    backgroundColor: '#3B82F6',
-    width: SCREEN_WIDTH * 0.5,
-  },
-  statCardHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    marginBottom: 12,
-  },
-  statIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  statCardLabel: {
-    fontSize: 12,
+  salonName: {
+    fontSize: 14,
     color: '#6B7280',
-    fontWeight: '500',
-    flex: 1,
-  },
-  statCardValue: {
-    fontSize: 26,
-    fontWeight: '700',
-    color: '#1F2937',
-  },
-  statCardSubtext: {
-    fontSize: 12,
-    color: '#9CA3AF',
     marginTop: 4,
   },
 
   // Section
   section: {
-    marginTop: 24,
     paddingHorizontal: 20,
+    marginTop: 20,
   },
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16,
-  },
-  sectionTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
+    marginBottom: 12,
   },
   sectionTitle: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '600',
     color: '#1F2937',
   },
@@ -680,10 +587,10 @@ const styles = StyleSheet.create({
   seeAllText: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#3B82F6',
+    color: THEME_COLOR,
   },
   countBadge: {
-    backgroundColor: '#3B82F6',
+    backgroundColor: THEME_COLOR,
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 12,
@@ -694,15 +601,109 @@ const styles = StyleSheet.create({
     color: '#fff',
   },
 
+  // Revenue Card
+  revenueCard: {
+    borderRadius: 16,
+    padding: 20,
+  },
+  revenueHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 12,
+  },
+  revenueIconContainer: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  revenueLabel: {
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.8)',
+    fontWeight: '500',
+  },
+  revenueAmount: {
+    fontSize: 32,
+    fontWeight: '700',
+    color: '#fff',
+    marginBottom: 16,
+  },
+  revenueFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 12,
+    padding: 12,
+  },
+  revenueSubItem: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  revenueSubLabel: {
+    fontSize: 12,
+    color: 'rgba(255, 255, 255, 0.7)',
+    marginBottom: 4,
+  },
+  revenueSubValue: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#fff',
+  },
+  revenueDivider: {
+    width: 1,
+    height: 30,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+  },
+
+  // Stats Grid
+  statsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+  },
+  statCard: {
+    width: (SCREEN_WIDTH - 52) / 2,
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 16,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  statIconContainer: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  statValue: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#1F2937',
+  },
+  statLabel: {
+    fontSize: 13,
+    color: '#6B7280',
+    marginTop: 4,
+  },
+
   // Empty State
-  emptyState: {
+  emptyCard: {
     backgroundColor: '#fff',
     borderRadius: 16,
     padding: 32,
     alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
+    shadowOpacity: 0.04,
     shadowRadius: 8,
     elevation: 2,
   },
@@ -734,43 +735,39 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
+    shadowOpacity: 0.04,
     shadowRadius: 8,
     elevation: 2,
     overflow: 'hidden',
   },
-  appointmentCardFirst: {
-    borderWidth: 1,
-    borderColor: '#3B82F6',
-  },
-  timeIndicator: {
+  appointmentIndicator: {
     width: 4,
   },
   appointmentContent: {
     flex: 1,
     padding: 16,
   },
-  appointmentHeader: {
+  appointmentTop: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 12,
   },
-  timeSection: {
+  appointmentTimeContainer: {
     flexDirection: 'row',
     alignItems: 'baseline',
     gap: 6,
   },
-  aptTime: {
+  appointmentTime: {
     fontSize: 20,
     fontWeight: '700',
     color: '#1F2937',
   },
-  aptDuration: {
+  appointmentDuration: {
     fontSize: 12,
     color: '#9CA3AF',
   },
-  statusBadge: {
+  appointmentStatus: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 10,
@@ -778,19 +775,25 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     gap: 4,
   },
-  statusText: {
+  appointmentStatusText: {
     fontSize: 12,
     fontWeight: '600',
   },
-  appointmentBody: {
+  appointmentBottom: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    justifyContent: 'space-between',
+  },
+  customerInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+    gap: 10,
   },
   customerAvatar: {
     width: 40,
     height: 40,
-    borderRadius: 20,
+    borderRadius: 12,
     backgroundColor: '#EFF6FF',
     justifyContent: 'center',
     alignItems: 'center',
@@ -798,22 +801,22 @@ const styles = StyleSheet.create({
   customerAvatarText: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#3B82F6',
+    color: THEME_COLOR,
   },
-  appointmentDetails: {
+  customerDetails: {
     flex: 1,
   },
-  aptCustomer: {
+  customerName: {
     fontSize: 15,
     fontWeight: '600',
     color: '#1F2937',
   },
-  aptService: {
+  serviceName: {
     fontSize: 13,
     color: '#6B7280',
     marginTop: 2,
   },
-  aptPrice: {
+  appointmentPrice: {
     fontSize: 15,
     fontWeight: '600',
     color: '#059669',
@@ -824,86 +827,87 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 12,
+    marginTop: 12,
   },
-  quickActionItem: {
+  quickAction: {
     width: (SCREEN_WIDTH - 52) / 4,
     alignItems: 'center',
   },
   quickActionIcon: {
-    width: 56,
-    height: 56,
-    borderRadius: 16,
+    width: 52,
+    height: 52,
+    borderRadius: 14,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 8,
   },
   quickActionLabel: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '500',
     color: '#4B5563',
     textAlign: 'center',
   },
 
-  // Timeline
-  timelineContainer: {
+  // Schedule
+  scheduleCard: {
     backgroundColor: '#fff',
     borderRadius: 16,
     padding: 16,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
+    shadowOpacity: 0.04,
     shadowRadius: 8,
     elevation: 2,
   },
-  timelineItem: {
+  scheduleItem: {
     flexDirection: 'row',
     marginBottom: 12,
   },
-  timelineLeft: {
+  scheduleTimeColumn: {
     width: 50,
     alignItems: 'center',
   },
-  timelineTime: {
+  scheduleTime: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#3B82F6',
+    color: THEME_COLOR,
   },
-  timelineLine: {
+  scheduleLine: {
     width: 2,
     flex: 1,
     backgroundColor: '#E5E7EB',
     marginTop: 8,
   },
-  timelineCard: {
+  scheduleContent: {
     flex: 1,
     backgroundColor: '#F9FAFB',
-    borderRadius: 10,
+    borderRadius: 12,
     padding: 12,
     marginLeft: 12,
     borderLeftWidth: 3,
   },
-  timelineCardHeader: {
+  scheduleHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 4,
   },
-  timelineCustomer: {
+  scheduleCustomer: {
     fontSize: 14,
     fontWeight: '600',
     color: '#1F2937',
     flex: 1,
   },
-  timelineBadge: {
-    paddingHorizontal: 6,
+  scheduleStatusBadge: {
+    paddingHorizontal: 8,
     paddingVertical: 2,
-    borderRadius: 6,
+    borderRadius: 8,
   },
-  timelineBadgeText: {
+  scheduleStatusText: {
     fontSize: 10,
     fontWeight: '600',
   },
-  timelineService: {
+  scheduleService: {
     fontSize: 12,
     color: '#6B7280',
   },
