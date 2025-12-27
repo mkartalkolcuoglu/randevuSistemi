@@ -125,6 +125,131 @@ export async function GET(
   }
 }
 
+// PUT - Full update appointment (staff/owner)
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const auth = await verifyAuth(request);
+    if (!auth) {
+      return NextResponse.json(
+        { success: false, message: 'Yetkilendirme gerekli' },
+        { status: 401 }
+      );
+    }
+
+    // Only staff/owner can do full updates
+    if (auth.userType === 'customer') {
+      return NextResponse.json(
+        { success: false, message: 'Bu işlem için yetkiniz yok' },
+        { status: 403 }
+      );
+    }
+
+    const { id } = await params;
+    const body = await request.json();
+    const { serviceId, staffId, date, time, customerName, customerPhone, notes } = body;
+
+    const appointment = await prisma.appointment.findUnique({
+      where: { id },
+      include: { customer: true },
+    });
+
+    if (!appointment) {
+      return NextResponse.json(
+        { success: false, message: 'Randevu bulunamadı' },
+        { status: 404 }
+      );
+    }
+
+    // Check access
+    if (appointment.tenantId !== auth.tenantId) {
+      return NextResponse.json(
+        { success: false, message: 'Erişim yetkisi yok' },
+        { status: 403 }
+      );
+    }
+
+    const updateData: any = {};
+
+    if (serviceId) updateData.serviceId = serviceId;
+    if (staffId) updateData.staffId = staffId;
+    if (date) updateData.date = date;
+    if (time) updateData.time = time;
+    if (notes !== undefined) updateData.notes = notes;
+
+    // Update customer info if provided
+    if (customerName || customerPhone) {
+      await prisma.customer.update({
+        where: { id: appointment.customerId },
+        data: {
+          ...(customerName && {
+            firstName: customerName.split(' ')[0] || customerName,
+            lastName: customerName.split(' ').slice(1).join(' ') || ''
+          }),
+          ...(customerPhone && { phone: customerPhone }),
+        },
+      });
+    }
+
+    const updatedAppointment = await prisma.appointment.update({
+      where: { id },
+      data: updateData,
+      include: {
+        customer: {
+          select: {
+            firstName: true,
+            lastName: true,
+            phone: true,
+          },
+        },
+        service: {
+          select: {
+            name: true,
+            duration: true,
+            price: true,
+          },
+        },
+        staff: {
+          select: {
+            firstName: true,
+            lastName: true,
+          },
+        },
+      },
+    });
+
+    return NextResponse.json({
+      success: true,
+      message: 'Randevu güncellendi',
+      data: {
+        id: updatedAppointment.id,
+        tenantId: updatedAppointment.tenantId,
+        customerId: updatedAppointment.customerId,
+        customerName: `${updatedAppointment.customer.firstName} ${updatedAppointment.customer.lastName}`,
+        customerPhone: updatedAppointment.customer.phone,
+        serviceId: updatedAppointment.serviceId,
+        serviceName: updatedAppointment.service.name,
+        staffId: updatedAppointment.staffId,
+        staffName: `${updatedAppointment.staff.firstName} ${updatedAppointment.staff.lastName}`,
+        date: updatedAppointment.date,
+        time: updatedAppointment.time,
+        duration: updatedAppointment.service.duration,
+        status: updatedAppointment.status,
+        notes: updatedAppointment.notes,
+        price: updatedAppointment.service.price,
+      },
+    });
+  } catch (error) {
+    console.error('Full update appointment error:', error);
+    return NextResponse.json(
+      { success: false, message: 'Bir hata oluştu' },
+      { status: 500 }
+    );
+  }
+}
+
 // PATCH - Update appointment status
 export async function PATCH(
   request: NextRequest,

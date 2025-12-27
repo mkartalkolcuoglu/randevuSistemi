@@ -135,7 +135,8 @@ export async function POST(request: NextRequest) {
     );
 
   } catch (error: any) {
-    console.error('Login error:', error);
+    console.error('Login error:', error?.message || error);
+    console.error('Full login error:', error);
     return NextResponse.json(
       { success: false, message: 'Bir hata oluştu', error: error?.message || String(error) },
       { status: 500 }

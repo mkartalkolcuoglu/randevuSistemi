@@ -46,7 +46,7 @@ export async function GET(request: NextRequest) {
       staff = await prisma.staff.findMany({
         where: {
           tenantId: auth.tenantId,
-          isActive: true,
+          status: 'active',
           services: {
             some: {
               id: serviceId,
@@ -59,7 +59,7 @@ export async function GET(request: NextRequest) {
       staff = await prisma.staff.findMany({
         where: {
           tenantId: auth.tenantId,
-          isActive: true,
+          status: 'active',
         },
         orderBy: { firstName: 'asc' },
       });
@@ -74,17 +74,18 @@ export async function GET(request: NextRequest) {
       phone: s.phone,
       position: s.position,
       avatar: s.avatar,
-      isActive: s.isActive,
+      isActive: s.status === 'active',
     }));
 
     return NextResponse.json({
       success: true,
       data: formattedStaff,
     });
-  } catch (error) {
-    console.error('Get staff error:', error);
+  } catch (error: any) {
+    console.error('Get staff error:', error?.message || error);
+    console.error('Full error:', JSON.stringify(error, null, 2));
     return NextResponse.json(
-      { success: false, message: 'Bir hata oluştu' },
+      { success: false, message: 'Bir hata oluştu', error: error?.message },
       { status: 500 }
     );
   }

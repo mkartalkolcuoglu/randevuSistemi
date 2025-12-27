@@ -39,7 +39,7 @@ export async function GET(request: NextRequest) {
     const services = await prisma.service.findMany({
       where: {
         tenantId: auth.tenantId,
-        isActive: true,
+        status: 'active',
       },
       orderBy: [{ category: 'asc' }, { name: 'asc' }],
     });
@@ -52,17 +52,18 @@ export async function GET(request: NextRequest) {
       price: service.price,
       duration: service.duration,
       category: service.category,
-      isActive: service.isActive,
+      isActive: service.status === 'active',
     }));
 
     return NextResponse.json({
       success: true,
       data: formattedServices,
     });
-  } catch (error) {
-    console.error('Get services error:', error);
+  } catch (error: any) {
+    console.error('Get services error:', error?.message || error);
+    console.error('Full error:', JSON.stringify(error, null, 2));
     return NextResponse.json(
-      { success: false, message: 'Bir hata oluştu' },
+      { success: false, message: 'Bir hata oluştu', error: error?.message },
       { status: 500 }
     );
   }
