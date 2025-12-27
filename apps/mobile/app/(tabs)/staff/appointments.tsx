@@ -996,10 +996,10 @@ const styles = StyleSheet.create({
 
   // Filter Pills
   filterPillsContainer: {
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
     paddingVertical: 12,
-    gap: 8,
     backgroundColor: '#fff',
+    flexDirection: 'row',
   },
   filterPill: {
     flexDirection: 'row',
@@ -1010,12 +1010,13 @@ const styles = StyleSheet.create({
     backgroundColor: '#F9FAFB',
     borderWidth: 1.5,
     borderColor: '#E5E7EB',
-    gap: 6,
+    marginRight: 8,
   },
   filterPillText: {
     fontSize: 13,
     fontWeight: '500',
     color: '#6B7280',
+    marginLeft: 4,
   },
   filterPillBadge: {
     minWidth: 20,
@@ -1023,6 +1024,7 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
     borderRadius: 10,
     backgroundColor: '#E5E7EB',
+    marginLeft: 4,
   },
   filterPillBadgeText: {
     fontSize: 11,
