@@ -1,43 +1,65 @@
 import { Tabs } from 'expo-router';
 import { Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuthStore } from '../../src/store/auth.store';
 
-// HIG Compliant values
-const TAB_BAR_HEIGHT = Platform.OS === 'ios' ? 88 : 64; // iOS: 49 + safe area, Android: 64dp
-const TAB_ICON_SIZE = Platform.OS === 'ios' ? 28 : 24;
-const TAB_LABEL_SIZE = Platform.OS === 'ios' ? 10 : 12;
+// HIG/Material Design Compliant values
+const TAB_BAR_BASE_HEIGHT = Platform.OS === 'ios' ? 49 : 64; // iOS HIG: 49pt, Android Material: 64dp
+const TAB_ICON_SIZE = Platform.OS === 'ios' ? 28 : 24; // iOS: 25-28pt, Android: 24dp
+const TAB_LABEL_SIZE = Platform.OS === 'ios' ? 10 : 12; // iOS HIG: 10pt, Android: 12sp
+const TAB_ACTIVE_COLOR = '#163974';
+const TAB_INACTIVE_COLOR = Platform.OS === 'ios' ? '#8E8E93' : '#49454F'; // iOS: systemGray, Android: onSurfaceVariant
 
 export default function TabLayout() {
   const { user } = useAuthStore();
+  const insets = useSafeAreaInsets();
   const isCustomer = user?.userType === 'customer';
+
+  // Calculate tab bar height with safe area
+  const tabBarHeight = TAB_BAR_BASE_HEIGHT + (Platform.OS === 'ios' ? insets.bottom : 0);
+
+  // Common screen options for HIG compliance
+  const getScreenOptions = (activeColor: string) => ({
+    tabBarActiveTintColor: activeColor,
+    tabBarInactiveTintColor: TAB_INACTIVE_COLOR,
+    tabBarStyle: {
+      backgroundColor: '#fff',
+      borderTopColor: Platform.OS === 'ios' ? '#C6C6C8' : '#E7E0EC', // iOS: separator, Android: surfaceVariant
+      borderTopWidth: Platform.OS === 'ios' ? 0.5 : 1,
+      height: tabBarHeight,
+      paddingBottom: Platform.OS === 'ios' ? insets.bottom : 12,
+      paddingTop: Platform.OS === 'ios' ? 8 : 12,
+      // iOS uses subtle shadow, Android uses elevation
+      ...(Platform.OS === 'ios' ? {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: -1 },
+        shadowOpacity: 0.04,
+        shadowRadius: 4,
+      } : {
+        elevation: 8,
+      }),
+    },
+    tabBarLabelStyle: {
+      fontSize: TAB_LABEL_SIZE,
+      fontWeight: '500' as const,
+      marginTop: Platform.OS === 'ios' ? 0 : 4,
+    },
+    tabBarIconStyle: {
+      marginBottom: Platform.OS === 'ios' ? 0 : -2,
+    },
+    headerShown: false,
+  });
 
   if (isCustomer) {
     return (
-      <Tabs
-        screenOptions={{
-          tabBarActiveTintColor: '#3B82F6',
-          tabBarInactiveTintColor: '#9CA3AF',
-          tabBarStyle: {
-            backgroundColor: '#fff',
-            borderTopColor: '#E5E7EB',
-            height: 85,
-            paddingBottom: 25,
-            paddingTop: 10,
-          },
-          tabBarLabelStyle: {
-            fontSize: 12,
-            fontWeight: '500',
-          },
-          headerShown: false,
-        }}
-      >
+      <Tabs screenOptions={getScreenOptions('#3B82F6')}>
         <Tabs.Screen
           name="customer/index"
           options={{
             title: 'Randevularım',
-            tabBarIcon: ({ color, size }) => (
-              <Ionicons name="calendar" size={size} color={color} />
+            tabBarIcon: ({ color }) => (
+              <Ionicons name="calendar" size={TAB_ICON_SIZE} color={color} />
             ),
           }}
         />
@@ -45,8 +67,8 @@ export default function TabLayout() {
           name="customer/new-appointment"
           options={{
             title: 'Yeni Randevu',
-            tabBarIcon: ({ color, size }) => (
-              <Ionicons name="add-circle" size={size} color={color} />
+            tabBarIcon: ({ color }) => (
+              <Ionicons name="add-circle" size={TAB_ICON_SIZE} color={color} />
             ),
           }}
         />
@@ -54,8 +76,8 @@ export default function TabLayout() {
           name="customer/profile"
           options={{
             title: 'Profil',
-            tabBarIcon: ({ color, size }) => (
-              <Ionicons name="person" size={size} color={color} />
+            tabBarIcon: ({ color }) => (
+              <Ionicons name="person" size={TAB_ICON_SIZE} color={color} />
             ),
           }}
         />
@@ -81,31 +103,14 @@ export default function TabLayout() {
 
   // Staff/Owner layout - Only 3 tabs: Yeni Randevu, Müşteriler, Takvim
   return (
-    <Tabs
-      screenOptions={{
-        tabBarActiveTintColor: '#163974',
-        tabBarInactiveTintColor: '#9CA3AF',
-        tabBarStyle: {
-          backgroundColor: '#fff',
-          borderTopColor: '#E5E7EB',
-          height: 85,
-          paddingBottom: 25,
-          paddingTop: 10,
-        },
-        tabBarLabelStyle: {
-          fontSize: 12,
-          fontWeight: '500',
-        },
-        headerShown: false,
-      }}
-    >
+    <Tabs screenOptions={getScreenOptions(TAB_ACTIVE_COLOR)}>
       {/* Visible tabs */}
       <Tabs.Screen
         name="staff/index"
         options={{
           title: 'Yeni Randevu',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="add-circle" size={size} color={color} />
+          tabBarIcon: ({ color }) => (
+            <Ionicons name="add-circle" size={TAB_ICON_SIZE} color={color} />
           ),
         }}
       />
@@ -113,8 +118,8 @@ export default function TabLayout() {
         name="staff/customers"
         options={{
           title: 'Müşteriler',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="people" size={size} color={color} />
+          tabBarIcon: ({ color }) => (
+            <Ionicons name="people" size={TAB_ICON_SIZE} color={color} />
           ),
         }}
       />
@@ -122,8 +127,8 @@ export default function TabLayout() {
         name="staff/appointments"
         options={{
           title: 'Takvim',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="calendar" size={size} color={color} />
+          tabBarIcon: ({ color }) => (
+            <Ionicons name="calendar" size={TAB_ICON_SIZE} color={color} />
           ),
         }}
       />

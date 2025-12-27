@@ -7,6 +7,7 @@ import {
   ScrollView,
   Dimensions,
   Animated,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -16,8 +17,15 @@ import { useAuthStore } from '../store/auth.store';
 import api from '../services/api';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const DRAWER_WIDTH = Math.min(SCREEN_WIDTH * 0.85, 320);
+// HIG: iOS max 280pt, Material: max 360dp - use 85% or max
+const DRAWER_WIDTH = Math.min(SCREEN_WIDTH * 0.85, Platform.OS === 'ios' ? 280 : 320);
 const THEME_COLOR = '#163974';
+
+// HIG/Material compliant sizes
+const IS_IOS = Platform.OS === 'ios';
+const TOUCH_TARGET = IS_IOS ? 44 : 48; // iOS: 44pt min, Android: 48dp min
+const BORDER_RADIUS = IS_IOS ? 10 : 16; // iOS: 10-16pt, Android: 16-28dp
+const SECTION_TITLE_SIZE = IS_IOS ? 13 : 12; // iOS: 13pt footnote, Android: 12sp label
 
 interface MenuItem {
   id: string;
@@ -315,11 +323,15 @@ const styles = StyleSheet.create({
     bottom: 0,
     width: DRAWER_WIDTH,
     backgroundColor: '#fff',
-    shadowColor: '#000',
-    shadowOffset: { width: 4, height: 0 },
-    shadowOpacity: 0.25,
-    shadowRadius: 16,
-    elevation: 20,
+    // Platform-specific shadows
+    ...(IS_IOS ? {
+      shadowColor: '#000',
+      shadowOffset: { width: 4, height: 0 },
+      shadowOpacity: 0.15,
+      shadowRadius: 12,
+    } : {
+      elevation: 16,
+    }),
   },
   drawerContent: {
     flex: 1,
@@ -327,17 +339,17 @@ const styles = StyleSheet.create({
 
   // Header
   header: {
-    paddingHorizontal: 20,
-    paddingTop: 16,
+    paddingHorizontal: IS_IOS ? 20 : 16,
+    paddingTop: IS_IOS ? 16 : 24,
     paddingBottom: 20,
   },
   closeButton: {
     position: 'absolute',
-    top: 16,
+    top: IS_IOS ? 16 : 20,
     right: 16,
-    width: 36,
-    height: 36,
-    borderRadius: 12,
+    width: TOUCH_TARGET,
+    height: TOUCH_TARGET,
+    borderRadius: BORDER_RADIUS,
     backgroundColor: 'rgba(255,255,255,0.15)',
     justifyContent: 'center',
     alignItems: 'center',
@@ -348,38 +360,41 @@ const styles = StyleSheet.create({
   userSection: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 8,
+    marginTop: IS_IOS ? 8 : 16,
     marginBottom: 16,
   },
   userAvatar: {
-    width: 52,
-    height: 52,
-    borderRadius: 14,
+    width: IS_IOS ? 52 : 56, // Android: 56dp for large avatars
+    height: IS_IOS ? 52 : 56,
+    borderRadius: IS_IOS ? 14 : 28, // Android: full circle
     backgroundColor: '#fff',
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    ...(IS_IOS ? {
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 4,
+    } : {
+      elevation: 2,
+    }),
   },
   userAvatarText: {
-    fontSize: 22,
+    fontSize: IS_IOS ? 22 : 24,
     fontWeight: '700',
     color: THEME_COLOR,
   },
   userInfo: {
-    marginLeft: 14,
+    marginLeft: IS_IOS ? 14 : 16,
     flex: 1,
   },
   userName: {
-    fontSize: 18,
-    fontWeight: '700',
+    fontSize: IS_IOS ? 17 : 16, // iOS: 17pt headline, Android: 16sp title
+    fontWeight: IS_IOS ? '600' : '500',
     color: '#fff',
   },
   userRole: {
-    fontSize: 13,
+    fontSize: IS_IOS ? 13 : 14, // iOS: 13pt footnote, Android: 14sp body
     color: 'rgba(255,255,255,0.75)',
     marginTop: 2,
   },
@@ -389,28 +404,29 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: 'rgba(255,255,255,0.12)',
-    borderRadius: 12,
-    padding: 12,
+    borderRadius: BORDER_RADIUS,
+    padding: IS_IOS ? 12 : 16,
+    minHeight: TOUCH_TARGET,
   },
   businessIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
+    width: IS_IOS ? 36 : 40,
+    height: IS_IOS ? 36 : 40,
+    borderRadius: IS_IOS ? 10 : 20,
     backgroundColor: 'rgba(255,255,255,0.2)',
     justifyContent: 'center',
     alignItems: 'center',
   },
   businessIconText: {
-    fontSize: 16,
+    fontSize: IS_IOS ? 16 : 18,
     fontWeight: '700',
     color: '#fff',
   },
   businessName: {
     flex: 1,
-    fontSize: 14,
+    fontSize: IS_IOS ? 15 : 14,
     fontWeight: '600',
     color: '#fff',
-    marginLeft: 10,
+    marginLeft: IS_IOS ? 10 : 12,
   },
 
   // Menu
@@ -425,10 +441,11 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   menuSectionTitle: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#9CA3AF',
-    letterSpacing: 0.8,
+    fontSize: SECTION_TITLE_SIZE,
+    fontWeight: IS_IOS ? '600' : '500',
+    color: IS_IOS ? '#8E8E93' : '#49454F', // iOS: systemGray, Android: onSurfaceVariant
+    letterSpacing: IS_IOS ? 0.5 : 0.4,
+    textTransform: IS_IOS ? 'none' : 'uppercase',
     marginBottom: 8,
     marginTop: 16,
     paddingLeft: 4,
@@ -436,45 +453,46 @@ const styles = StyleSheet.create({
   menuItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 10,
-    paddingHorizontal: 10,
-    borderRadius: 12,
+    minHeight: TOUCH_TARGET,
+    paddingVertical: IS_IOS ? 8 : 4,
+    paddingHorizontal: IS_IOS ? 10 : 12,
+    borderRadius: BORDER_RADIUS,
     marginBottom: 2,
   },
   menuItemActive: {
-    backgroundColor: '#F8FAFC',
+    backgroundColor: IS_IOS ? '#F8FAFC' : '#E8DEF8', // Android: secondaryContainer
   },
   menuIconWrapper: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
+    width: TOUCH_TARGET - 4,
+    height: TOUCH_TARGET - 4,
+    borderRadius: IS_IOS ? 10 : (TOUCH_TARGET - 4) / 2,
     justifyContent: 'center',
     alignItems: 'center',
   },
   menuItemText: {
     flex: 1,
-    fontSize: 14,
+    fontSize: IS_IOS ? 15 : 14,
     fontWeight: '500',
-    color: '#4B5563',
+    color: IS_IOS ? '#3C3C43' : '#1D1B20',
     marginLeft: 12,
   },
   badge: {
-    minWidth: 22,
-    height: 22,
-    borderRadius: 11,
+    minWidth: IS_IOS ? 20 : 24,
+    height: IS_IOS ? 20 : 24,
+    borderRadius: IS_IOS ? 10 : 12,
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 6,
     marginRight: 8,
   },
   badgeText: {
-    fontSize: 11,
+    fontSize: IS_IOS ? 11 : 12,
     fontWeight: '700',
     color: '#fff',
   },
   activeIndicator: {
-    width: 4,
-    height: 24,
+    width: IS_IOS ? 3 : 4,
+    height: IS_IOS ? 20 : 24,
     borderRadius: 2,
   },
 
@@ -486,24 +504,25 @@ const styles = StyleSheet.create({
   settingsItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 10,
-    borderTopWidth: 1,
-    borderTopColor: '#F3F4F6',
+    minHeight: TOUCH_TARGET,
+    paddingVertical: IS_IOS ? 8 : 4,
+    paddingHorizontal: IS_IOS ? 10 : 12,
+    borderTopWidth: IS_IOS ? 0.5 : 1,
+    borderTopColor: IS_IOS ? '#C6C6C8' : '#E7E0EC',
   },
   settingsIconWrapper: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    backgroundColor: '#F3F4F6',
+    width: TOUCH_TARGET - 4,
+    height: TOUCH_TARGET - 4,
+    borderRadius: IS_IOS ? 10 : (TOUCH_TARGET - 4) / 2,
+    backgroundColor: IS_IOS ? '#F2F2F7' : '#E7E0EC',
     justifyContent: 'center',
     alignItems: 'center',
   },
   settingsText: {
     flex: 1,
-    fontSize: 14,
+    fontSize: IS_IOS ? 15 : 14,
     fontWeight: '500',
-    color: '#4B5563',
+    color: IS_IOS ? '#3C3C43' : '#1D1B20',
     marginLeft: 12,
   },
 
@@ -511,21 +530,22 @@ const styles = StyleSheet.create({
   footer: {
     paddingHorizontal: 16,
     paddingVertical: 16,
-    borderTopWidth: 1,
-    borderTopColor: '#F3F4F6',
+    borderTopWidth: IS_IOS ? 0.5 : 1,
+    borderTopColor: IS_IOS ? '#C6C6C8' : '#E7E0EC',
   },
   logoutButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 14,
-    backgroundColor: '#FEF2F2',
-    borderRadius: 12,
+    minHeight: TOUCH_TARGET,
+    paddingVertical: IS_IOS ? 12 : 14,
+    backgroundColor: IS_IOS ? '#FEF2F2' : '#FFEDEA',
+    borderRadius: BORDER_RADIUS,
   },
   logoutText: {
-    fontSize: 15,
+    fontSize: IS_IOS ? 17 : 14,
     fontWeight: '600',
-    color: '#DC2626',
+    color: IS_IOS ? '#FF3B30' : '#BA1A1A', // iOS: systemRed, Android: error
     marginLeft: 8,
   },
 });
