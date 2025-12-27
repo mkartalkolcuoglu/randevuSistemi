@@ -79,6 +79,41 @@ const DAY_LABELS: Record<string, string> = {
   sunday: 'Pazar',
 };
 
+// Permission pages
+const PERMISSION_PAGES = [
+  { key: 'dashboard', label: 'Ana Sayfa' },
+  { key: 'appointments', label: 'Randevular' },
+  { key: 'customers', label: 'Müşteriler' },
+  { key: 'services', label: 'Hizmetler' },
+  { key: 'staff', label: 'Personel' },
+  { key: 'packages', label: 'Paketler' },
+  { key: 'cashier', label: 'Kasa' },
+  { key: 'stock', label: 'Stok' },
+  { key: 'reports', label: 'Raporlama' },
+  { key: 'settings', label: 'Ayarlar' },
+];
+
+const PERMISSION_TYPES = [
+  { key: 'view', label: 'Görüntüleme' },
+  { key: 'create', label: 'Ekleme' },
+  { key: 'edit', label: 'Düzenleme' },
+  { key: 'delete', label: 'Silme' },
+];
+
+// Default permissions (all view enabled)
+const DEFAULT_PERMISSIONS: Record<string, Record<string, boolean>> = {
+  dashboard: { view: true, create: false, edit: false, delete: false },
+  appointments: { view: true, create: false, edit: false, delete: false },
+  customers: { view: true, create: false, edit: false, delete: false },
+  services: { view: true, create: false, edit: false, delete: false },
+  staff: { view: false, create: false, edit: false, delete: false },
+  packages: { view: false, create: false, edit: false, delete: false },
+  cashier: { view: false, create: false, edit: false, delete: false },
+  stock: { view: false, create: false, edit: false, delete: false },
+  reports: { view: false, create: false, edit: false, delete: false },
+  settings: { view: false, create: false, edit: false, delete: false },
+};
+
 export default function StaffTeamScreen() {
   // State
   const [staff, setStaff] = useState<Staff[]>([]);
@@ -111,6 +146,7 @@ export default function StaffTeamScreen() {
     canLogin: false,
     username: '',
     password: '',
+    permissions: DEFAULT_PERMISSIONS,
   });
   const [newSpecialization, setNewSpecialization] = useState('');
 
@@ -179,6 +215,16 @@ export default function StaffTeamScreen() {
     };
   }, [staff]);
 
+  // Parse permissions helper
+  const parsePermissions = (permStr: string | null): Record<string, Record<string, boolean>> => {
+    if (!permStr) return DEFAULT_PERMISSIONS;
+    try {
+      return JSON.parse(permStr);
+    } catch {
+      return DEFAULT_PERMISSIONS;
+    }
+  };
+
   // Reset form helper
   const resetNewStaffForm = () => {
     setNewStaff({
@@ -198,6 +244,7 @@ export default function StaffTeamScreen() {
       canLogin: false,
       username: '',
       password: '',
+      permissions: DEFAULT_PERMISSIONS,
     });
     setNewSpecialization('');
   };
@@ -222,6 +269,7 @@ export default function StaffTeamScreen() {
       canLogin: selectedStaff.canLogin || false,
       username: '',
       password: '',
+      permissions: parsePermissions((selectedStaff as any).permissions),
     });
     setEditSpecialization('');
     setIsEditMode(true);
@@ -252,6 +300,7 @@ export default function StaffTeamScreen() {
         workingHours: editStaff.workingHours,
         notes: editStaff.notes?.trim() || null,
         canLogin: editStaff.canLogin,
+        permissions: editStaff.canLogin ? JSON.stringify(editStaff.permissions) : null,
       };
 
       // Only include username/password if canLogin is true and they are provided
@@ -369,6 +418,7 @@ export default function StaffTeamScreen() {
         workingHours: newStaff.workingHours,
         notes: newStaff.notes?.trim() || null,
         canLogin: newStaff.canLogin,
+        permissions: newStaff.canLogin ? JSON.stringify(newStaff.permissions) : null,
       };
 
       // Only include username/password if canLogin is true
@@ -1045,6 +1095,69 @@ export default function StaffTeamScreen() {
                     )}
                   </View>
 
+                  {/* Sayfa Yetkileri - only shown when canLogin is true */}
+                  {editStaff.canLogin && (
+                    <View style={styles.formSectionCard}>
+                      <Text style={styles.formSectionTitle}>Sayfa Yetkileri</Text>
+                      <Text style={styles.permissionsHint}>
+                        Personelin erişebileceği sayfaları ve yapabileceği işlemleri seçin
+                      </Text>
+
+                      {PERMISSION_PAGES.map((page) => (
+                        <View key={page.key} style={styles.permissionPageRow}>
+                          <Text style={styles.permissionPageLabel}>{page.label}</Text>
+                          <View style={styles.permissionTypesRow}>
+                            {PERMISSION_TYPES.map((type) => {
+                              const isChecked = editStaff.permissions[page.key]?.[type.key] || false;
+                              return (
+                                <TouchableOpacity
+                                  key={type.key}
+                                  style={[
+                                    styles.permissionCheckbox,
+                                    isChecked && styles.permissionCheckboxActive,
+                                  ]}
+                                  onPress={() => {
+                                    setEditStaff((prev) => {
+                                      if (!prev) return null;
+                                      const newPermissions = { ...prev.permissions };
+                                      if (!newPermissions[page.key]) {
+                                        newPermissions[page.key] = { view: false, create: false, edit: false, delete: false };
+                                      }
+                                      newPermissions[page.key] = {
+                                        ...newPermissions[page.key],
+                                        [type.key]: !isChecked,
+                                      };
+                                      return { ...prev, permissions: newPermissions };
+                                    });
+                                  }}
+                                >
+                                  <Ionicons
+                                    name={isChecked ? 'checkbox' : 'square-outline'}
+                                    size={16}
+                                    color={isChecked ? '#3B82F6' : '#9CA3AF'}
+                                  />
+                                  <Text style={[
+                                    styles.permissionTypeLabel,
+                                    isChecked && styles.permissionTypeLabelActive,
+                                  ]}>
+                                    {type.label}
+                                  </Text>
+                                </TouchableOpacity>
+                              );
+                            })}
+                          </View>
+                        </View>
+                      ))}
+
+                      <View style={styles.permissionInfoBox}>
+                        <Ionicons name="information-circle-outline" size={16} color="#6B7280" />
+                        <Text style={styles.permissionInfoText}>
+                          Personel sadece "Görüntüleme" yetkisi olan sayfaları görebilir. Diğer yetkiler sayfa içindeki butonları kontrol eder.
+                        </Text>
+                      </View>
+                    </View>
+                  )}
+
                   {/* Notlar */}
                   <View style={styles.formSectionCard}>
                     <Text style={styles.formSectionTitle}>Notlar</Text>
@@ -1511,6 +1624,68 @@ export default function StaffTeamScreen() {
                 </>
               )}
             </View>
+
+            {/* Sayfa Yetkileri - only shown when canLogin is true */}
+            {newStaff.canLogin && (
+              <View style={styles.formSectionCard}>
+                <Text style={styles.formSectionTitle}>Sayfa Yetkileri</Text>
+                <Text style={styles.permissionsHint}>
+                  Personelin erişebileceği sayfaları ve yapabileceği işlemleri seçin
+                </Text>
+
+                {PERMISSION_PAGES.map((page) => (
+                  <View key={page.key} style={styles.permissionPageRow}>
+                    <Text style={styles.permissionPageLabel}>{page.label}</Text>
+                    <View style={styles.permissionTypesRow}>
+                      {PERMISSION_TYPES.map((type) => {
+                        const isChecked = newStaff.permissions[page.key]?.[type.key] || false;
+                        return (
+                          <TouchableOpacity
+                            key={type.key}
+                            style={[
+                              styles.permissionCheckbox,
+                              isChecked && styles.permissionCheckboxActive,
+                            ]}
+                            onPress={() => {
+                              setNewStaff((prev) => {
+                                const newPermissions = { ...prev.permissions };
+                                if (!newPermissions[page.key]) {
+                                  newPermissions[page.key] = { view: false, create: false, edit: false, delete: false };
+                                }
+                                newPermissions[page.key] = {
+                                  ...newPermissions[page.key],
+                                  [type.key]: !isChecked,
+                                };
+                                return { ...prev, permissions: newPermissions };
+                              });
+                            }}
+                          >
+                            <Ionicons
+                              name={isChecked ? 'checkbox' : 'square-outline'}
+                              size={16}
+                              color={isChecked ? '#3B82F6' : '#9CA3AF'}
+                            />
+                            <Text style={[
+                              styles.permissionTypeLabel,
+                              isChecked && styles.permissionTypeLabelActive,
+                            ]}>
+                              {type.label}
+                            </Text>
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </View>
+                  </View>
+                ))}
+
+                <View style={styles.permissionInfoBox}>
+                  <Ionicons name="information-circle-outline" size={16} color="#6B7280" />
+                  <Text style={styles.permissionInfoText}>
+                    Personel sadece "Görüntüleme" yetkisi olan sayfaları görebilir. Diğer yetkiler sayfa içindeki butonları kontrol eder.
+                  </Text>
+                </View>
+              </View>
+            )}
 
             {/* Notlar */}
             <View style={styles.formSectionCard}>
@@ -2472,6 +2647,68 @@ const styles = StyleSheet.create({
   infoCardText: {
     fontSize: 12,
     color: '#6B7280',
+    lineHeight: 18,
+  },
+
+  // Permissions styles
+  permissionsHint: {
+    fontSize: 13,
+    color: '#6B7280',
+    marginBottom: 12,
+  },
+  permissionPageRow: {
+    marginBottom: 12,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
+  permissionPageLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#374151',
+    marginBottom: 8,
+  },
+  permissionTypesRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  permissionCheckbox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    backgroundColor: '#F9FAFB',
+    gap: 6,
+  },
+  permissionCheckboxActive: {
+    backgroundColor: '#E0E7FF',
+    borderColor: '#6366F1',
+  },
+  permissionTypeLabel: {
+    fontSize: 12,
+    color: '#6B7280',
+  },
+  permissionTypeLabelActive: {
+    color: '#4F46E5',
+    fontWeight: '500',
+  },
+  permissionInfoBox: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    padding: 12,
+    backgroundColor: '#EFF6FF',
+    borderRadius: 8,
+    marginTop: 8,
+    gap: 8,
+  },
+  permissionInfoText: {
+    flex: 1,
+    fontSize: 12,
+    color: '#1E40AF',
     lineHeight: 18,
   },
 
