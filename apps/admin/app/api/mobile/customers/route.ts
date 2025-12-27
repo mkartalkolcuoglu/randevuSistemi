@@ -130,7 +130,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { firstName, lastName, phone, email, birthDate, gender, address, notes } = body;
+    const { firstName, lastName, phone, email, birthDate, gender, address, notes, status, whatsappNotifications } = body;
 
     if (!firstName || !lastName || !phone) {
       return NextResponse.json(
@@ -154,20 +154,36 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Parse birthDate if provided
+    let parsedBirthDate = null;
+    if (birthDate) {
+      try {
+        parsedBirthDate = new Date(birthDate);
+      } catch (e) {
+        console.error('Error parsing birthDate:', e);
+      }
+    }
+
+    // Generate a unique placeholder email if not provided (to avoid unique constraint issues)
+    const customerEmail = email && email.trim()
+      ? email.trim()
+      : `noemail_${Date.now()}_${Math.random().toString(36).substring(7)}@placeholder.local`;
+
     const customer = await prisma.customer.create({
       data: {
         tenantId: auth.tenantId,
         firstName,
         lastName,
         phone,
-        email: email || '',
-        birthDate,
-        gender,
-        address,
-        notes,
-        status: 'active',
+        email: customerEmail,
+        birthDate: parsedBirthDate,
+        gender: gender || null,
+        address: address || null,
+        notes: notes || null,
+        status: status || 'active',
         isBlacklisted: false,
         noShowCount: 0,
+        whatsappNotifications: whatsappNotifications !== false,
       },
     });
 
@@ -181,10 +197,28 @@ export async function POST(request: NextRequest) {
         phone: customer.phone,
       },
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Create customer error:', error);
+
+    // Check for unique constraint violation
+    if (error?.code === 'P2002') {
+      const target = error?.meta?.target;
+      if (target?.includes('email')) {
+        return NextResponse.json(
+          { success: false, message: 'Bu e-posta adresi ile kayıtlı müşteri var' },
+          { status: 400 }
+        );
+      }
+      if (target?.includes('phone')) {
+        return NextResponse.json(
+          { success: false, message: 'Bu telefon numarası ile kayıtlı müşteri var' },
+          { status: 400 }
+        );
+      }
+    }
+
     return NextResponse.json(
-      { success: false, message: 'Bir hata oluştu' },
+      { success: false, message: 'Bir hata oluştu', error: error?.message },
       { status: 500 }
     );
   }
