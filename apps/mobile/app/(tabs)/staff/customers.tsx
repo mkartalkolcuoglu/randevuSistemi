@@ -1083,111 +1083,111 @@ export default function StaffCustomersScreen() {
             <View style={styles.formSectionCard}>
               <Text style={styles.formSectionTitle}>Kişisel Bilgiler</Text>
 
-              {/* Ad Soyad */}
-              <View style={styles.formRow}>
-                <View style={styles.formGroup}>
-                  <Text style={styles.formLabel}>Ad *</Text>
+              {/* Ad */}
+              <View style={styles.formGroupFull}>
+                <Text style={styles.formLabel}>Ad *</Text>
+                <TextInput
+                  style={styles.formInput}
+                  placeholder="Müşteri adı"
+                  placeholderTextColor="#9CA3AF"
+                  value={newCustomer.firstName}
+                  onChangeText={(text) =>
+                    setNewCustomer((prev) => ({ ...prev, firstName: text }))
+                  }
+                />
+              </View>
+
+              {/* Soyad */}
+              <View style={styles.formGroupFull}>
+                <Text style={styles.formLabel}>Soyad *</Text>
+                <TextInput
+                  style={styles.formInput}
+                  placeholder="Müşteri soyadı"
+                  placeholderTextColor="#9CA3AF"
+                  value={newCustomer.lastName}
+                  onChangeText={(text) =>
+                    setNewCustomer((prev) => ({ ...prev, lastName: text }))
+                  }
+                />
+              </View>
+
+              {/* Telefon */}
+              <View style={styles.formGroupFull}>
+                <Text style={styles.formLabel}>Telefon *</Text>
+                <View style={styles.phoneInputWrapper}>
+                  <Text style={styles.phonePrefix}>+90</Text>
                   <TextInput
-                    style={styles.formInput}
-                    placeholder="Müşteri adı"
+                    style={styles.phoneInput}
+                    placeholder="5XX XXX XX XX"
                     placeholderTextColor="#9CA3AF"
-                    value={newCustomer.firstName}
+                    value={newCustomer.phone}
                     onChangeText={(text) =>
-                      setNewCustomer((prev) => ({ ...prev, firstName: text }))
+                      setNewCustomer((prev) => ({ ...prev, phone: text }))
                     }
-                  />
-                </View>
-                <View style={styles.formGroup}>
-                  <Text style={styles.formLabel}>Soyad *</Text>
-                  <TextInput
-                    style={styles.formInput}
-                    placeholder="Müşteri soyadı"
-                    placeholderTextColor="#9CA3AF"
-                    value={newCustomer.lastName}
-                    onChangeText={(text) =>
-                      setNewCustomer((prev) => ({ ...prev, lastName: text }))
-                    }
+                    keyboardType="phone-pad"
                   />
                 </View>
               </View>
 
-              {/* Telefon E-posta */}
-              <View style={styles.formRow}>
-                <View style={styles.formGroup}>
-                  <Text style={styles.formLabel}>Telefon *</Text>
-                  <View style={styles.phoneInputWrapper}>
-                    <Text style={styles.phonePrefix}>+90</Text>
-                    <TextInput
-                      style={styles.phoneInput}
-                      placeholder="5XX XXX XX XX"
-                      placeholderTextColor="#9CA3AF"
-                      value={newCustomer.phone}
-                      onChangeText={(text) =>
-                        setNewCustomer((prev) => ({ ...prev, phone: text }))
+              {/* E-posta */}
+              <View style={styles.formGroupFull}>
+                <Text style={styles.formLabel}>E-posta</Text>
+                <TextInput
+                  style={styles.formInput}
+                  placeholder="ornek@email.com"
+                  placeholderTextColor="#9CA3AF"
+                  value={newCustomer.email}
+                  onChangeText={(text) =>
+                    setNewCustomer((prev) => ({ ...prev, email: text }))
+                  }
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                />
+              </View>
+
+              {/* Doğum Tarihi */}
+              <View style={styles.formGroupFull}>
+                <Text style={styles.formLabel}>Doğum Tarihi</Text>
+                <TouchableOpacity
+                  style={styles.formInput}
+                  onPress={() => setShowDatePicker(true)}
+                >
+                  <View style={styles.datePickerBtn}>
+                    <Ionicons name="calendar-outline" size={18} color="#6B7280" />
+                    <Text style={newCustomer.birthDate ? styles.datePickerText : styles.datePickerPlaceholder}>
+                      {newCustomer.birthDate
+                        ? new Date(newCustomer.birthDate).toLocaleDateString('tr-TR')
+                        : 'Tarih seçin'}
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+              </View>
+
+              {/* Cinsiyet */}
+              <View style={styles.formGroupFull}>
+                <Text style={styles.formLabel}>Cinsiyet</Text>
+                <View style={styles.genderSelectorFull}>
+                  {GENDER_OPTIONS.filter(g => g.value).map((gender) => (
+                    <TouchableOpacity
+                      key={gender.value}
+                      style={[
+                        styles.genderOptionFull,
+                        newCustomer.gender === gender.value && styles.genderOptionActive,
+                      ]}
+                      onPress={() =>
+                        setNewCustomer((prev) => ({ ...prev, gender: gender.value }))
                       }
-                      keyboardType="phone-pad"
-                    />
-                  </View>
-                </View>
-                <View style={styles.formGroup}>
-                  <Text style={styles.formLabel}>E-posta</Text>
-                  <TextInput
-                    style={styles.formInput}
-                    placeholder="ornek@email.com"
-                    placeholderTextColor="#9CA3AF"
-                    value={newCustomer.email}
-                    onChangeText={(text) =>
-                      setNewCustomer((prev) => ({ ...prev, email: text }))
-                    }
-                    keyboardType="email-address"
-                    autoCapitalize="none"
-                  />
-                </View>
-              </View>
-
-              {/* Doğum Tarihi Cinsiyet */}
-              <View style={styles.formRow}>
-                <View style={styles.formGroup}>
-                  <Text style={styles.formLabel}>Doğum Tarihi</Text>
-                  <TouchableOpacity
-                    style={styles.formInput}
-                    onPress={() => setShowDatePicker(true)}
-                  >
-                    <View style={styles.datePickerBtn}>
-                      <Ionicons name="calendar-outline" size={18} color="#6B7280" />
-                      <Text style={newCustomer.birthDate ? styles.datePickerText : styles.datePickerPlaceholder}>
-                        {newCustomer.birthDate
-                          ? new Date(newCustomer.birthDate).toLocaleDateString('tr-TR')
-                          : 'Tarih seçin'}
-                      </Text>
-                    </View>
-                  </TouchableOpacity>
-                </View>
-                <View style={styles.formGroup}>
-                  <Text style={styles.formLabel}>Cinsiyet</Text>
-                  <View style={styles.genderSelector}>
-                    {GENDER_OPTIONS.filter(g => g.value).map((gender) => (
-                      <TouchableOpacity
-                        key={gender.value}
+                    >
+                      <Text
                         style={[
-                          styles.genderOption,
-                          newCustomer.gender === gender.value && styles.genderOptionActive,
+                          styles.genderOptionText,
+                          newCustomer.gender === gender.value && styles.genderOptionTextActive,
                         ]}
-                        onPress={() =>
-                          setNewCustomer((prev) => ({ ...prev, gender: gender.value }))
-                        }
                       >
-                        <Text
-                          style={[
-                            styles.genderOptionText,
-                            newCustomer.gender === gender.value && styles.genderOptionTextActive,
-                          ]}
-                        >
-                          {gender.label}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
-                  </View>
+                        {gender.label}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
                 </View>
               </View>
 
@@ -1264,7 +1264,7 @@ export default function StaffCustomersScreen() {
             <View style={styles.formSectionCard}>
               <Text style={styles.formSectionTitle}>Bildirim Tercihleri</Text>
               <TouchableOpacity
-                style={styles.whatsappToggle}
+                style={styles.whatsappToggleNew}
                 onPress={() =>
                   setNewCustomer((prev) => ({
                     ...prev,
@@ -1272,7 +1272,7 @@ export default function StaffCustomersScreen() {
                   }))
                 }
               >
-                <View style={styles.whatsappToggleLeft}>
+                <View style={styles.whatsappToggleRow}>
                   <View style={[
                     styles.checkbox,
                     newCustomer.whatsappNotifications && styles.checkboxChecked,
@@ -1281,16 +1281,16 @@ export default function StaffCustomersScreen() {
                       <Ionicons name="checkmark" size={14} color="#fff" />
                     )}
                   </View>
-                  <View>
-                    <Text style={styles.whatsappToggleText}>
-                      WhatsApp ile randevu bildirimleri alsın
-                    </Text>
+                  <View style={styles.whatsappToggleContent}>
+                    <View style={styles.whatsappToggleTitleRow}>
+                      <Text style={styles.whatsappToggleText}>WhatsApp Bildirimleri</Text>
+                      <Ionicons name="logo-whatsapp" size={20} color="#25D366" />
+                    </View>
                     <Text style={styles.whatsappToggleHint}>
                       Randevu onayları ve hatırlatmalar WhatsApp üzerinden gönderilecektir.
                     </Text>
                   </View>
                 </View>
-                <Ionicons name="logo-whatsapp" size={24} color="#25D366" />
               </TouchableOpacity>
             </View>
 
@@ -2222,6 +2222,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 6,
   },
+  genderSelectorFull: {
+    flexDirection: 'row',
+    gap: 10,
+  },
   genderOption: {
     flex: 1,
     paddingVertical: 10,
@@ -2230,11 +2234,19 @@ const styles = StyleSheet.create({
     backgroundColor: '#F3F4F6',
     alignItems: 'center',
   },
+  genderOptionFull: {
+    flex: 1,
+    paddingVertical: 14,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+    backgroundColor: '#F3F4F6',
+    alignItems: 'center',
+  },
   genderOptionActive: {
     backgroundColor: '#163974',
   },
   genderOptionText: {
-    fontSize: 12,
+    fontSize: 14,
     color: '#6B7280',
     fontWeight: '500',
   },
@@ -2278,6 +2290,27 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#BBF7D0',
   },
+  whatsappToggleNew: {
+    padding: 14,
+    backgroundColor: '#F0FDF4',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#BBF7D0',
+  },
+  whatsappToggleRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+  },
+  whatsappToggleContent: {
+    flex: 1,
+  },
+  whatsappToggleTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 4,
+  },
   whatsappToggleLeft: {
     flexDirection: 'row',
     alignItems: 'flex-start',
@@ -2300,15 +2333,14 @@ const styles = StyleSheet.create({
     borderColor: '#25D366',
   },
   whatsappToggleText: {
-    fontSize: 14,
-    fontWeight: '500',
+    fontSize: 15,
+    fontWeight: '600',
     color: '#1F2937',
   },
   whatsappToggleHint: {
-    fontSize: 12,
+    fontSize: 13,
     color: '#6B7280',
-    marginTop: 4,
-    lineHeight: 16,
+    lineHeight: 18,
   },
   infoCard: {
     flexDirection: 'row',
