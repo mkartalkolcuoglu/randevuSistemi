@@ -191,15 +191,18 @@ export const appointmentService = {
     status: string
   ): Promise<ApiResponse<Appointment>> {
     try {
-      const response = await api.put(`/api/mobile/appointments/${id}/status`, {
+      console.log('📝 Updating appointment status:', { id, status });
+      const response = await api.patch(`/api/mobile/appointments/${id}`, {
         status,
       });
+      console.log('📝 Status update response:', response.data);
       return response.data;
     } catch (error: any) {
       console.error('Update appointment status error:', error);
+      console.error('Error response:', error.response?.data);
       return {
         success: false,
-        error: error.response?.data?.error || 'Durum güncellenemedi',
+        error: error.response?.data?.message || error.response?.data?.error || 'Durum güncellenemedi',
       };
     }
   },
@@ -289,6 +292,58 @@ export const appointmentService = {
         success: false,
         data: [],
         error: error.response?.data?.error || 'Müşteri araması başarısız',
+      };
+    }
+  },
+
+  /**
+   * Get tenant settings (working hours, appointment interval, etc.)
+   */
+  async getTenantSettings(): Promise<ApiResponse<{
+    tenantId: string;
+    businessName: string;
+    workingHours: Record<string, { start: string; end: string; closed: boolean }>;
+    appointmentTimeInterval: number;
+    blacklistThreshold: number;
+    reminderMinutes: number;
+  }>> {
+    try {
+      console.log('🔧 Fetching tenant settings...');
+      const response = await api.get('/api/mobile/tenant-settings');
+      console.log('🔧 Tenant settings response:', JSON.stringify(response.data, null, 2));
+      return response.data;
+    } catch (error: any) {
+      console.error('❌ Get tenant settings error:', error.message);
+      console.error('❌ Error status:', error.response?.status);
+      console.error('❌ Error data:', JSON.stringify(error.response?.data, null, 2));
+      return {
+        success: false,
+        error: error.response?.data?.error || error.response?.data?.message || 'Ayarlar yüklenemedi',
+      };
+    }
+  },
+
+  /**
+   * Get staff appointments for a specific date (for conflict checking)
+   */
+  async getStaffAppointmentsForDate(
+    staffId: string,
+    date: string
+  ): Promise<ApiResponse<Appointment[]>> {
+    try {
+      const response = await api.get('/api/mobile/staff/appointments', {
+        params: { staffId, date },
+      });
+      return {
+        success: true,
+        data: response.data.data || [],
+      };
+    } catch (error: any) {
+      console.error('Get staff appointments for date error:', error);
+      return {
+        success: false,
+        data: [],
+        error: error.response?.data?.error || 'Randevular yüklenemedi',
       };
     }
   },

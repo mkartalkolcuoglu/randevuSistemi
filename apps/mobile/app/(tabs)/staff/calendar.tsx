@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -15,22 +15,23 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useAuthStore } from '../../../src/store/auth.store';
 import { appointmentService } from '../../../src/services/appointment.service';
-import { Appointment, AppointmentStatus } from '../../../src/types';
+import { Appointment } from '../../../src/types';
 import DrawerMenu from '../../../src/components/DrawerMenu';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const DAY_WIDTH = (SCREEN_WIDTH - 32) / 7;
+const DAY_WIDTH = (SCREEN_WIDTH - 48) / 7;
 
-// Status configurations
-const STATUS_CONFIG: Record<string, { bg: string; text: string; label: string }> = {
-  pending: { bg: '#FEF3C7', text: '#D97706', label: 'Beklemede' },
-  scheduled: { bg: '#DBEAFE', text: '#2563EB', label: 'Planlandı' },
-  confirmed: { bg: '#D1FAE5', text: '#059669', label: 'Onaylandı' },
-  completed: { bg: '#DBEAFE', text: '#2563EB', label: 'Tamamlandı' },
-  cancelled: { bg: '#FEE2E2', text: '#DC2626', label: 'İptal' },
-  no_show: { bg: '#FFEDD5', text: '#EA580C', label: 'Gelmedi' },
+// Status configurations with gradients
+const STATUS_CONFIG: Record<string, { bg: string; text: string; label: string; gradient: [string, string] }> = {
+  pending: { bg: '#FEF3C7', text: '#D97706', label: 'Beklemede', gradient: ['#FCD34D', '#F59E0B'] },
+  scheduled: { bg: '#DBEAFE', text: '#2563EB', label: 'Planlandı', gradient: ['#60A5FA', '#3B82F6'] },
+  confirmed: { bg: '#D1FAE5', text: '#059669', label: 'Onaylandı', gradient: ['#34D399', '#10B981'] },
+  completed: { bg: '#DBEAFE', text: '#2563EB', label: 'Tamamlandı', gradient: ['#60A5FA', '#3B82F6'] },
+  cancelled: { bg: '#FEE2E2', text: '#DC2626', label: 'İptal', gradient: ['#F87171', '#EF4444'] },
+  no_show: { bg: '#FFEDD5', text: '#EA580C', label: 'Gelmedi', gradient: ['#FB923C', '#F97316'] },
 };
 
 const WEEKDAYS = ['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'];
@@ -105,16 +106,13 @@ export default function CalendarScreen() {
 
     const days: (Date | null)[] = [];
 
-    // Get the day of week for the first day (0 = Sunday, adjust for Monday start)
     let startPadding = firstDay.getDay() - 1;
     if (startPadding < 0) startPadding = 6;
 
-    // Add padding for days before the month starts
     for (let i = 0; i < startPadding; i++) {
       days.push(null);
     }
 
-    // Add all days of the month
     for (let day = 1; day <= lastDay.getDate(); day++) {
       days.push(new Date(year, month, day));
     }
@@ -183,18 +181,30 @@ export default function CalendarScreen() {
 
   // Render view type tabs
   const renderViewTabs = () => (
-    <View style={styles.viewTabs}>
-      {(['month', 'week', 'day'] as ViewType[]).map((type) => (
-        <TouchableOpacity
-          key={type}
-          style={[styles.viewTab, viewType === type && styles.viewTabActive]}
-          onPress={() => setViewType(type)}
-        >
-          <Text style={[styles.viewTabText, viewType === type && styles.viewTabTextActive]}>
-            {type === 'month' ? 'Ay' : type === 'week' ? 'Hafta' : 'Gün'}
-          </Text>
-        </TouchableOpacity>
-      ))}
+    <View style={styles.viewTabsContainer}>
+      <View style={styles.viewTabs}>
+        {(['month', 'week', 'day'] as ViewType[]).map((type) => {
+          const isActive = viewType === type;
+          const icons = { month: 'calendar', week: 'calendar-outline', day: 'today' };
+          return (
+            <TouchableOpacity
+              key={type}
+              style={[styles.viewTab, isActive && styles.viewTabActive]}
+              onPress={() => setViewType(type)}
+              activeOpacity={0.7}
+            >
+              <Ionicons
+                name={icons[type] as any}
+                size={16}
+                color={isActive ? '#fff' : '#6B7280'}
+              />
+              <Text style={[styles.viewTabText, isActive && styles.viewTabTextActive]}>
+                {type === 'month' ? 'Ay' : type === 'week' ? 'Hafta' : 'Gün'}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
     </View>
   );
 
@@ -206,9 +216,12 @@ export default function CalendarScreen() {
       <View style={styles.monthContainer}>
         {/* Weekday headers */}
         <View style={styles.weekdayHeader}>
-          {WEEKDAYS.map((day) => (
+          {WEEKDAYS.map((day, index) => (
             <View key={day} style={styles.weekdayCell}>
-              <Text style={styles.weekdayText}>{day}</Text>
+              <Text style={[
+                styles.weekdayText,
+                (index === 5 || index === 6) && styles.weekdayTextWeekend
+              ]}>{day}</Text>
             </View>
           ))}
         </View>
@@ -222,40 +235,48 @@ export default function CalendarScreen() {
 
             const dateStr = formatDateString(day);
             const dayAppointments = getAppointmentsForDate(dateStr);
-            const todayStyle = isToday(day);
+            const todayCheck = isToday(day);
+            const isWeekend = day.getDay() === 0 || day.getDay() === 6;
 
             return (
               <TouchableOpacity
                 key={dateStr}
-                style={[styles.dayCell, todayStyle && styles.dayCellToday]}
+                style={[
+                  styles.dayCell,
+                  todayCheck && styles.dayCellToday,
+                  isWeekend && styles.dayCellWeekend,
+                ]}
                 onPress={() => {
                   setCurrentDate(day);
                   setViewType('day');
                 }}
+                activeOpacity={0.7}
               >
-                <Text style={[styles.dayNumber, todayStyle && styles.dayNumberToday]}>
-                  {day.getDate()}
-                </Text>
+                <View style={[styles.dayNumberContainer, todayCheck && styles.dayNumberContainerToday]}>
+                  <Text style={[
+                    styles.dayNumber,
+                    todayCheck && styles.dayNumberToday,
+                    isWeekend && !todayCheck && styles.dayNumberWeekend,
+                  ]}>
+                    {day.getDate()}
+                  </Text>
+                </View>
                 {dayAppointments.length > 0 && (
-                  <View style={styles.dayAppointmentsBadge}>
-                    <Text style={styles.dayAppointmentsCount}>
-                      {dayAppointments.length}
-                    </Text>
+                  <View style={styles.appointmentDots}>
+                    {dayAppointments.slice(0, 3).map((apt, i) => (
+                      <View
+                        key={apt.id}
+                        style={[
+                          styles.appointmentDot,
+                          { backgroundColor: STATUS_CONFIG[apt.status]?.text || '#6B7280' },
+                        ]}
+                      />
+                    ))}
+                    {dayAppointments.length > 3 && (
+                      <Text style={styles.moreDotsText}>+{dayAppointments.length - 3}</Text>
+                    )}
                   </View>
                 )}
-                {dayAppointments.slice(0, 2).map((apt, i) => (
-                  <View
-                    key={apt.id}
-                    style={[
-                      styles.miniAppointment,
-                      { backgroundColor: STATUS_CONFIG[apt.status]?.bg || '#E5E7EB' },
-                    ]}
-                  >
-                    <Text style={styles.miniAppointmentTime} numberOfLines={1}>
-                      {apt.time.substring(0, 5)}
-                    </Text>
-                  </View>
-                ))}
               </TouchableOpacity>
             );
           })}
@@ -269,70 +290,82 @@ export default function CalendarScreen() {
     const days = getWeekDays();
 
     return (
-      <ScrollView style={styles.weekContainer} showsVerticalScrollIndicator={false}>
+      <View style={styles.weekContainer}>
         {/* Weekday headers */}
         <View style={styles.weekHeader}>
           {days.map((day, index) => {
-            const todayStyle = isToday(day);
+            const todayCheck = isToday(day);
             return (
-              <View key={index} style={[styles.weekDayHeader, todayStyle && styles.weekDayHeaderToday]}>
-                <Text style={[styles.weekDayName, todayStyle && styles.weekDayNameToday]}>
+              <TouchableOpacity
+                key={index}
+                style={[styles.weekDayHeader, todayCheck && styles.weekDayHeaderToday]}
+                onPress={() => {
+                  setCurrentDate(day);
+                  setViewType('day');
+                }}
+                activeOpacity={0.7}
+              >
+                <Text style={[styles.weekDayName, todayCheck && styles.weekDayNameToday]}>
                   {WEEKDAYS[index]}
                 </Text>
-                <Text style={[styles.weekDayNum, todayStyle && styles.weekDayNumToday]}>
+                <Text style={[styles.weekDayNum, todayCheck && styles.weekDayNumToday]}>
                   {day.getDate()}
                 </Text>
-              </View>
+              </TouchableOpacity>
             );
           })}
         </View>
 
         {/* Week grid */}
-        <View style={styles.weekGrid}>
-          {days.map((day, index) => {
-            const dateStr = formatDateString(day);
-            const dayAppointments = getAppointmentsForDate(dateStr);
-            const todayStyle = isToday(day);
+        <ScrollView style={styles.weekScrollView} showsVerticalScrollIndicator={false}>
+          <View style={styles.weekGrid}>
+            {days.map((day, index) => {
+              const dateStr = formatDateString(day);
+              const dayAppointments = getAppointmentsForDate(dateStr);
+              const todayCheck = isToday(day);
 
-            return (
-              <TouchableOpacity
-                key={index}
-                style={[styles.weekDayColumn, todayStyle && styles.weekDayColumnToday]}
-                onPress={() => {
-                  setCurrentDate(day);
-                  setViewType('day');
-                }}
-              >
-                {dayAppointments.length === 0 ? (
-                  <Text style={styles.noAppointmentsText}>-</Text>
-                ) : (
-                  dayAppointments.slice(0, 5).map((apt) => (
-                    <TouchableOpacity
-                      key={apt.id}
-                      style={[
-                        styles.weekAppointment,
-                        { backgroundColor: STATUS_CONFIG[apt.status]?.bg || '#E5E7EB' },
-                      ]}
-                      onPress={() => {
-                        setSelectedAppointment(apt);
-                        setShowDetailModal(true);
-                      }}
-                    >
-                      <Text style={styles.weekAppointmentTime}>{apt.time.substring(0, 5)}</Text>
-                      <Text style={styles.weekAppointmentName} numberOfLines={1}>
-                        {apt.customerName}
-                      </Text>
-                    </TouchableOpacity>
-                  ))
-                )}
-                {dayAppointments.length > 5 && (
-                  <Text style={styles.moreText}>+{dayAppointments.length - 5}</Text>
-                )}
-              </TouchableOpacity>
-            );
-          })}
-        </View>
-      </ScrollView>
+              return (
+                <View
+                  key={index}
+                  style={[styles.weekDayColumn, todayCheck && styles.weekDayColumnToday]}
+                >
+                  {dayAppointments.length === 0 ? (
+                    <View style={styles.emptyDayColumn}>
+                      <Ionicons name="remove-outline" size={16} color="#D1D5DB" />
+                    </View>
+                  ) : (
+                    dayAppointments.slice(0, 6).map((apt) => {
+                      const status = STATUS_CONFIG[apt.status] || STATUS_CONFIG.pending;
+                      return (
+                        <TouchableOpacity
+                          key={apt.id}
+                          style={styles.weekAppointment}
+                          onPress={() => {
+                            setSelectedAppointment(apt);
+                            setShowDetailModal(true);
+                          }}
+                          activeOpacity={0.7}
+                        >
+                          <View style={[styles.weekAptAccent, { backgroundColor: status.text }]} />
+                          <View style={styles.weekAptContent}>
+                            <Text style={styles.weekAppointmentTime}>{apt.time.substring(0, 5)}</Text>
+                            <Text style={styles.weekAppointmentName} numberOfLines={1}>
+                              {apt.customerName.split(' ')[0]}
+                            </Text>
+                          </View>
+                        </TouchableOpacity>
+                      );
+                    })
+                  )}
+                  {dayAppointments.length > 6 && (
+                    <Text style={styles.moreText}>+{dayAppointments.length - 6}</Text>
+                  )}
+                </View>
+              );
+            })}
+          </View>
+        </ScrollView>
+      </View>
     );
   };
 
@@ -344,6 +377,22 @@ export default function CalendarScreen() {
 
     return (
       <ScrollView style={styles.dayContainer} showsVerticalScrollIndicator={false}>
+        {/* Day summary */}
+        <View style={styles.daySummary}>
+          <View style={styles.daySummaryItem}>
+            <Text style={styles.daySummaryNumber}>{dayAppointments.length}</Text>
+            <Text style={styles.daySummaryLabel}>Randevu</Text>
+          </View>
+          <View style={styles.daySummaryDivider} />
+          <View style={styles.daySummaryItem}>
+            <Text style={styles.daySummaryNumber}>
+              {dayAppointments.reduce((sum, apt) => sum + (apt.price || 0), 0).toLocaleString('tr-TR')} ₺
+            </Text>
+            <Text style={styles.daySummaryLabel}>Toplam</Text>
+          </View>
+        </View>
+
+        {/* Time slots */}
         {timeSlots.map((time) => {
           const hour = parseInt(time.split(':')[0]);
           const slotAppointments = dayAppointments.filter((apt) => {
@@ -360,48 +409,44 @@ export default function CalendarScreen() {
                 {slotAppointments.length === 0 ? (
                   <View style={styles.emptySlot} />
                 ) : (
-                  slotAppointments.map((apt) => (
-                    <TouchableOpacity
-                      key={apt.id}
-                      style={[
-                        styles.dayAppointment,
-                        { borderLeftColor: STATUS_CONFIG[apt.status]?.text || '#6B7280' },
-                      ]}
-                      onPress={() => {
-                        setSelectedAppointment(apt);
-                        setShowDetailModal(true);
-                      }}
-                    >
-                      <View style={styles.dayAptHeader}>
-                        <Text style={styles.dayAptTime}>
-                          {apt.time.substring(0, 5)} - {apt.duration} dk
-                        </Text>
-                        <View
-                          style={[
-                            styles.dayAptStatus,
-                            { backgroundColor: STATUS_CONFIG[apt.status]?.bg || '#E5E7EB' },
-                          ]}
-                        >
-                          <Text
-                            style={[
-                              styles.dayAptStatusText,
-                              { color: STATUS_CONFIG[apt.status]?.text || '#6B7280' },
-                            ]}
-                          >
-                            {STATUS_CONFIG[apt.status]?.label || apt.status}
-                          </Text>
+                  slotAppointments.map((apt) => {
+                    const status = STATUS_CONFIG[apt.status] || STATUS_CONFIG.pending;
+                    return (
+                      <TouchableOpacity
+                        key={apt.id}
+                        style={styles.dayAppointment}
+                        onPress={() => {
+                          setSelectedAppointment(apt);
+                          setShowDetailModal(true);
+                        }}
+                        activeOpacity={0.7}
+                      >
+                        <LinearGradient
+                          colors={status.gradient}
+                          start={{ x: 0, y: 0 }}
+                          end={{ x: 0, y: 1 }}
+                          style={styles.dayAptAccentBar}
+                        />
+                        <View style={styles.dayAptBody}>
+                          <View style={styles.dayAptHeader}>
+                            <Text style={styles.dayAptTime}>
+                              {apt.time.substring(0, 5)}
+                            </Text>
+                            <View style={[styles.dayAptStatus, { backgroundColor: status.bg }]}>
+                              <Text style={[styles.dayAptStatusText, { color: status.text }]}>
+                                {status.label}
+                              </Text>
+                            </View>
+                          </View>
+                          <Text style={styles.dayAptCustomer}>{apt.customerName}</Text>
+                          <View style={styles.dayAptFooter}>
+                            <Text style={styles.dayAptService}>{apt.serviceName}</Text>
+                            <Text style={styles.dayAptPrice}>{apt.price?.toLocaleString('tr-TR')} ₺</Text>
+                          </View>
                         </View>
-                      </View>
-                      <Text style={styles.dayAptCustomer}>{apt.customerName}</Text>
-                      <Text style={styles.dayAptService}>{apt.serviceName}</Text>
-                      {apt.staffName && (
-                        <Text style={styles.dayAptStaff}>
-                          <Ionicons name="person-outline" size={12} color="#9CA3AF" />{' '}
-                          {apt.staffName}
-                        </Text>
-                      )}
-                    </TouchableOpacity>
-                  ))
+                      </TouchableOpacity>
+                    );
+                  })
                 )}
               </View>
             </View>
@@ -426,79 +471,84 @@ export default function CalendarScreen() {
       >
         <View style={styles.modalOverlay}>
           <View style={styles.detailModalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Randevu Detayı</Text>
-              <TouchableOpacity
-                style={styles.closeButton}
-                onPress={() => setShowDetailModal(false)}
-              >
-                <Ionicons name="close" size={24} color="#6B7280" />
-              </TouchableOpacity>
-            </View>
+            <View style={styles.modalHandle} />
 
-            <ScrollView showsVerticalScrollIndicator={false}>
-              {/* Status banner */}
-              <View style={[styles.statusBanner, { backgroundColor: status.bg }]}>
-                <Text style={[styles.statusBannerText, { color: status.text }]}>
-                  {status.label}
-                </Text>
+            {/* Header with gradient */}
+            <LinearGradient
+              colors={status.gradient}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.modalGradientHeader}
+            >
+              <View style={styles.modalHeaderContent}>
+                <View>
+                  <Text style={styles.modalStatusLabel}>{status.label}</Text>
+                  <Text style={styles.modalHeaderTime}>
+                    {selectedAppointment.time.substring(0, 5)} • {selectedAppointment.duration} dk
+                  </Text>
+                </View>
+                <TouchableOpacity
+                  style={styles.closeButton}
+                  onPress={() => setShowDetailModal(false)}
+                >
+                  <Ionicons name="close" size={22} color="#fff" />
+                </TouchableOpacity>
               </View>
+            </LinearGradient>
 
-              {/* Date & Time */}
-              <View style={styles.detailRow}>
-                <View style={styles.detailIcon}>
+            <ScrollView showsVerticalScrollIndicator={false} style={styles.modalBody}>
+              {/* Date */}
+              <View style={styles.detailCard}>
+                <View style={styles.detailCardIcon}>
                   <Ionicons name="calendar" size={20} color="#3B82F6" />
                 </View>
-                <View>
-                  <Text style={styles.detailLabel}>Tarih & Saat</Text>
-                  <Text style={styles.detailValue}>
+                <View style={styles.detailCardContent}>
+                  <Text style={styles.detailCardLabel}>Tarih</Text>
+                  <Text style={styles.detailCardValue}>
                     {new Date(selectedAppointment.date).toLocaleDateString('tr-TR', {
                       weekday: 'long',
                       day: 'numeric',
                       month: 'long',
                     })}
                   </Text>
-                  <Text style={styles.detailSubValue}>
-                    {selectedAppointment.time.substring(0, 5)} - {selectedAppointment.duration} dk
-                  </Text>
                 </View>
               </View>
 
               {/* Customer */}
-              <View style={styles.detailRow}>
-                <View style={styles.detailIcon}>
-                  <Ionicons name="person" size={20} color="#3B82F6" />
+              <View style={styles.detailCard}>
+                <View style={[styles.detailCardIcon, { backgroundColor: '#FEF3C7' }]}>
+                  <Ionicons name="person" size={20} color="#D97706" />
                 </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.detailLabel}>Müşteri</Text>
-                  <Text style={styles.detailValue}>{selectedAppointment.customerName}</Text>
-                  <View style={styles.contactButtons}>
+                <View style={styles.detailCardContent}>
+                  <Text style={styles.detailCardLabel}>Müşteri</Text>
+                  <Text style={styles.detailCardValue}>{selectedAppointment.customerName}</Text>
+                  <View style={styles.contactRow}>
                     <TouchableOpacity
-                      style={styles.contactBtn}
+                      style={styles.contactChip}
                       onPress={() => handleCall(selectedAppointment.customerPhone)}
                     >
-                      <Ionicons name="call" size={16} color="#3B82F6" />
-                      <Text style={styles.contactBtnText}>{selectedAppointment.customerPhone}</Text>
+                      <Ionicons name="call" size={14} color="#3B82F6" />
+                      <Text style={styles.contactChipText}>{selectedAppointment.customerPhone}</Text>
                     </TouchableOpacity>
                     <TouchableOpacity
-                      style={[styles.contactBtn, { backgroundColor: '#D1FAE5' }]}
+                      style={[styles.contactChip, styles.whatsappChip]}
                       onPress={() => handleSendWhatsApp(selectedAppointment)}
                     >
-                      <Ionicons name="logo-whatsapp" size={16} color="#059669" />
+                      <Ionicons name="logo-whatsapp" size={16} color="#25D366" />
                     </TouchableOpacity>
                   </View>
                 </View>
               </View>
 
               {/* Service */}
-              <View style={styles.detailRow}>
-                <View style={styles.detailIcon}>
-                  <Ionicons name="cut" size={20} color="#3B82F6" />
+              <View style={styles.detailCard}>
+                <View style={[styles.detailCardIcon, { backgroundColor: '#D1FAE5' }]}>
+                  <Ionicons name="cut" size={20} color="#059669" />
                 </View>
-                <View>
-                  <Text style={styles.detailLabel}>Hizmet</Text>
-                  <Text style={styles.detailValue}>{selectedAppointment.serviceName}</Text>
-                  <Text style={styles.priceValue}>
+                <View style={styles.detailCardContent}>
+                  <Text style={styles.detailCardLabel}>Hizmet</Text>
+                  <Text style={styles.detailCardValue}>{selectedAppointment.serviceName}</Text>
+                  <Text style={styles.priceText}>
                     {selectedAppointment.price?.toLocaleString('tr-TR')} ₺
                   </Text>
                 </View>
@@ -506,13 +556,13 @@ export default function CalendarScreen() {
 
               {/* Staff */}
               {selectedAppointment.staffName && (
-                <View style={styles.detailRow}>
-                  <View style={styles.detailIcon}>
-                    <Ionicons name="people" size={20} color="#3B82F6" />
+                <View style={styles.detailCard}>
+                  <View style={[styles.detailCardIcon, { backgroundColor: '#E0E7FF' }]}>
+                    <Ionicons name="people" size={20} color="#4F46E5" />
                   </View>
-                  <View>
-                    <Text style={styles.detailLabel}>Personel</Text>
-                    <Text style={styles.detailValue}>{selectedAppointment.staffName}</Text>
+                  <View style={styles.detailCardContent}>
+                    <Text style={styles.detailCardLabel}>Personel</Text>
+                    <Text style={styles.detailCardValue}>{selectedAppointment.staffName}</Text>
                   </View>
                 </View>
               )}
@@ -526,8 +576,9 @@ export default function CalendarScreen() {
                   setShowDetailModal(false);
                   router.push(`/appointment/edit?id=${selectedAppointment.id}`);
                 }}
+                activeOpacity={0.8}
               >
-                <Ionicons name="create-outline" size={20} color="#059669" />
+                <Ionicons name="create-outline" size={20} color="#fff" />
                 <Text style={styles.editBtnText}>Düzenle</Text>
               </TouchableOpacity>
             </View>
@@ -560,11 +611,16 @@ export default function CalendarScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      {/* Header */}
-      <View style={styles.header}>
+      {/* Premium Header */}
+      <LinearGradient
+        colors={['#1E3A8A', '#3B82F6']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.header}
+      >
         <View style={styles.headerTop}>
           <TouchableOpacity style={styles.menuButton} onPress={() => setDrawerOpen(true)}>
-            <Ionicons name="menu" size={24} color="#1F2937" />
+            <Ionicons name="menu" size={24} color="#fff" />
           </TouchableOpacity>
           <View style={styles.headerTitleContainer}>
             <Text style={styles.title}>Takvim</Text>
@@ -574,29 +630,29 @@ export default function CalendarScreen() {
             style={styles.headerButton}
             onPress={() => router.push('/(tabs)/staff/appointments')}
           >
-            <Ionicons name="list" size={22} color="#6B7280" />
+            <Ionicons name="list" size={22} color="#fff" />
           </TouchableOpacity>
         </View>
-
-        {/* View tabs */}
-        {renderViewTabs()}
 
         {/* Date navigation */}
         <View style={styles.dateNav}>
           <TouchableOpacity style={styles.navBtn} onPress={() => navigateDate(-1)}>
-            <Ionicons name="chevron-back" size={24} color="#6B7280" />
+            <Ionicons name="chevron-back" size={22} color="#fff" />
           </TouchableOpacity>
           <TouchableOpacity style={styles.dateTitle} onPress={goToToday}>
             <Text style={styles.dateTitleText}>{getHeaderTitle()}</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.navBtn} onPress={() => navigateDate(1)}>
-            <Ionicons name="chevron-forward" size={24} color="#6B7280" />
+            <Ionicons name="chevron-forward" size={22} color="#fff" />
           </TouchableOpacity>
           <TouchableOpacity style={styles.todayBtn} onPress={goToToday}>
             <Text style={styles.todayBtnText}>Bugün</Text>
           </TouchableOpacity>
         </View>
-      </View>
+      </LinearGradient>
+
+      {/* View tabs */}
+      {renderViewTabs()}
 
       {/* Calendar content */}
       {isLoading ? (
@@ -618,7 +674,12 @@ export default function CalendarScreen() {
         onPress={() => router.push('/appointment/new')}
         activeOpacity={0.8}
       >
-        <Ionicons name="add" size={28} color="#fff" />
+        <LinearGradient
+          colors={['#3B82F6', '#1D4ED8']}
+          style={styles.fabGradient}
+        >
+          <Ionicons name="add" size={28} color="#fff" />
+        </LinearGradient>
       </TouchableOpacity>
 
       {/* Detail Modal */}
@@ -633,15 +694,12 @@ export default function CalendarScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: '#F8FAFC',
   },
   header: {
-    backgroundColor: '#fff',
     paddingHorizontal: 16,
     paddingTop: 12,
-    paddingBottom: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
+    paddingBottom: 16,
   },
   headerTop: {
     flexDirection: 'row',
@@ -650,8 +708,8 @@ const styles = StyleSheet.create({
   menuButton: {
     width: 40,
     height: 40,
-    borderRadius: 10,
-    backgroundColor: '#F3F4F6',
+    borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.2)',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -662,62 +720,32 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 22,
     fontWeight: '700',
-    color: '#1F2937',
+    color: '#fff',
   },
   subtitle: {
     fontSize: 12,
-    color: '#6B7280',
+    color: 'rgba(255,255,255,0.8)',
     marginTop: 2,
   },
   headerButton: {
     width: 40,
     height: 40,
-    borderRadius: 20,
-    backgroundColor: '#F3F4F6',
+    borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.2)',
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  viewTabs: {
-    flexDirection: 'row',
-    marginTop: 12,
-    backgroundColor: '#F3F4F6',
-    borderRadius: 10,
-    padding: 4,
-  },
-  viewTab: {
-    flex: 1,
-    paddingVertical: 8,
-    alignItems: 'center',
-    borderRadius: 8,
-  },
-  viewTabActive: {
-    backgroundColor: '#fff',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  viewTabText: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#6B7280',
-  },
-  viewTabTextActive: {
-    color: '#3B82F6',
-    fontWeight: '600',
   },
   dateNav: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 12,
+    marginTop: 16,
     gap: 8,
   },
   navBtn: {
     width: 36,
     height: 36,
-    borderRadius: 8,
-    backgroundColor: '#F3F4F6',
+    borderRadius: 10,
+    backgroundColor: 'rgba(255,255,255,0.2)',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -728,17 +756,50 @@ const styles = StyleSheet.create({
   dateTitleText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#1F2937',
+    color: '#fff',
   },
   todayBtn: {
-    paddingHorizontal: 12,
+    paddingHorizontal: 14,
     paddingVertical: 8,
-    backgroundColor: '#3B82F6',
+    backgroundColor: 'rgba(255,255,255,0.25)',
     borderRadius: 8,
   },
   todayBtnText: {
     fontSize: 13,
     fontWeight: '600',
+    color: '#fff',
+  },
+  viewTabsContainer: {
+    backgroundColor: '#fff',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
+  viewTabs: {
+    flexDirection: 'row',
+    backgroundColor: '#F3F4F6',
+    borderRadius: 12,
+    padding: 4,
+  },
+  viewTab: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 10,
+    borderRadius: 10,
+    gap: 6,
+  },
+  viewTabActive: {
+    backgroundColor: '#3B82F6',
+  },
+  viewTabText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#6B7280',
+  },
+  viewTabTextActive: {
     color: '#fff',
   },
   loadingContainer: {
@@ -774,73 +835,84 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#6B7280',
   },
+  weekdayTextWeekend: {
+    color: '#DC2626',
+  },
   monthGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
   },
   dayCell: {
     width: DAY_WIDTH,
-    minHeight: 70,
-    padding: 4,
-    borderWidth: 0.5,
-    borderColor: '#E5E7EB',
-    backgroundColor: '#fff',
+    height: 56,
+    alignItems: 'center',
+    paddingTop: 6,
+    borderRadius: 8,
+    marginBottom: 4,
   },
   dayCellToday: {
     backgroundColor: '#EFF6FF',
-    borderColor: '#3B82F6',
-    borderWidth: 1,
+  },
+  dayCellWeekend: {
+    backgroundColor: '#FEF2F2',
+  },
+  dayNumberContainer: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  dayNumberContainerToday: {
+    backgroundColor: '#3B82F6',
   },
   dayNumber: {
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: '500',
     color: '#374151',
-    marginBottom: 2,
   },
   dayNumberToday: {
-    color: '#3B82F6',
-    fontWeight: '700',
-  },
-  dayAppointmentsBadge: {
-    position: 'absolute',
-    top: 2,
-    right: 2,
-    backgroundColor: '#3B82F6',
-    borderRadius: 8,
-    paddingHorizontal: 4,
-    paddingVertical: 1,
-  },
-  dayAppointmentsCount: {
-    fontSize: 9,
-    fontWeight: '700',
     color: '#fff',
+    fontWeight: '700',
   },
-  miniAppointment: {
-    marginTop: 2,
-    paddingHorizontal: 3,
-    paddingVertical: 1,
+  dayNumberWeekend: {
+    color: '#DC2626',
+  },
+  appointmentDots: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 4,
+    gap: 2,
+  },
+  appointmentDot: {
+    width: 6,
+    height: 6,
     borderRadius: 3,
   },
-  miniAppointmentTime: {
-    fontSize: 9,
-    fontWeight: '500',
-    color: '#374151',
+  moreDotsText: {
+    fontSize: 8,
+    color: '#6B7280',
+    marginLeft: 2,
   },
 
   // Week view
   weekContainer: {
     flex: 1,
-    padding: 16,
   },
   weekHeader: {
     flexDirection: 'row',
-    marginBottom: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
   },
   weekDayHeader: {
     flex: 1,
     alignItems: 'center',
     paddingVertical: 8,
-    borderRadius: 8,
+    borderRadius: 10,
+    marginHorizontal: 2,
   },
   weekDayHeaderToday: {
     backgroundColor: '#3B82F6',
@@ -862,48 +934,61 @@ const styles = StyleSheet.create({
   weekDayNumToday: {
     color: '#fff',
   },
+  weekScrollView: {
+    flex: 1,
+  },
   weekGrid: {
     flexDirection: 'row',
+    padding: 8,
     gap: 6,
   },
   weekDayColumn: {
     flex: 1,
     backgroundColor: '#fff',
-    borderRadius: 8,
+    borderRadius: 12,
     padding: 6,
-    minHeight: 200,
+    minHeight: 280,
   },
   weekDayColumnToday: {
     backgroundColor: '#EFF6FF',
     borderWidth: 1,
     borderColor: '#3B82F6',
   },
-  noAppointmentsText: {
-    textAlign: 'center',
-    color: '#D1D5DB',
-    fontSize: 12,
-    paddingVertical: 20,
+  emptyDayColumn: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   weekAppointment: {
-    padding: 4,
-    borderRadius: 4,
-    marginBottom: 4,
+    flexDirection: 'row',
+    marginBottom: 6,
+    borderRadius: 6,
+    backgroundColor: '#F9FAFB',
+    overflow: 'hidden',
+  },
+  weekAptAccent: {
+    width: 3,
+  },
+  weekAptContent: {
+    flex: 1,
+    padding: 6,
   },
   weekAppointmentTime: {
     fontSize: 10,
-    fontWeight: '600',
-    color: '#374151',
+    fontWeight: '700',
+    color: '#1F2937',
   },
   weekAppointmentName: {
     fontSize: 9,
     color: '#6B7280',
-    marginTop: 1,
+    marginTop: 2,
   },
   moreText: {
     fontSize: 10,
     color: '#6B7280',
     textAlign: 'center',
     marginTop: 4,
+    fontWeight: '500',
   },
 
   // Day view
@@ -911,10 +996,41 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 16,
   },
+  daySummary: {
+    flexDirection: 'row',
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  daySummaryItem: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  daySummaryNumber: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#1F2937',
+  },
+  daySummaryLabel: {
+    fontSize: 12,
+    color: '#6B7280',
+    marginTop: 2,
+  },
+  daySummaryDivider: {
+    width: 1,
+    backgroundColor: '#E5E7EB',
+    marginHorizontal: 16,
+  },
   timeSlot: {
     flexDirection: 'row',
-    minHeight: 60,
-    marginBottom: 8,
+    minHeight: 70,
+    marginBottom: 4,
   },
   timeLabel: {
     width: 50,
@@ -930,7 +1046,7 @@ const styles = StyleSheet.create({
     borderLeftWidth: 2,
     borderLeftColor: '#E5E7EB',
     paddingLeft: 12,
-    minHeight: 50,
+    minHeight: 60,
   },
   emptySlot: {
     flex: 1,
@@ -938,16 +1054,23 @@ const styles = StyleSheet.create({
     borderBottomColor: '#F3F4F6',
   },
   dayAppointment: {
+    flexDirection: 'row',
     backgroundColor: '#fff',
-    borderRadius: 8,
-    padding: 12,
+    borderRadius: 12,
     marginBottom: 8,
-    borderLeftWidth: 3,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
+    shadowRadius: 4,
+    elevation: 2,
+    overflow: 'hidden',
+  },
+  dayAptAccentBar: {
+    width: 4,
+  },
+  dayAptBody: {
+    flex: 1,
+    padding: 12,
   },
   dayAptHeader: {
     flexDirection: 'row',
@@ -956,33 +1079,38 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   dayAptTime: {
-    fontSize: 13,
-    fontWeight: '600',
+    fontSize: 14,
+    fontWeight: '700',
     color: '#1F2937',
   },
   dayAptStatus: {
     paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 10,
+    paddingVertical: 3,
+    borderRadius: 8,
   },
   dayAptStatusText: {
     fontSize: 10,
     fontWeight: '600',
   },
   dayAptCustomer: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: '600',
     color: '#1F2937',
-    marginBottom: 2,
+    marginBottom: 4,
+  },
+  dayAptFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
   dayAptService: {
     fontSize: 13,
     color: '#6B7280',
   },
-  dayAptStaff: {
-    fontSize: 12,
-    color: '#9CA3AF',
-    marginTop: 4,
+  dayAptPrice: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#059669',
   },
 
   // FAB
@@ -990,10 +1118,11 @@ const styles = StyleSheet.create({
     position: 'absolute',
     right: 20,
     bottom: 24,
+  },
+  fabGradient: {
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: '#3B82F6',
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: '#3B82F6',
@@ -1013,99 +1142,107 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
-    maxHeight: '70%',
-    paddingBottom: Platform.OS === 'ios' ? 40 : 24,
+    maxHeight: '80%',
   },
-  modalHeader: {
+  modalHandle: {
+    width: 40,
+    height: 4,
+    backgroundColor: '#D1D5DB',
+    borderRadius: 2,
+    alignSelf: 'center',
+    marginTop: 12,
+    marginBottom: 8,
+  },
+  modalGradientHeader: {
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+  },
+  modalHeaderContent: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
   },
-  modalTitle: {
-    fontSize: 18,
+  modalStatusLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: 'rgba(255,255,255,0.9)',
+  },
+  modalHeaderTime: {
+    fontSize: 20,
     fontWeight: '700',
-    color: '#1F2937',
+    color: '#fff',
+    marginTop: 4,
   },
   closeButton: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: 'rgba(255,255,255,0.2)',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  statusBanner: {
-    alignItems: 'center',
-    paddingVertical: 10,
-    marginHorizontal: 20,
-    marginTop: 16,
-    borderRadius: 10,
+  modalBody: {
+    padding: 20,
   },
-  statusBannerText: {
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  detailRow: {
+  detailCard: {
     flexDirection: 'row',
-    paddingHorizontal: 20,
-    paddingVertical: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
+    alignItems: 'flex-start',
+    marginBottom: 16,
     gap: 14,
   },
-  detailIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 10,
+  detailCardIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
     backgroundColor: '#EFF6FF',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  detailLabel: {
+  detailCardContent: {
+    flex: 1,
+  },
+  detailCardLabel: {
     fontSize: 12,
     color: '#9CA3AF',
     marginBottom: 2,
   },
-  detailValue: {
+  detailCardValue: {
     fontSize: 15,
-    fontWeight: '500',
+    fontWeight: '600',
     color: '#1F2937',
   },
-  detailSubValue: {
-    fontSize: 13,
-    color: '#6B7280',
-    marginTop: 2,
-  },
-  priceValue: {
+  priceText: {
     fontSize: 16,
     fontWeight: '700',
     color: '#059669',
     marginTop: 4,
   },
-  contactButtons: {
+  contactRow: {
     flexDirection: 'row',
     gap: 8,
     marginTop: 8,
   },
-  contactBtn: {
+  contactChip: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 10,
     paddingVertical: 6,
     backgroundColor: '#EFF6FF',
-    borderRadius: 6,
+    borderRadius: 8,
     gap: 6,
   },
-  contactBtnText: {
+  contactChipText: {
     fontSize: 12,
     fontWeight: '500',
     color: '#3B82F6',
   },
+  whatsappChip: {
+    backgroundColor: '#D1FAE5',
+    paddingHorizontal: 10,
+  },
   modalActions: {
     padding: 20,
+    paddingBottom: Platform.OS === 'ios' ? 40 : 24,
     borderTopWidth: 1,
     borderTopColor: '#E5E7EB',
   },
@@ -1114,13 +1251,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 14,
-    backgroundColor: '#D1FAE5',
-    borderRadius: 10,
+    backgroundColor: '#3B82F6',
+    borderRadius: 12,
     gap: 8,
   },
   editBtnText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#059669',
+    color: '#fff',
   },
 });

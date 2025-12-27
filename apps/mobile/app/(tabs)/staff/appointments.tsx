@@ -336,45 +336,49 @@ export default function StaffAppointmentsScreen() {
 
   // Render Filter Pills
   const renderFilterPills = () => (
-    <ScrollView
-      horizontal
-      showsHorizontalScrollIndicator={false}
-      contentContainerStyle={styles.filterPillsContainer}
-    >
-      {FILTER_TABS.map((filter) => {
-        const config = STATUS_CONFIG[filter];
-        const count = statusCounts[filter as keyof typeof statusCounts] || 0;
-        const isActive = activeFilter === filter;
+    <View style={styles.filterPillsWrapper}>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.filterPillsContent}
+      >
+        {FILTER_TABS.map((filter, index) => {
+          const config = STATUS_CONFIG[filter];
+          const count = statusCounts[filter as keyof typeof statusCounts] || 0;
+          const isActive = activeFilter === filter;
 
-        return (
-          <TouchableOpacity
-            key={filter}
-            style={[
-              styles.filterPill,
-              isActive && { backgroundColor: config.bg, borderColor: config.text },
-            ]}
-            onPress={() => setActiveFilter(filter)}
-          >
-            <Ionicons
-              name={config.icon as any}
-              size={14}
-              color={isActive ? config.text : '#9CA3AF'}
-            />
-            <Text style={[styles.filterPillText, isActive && { color: config.text }]}>
-              {config.label}
-            </Text>
-            <View style={[styles.filterPillBadge, isActive && { backgroundColor: config.text }]}>
-              <Text style={[styles.filterPillBadgeText, isActive && { color: '#fff' }]}>
-                {count}
+          return (
+            <TouchableOpacity
+              key={filter}
+              style={[
+                styles.filterPill,
+                isActive && { backgroundColor: config.bg, borderColor: config.text },
+                index < FILTER_TABS.length - 1 && { marginRight: 8 },
+              ]}
+              onPress={() => setActiveFilter(filter)}
+              activeOpacity={0.7}
+            >
+              <Ionicons
+                name={config.icon as any}
+                size={14}
+                color={isActive ? config.text : '#9CA3AF'}
+              />
+              <Text style={[styles.filterPillText, isActive && { color: config.text }]}>
+                {config.label}
               </Text>
-            </View>
-          </TouchableOpacity>
-        );
-      })}
-    </ScrollView>
+              <View style={[styles.filterPillBadge, isActive && { backgroundColor: config.text }]}>
+                <Text style={[styles.filterPillBadgeText, isActive && { color: '#fff' }]}>
+                  {count}
+                </Text>
+              </View>
+            </TouchableOpacity>
+          );
+        })}
+      </ScrollView>
+    </View>
   );
 
-  // Render Appointment Card - Modern Design
+  // Render Appointment Card - Compact Design
   const renderAppointment = ({ item }: { item: Appointment }) => {
     const status = STATUS_CONFIG[item.status] || STATUS_CONFIG.pending;
     const isToday = item.date === new Date().toISOString().split('T')[0];
@@ -395,69 +399,54 @@ export default function StaffAppointmentsScreen() {
         />
 
         <View style={styles.cardContent}>
-          {/* Top Row - Time & Status */}
-          <View style={styles.cardTopRow}>
+          {/* Main Row - All info in one line */}
+          <View style={styles.cardMainRow}>
+            {/* Time */}
             <View style={styles.timeBox}>
-              <Ionicons name="time-outline" size={14} color="#3B82F6" />
               <Text style={styles.timeText}>{formatTime(item.time)}</Text>
-              <Text style={styles.durationText}>• {item.duration}dk</Text>
             </View>
-            <View style={[styles.statusChip, { backgroundColor: status.bg }]}>
-              <Ionicons name={status.icon as any} size={12} color={status.text} />
-              <Text style={[styles.statusChipText, { color: status.text }]}>{status.label}</Text>
+
+            {/* Customer & Service */}
+            <View style={styles.cardMiddle}>
+              <Text style={styles.customerName} numberOfLines={1}>{item.customerName}</Text>
+              <Text style={styles.serviceName} numberOfLines={1}>{item.serviceName}</Text>
+            </View>
+
+            {/* Price & Status */}
+            <View style={styles.cardRight}>
+              <Text style={styles.priceTag}>{item.price?.toLocaleString('tr-TR')} ₺</Text>
+              <View style={[styles.statusChip, { backgroundColor: status.bg }]}>
+                <Text style={[styles.statusChipText, { color: status.text }]}>{status.label}</Text>
+              </View>
             </View>
           </View>
 
-          {/* Date badge if showing all dates */}
-          {!selectedDate && (
-            <View style={[styles.dateBadge, isToday && styles.dateBadgeToday]}>
-              <Text style={[styles.dateBadgeText, isToday && styles.dateBadgeTextToday]}>
-                {formatDate(item.date)}
-              </Text>
-            </View>
-          )}
-
-          {/* Customer Info */}
-          <View style={styles.customerRow}>
-            <View style={styles.customerAvatar}>
-              <Text style={styles.avatarText}>{item.customerName?.charAt(0).toUpperCase()}</Text>
-            </View>
-            <View style={styles.customerDetails}>
-              <Text style={styles.customerName} numberOfLines={1}>{item.customerName}</Text>
-              <Text style={styles.customerPhone}>{item.customerPhone}</Text>
-            </View>
+          {/* Bottom Row - Date badge & Quick Actions */}
+          <View style={styles.cardBottomRow}>
+            {!selectedDate ? (
+              <View style={[styles.dateBadge, isToday && styles.dateBadgeToday]}>
+                <Text style={[styles.dateBadgeText, isToday && styles.dateBadgeTextToday]}>
+                  {formatDate(item.date)}
+                </Text>
+              </View>
+            ) : (
+              <Text style={styles.durationText}>{item.duration} dk</Text>
+            )}
             <View style={styles.quickActionsRow}>
               <TouchableOpacity
                 style={styles.actionBtn}
                 onPress={() => handleCall(item.customerPhone)}
               >
-                <Ionicons name="call" size={16} color="#3B82F6" />
+                <Ionicons name="call" size={14} color="#3B82F6" />
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.actionBtn, styles.whatsappBtn]}
                 onPress={() => handleSendWhatsApp(item)}
               >
-                <Ionicons name="logo-whatsapp" size={16} color="#25D366" />
+                <Ionicons name="logo-whatsapp" size={14} color="#25D366" />
               </TouchableOpacity>
             </View>
           </View>
-
-          {/* Service & Price */}
-          <View style={styles.serviceRow}>
-            <View style={styles.serviceInfo}>
-              <Ionicons name="cut-outline" size={14} color="#6B7280" />
-              <Text style={styles.serviceName} numberOfLines={1}>{item.serviceName}</Text>
-            </View>
-            <Text style={styles.priceTag}>{item.price?.toLocaleString('tr-TR')} ₺</Text>
-          </View>
-
-          {/* Staff */}
-          {item.staffName && (
-            <View style={styles.staffRow}>
-              <Ionicons name="person-outline" size={12} color="#9CA3AF" />
-              <Text style={styles.staffName}>{item.staffName}</Text>
-            </View>
-          )}
         </View>
       </TouchableOpacity>
     );
@@ -995,11 +984,16 @@ const styles = StyleSheet.create({
   },
 
   // Filter Pills
-  filterPillsContainer: {
+  filterPillsWrapper: {
+    backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
+  filterPillsContent: {
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: '#fff',
     flexDirection: 'row',
+    alignItems: 'center',
   },
   filterPill: {
     flexDirection: 'row',
@@ -1010,13 +1004,13 @@ const styles = StyleSheet.create({
     backgroundColor: '#F9FAFB',
     borderWidth: 1.5,
     borderColor: '#E5E7EB',
-    marginRight: 8,
+    height: 36,
   },
   filterPillText: {
     fontSize: 13,
     fontWeight: '500',
     color: '#6B7280',
-    marginLeft: 4,
+    marginLeft: 6,
   },
   filterPillBadge: {
     minWidth: 20,
@@ -1024,7 +1018,9 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
     borderRadius: 10,
     backgroundColor: '#E5E7EB',
-    marginLeft: 4,
+    marginLeft: 6,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   filterPillBadgeText: {
     fontSize: 11,
@@ -1051,117 +1047,99 @@ const styles = StyleSheet.create({
     paddingBottom: 100,
   },
 
-  // Appointment Card
+  // Appointment Card - Compact
   appointmentCard: {
     flexDirection: 'row',
     backgroundColor: '#fff',
-    borderRadius: 16,
-    marginBottom: 12,
+    borderRadius: 12,
+    marginBottom: 8,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 12,
-    elevation: 3,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
+    elevation: 2,
     overflow: 'hidden',
   },
   cardAccent: {
-    width: 5,
+    width: 4,
   },
   cardContent: {
     flex: 1,
-    padding: 16,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
   },
-  cardTopRow: {
+  cardMainRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  cardMiddle: {
+    flex: 1,
+    marginHorizontal: 10,
+  },
+  cardRight: {
+    alignItems: 'flex-end',
+  },
+  cardBottomRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
+    marginTop: 8,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#F3F4F6',
   },
   timeBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
+    minWidth: 50,
   },
   timeText: {
-    fontSize: 18,
+    fontSize: 15,
     fontWeight: '700',
     color: '#1F2937',
   },
   durationText: {
-    fontSize: 13,
+    fontSize: 12,
     color: '#9CA3AF',
   },
   statusChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 12,
-    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+    marginTop: 4,
   },
   statusChipText: {
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: '600',
   },
   dateBadge: {
-    alignSelf: 'flex-start',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
     backgroundColor: '#F3F4F6',
-    borderRadius: 8,
-    marginBottom: 12,
+    borderRadius: 6,
   },
   dateBadgeToday: {
     backgroundColor: '#EFF6FF',
   },
   dateBadgeText: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '500',
     color: '#6B7280',
   },
   dateBadgeTextToday: {
     color: '#3B82F6',
   },
-  customerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-    gap: 12,
-  },
-  customerAvatar: {
-    width: 42,
-    height: 42,
-    borderRadius: 12,
-    backgroundColor: '#EFF6FF',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  avatarText: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#3B82F6',
-  },
-  customerDetails: {
-    flex: 1,
-  },
   customerName: {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '600',
     color: '#1F2937',
   },
-  customerPhone: {
-    fontSize: 13,
-    color: '#6B7280',
-    marginTop: 2,
-  },
   quickActionsRow: {
     flexDirection: 'row',
-    gap: 8,
+    gap: 6,
   },
   actionBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
+    width: 30,
+    height: 30,
+    borderRadius: 8,
     backgroundColor: '#EFF6FF',
     alignItems: 'center',
     justifyContent: 'center',
@@ -1169,39 +1147,15 @@ const styles = StyleSheet.create({
   whatsappBtn: {
     backgroundColor: '#D1FAE5',
   },
-  serviceRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: '#F3F4F6',
-  },
-  serviceInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-    gap: 6,
-  },
   serviceName: {
-    fontSize: 13,
+    fontSize: 12,
     color: '#6B7280',
-    flex: 1,
+    marginTop: 2,
   },
   priceTag: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '700',
     color: '#059669',
-  },
-  staffRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 8,
-    gap: 4,
-  },
-  staffName: {
-    fontSize: 12,
-    color: '#9CA3AF',
   },
 
   // Empty State
