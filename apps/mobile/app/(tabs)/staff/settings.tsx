@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -7,32 +7,236 @@ import {
   Alert,
   ScrollView,
   Switch,
+  TextInput,
+  ActivityIndicator,
+  RefreshControl,
+  Modal,
+  Image,
+  KeyboardAvoidingView,
   Platform,
   Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useAuthStore } from '../../../src/store/auth.store';
+import api from '../../../src/services/api';
 
-// Menu item type
-interface MenuItem {
-  icon: string;
-  label: string;
-  subtitle?: string;
-  badge?: string;
-  badgeColor?: string;
-  iconColor?: string;
-  iconBg?: string;
-  onPress: () => void;
+const THEME_COLOR = '#163974';
+
+interface WorkingDay {
+  start: string;
+  end: string;
+  closed: boolean;
 }
+
+interface WorkingHours {
+  monday: WorkingDay;
+  tuesday: WorkingDay;
+  wednesday: WorkingDay;
+  thursday: WorkingDay;
+  friday: WorkingDay;
+  saturday: WorkingDay;
+  sunday: WorkingDay;
+}
+
+interface Theme {
+  primaryColor: string;
+  secondaryColor: string;
+  logo: string;
+  headerImage: string;
+}
+
+interface Location {
+  latitude: string;
+  longitude: string;
+  address: string;
+}
+
+interface Documents {
+  identityDocument: string | null;
+  taxDocument: string | null;
+  iban: string;
+  signatureDocument: string | null;
+}
+
+interface SettingsData {
+  businessName: string;
+  businessType: string;
+  businessDescription: string;
+  address: string;
+  slug: string;
+  ownerName: string;
+  ownerEmail: string;
+  phone: string;
+  username: string;
+  theme: Theme;
+  location: Location;
+  documents: Documents;
+  workingHours: WorkingHours;
+  appointmentTimeInterval: number;
+  blacklistThreshold: number;
+  reminderMinutes: number;
+  cardPaymentEnabled: boolean;
+  plan: string;
+  status: string;
+}
+
+const DAYS = [
+  { key: 'monday', label: 'Pazartesi' },
+  { key: 'tuesday', label: 'Salı' },
+  { key: 'wednesday', label: 'Çarşamba' },
+  { key: 'thursday', label: 'Perşembe' },
+  { key: 'friday', label: 'Cuma' },
+  { key: 'saturday', label: 'Cumartesi' },
+  { key: 'sunday', label: 'Pazar' },
+];
+
+const TIME_INTERVALS = [
+  { value: 5, label: '5 dakika' },
+  { value: 10, label: '10 dakika' },
+  { value: 15, label: '15 dakika' },
+  { value: 20, label: '20 dakika' },
+  { value: 30, label: '30 dakika' },
+  { value: 45, label: '45 dakika' },
+  { value: 60, label: '60 dakika' },
+];
+
+const REMINDER_OPTIONS = [
+  { value: 10, label: '10 dakika önce' },
+  { value: 30, label: '30 dakika önce' },
+  { value: 60, label: '1 saat önce' },
+  { value: 120, label: '2 saat önce' },
+  { value: 180, label: '3 saat önce' },
+  { value: 240, label: '4 saat önce' },
+  { value: 360, label: '6 saat önce' },
+  { value: 720, label: '12 saat önce' },
+  { value: 1440, label: '1 gün önce' },
+];
+
+const BUSINESS_TYPES = [
+  { value: 'salon', label: 'Güzellik Salonu' },
+  { value: 'barbershop', label: 'Berber' },
+  { value: 'spa', label: 'SPA' },
+  { value: 'clinic', label: 'Klinik' },
+  { value: 'dental', label: 'Diş Kliniği' },
+  { value: 'other', label: 'Diğer' },
+];
+
+// Tab sıralaması web ile aynı
+const TABS = [
+  { id: 'theme', label: 'Tema', icon: 'color-palette-outline' },
+  { id: 'business', label: 'İşletme', icon: 'business-outline' },
+  { id: 'owner', label: 'Yönetici', icon: 'person-outline' },
+  { id: 'login', label: 'Giriş', icon: 'key-outline' },
+  { id: 'location', label: 'Konum', icon: 'location-outline' },
+  { id: 'working', label: 'Çalışma', icon: 'time-outline' },
+  { id: 'documents', label: 'Belgeler', icon: 'document-outline' },
+];
+
+type TabId = 'theme' | 'business' | 'owner' | 'login' | 'location' | 'working' | 'documents';
 
 export default function StaffSettingsScreen() {
   const router = useRouter();
   const { user, selectedTenant, logout, availableTenants } = useAuthStore();
-  const [notificationsEnabled, setNotificationsEnabled] = useState(true);
-  const [smsEnabled, setSmsEnabled] = useState(true);
-  const [whatsappEnabled, setWhatsappEnabled] = useState(true);
+
+  // Settings state
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const [data, setData] = useState<SettingsData | null>(null);
+  const [activeTab, setActiveTab] = useState<TabId>('theme');
+  const [hasChanges, setHasChanges] = useState(false);
+  const [newPassword, setNewPassword] = useState('');
+  const [formData, setFormData] = useState<Partial<SettingsData>>({});
+
+  // Modal states
+  const [showTimeIntervalPicker, setShowTimeIntervalPicker] = useState(false);
+  const [showReminderPicker, setShowReminderPicker] = useState(false);
+  const [showBusinessTypePicker, setShowBusinessTypePicker] = useState(false);
+  const [showTimePicker, setShowTimePicker] = useState<{ day: string; field: 'start' | 'end' } | null>(null);
+
+  const fetchSettings = async () => {
+    try {
+      const response = await api.get('/api/mobile/settings');
+      if (response.data.success) {
+        setData(response.data.data);
+        setFormData(response.data.data);
+      }
+    } catch (error: any) {
+      console.error('Error fetching settings:', error?.response?.data || error.message);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchSettings();
+  }, []);
+
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    fetchSettings();
+  }, []);
+
+  const updateFormData = (key: string, value: any) => {
+    setFormData(prev => ({ ...prev, [key]: value }));
+    setHasChanges(true);
+  };
+
+  const updateNestedFormData = (parent: string, key: string, value: any) => {
+    setFormData(prev => ({
+      ...prev,
+      [parent]: {
+        ...(prev as any)[parent],
+        [key]: value,
+      },
+    }));
+    setHasChanges(true);
+  };
+
+  const updateWorkingHours = (day: string, field: string, value: any) => {
+    setFormData(prev => ({
+      ...prev,
+      workingHours: {
+        ...(prev.workingHours as WorkingHours),
+        [day]: {
+          ...((prev.workingHours as WorkingHours)?.[day as keyof WorkingHours] || {}),
+          [field]: value,
+        },
+      },
+    }));
+    setHasChanges(true);
+  };
+
+  const handleSave = async () => {
+    if (!hasChanges && !newPassword) return;
+
+    setSaving(true);
+    try {
+      const saveData = { ...formData };
+      if (newPassword.trim()) {
+        (saveData as any).password = newPassword;
+      }
+
+      const response = await api.put('/api/mobile/settings', saveData);
+      if (response.data.success) {
+        Alert.alert('Başarılı', 'Ayarlar kaydedildi');
+        setHasChanges(false);
+        setNewPassword('');
+        fetchSettings();
+      } else {
+        Alert.alert('Hata', response.data.message || 'Ayarlar kaydedilemedi');
+      }
+    } catch (error: any) {
+      console.error('Save error:', error?.response?.data || error.message);
+      Alert.alert('Hata', 'Ayarlar kaydedilirken bir hata oluştu');
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const handleLogout = async () => {
     Alert.alert('Çıkış Yap', 'Oturumu kapatmak istediğinizden emin misiniz?', [
@@ -54,21 +258,38 @@ export default function StaffSettingsScreen() {
     }
   };
 
-  // Quick actions for owners
+  const pickImage = async (type: 'logo' | 'headerImage') => {
+    Alert.alert(
+      'Bilgi',
+      'Görsel değiştirme özelliği web panelinden yapılabilir.',
+      [{ text: 'Tamam' }]
+    );
+  };
+
+  const generateTimeOptions = () => {
+    const options = [];
+    for (let h = 0; h < 24; h++) {
+      for (let m = 0; m < 60; m += 30) {
+        const time = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+        options.push(time);
+      }
+    }
+    return options;
+  };
+
+  const formatIBAN = (text: string) => {
+    const cleaned = text.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+    return cleaned.slice(0, 26);
+  };
+
+  // Quick actions
   const quickActions = [
-    {
-      icon: 'settings-outline',
-      label: 'İşletme',
-      color: '#163974',
-      bg: '#E0E7FF',
-      onPress: () => router.push('/(tabs)/staff/business-settings'),
-    },
     {
       icon: 'cash-outline',
       label: 'Kasa',
       color: '#059669',
       bg: '#D1FAE5',
-      onPress: () => router.push('/(tabs)/staff/cashier'),
+      onPress: () => router.push('/(tabs)/staff/kasa'),
     },
     {
       icon: 'bar-chart-outline',
@@ -84,353 +305,863 @@ export default function StaffSettingsScreen() {
       bg: '#FEF3C7',
       onPress: () => router.push('/(tabs)/staff/performance'),
     },
-    {
-      icon: 'gift-outline',
-      label: 'Paketler',
-      color: '#8B5CF6',
-      bg: '#EDE9FE',
-      onPress: () => router.push('/(tabs)/staff/packages'),
-    },
-    {
-      icon: 'cube-outline',
-      label: 'Stok',
-      color: '#EC4899',
-      bg: '#FCE7F3',
-      onPress: () => router.push('/(tabs)/staff/stock'),
-    },
   ];
 
-  // Business settings menu items
-  const businessSettings: MenuItem[] = [
-    {
-      icon: 'time-outline',
-      label: 'Çalışma Saatleri',
-      subtitle: 'Salon açılış-kapanış saatleri',
-      iconColor: '#3B82F6',
-      iconBg: '#EFF6FF',
-      onPress: () => router.push('/settings/working-hours'),
-    },
-    {
-      icon: 'cut-outline',
-      label: 'Hizmetler',
-      subtitle: 'Hizmet ve fiyat yönetimi',
-      iconColor: '#8B5CF6',
-      iconBg: '#F3E8FF',
-      onPress: () => router.push('/settings/services'),
-    },
-    {
-      icon: 'people-outline',
-      label: 'Personel',
-      subtitle: 'Personel listesi ve yetkileri',
-      iconColor: '#EC4899',
-      iconBg: '#FCE7F3',
-      onPress: () => router.push('/settings/staff'),
-    },
-    {
-      icon: 'calendar-outline',
-      label: 'Randevu Ayarları',
-      subtitle: 'Randevu kuralları ve süreler',
-      iconColor: '#F59E0B',
-      iconBg: '#FEF3C7',
-      onPress: () => router.push('/settings/appointments'),
-    },
-    {
-      icon: 'card-outline',
-      label: 'Ödeme Yöntemleri',
-      subtitle: 'Nakit, kredi kartı, havale',
-      iconColor: '#059669',
-      iconBg: '#D1FAE5',
-      onPress: () => Alert.alert('Ödeme Yöntemleri', 'Bu özellik yakında eklenecek'),
-    },
-  ];
-
-  // Account settings menu items
-  const accountSettings: MenuItem[] = [
-    {
-      icon: 'person-outline',
-      label: 'Profil Bilgileri',
-      subtitle: 'Ad, soyad, telefon',
-      iconColor: '#3B82F6',
-      iconBg: '#EFF6FF',
-      onPress: () => router.push('/profile/edit'),
-    },
-    {
-      icon: 'lock-closed-outline',
-      label: 'Güvenlik',
-      subtitle: 'Şifre ve giriş ayarları',
-      iconColor: '#EF4444',
-      iconBg: '#FEE2E2',
-      onPress: () => router.push('/settings/security'),
-    },
-  ];
-
-  // Notification settings
-  const notificationSettings = [
-    {
-      icon: 'notifications-outline',
-      label: 'Push Bildirimleri',
-      subtitle: 'Uygulama bildirimleri',
-      value: notificationsEnabled,
-      onValueChange: setNotificationsEnabled,
-    },
-    {
-      icon: 'chatbubble-outline',
-      label: 'SMS Bildirimleri',
-      subtitle: 'Randevu hatırlatmaları',
-      value: smsEnabled,
-      onValueChange: setSmsEnabled,
-    },
-    {
-      icon: 'logo-whatsapp',
-      label: 'WhatsApp Bildirimleri',
-      subtitle: 'WhatsApp üzerinden bildirimler',
-      value: whatsappEnabled,
-      onValueChange: setWhatsappEnabled,
-    },
-  ];
-
-  // Support menu items
-  const supportItems: MenuItem[] = [
-    {
-      icon: 'help-circle-outline',
-      label: 'Yardım & Destek',
-      iconColor: '#6B7280',
-      iconBg: '#F3F4F6',
-      onPress: () => router.push('/settings/help'),
-    },
-    {
-      icon: 'chatbubbles-outline',
-      label: 'Bize Ulaşın',
-      iconColor: '#6B7280',
-      iconBg: '#F3F4F6',
-      onPress: () => Linking.openURL('mailto:destek@netrandevu.com'),
-    },
-    {
-      icon: 'document-text-outline',
-      label: 'Gizlilik Politikası',
-      iconColor: '#6B7280',
-      iconBg: '#F3F4F6',
-      onPress: () => router.push('/settings/privacy'),
-    },
-    {
-      icon: 'shield-checkmark-outline',
-      label: 'Kullanım Koşulları',
-      iconColor: '#6B7280',
-      iconBg: '#F3F4F6',
-      onPress: () => router.push('/settings/privacy'),
-    },
-    {
-      icon: 'information-circle-outline',
-      label: 'Hakkında',
-      iconColor: '#6B7280',
-      iconBg: '#F3F4F6',
-      onPress: () => router.push('/settings/about'),
-    },
-  ];
-
-  // Render menu item
-  const renderMenuItem = (item: MenuItem, isLast: boolean) => (
-    <TouchableOpacity
-      key={item.label}
-      style={[styles.menuItem, !isLast && styles.menuItemBorder]}
-      onPress={item.onPress}
-      activeOpacity={0.7}
-    >
-      <View style={[styles.menuIconContainer, { backgroundColor: item.iconBg || '#F3F4F6' }]}>
-        <Ionicons name={item.icon as any} size={20} color={item.iconColor || '#6B7280'} />
-      </View>
-      <View style={styles.menuContent}>
-        <Text style={styles.menuLabel}>{item.label}</Text>
-        {item.subtitle && <Text style={styles.menuSubtitle}>{item.subtitle}</Text>}
-      </View>
-      {item.badge && (
-        <View style={[styles.badge, { backgroundColor: item.badgeColor || '#EF4444' }]}>
-          <Text style={styles.badgeText}>{item.badge}</Text>
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.container} edges={['top']}>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={THEME_COLOR} />
+          <Text style={styles.loadingText}>Ayarlar yükleniyor...</Text>
         </View>
-      )}
-      <Ionicons name="chevron-forward" size={18} color="#D1D5DB" />
-    </TouchableOpacity>
-  );
-
-  // Render toggle item
-  const renderToggleItem = (item: any, isLast: boolean) => (
-    <View key={item.label} style={[styles.menuItem, !isLast && styles.menuItemBorder]}>
-      <View style={[styles.menuIconContainer, { backgroundColor: '#F3F4F6' }]}>
-        <Ionicons name={item.icon as any} size={20} color="#6B7280" />
-      </View>
-      <View style={styles.menuContent}>
-        <Text style={styles.menuLabel}>{item.label}</Text>
-        {item.subtitle && <Text style={styles.menuSubtitle}>{item.subtitle}</Text>}
-      </View>
-      <Switch
-        value={item.value}
-        onValueChange={item.onValueChange}
-        trackColor={{ false: '#E5E7EB', true: '#93C5FD' }}
-        thumbColor={item.value ? '#3B82F6' : '#fff'}
-        ios_backgroundColor="#E5E7EB"
-      />
-    </View>
-  );
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <ScrollView showsVerticalScrollIndicator={false}>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.title}>Ayarlar</Text>
-        </View>
-
-        {/* User Profile Card */}
-        <TouchableOpacity
-          style={styles.userCard}
-          onPress={() => router.push('/profile/edit')}
-          activeOpacity={0.7}
-        >
-          <View style={styles.avatar}>
-            <Text style={styles.avatarText}>
-              {user?.firstName?.charAt(0)?.toUpperCase() || user?.phone?.charAt(0) || 'P'}
-            </Text>
+          <View style={styles.headerLeft}>
+            <Text style={styles.title}>Ayarlar</Text>
+            <Text style={styles.subtitle}>{data?.businessName || selectedTenant?.businessName}</Text>
           </View>
-          <View style={styles.userInfo}>
-            <Text style={styles.userName}>
-              {user?.firstName && user?.lastName
-                ? `${user.firstName} ${user.lastName}`
-                : 'Personel'}
-            </Text>
-            <View style={styles.userRoleRow}>
-              <View style={[styles.roleBadge, user?.userType === 'owner' && styles.ownerBadge]}>
-                <Ionicons
-                  name={user?.userType === 'owner' ? 'shield-checkmark' : 'person'}
-                  size={12}
-                  color={user?.userType === 'owner' ? '#D97706' : '#6B7280'}
-                />
-                <Text style={[styles.roleText, user?.userType === 'owner' && styles.ownerRoleText]}>
-                  {user?.userType === 'owner' ? 'Salon Sahibi' : 'Personel'}
-                </Text>
-              </View>
-            </View>
-          </View>
-          <Ionicons name="chevron-forward" size={20} color="#D1D5DB" />
-        </TouchableOpacity>
-
-        {/* Current Tenant Card */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Aktif Salon</Text>
-          <TouchableOpacity
-            style={styles.tenantCard}
-            onPress={handleSwitchTenant}
-            disabled={availableTenants.length <= 1}
-            activeOpacity={0.7}
-          >
-            <View
-              style={[
-                styles.tenantLogo,
-                { backgroundColor: selectedTenant?.primaryColor || '#3B82F6' },
-              ]}
+          {(hasChanges || newPassword) && (
+            <TouchableOpacity
+              style={styles.saveButton}
+              onPress={handleSave}
+              disabled={saving}
             >
-              <Text style={styles.tenantInitial}>
-                {selectedTenant?.businessName?.charAt(0)?.toUpperCase() || 'S'}
-              </Text>
-            </View>
-            <View style={styles.tenantInfo}>
-              <Text style={styles.tenantName}>{selectedTenant?.businessName || 'Salon'}</Text>
-              <Text style={styles.tenantSlug}>@{selectedTenant?.slug || 'salon'}</Text>
-            </View>
-            {availableTenants.length > 1 && (
-              <View style={styles.switchBadge}>
-                <Ionicons name="swap-horizontal" size={14} color="#3B82F6" />
-                <Text style={styles.switchText}>Değiştir</Text>
-              </View>
-            )}
-          </TouchableOpacity>
+              <LinearGradient
+                colors={['#059669', '#047857']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.saveButtonGradient}
+              >
+                {saving ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <Ionicons name="checkmark" size={20} color="#fff" />
+                )}
+              </LinearGradient>
+            </TouchableOpacity>
+          )}
         </View>
 
-        {/* Quick Actions - Only for owners */}
+        {/* Quick Actions */}
         {user?.userType === 'owner' && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Hızlı Erişim</Text>
-            <View style={styles.quickActionsGrid}>
-              {quickActions.map((action) => (
-                <TouchableOpacity
-                  key={action.label}
-                  style={styles.quickActionItem}
-                  onPress={action.onPress}
-                  activeOpacity={0.7}
-                >
-                  <View style={[styles.quickActionIcon, { backgroundColor: action.bg }]}>
-                    <Ionicons name={action.icon as any} size={24} color={action.color} />
+          <View style={styles.quickActionsContainer}>
+            {quickActions.map((action) => (
+              <TouchableOpacity
+                key={action.label}
+                style={styles.quickActionItem}
+                onPress={action.onPress}
+                activeOpacity={0.7}
+              >
+                <View style={[styles.quickActionIcon, { backgroundColor: action.bg }]}>
+                  <Ionicons name={action.icon as any} size={22} color={action.color} />
+                </View>
+                <Text style={styles.quickActionLabel}>{action.label}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
+
+        {/* Tabs */}
+        <View style={styles.tabContainer}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tabScroll}>
+            {TABS.map((tab) => (
+              <TouchableOpacity
+                key={tab.id}
+                onPress={() => setActiveTab(tab.id as TabId)}
+                style={styles.tabWrapper}
+              >
+                {activeTab === tab.id ? (
+                  <LinearGradient
+                    colors={[THEME_COLOR, '#1e4a8f']}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 0 }}
+                    style={styles.tabActive}
+                  >
+                    <Ionicons name={tab.icon as any} size={16} color="#fff" />
+                    <Text style={styles.tabTextActive}>{tab.label}</Text>
+                  </LinearGradient>
+                ) : (
+                  <View style={styles.tabInactive}>
+                    <Ionicons name={tab.icon as any} size={16} color="#6B7280" />
+                    <Text style={styles.tabTextInactive}>{tab.label}</Text>
                   </View>
-                  <Text style={styles.quickActionLabel}>{action.label}</Text>
+                )}
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
+
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[THEME_COLOR]} />}
+          contentContainerStyle={styles.scrollContent}
+        >
+          {/* 1. TEMA TAB */}
+          {activeTab === 'theme' && (
+            <View style={styles.section}>
+              {/* Ana Renk */}
+              <View style={styles.card}>
+                <View style={styles.cardHeader}>
+                  <View style={[styles.cardIcon, { backgroundColor: '#DBEAFE' }]}>
+                    <Ionicons name="color-palette" size={20} color="#3B82F6" />
+                  </View>
+                  <View style={styles.cardTitleContainer}>
+                    <Text style={styles.cardTitle}>Ana Renk</Text>
+                    <Text style={styles.cardDescription}>İşletmenizin ana rengi</Text>
+                  </View>
+                </View>
+                <View style={styles.colorRow}>
+                  <View
+                    style={[styles.colorPreview, { backgroundColor: formData.theme?.primaryColor || THEME_COLOR }]}
+                  />
+                  <TextInput
+                    style={styles.colorInput}
+                    value={formData.theme?.primaryColor || THEME_COLOR}
+                    onChangeText={(text) => updateNestedFormData('theme', 'primaryColor', text)}
+                    placeholder="#163974"
+                    autoCapitalize="characters"
+                  />
+                </View>
+              </View>
+
+              {/* İkincil Renk */}
+              <View style={styles.card}>
+                <View style={styles.cardHeader}>
+                  <View style={[styles.cardIcon, { backgroundColor: '#E0E7FF' }]}>
+                    <Ionicons name="color-fill" size={20} color="#6366F1" />
+                  </View>
+                  <View style={styles.cardTitleContainer}>
+                    <Text style={styles.cardTitle}>İkincil Renk</Text>
+                    <Text style={styles.cardDescription}>İkinci derecede kullanılan renk</Text>
+                  </View>
+                </View>
+                <View style={styles.colorRow}>
+                  <View
+                    style={[styles.colorPreview, { backgroundColor: formData.theme?.secondaryColor || '#0F2A52' }]}
+                  />
+                  <TextInput
+                    style={styles.colorInput}
+                    value={formData.theme?.secondaryColor || '#0F2A52'}
+                    onChangeText={(text) => updateNestedFormData('theme', 'secondaryColor', text)}
+                    placeholder="#0F2A52"
+                    autoCapitalize="characters"
+                  />
+                </View>
+              </View>
+
+              {/* Logo */}
+              <View style={styles.card}>
+                <View style={styles.cardHeader}>
+                  <View style={[styles.cardIcon, { backgroundColor: '#FEF3C7' }]}>
+                    <Ionicons name="image" size={20} color="#F59E0B" />
+                  </View>
+                  <View style={styles.cardTitleContainer}>
+                    <Text style={styles.cardTitle}>Logo</Text>
+                    <Text style={styles.cardDescription}>İşletmenizin logosu</Text>
+                  </View>
+                </View>
+                <TouchableOpacity style={styles.imagePickerContainer} onPress={() => pickImage('logo')}>
+                  {formData.theme?.logo ? (
+                    <Image source={{ uri: formData.theme.logo }} style={styles.logoPreview} />
+                  ) : (
+                    <View style={styles.imagePlaceholder}>
+                      <Ionicons name="image-outline" size={32} color="#9CA3AF" />
+                      <Text style={styles.imagePlaceholderText}>Logo Seç</Text>
+                    </View>
+                  )}
+                </TouchableOpacity>
+              </View>
+
+              {/* Header Görseli */}
+              <View style={styles.card}>
+                <View style={styles.cardHeader}>
+                  <View style={[styles.cardIcon, { backgroundColor: '#D1FAE5' }]}>
+                    <Ionicons name="albums" size={20} color="#059669" />
+                  </View>
+                  <View style={styles.cardTitleContainer}>
+                    <Text style={styles.cardTitle}>Header Görseli</Text>
+                    <Text style={styles.cardDescription}>Üst kısımda görünecek görsel</Text>
+                  </View>
+                </View>
+                <TouchableOpacity style={styles.headerImageContainer} onPress={() => pickImage('headerImage')}>
+                  {formData.theme?.headerImage ? (
+                    <Image source={{ uri: formData.theme.headerImage }} style={styles.headerImagePreview} />
+                  ) : (
+                    <View style={styles.headerImagePlaceholder}>
+                      <Ionicons name="image-outline" size={28} color="#9CA3AF" />
+                      <Text style={styles.imagePlaceholderText}>Header Görseli Seç</Text>
+                    </View>
+                  )}
+                </TouchableOpacity>
+              </View>
+            </View>
+          )}
+
+          {/* 2. İŞLETME TAB */}
+          {activeTab === 'business' && (
+            <View style={styles.section}>
+              <View style={styles.card}>
+                <View style={styles.inputGroup}>
+                  <Text style={styles.inputLabel}>İşletme Adı</Text>
+                  <TextInput
+                    style={styles.input}
+                    value={formData.businessName}
+                    onChangeText={(text) => updateFormData('businessName', text)}
+                    placeholder="İşletme adını girin"
+                  />
+                </View>
+
+                <View style={styles.inputGroup}>
+                  <Text style={styles.inputLabel}>İşletme Türü</Text>
+                  <TouchableOpacity
+                    style={styles.selectButton}
+                    onPress={() => setShowBusinessTypePicker(true)}
+                  >
+                    <Text style={styles.selectText}>
+                      {BUSINESS_TYPES.find(t => t.value === formData.businessType)?.label || 'Seçin'}
+                    </Text>
+                    <Ionicons name="chevron-down" size={20} color="#6B7280" />
+                  </TouchableOpacity>
+                </View>
+
+                <View style={styles.inputGroup}>
+                  <Text style={styles.inputLabel}>İşletme Açıklaması</Text>
+                  <TextInput
+                    style={[styles.input, styles.textArea]}
+                    value={formData.businessDescription}
+                    onChangeText={(text) => updateFormData('businessDescription', text)}
+                    placeholder="İşletmeniz hakkında kısa açıklama"
+                    multiline
+                    numberOfLines={3}
+                  />
+                </View>
+
+                <View style={styles.inputGroupLast}>
+                  <Text style={styles.inputLabel}>İşletme Adresi</Text>
+                  <TextInput
+                    style={[styles.input, styles.textArea]}
+                    value={formData.address}
+                    onChangeText={(text) => updateFormData('address', text)}
+                    placeholder="Tam adres bilgisi"
+                    multiline
+                    numberOfLines={2}
+                  />
+                </View>
+              </View>
+            </View>
+          )}
+
+          {/* 3. YÖNETİCİ TAB */}
+          {activeTab === 'owner' && (
+            <View style={styles.section}>
+              <View style={styles.card}>
+                <View style={styles.inputGroup}>
+                  <Text style={styles.inputLabel}>Adı Soyadı</Text>
+                  <TextInput
+                    style={styles.input}
+                    value={formData.ownerName}
+                    onChangeText={(text) => updateFormData('ownerName', text)}
+                    placeholder="Yönetici adı soyadı"
+                  />
+                </View>
+
+                <View style={styles.inputGroup}>
+                  <Text style={styles.inputLabel}>E-posta</Text>
+                  <TextInput
+                    style={styles.input}
+                    value={formData.ownerEmail}
+                    onChangeText={(text) => updateFormData('ownerEmail', text)}
+                    placeholder="E-posta adresi"
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                  />
+                </View>
+
+                <View style={styles.inputGroupLast}>
+                  <Text style={styles.inputLabel}>Telefon</Text>
+                  <TextInput
+                    style={styles.input}
+                    value={formData.phone}
+                    onChangeText={(text) => updateFormData('phone', text)}
+                    placeholder="05XX XXX XX XX"
+                    keyboardType="phone-pad"
+                  />
+                </View>
+              </View>
+            </View>
+          )}
+
+          {/* 4. GİRİŞ TAB */}
+          {activeTab === 'login' && (
+            <View style={styles.section}>
+              <View style={styles.card}>
+                <View style={styles.inputGroup}>
+                  <Text style={styles.inputLabel}>Kullanıcı Adı</Text>
+                  <TextInput
+                    style={[styles.input, styles.inputDisabled]}
+                    value={formData.username}
+                    editable={false}
+                    placeholder="Kullanıcı adı"
+                  />
+                  <Text style={styles.inputHint}>Kullanıcı adı değiştirilemez</Text>
+                </View>
+
+                <View style={styles.inputGroupLast}>
+                  <Text style={styles.inputLabel}>Yeni Şifre</Text>
+                  <TextInput
+                    style={styles.input}
+                    value={newPassword}
+                    onChangeText={setNewPassword}
+                    placeholder="Değiştirmek için yeni şifre girin"
+                    secureTextEntry
+                  />
+                  <Text style={styles.inputHint}>Boş bırakırsanız şifre değişmez</Text>
+                </View>
+              </View>
+
+              {/* Çıkış Yap */}
+              <TouchableOpacity
+                style={styles.logoutButton}
+                onPress={handleLogout}
+                activeOpacity={0.7}
+              >
+                <Ionicons name="log-out-outline" size={22} color="#EF4444" />
+                <Text style={styles.logoutText}>Çıkış Yap</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
+          {/* 5. KONUM TAB */}
+          {activeTab === 'location' && (
+            <View style={styles.section}>
+              <View style={styles.card}>
+                <View style={styles.cardHeader}>
+                  <View style={[styles.cardIcon, { backgroundColor: '#FEE2E2' }]}>
+                    <Ionicons name="location" size={20} color="#EF4444" />
+                  </View>
+                  <View style={styles.cardTitleContainer}>
+                    <Text style={styles.cardTitle}>Harita Konumu</Text>
+                    <Text style={styles.cardDescription}>İşletmenizin harita üzerindeki konumu</Text>
+                  </View>
+                </View>
+
+                <View style={styles.inputGroup}>
+                  <Text style={styles.inputLabel}>Enlem (Latitude)</Text>
+                  <TextInput
+                    style={styles.input}
+                    value={formData.location?.latitude}
+                    onChangeText={(text) => updateNestedFormData('location', 'latitude', text)}
+                    placeholder="41.0082"
+                    keyboardType="decimal-pad"
+                  />
+                </View>
+
+                <View style={styles.inputGroup}>
+                  <Text style={styles.inputLabel}>Boylam (Longitude)</Text>
+                  <TextInput
+                    style={styles.input}
+                    value={formData.location?.longitude}
+                    onChangeText={(text) => updateNestedFormData('location', 'longitude', text)}
+                    placeholder="28.9784"
+                    keyboardType="decimal-pad"
+                  />
+                </View>
+
+                <View style={styles.inputGroupLast}>
+                  <Text style={styles.inputLabel}>Harita Adresi</Text>
+                  <TextInput
+                    style={[styles.input, styles.textArea]}
+                    value={formData.location?.address}
+                    onChangeText={(text) => updateNestedFormData('location', 'address', text)}
+                    placeholder="Haritada gösterilecek adres"
+                    multiline
+                    numberOfLines={2}
+                  />
+                </View>
+              </View>
+            </View>
+          )}
+
+          {/* 6. ÇALIŞMA TAB */}
+          {activeTab === 'working' && (
+            <View style={styles.section}>
+              <View style={styles.card}>
+                <Text style={styles.cardTitleStandalone}>Çalışma Saatleri</Text>
+                {DAYS.map((day, index) => {
+                  const dayData = (formData.workingHours as WorkingHours)?.[day.key as keyof WorkingHours];
+                  const isClosed = dayData?.closed || false;
+
+                  return (
+                    <View
+                      key={day.key}
+                      style={[
+                        styles.dayRow,
+                        index === DAYS.length - 1 && styles.dayRowLast
+                      ]}
+                    >
+                      <View style={styles.dayHeader}>
+                        <Text style={[styles.dayLabel, isClosed && styles.dayLabelClosed]}>
+                          {day.label}
+                        </Text>
+                        <View style={styles.closedSwitch}>
+                          <Text style={styles.closedLabel}>Kapalı</Text>
+                          <Switch
+                            value={isClosed}
+                            onValueChange={(value) => updateWorkingHours(day.key, 'closed', value)}
+                            trackColor={{ false: '#E5E7EB', true: '#FCA5A5' }}
+                            thumbColor={isClosed ? '#EF4444' : '#fff'}
+                          />
+                        </View>
+                      </View>
+
+                      {!isClosed && (
+                        <View style={styles.timeRow}>
+                          <TouchableOpacity
+                            style={styles.timeButton}
+                            onPress={() => setShowTimePicker({ day: day.key, field: 'start' })}
+                          >
+                            <Ionicons name="time-outline" size={16} color={THEME_COLOR} />
+                            <Text style={styles.timeText}>{dayData?.start || '09:00'}</Text>
+                          </TouchableOpacity>
+                          <Text style={styles.timeSeparator}>-</Text>
+                          <TouchableOpacity
+                            style={styles.timeButton}
+                            onPress={() => setShowTimePicker({ day: day.key, field: 'end' })}
+                          >
+                            <Ionicons name="time-outline" size={16} color={THEME_COLOR} />
+                            <Text style={styles.timeText}>{dayData?.end || '18:00'}</Text>
+                          </TouchableOpacity>
+                        </View>
+                      )}
+                    </View>
+                  );
+                })}
+              </View>
+
+              {/* Randevu Ayarları */}
+              <View style={styles.card}>
+                <Text style={styles.cardTitleStandalone}>Randevu Ayarları</Text>
+
+                {/* Takvim Zaman Aralıkları */}
+                <View style={styles.settingRow}>
+                  <View style={styles.settingInfo}>
+                    <View style={[styles.settingIcon, { backgroundColor: '#DBEAFE' }]}>
+                      <Ionicons name="grid-outline" size={20} color="#3B82F6" />
+                    </View>
+                    <View style={styles.settingTextContainer}>
+                      <Text style={styles.settingLabel}>Zaman Aralıkları</Text>
+                      <Text style={styles.settingDescription}>Takvimde gösterilecek slot</Text>
+                    </View>
+                  </View>
+                  <TouchableOpacity
+                    style={styles.settingButton}
+                    onPress={() => setShowTimeIntervalPicker(true)}
+                  >
+                    <Text style={styles.settingValue}>
+                      {TIME_INTERVALS.find(t => t.value === formData.appointmentTimeInterval)?.label || '30 dk'}
+                    </Text>
+                    <Ionicons name="chevron-forward" size={18} color="#9CA3AF" />
+                  </TouchableOpacity>
+                </View>
+
+                {/* Kara Liste Eşiği */}
+                <View style={styles.settingRow}>
+                  <View style={styles.settingInfo}>
+                    <View style={[styles.settingIcon, { backgroundColor: '#FEE2E2' }]}>
+                      <Ionicons name="ban-outline" size={20} color="#EF4444" />
+                    </View>
+                    <View style={styles.settingTextContainer}>
+                      <Text style={styles.settingLabel}>Kara Liste Eşiği</Text>
+                      <Text style={styles.settingDescription}>Gelmezse kara liste</Text>
+                    </View>
+                  </View>
+                  <View style={styles.counterContainer}>
+                    <TouchableOpacity
+                      style={styles.counterButton}
+                      onPress={() => {
+                        const current = formData.blacklistThreshold || 3;
+                        if (current > 1) updateFormData('blacklistThreshold', current - 1);
+                      }}
+                    >
+                      <Ionicons name="remove" size={18} color={THEME_COLOR} />
+                    </TouchableOpacity>
+                    <Text style={styles.counterValue}>{formData.blacklistThreshold || 3}</Text>
+                    <TouchableOpacity
+                      style={styles.counterButton}
+                      onPress={() => {
+                        const current = formData.blacklistThreshold || 3;
+                        if (current < 10) updateFormData('blacklistThreshold', current + 1);
+                      }}
+                    >
+                      <Ionicons name="add" size={18} color={THEME_COLOR} />
+                    </TouchableOpacity>
+                  </View>
+                </View>
+
+                {/* Randevu Hatırlatma Süresi */}
+                <View style={styles.settingRow}>
+                  <View style={styles.settingInfo}>
+                    <View style={[styles.settingIcon, { backgroundColor: '#D1FAE5' }]}>
+                      <Ionicons name="notifications-outline" size={20} color="#059669" />
+                    </View>
+                    <View style={styles.settingTextContainer}>
+                      <Text style={styles.settingLabel}>Hatırlatma</Text>
+                      <Text style={styles.settingDescription}>WhatsApp hatırlatma</Text>
+                    </View>
+                  </View>
+                  <TouchableOpacity
+                    style={styles.settingButton}
+                    onPress={() => setShowReminderPicker(true)}
+                  >
+                    <Text style={styles.settingValue}>
+                      {REMINDER_OPTIONS.find(r => r.value === formData.reminderMinutes)?.label || '2 saat önce'}
+                    </Text>
+                    <Ionicons name="chevron-forward" size={18} color="#9CA3AF" />
+                  </TouchableOpacity>
+                </View>
+
+                {/* Kredi Kartı ile Ödeme */}
+                <View style={[styles.settingRow, styles.settingRowLast]}>
+                  <View style={styles.settingInfo}>
+                    <View style={[styles.settingIcon, { backgroundColor: '#FEF3C7' }]}>
+                      <Ionicons name="card-outline" size={20} color="#D97706" />
+                    </View>
+                    <View style={styles.settingTextContainer}>
+                      <Text style={styles.settingLabel}>Kart ile Ödeme</Text>
+                      <Text style={styles.settingDescription}>Müşteri kart ödemesi</Text>
+                    </View>
+                  </View>
+                  <Switch
+                    value={formData.cardPaymentEnabled}
+                    onValueChange={(value) => updateFormData('cardPaymentEnabled', value)}
+                    trackColor={{ false: '#E5E7EB', true: '#93C5FD' }}
+                    thumbColor={formData.cardPaymentEnabled ? THEME_COLOR : '#fff'}
+                  />
+                </View>
+              </View>
+            </View>
+          )}
+
+          {/* 7. BELGELER TAB */}
+          {activeTab === 'documents' && (
+            <View style={styles.section}>
+              <View style={styles.card}>
+                <View style={styles.cardHeader}>
+                  <View style={[styles.cardIcon, { backgroundColor: '#E0E7FF' }]}>
+                    <Ionicons name="document-text" size={20} color="#6366F1" />
+                  </View>
+                  <View style={styles.cardTitleContainer}>
+                    <Text style={styles.cardTitle}>Ödeme Belgeleri</Text>
+                    <Text style={styles.cardDescription}>Ödeme alabilmek için gerekli belgeler</Text>
+                  </View>
+                </View>
+
+                {/* Kimlik Belgesi */}
+                <View style={styles.documentRow}>
+                  <View style={styles.documentInfo}>
+                    <View style={[styles.documentIcon, { backgroundColor: '#DBEAFE' }]}>
+                      <Ionicons name="card-outline" size={18} color="#3B82F6" />
+                    </View>
+                    <View>
+                      <Text style={styles.documentLabel}>Kimlik Belgesi</Text>
+                      <Text style={styles.documentDescription}>Kimlik kartı veya pasaport</Text>
+                    </View>
+                  </View>
+                  <TouchableOpacity
+                    style={[
+                      styles.documentButton,
+                      formData.documents?.identityDocument && styles.documentButtonUploaded
+                    ]}
+                    onPress={() => Alert.alert('Bilgi', 'Belge yükleme web panelinden yapılabilir.')}
+                  >
+                    <Text style={[
+                      styles.documentButtonText,
+                      formData.documents?.identityDocument && styles.documentButtonTextUploaded
+                    ]}>
+                      {formData.documents?.identityDocument ? 'Yüklendi' : 'Yükle'}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+
+                {/* Vergi Levhası */}
+                <View style={styles.documentRow}>
+                  <View style={styles.documentInfo}>
+                    <View style={[styles.documentIcon, { backgroundColor: '#D1FAE5' }]}>
+                      <Ionicons name="document-text-outline" size={18} color="#059669" />
+                    </View>
+                    <View>
+                      <Text style={styles.documentLabel}>Vergi Levhası</Text>
+                      <Text style={styles.documentDescription}>Vergi levhası belgesi</Text>
+                    </View>
+                  </View>
+                  <TouchableOpacity
+                    style={[
+                      styles.documentButton,
+                      formData.documents?.taxDocument && styles.documentButtonUploaded
+                    ]}
+                    onPress={() => Alert.alert('Bilgi', 'Belge yükleme web panelinden yapılabilir.')}
+                  >
+                    <Text style={[
+                      styles.documentButtonText,
+                      formData.documents?.taxDocument && styles.documentButtonTextUploaded
+                    ]}>
+                      {formData.documents?.taxDocument ? 'Yüklendi' : 'Yükle'}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+
+                {/* IBAN */}
+                <View style={styles.inputGroup}>
+                  <Text style={styles.inputLabel}>IBAN Bilgisi</Text>
+                  <TextInput
+                    style={styles.input}
+                    value={formData.documents?.iban || ''}
+                    onChangeText={(text) => updateNestedFormData('documents', 'iban', formatIBAN(text))}
+                    placeholder="TR00 0000 0000 0000 0000 0000 00"
+                    autoCapitalize="characters"
+                    maxLength={26}
+                  />
+                  <Text style={styles.inputHint}>TR ile başlayan 26 haneli IBAN</Text>
+                </View>
+
+                {/* İmza Sirküleri */}
+                <View style={[styles.documentRow, styles.documentRowLast]}>
+                  <View style={styles.documentInfo}>
+                    <View style={[styles.documentIcon, { backgroundColor: '#FEF3C7' }]}>
+                      <Ionicons name="create-outline" size={18} color="#D97706" />
+                    </View>
+                    <View>
+                      <Text style={styles.documentLabel}>İmza Sirküleri</Text>
+                      <Text style={styles.documentDescription}>Noter onaylı imza belgesi</Text>
+                    </View>
+                  </View>
+                  <TouchableOpacity
+                    style={[
+                      styles.documentButton,
+                      formData.documents?.signatureDocument && styles.documentButtonUploaded
+                    ]}
+                    onPress={() => Alert.alert('Bilgi', 'Belge yükleme web panelinden yapılabilir.')}
+                  >
+                    <Text style={[
+                      styles.documentButtonText,
+                      formData.documents?.signatureDocument && styles.documentButtonTextUploaded
+                    ]}>
+                      {formData.documents?.signatureDocument ? 'Yüklendi' : 'Yükle'}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+
+              {/* Abonelik Bilgisi */}
+              <View style={styles.card}>
+                <Text style={styles.cardTitleStandalone}>Abonelik Bilgisi</Text>
+                <View style={styles.subscriptionRow}>
+                  <View style={styles.subscriptionInfo}>
+                    <View style={[styles.subscriptionIcon, { backgroundColor: '#EFF6FF' }]}>
+                      <Ionicons name="ribbon-outline" size={20} color={THEME_COLOR} />
+                    </View>
+                    <Text style={styles.subscriptionLabel}>Plan</Text>
+                  </View>
+                  <View style={styles.planBadge}>
+                    <Text style={styles.planText}>{data?.plan || 'Free'}</Text>
+                  </View>
+                </View>
+                <View style={[styles.subscriptionRow, styles.subscriptionRowLast]}>
+                  <View style={styles.subscriptionInfo}>
+                    <View style={[styles.subscriptionIcon, { backgroundColor: '#D1FAE5' }]}>
+                      <Ionicons name="checkmark-circle-outline" size={20} color="#059669" />
+                    </View>
+                    <Text style={styles.subscriptionLabel}>Durum</Text>
+                  </View>
+                  <View style={[styles.statusBadge, data?.status === 'active' && styles.statusActive]}>
+                    <Text style={[styles.statusText, data?.status === 'active' && styles.statusTextActive]}>
+                      {data?.status === 'active' ? 'Aktif' : data?.status || 'Aktif'}
+                    </Text>
+                  </View>
+                </View>
+              </View>
+            </View>
+          )}
+
+          {/* Bottom Spacing */}
+          <View style={{ height: 120 }} />
+        </ScrollView>
+      </KeyboardAvoidingView>
+
+      {/* Modals */}
+      {/* Time Interval Picker Modal */}
+      <Modal visible={showTimeIntervalPicker} transparent animationType="slide">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Takvim Zaman Aralıkları</Text>
+              <TouchableOpacity onPress={() => setShowTimeIntervalPicker(false)}>
+                <Ionicons name="close" size={24} color="#6B7280" />
+              </TouchableOpacity>
+            </View>
+            <ScrollView style={styles.modalScroll}>
+              {TIME_INTERVALS.map((interval) => (
+                <TouchableOpacity
+                  key={interval.value}
+                  style={[
+                    styles.modalOption,
+                    formData.appointmentTimeInterval === interval.value && styles.modalOptionSelected,
+                  ]}
+                  onPress={() => {
+                    updateFormData('appointmentTimeInterval', interval.value);
+                    setShowTimeIntervalPicker(false);
+                  }}
+                >
+                  <Text
+                    style={[
+                      styles.modalOptionText,
+                      formData.appointmentTimeInterval === interval.value && styles.modalOptionTextSelected,
+                    ]}
+                  >
+                    {interval.label}
+                  </Text>
+                  {formData.appointmentTimeInterval === interval.value && (
+                    <Ionicons name="checkmark" size={20} color={THEME_COLOR} />
+                  )}
                 </TouchableOpacity>
               ))}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Reminder Picker Modal */}
+      <Modal visible={showReminderPicker} transparent animationType="slide">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Randevu Hatırlatma Süresi</Text>
+              <TouchableOpacity onPress={() => setShowReminderPicker(false)}>
+                <Ionicons name="close" size={24} color="#6B7280" />
+              </TouchableOpacity>
             </View>
+            <ScrollView style={styles.modalScroll}>
+              {REMINDER_OPTIONS.map((option) => (
+                <TouchableOpacity
+                  key={option.value}
+                  style={[
+                    styles.modalOption,
+                    formData.reminderMinutes === option.value && styles.modalOptionSelected,
+                  ]}
+                  onPress={() => {
+                    updateFormData('reminderMinutes', option.value);
+                    setShowReminderPicker(false);
+                  }}
+                >
+                  <Text
+                    style={[
+                      styles.modalOptionText,
+                      formData.reminderMinutes === option.value && styles.modalOptionTextSelected,
+                    ]}
+                  >
+                    {option.label}
+                  </Text>
+                  {formData.reminderMinutes === option.value && (
+                    <Ionicons name="checkmark" size={20} color={THEME_COLOR} />
+                  )}
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
           </View>
-        )}
+        </View>
+      </Modal>
 
-        {/* Business Settings - Only for owners */}
-        {user?.userType === 'owner' && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>İşletme Ayarları</Text>
-            <View style={styles.menuCard}>
-              {businessSettings.map((item, index) =>
-                renderMenuItem(item, index === businessSettings.length - 1)
-              )}
+      {/* Business Type Picker Modal */}
+      <Modal visible={showBusinessTypePicker} transparent animationType="slide">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>İşletme Türü</Text>
+              <TouchableOpacity onPress={() => setShowBusinessTypePicker(false)}>
+                <Ionicons name="close" size={24} color="#6B7280" />
+              </TouchableOpacity>
             </View>
-          </View>
-        )}
-
-        {/* Account Settings */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Hesap</Text>
-          <View style={styles.menuCard}>
-            {accountSettings.map((item, index) =>
-              renderMenuItem(item, index === accountSettings.length - 1)
-            )}
-          </View>
-        </View>
-
-        {/* Notification Settings */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Bildirimler</Text>
-          <View style={styles.menuCard}>
-            {notificationSettings.map((item, index) =>
-              renderToggleItem(item, index === notificationSettings.length - 1)
-            )}
-          </View>
-        </View>
-
-        {/* Support */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Destek</Text>
-          <View style={styles.menuCard}>
-            {supportItems.map((item, index) =>
-              renderMenuItem(item, index === supportItems.length - 1)
-            )}
+            <ScrollView style={styles.modalScroll}>
+              {BUSINESS_TYPES.map((type) => (
+                <TouchableOpacity
+                  key={type.value}
+                  style={[
+                    styles.modalOption,
+                    formData.businessType === type.value && styles.modalOptionSelected,
+                  ]}
+                  onPress={() => {
+                    updateFormData('businessType', type.value);
+                    setShowBusinessTypePicker(false);
+                  }}
+                >
+                  <Text
+                    style={[
+                      styles.modalOptionText,
+                      formData.businessType === type.value && styles.modalOptionTextSelected,
+                    ]}
+                  >
+                    {type.label}
+                  </Text>
+                  {formData.businessType === type.value && (
+                    <Ionicons name="checkmark" size={20} color={THEME_COLOR} />
+                  )}
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
           </View>
         </View>
+      </Modal>
 
-        {/* Logout Button */}
-        <View style={styles.section}>
-          <TouchableOpacity
-            style={styles.logoutButton}
-            onPress={handleLogout}
-            activeOpacity={0.7}
-          >
-            <Ionicons name="log-out-outline" size={22} color="#EF4444" />
-            <Text style={styles.logoutText}>Çıkış Yap</Text>
-          </TouchableOpacity>
-        </View>
+      {/* Time Picker Modal */}
+      <Modal visible={!!showTimePicker} transparent animationType="slide">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>
+                {showTimePicker?.field === 'start' ? 'Açılış Saati' : 'Kapanış Saati'}
+              </Text>
+              <TouchableOpacity onPress={() => setShowTimePicker(null)}>
+                <Ionicons name="close" size={24} color="#6B7280" />
+              </TouchableOpacity>
+            </View>
+            <ScrollView style={styles.modalScroll}>
+              {generateTimeOptions().map((time) => {
+                const currentValue = showTimePicker
+                  ? (formData.workingHours as WorkingHours)?.[showTimePicker.day as keyof WorkingHours]?.[showTimePicker.field]
+                  : null;
 
-        {/* Footer */}
-        <View style={styles.footer}>
-          <View style={styles.footerLogo}>
-            <Ionicons name="calendar" size={24} color="#3B82F6" />
+                return (
+                  <TouchableOpacity
+                    key={time}
+                    style={[styles.modalOption, currentValue === time && styles.modalOptionSelected]}
+                    onPress={() => {
+                      if (showTimePicker) {
+                        updateWorkingHours(showTimePicker.day, showTimePicker.field, time);
+                        setShowTimePicker(null);
+                      }
+                    }}
+                  >
+                    <Text style={[styles.modalOptionText, currentValue === time && styles.modalOptionTextSelected]}>
+                      {time}
+                    </Text>
+                    {currentValue === time && <Ionicons name="checkmark" size={20} color={THEME_COLOR} />}
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
           </View>
-          <Text style={styles.appName}>Net Randevu</Text>
-          <Text style={styles.version}>Versiyon 1.0.0</Text>
-          <Text style={styles.copyright}>© 2024 Net Randevu. Tüm hakları saklıdır.</Text>
         </View>
-      </ScrollView>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -440,13 +1171,29 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#F9FAFB',
   },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 12,
+  },
+  loadingText: {
+    fontSize: 14,
+    color: '#6B7280',
+    marginTop: 8,
+  },
 
   // Header
   header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: 20,
     paddingTop: 16,
-    paddingBottom: 8,
-    backgroundColor: '#F9FAFB',
+    paddingBottom: 12,
+  },
+  headerLeft: {
+    flex: 1,
   },
   title: {
     fontSize: 28,
@@ -454,154 +1201,40 @@ const styles = StyleSheet.create({
     color: '#1F2937',
     letterSpacing: -0.5,
   },
-
-  // User Card
-  userCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#fff',
-    marginHorizontal: 20,
-    marginTop: 16,
-    padding: 16,
-    borderRadius: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  avatar: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: '#3B82F6',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  avatarText: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: '#fff',
-  },
-  userInfo: {
-    flex: 1,
-    marginLeft: 14,
-  },
-  userName: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#1F2937',
-  },
-  userRoleRow: {
-    flexDirection: 'row',
-    marginTop: 6,
-  },
-  roleBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F3F4F6',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
-    gap: 4,
-  },
-  ownerBadge: {
-    backgroundColor: '#FEF3C7',
-  },
-  roleText: {
-    fontSize: 12,
-    fontWeight: '500',
-    color: '#6B7280',
-  },
-  ownerRoleText: {
-    color: '#D97706',
-  },
-
-  // Section
-  section: {
-    marginTop: 24,
-    paddingHorizontal: 20,
-  },
-  sectionTitle: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#9CA3AF',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    marginBottom: 12,
-  },
-
-  // Tenant Card
-  tenantCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#fff',
-    padding: 16,
-    borderRadius: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  tenantLogo: {
-    width: 48,
-    height: 48,
-    borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  tenantInitial: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#fff',
-  },
-  tenantInfo: {
-    flex: 1,
-    marginLeft: 12,
-  },
-  tenantName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1F2937',
-  },
-  tenantSlug: {
-    fontSize: 13,
+  subtitle: {
+    fontSize: 14,
     color: '#6B7280',
     marginTop: 2,
   },
-  switchBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#EFF6FF',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 12,
-    gap: 4,
+  saveButton: {
+    marginLeft: 12,
   },
-  switchText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#3B82F6',
+  saveButtonGradient: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 
   // Quick Actions
-  quickActionsGrid: {
+  quickActionsContainer: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
+    justifyContent: 'center',
+    paddingHorizontal: 20,
+    paddingBottom: 8,
+    gap: 24,
   },
   quickActionItem: {
-    width: '22%',
     alignItems: 'center',
   },
   quickActionIcon: {
-    width: 56,
-    height: 56,
-    borderRadius: 16,
+    width: 50,
+    height: 50,
+    borderRadius: 14,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 6,
   },
   quickActionLabel: {
     fontSize: 12,
@@ -610,57 +1243,473 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
 
-  // Menu Card
-  menuCard: {
-    backgroundColor: '#fff',
-    borderRadius: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 2,
-    overflow: 'hidden',
+  // Tabs
+  tabContainer: {
+    marginTop: 8,
   },
-  menuItem: {
+  tabScroll: {
+    paddingHorizontal: 20,
+    gap: 8,
+  },
+  tabWrapper: {
+    marginRight: 8,
+  },
+  tabActive: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 20,
+    gap: 6,
   },
-  menuItemBorder: {
+  tabInactive: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 20,
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    gap: 6,
+  },
+  tabTextActive: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#fff',
+  },
+  tabTextInactive: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: '#6B7280',
+  },
+
+  scrollContent: {
+    paddingTop: 16,
+  },
+
+  // Section
+  section: {
+    paddingHorizontal: 20,
+  },
+
+  // Card
+  card: {
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  cardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  cardIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  cardTitleContainer: {
+    flex: 1,
+    marginLeft: 12,
+  },
+  cardTitle: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#1F2937',
+  },
+  cardDescription: {
+    fontSize: 12,
+    color: '#9CA3AF',
+    marginTop: 2,
+  },
+  cardTitleStandalone: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1F2937',
+    marginBottom: 16,
+  },
+
+  // Input
+  inputGroup: {
+    marginBottom: 16,
+  },
+  inputGroupLast: {
+    marginBottom: 0,
+  },
+  inputLabel: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: '#4B5563',
+    marginBottom: 8,
+  },
+  input: {
+    backgroundColor: '#F9FAFB',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    fontSize: 15,
+    color: '#1F2937',
+  },
+  inputDisabled: {
+    backgroundColor: '#F3F4F6',
+    color: '#9CA3AF',
+  },
+  textArea: {
+    minHeight: 80,
+    textAlignVertical: 'top',
+  },
+  inputHint: {
+    fontSize: 11,
+    color: '#9CA3AF',
+    marginTop: 6,
+  },
+
+  // Select
+  selectButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#F9FAFB',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+  },
+  selectText: {
+    fontSize: 15,
+    color: '#1F2937',
+  },
+
+  // Color
+  colorRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  colorPreview: {
+    width: 48,
+    height: 48,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: '#E5E7EB',
+  },
+  colorInput: {
+    flex: 1,
+    backgroundColor: '#F9FAFB',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    fontSize: 15,
+    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+  },
+
+  // Image Picker
+  imagePickerContainer: {
+    alignSelf: 'center',
+  },
+  logoPreview: {
+    width: 100,
+    height: 100,
+    borderRadius: 16,
+    backgroundColor: '#F3F4F6',
+  },
+  imagePlaceholder: {
+    width: 100,
+    height: 100,
+    borderRadius: 16,
+    backgroundColor: '#F3F4F6',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#E5E7EB',
+    borderStyle: 'dashed',
+  },
+  imagePlaceholderText: {
+    fontSize: 11,
+    color: '#9CA3AF',
+    marginTop: 6,
+  },
+  headerImageContainer: {
+    marginTop: 4,
+  },
+  headerImagePreview: {
+    width: '100%',
+    height: 100,
+    borderRadius: 12,
+    backgroundColor: '#F3F4F6',
+  },
+  headerImagePlaceholder: {
+    width: '100%',
+    height: 100,
+    borderRadius: 12,
+    backgroundColor: '#F3F4F6',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#E5E7EB',
+    borderStyle: 'dashed',
+  },
+
+  // Working Hours
+  dayRow: {
+    marginBottom: 16,
+    paddingBottom: 16,
     borderBottomWidth: 1,
     borderBottomColor: '#F3F4F6',
   },
-  menuIconContainer: {
+  dayRowLast: {
+    marginBottom: 0,
+    paddingBottom: 0,
+    borderBottomWidth: 0,
+  },
+  dayHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+  },
+  dayLabel: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#1F2937',
+  },
+  dayLabelClosed: {
+    color: '#9CA3AF',
+  },
+  closedSwitch: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  closedLabel: {
+    fontSize: 12,
+    color: '#6B7280',
+  },
+  timeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  timeButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F9FAFB',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    gap: 8,
+  },
+  timeText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#1F2937',
+  },
+  timeSeparator: {
+    fontSize: 16,
+    color: '#9CA3AF',
+    fontWeight: '500',
+  },
+
+  // Settings Row
+  settingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+  },
+  settingRowLast: {
+    borderBottomWidth: 0,
+    paddingBottom: 0,
+  },
+  settingInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+    gap: 12,
+  },
+  settingIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  settingTextContainer: {
+    flex: 1,
+  },
+  settingLabel: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#1F2937',
+  },
+  settingDescription: {
+    fontSize: 11,
+    color: '#9CA3AF',
+    marginTop: 2,
+  },
+  settingButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  settingValue: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: THEME_COLOR,
+  },
+
+  // Counter
+  counterContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  counterButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    backgroundColor: '#EFF6FF',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  counterValue: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1F2937',
+    minWidth: 24,
+    textAlign: 'center',
+  },
+
+  // Documents
+  documentRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+  },
+  documentRowLast: {
+    borderBottomWidth: 0,
+    paddingBottom: 0,
+  },
+  documentInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+    gap: 12,
+  },
+  documentIcon: {
     width: 36,
     height: 36,
     borderRadius: 10,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  menuContent: {
-    flex: 1,
-    marginLeft: 12,
-  },
-  menuLabel: {
-    fontSize: 15,
+  documentLabel: {
+    fontSize: 14,
     fontWeight: '500',
     color: '#1F2937',
   },
-  menuSubtitle: {
-    fontSize: 13,
+  documentDescription: {
+    fontSize: 11,
     color: '#9CA3AF',
     marginTop: 2,
   },
-  badge: {
-    paddingHorizontal: 8,
-    paddingVertical: 3,
+  documentButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
     borderRadius: 10,
-    marginRight: 8,
+    backgroundColor: '#F3F4F6',
   },
-  badgeText: {
-    fontSize: 11,
+  documentButtonUploaded: {
+    backgroundColor: '#D1FAE5',
+  },
+  documentButtonText: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: '#6B7280',
+  },
+  documentButtonTextUploaded: {
+    color: '#059669',
+  },
+
+  // Subscription
+  subscriptionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+  },
+  subscriptionRowLast: {
+    borderBottomWidth: 0,
+    paddingBottom: 0,
+  },
+  subscriptionInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  subscriptionIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  subscriptionLabel: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#4B5563',
+  },
+  planBadge: {
+    backgroundColor: '#EFF6FF',
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 12,
+  },
+  planText: {
+    fontSize: 13,
     fontWeight: '600',
-    color: '#fff',
+    color: THEME_COLOR,
+  },
+  statusBadge: {
+    backgroundColor: '#F3F4F6',
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 12,
+  },
+  statusActive: {
+    backgroundColor: '#D1FAE5',
+  },
+  statusText: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: '#6B7280',
+  },
+  statusTextActive: {
+    color: '#059669',
   },
 
   // Logout Button
@@ -672,6 +1721,7 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     borderRadius: 12,
     gap: 8,
+    marginTop: 16,
   },
   logoutText: {
     fontSize: 16,
@@ -679,34 +1729,55 @@ const styles = StyleSheet.create({
     color: '#EF4444',
   },
 
-  // Footer
-  footer: {
-    alignItems: 'center',
-    paddingVertical: 32,
-    paddingBottom: 100,
+  // Modal
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
   },
-  footerLogo: {
-    width: 48,
-    height: 48,
-    borderRadius: 12,
-    backgroundColor: '#EFF6FF',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 12,
+  modalContent: {
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    maxHeight: '60%',
   },
-  appName: {
-    fontSize: 16,
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
+  modalTitle: {
+    fontSize: 17,
     fontWeight: '600',
     color: '#1F2937',
   },
-  version: {
-    fontSize: 13,
-    color: '#9CA3AF',
-    marginTop: 4,
+  modalScroll: {
+    paddingHorizontal: 20,
+    paddingBottom: 40,
   },
-  copyright: {
-    fontSize: 11,
-    color: '#D1D5DB',
-    marginTop: 8,
+  modalOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+  },
+  modalOptionSelected: {
+    backgroundColor: '#EFF6FF',
+    marginHorizontal: -20,
+    paddingHorizontal: 20,
+  },
+  modalOptionText: {
+    fontSize: 15,
+    color: '#4B5563',
+  },
+  modalOptionTextSelected: {
+    color: THEME_COLOR,
+    fontWeight: '600',
   },
 });
