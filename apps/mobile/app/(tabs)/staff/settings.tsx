@@ -61,7 +61,7 @@ export default function StaffSettingsScreen() {
       label: 'Kasa',
       color: '#059669',
       bg: '#D1FAE5',
-      onPress: () => Alert.alert('Kasa', 'Bu özellik yakında eklenecek'),
+      onPress: () => router.push('/settings/cashier'),
     },
     {
       icon: 'cut-outline',
@@ -75,7 +75,7 @@ export default function StaffSettingsScreen() {
       label: 'Paketler',
       color: '#8B5CF6',
       bg: '#EDE9FE',
-      onPress: () => Alert.alert('Paketler', 'Bu özellik yakında eklenecek'),
+      onPress: () => router.push('/(tabs)/staff/packages'),
     },
     {
       icon: 'stats-chart-outline',
