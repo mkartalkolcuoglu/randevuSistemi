@@ -721,39 +721,51 @@ export default function PackagesScreen() {
     </View>
   );
 
-  // Render stats row (like services page)
-  const renderStatsRow = () => (
-    <View style={styles.statsRow}>
-      <TouchableOpacity
-        style={[styles.statItem, activeFilter === 'all' && styles.statItemActive]}
-        onPress={() => setActiveFilter('all')}
-      >
-        <Text style={[styles.statValue, activeFilter === 'all' && styles.statValueActive]}>
-          {statusCounts.all}
-        </Text>
-        <Text style={[styles.statLabel, activeFilter === 'all' && styles.statLabelActive]}>Toplam</Text>
-      </TouchableOpacity>
-      <View style={styles.statDivider} />
-      <TouchableOpacity
-        style={[styles.statItem, activeFilter === 'active' && styles.statItemActive]}
-        onPress={() => setActiveFilter('active')}
-      >
-        <Text style={[styles.statValue, { color: '#059669' }, activeFilter === 'active' && styles.statValueActive]}>
-          {statusCounts.active}
-        </Text>
-        <Text style={[styles.statLabel, activeFilter === 'active' && styles.statLabelActive]}>Aktif</Text>
-      </TouchableOpacity>
-      <View style={styles.statDivider} />
-      <TouchableOpacity
-        style={[styles.statItem, activeFilter === 'inactive' && styles.statItemActive]}
-        onPress={() => setActiveFilter('inactive')}
-      >
-        <Text style={[styles.statValue, { color: '#DC2626' }, activeFilter === 'inactive' && styles.statValueActive]}>
-          {statusCounts.inactive}
-        </Text>
-        <Text style={[styles.statLabel, activeFilter === 'inactive' && styles.statLabelActive]}>Pasif</Text>
-      </TouchableOpacity>
-    </View>
+  // Render filter tabs (like customers page)
+  const renderFilterTabs = () => (
+    <ScrollView
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      contentContainerStyle={styles.filterTabsContent}
+    >
+      {FILTER_TABS.map((filter) => {
+        const config = STATUS_CONFIG[filter];
+        const count = statusCounts[filter as keyof typeof statusCounts] || 0;
+        const isActive = activeFilter === filter;
+
+        return (
+          <TouchableOpacity
+            key={filter}
+            style={[styles.filterTab, isActive && styles.filterTabActive]}
+            onPress={() => setActiveFilter(filter)}
+            activeOpacity={0.7}
+          >
+            {isActive ? (
+              <LinearGradient
+                colors={config.gradient}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.filterTabGradient}
+              >
+                <Ionicons name={config.icon as any} size={15} color="#fff" />
+                <Text style={styles.filterTabTextActive}>{config.label}</Text>
+                <View style={styles.filterTabBadgeActive}>
+                  <Text style={styles.filterTabBadgeTextActive}>{count}</Text>
+                </View>
+              </LinearGradient>
+            ) : (
+              <View style={styles.filterTabInner}>
+                <Ionicons name={config.icon as any} size={15} color="#9CA3AF" />
+                <Text style={styles.filterTabText}>{config.label}</Text>
+                <View style={styles.filterTabBadge}>
+                  <Text style={styles.filterTabBadgeText}>{count}</Text>
+                </View>
+              </View>
+            )}
+          </TouchableOpacity>
+        );
+      })}
+    </ScrollView>
   );
 
   // Render item form (for add/edit)
@@ -911,8 +923,8 @@ export default function PackagesScreen() {
         </View>
       )}
 
-      {/* Stats Row */}
-      {renderStatsRow()}
+      {/* Filter Tabs */}
+      <View style={styles.filterTabs}>{renderFilterTabs()}</View>
 
       {/* Package List */}
       {isLoading ? (
@@ -1574,45 +1586,77 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: '#1F2937',
   },
-  // Stats Row
-  statsRow: {
-    flexDirection: 'row',
+  // Filter tabs - Modern style (like customers page)
+  filterTabs: {
     backgroundColor: '#fff',
-    paddingVertical: 16,
-    paddingHorizontal: 8,
     borderBottomWidth: 1,
     borderBottomColor: '#E5E7EB',
   },
-  statItem: {
-    flex: 1,
+  filterTabsContent: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    gap: 8,
+  },
+  filterTab: {
+    borderRadius: 20,
+    overflow: 'hidden',
+  },
+  filterTabActive: {
+    shadowColor: '#163974',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  filterTabGradient: {
+    flexDirection: 'row',
     alignItems: 'center',
+    paddingHorizontal: 14,
     paddingVertical: 8,
-    borderRadius: 12,
+    gap: 6,
   },
-  statItemActive: {
+  filterTabInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
     backgroundColor: '#F3F4F6',
+    gap: 6,
   },
-  statValue: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#1F2937',
-  },
-  statValueActive: {
-    color: '#163974',
-  },
-  statLabel: {
-    fontSize: 12,
+  filterTabText: {
+    fontSize: 13,
     color: '#6B7280',
-    marginTop: 2,
   },
-  statLabelActive: {
-    color: '#163974',
+  filterTabTextActive: {
+    fontSize: 13,
     fontWeight: '600',
+    color: '#fff',
   },
-  statDivider: {
-    width: 1,
+  filterTabBadge: {
+    minWidth: 20,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 10,
     backgroundColor: '#E5E7EB',
-    marginVertical: 4,
+  },
+  filterTabBadgeActive: {
+    minWidth: 20,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 10,
+    backgroundColor: 'rgba(255,255,255,0.3)',
+  },
+  filterTabBadgeText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#6B7280',
+    textAlign: 'center',
+  },
+  filterTabBadgeTextActive: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#fff',
+    textAlign: 'center',
   },
   listContent: {
     padding: 16,
