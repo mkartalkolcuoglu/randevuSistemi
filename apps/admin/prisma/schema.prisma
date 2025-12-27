@@ -32,7 +32,6 @@ model Staff {
   permissions     String?
   canLogin        Boolean   @default(false) @map("can_login")
   lastLogin       DateTime? @map("last_login")
-  isActive        Boolean   @default(true) @map("is_active")
 
   tenant       Tenant        @relation(fields: [tenantId], references: [id])
   services     Service[]

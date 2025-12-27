@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
           { email: username.toLowerCase() },
           { username: username.toLowerCase() },
         ],
-        isActive: true,
+        status: 'active',
       },
       include: {
         tenant: {
