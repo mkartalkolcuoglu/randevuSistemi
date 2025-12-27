@@ -71,6 +71,13 @@ export default function StaffSettingsScreen() {
       onPress: () => router.push('/(tabs)/staff/reports'),
     },
     {
+      icon: 'star-outline',
+      label: 'Performans',
+      color: '#F59E0B',
+      bg: '#FEF3C7',
+      onPress: () => router.push('/(tabs)/staff/performance'),
+    },
+    {
       icon: 'gift-outline',
       label: 'Paketler',
       color: '#8B5CF6',
