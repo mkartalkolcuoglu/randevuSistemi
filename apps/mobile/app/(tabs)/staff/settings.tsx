@@ -57,6 +57,13 @@ export default function StaffSettingsScreen() {
   // Quick actions for owners
   const quickActions = [
     {
+      icon: 'settings-outline',
+      label: 'İşletme',
+      color: '#163974',
+      bg: '#E0E7FF',
+      onPress: () => router.push('/(tabs)/staff/business-settings'),
+    },
+    {
       icon: 'cash-outline',
       label: 'Kasa',
       color: '#059669',
