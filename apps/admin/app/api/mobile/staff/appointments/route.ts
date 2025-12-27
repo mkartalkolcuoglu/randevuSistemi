@@ -15,13 +15,16 @@ async function verifyAuth(request: NextRequest) {
 
   try {
     const decoded = jwt.verify(token, JWT_SECRET) as {
-      phone: string;
+      phone?: string;
       userType: string;
       tenantId: string;
       staffId?: string;
+      ownerId?: string;
     };
+    console.log('📋 Token decoded:', { userType: decoded.userType, tenantId: decoded.tenantId, staffId: decoded.staffId, ownerId: decoded.ownerId });
     return decoded;
   } catch (err) {
+    console.error('Token verification error:', err);
     return null;
   }
 }
@@ -62,6 +65,8 @@ export async function GET(request: NextRequest) {
       where.staffId = auth.staffId;
     }
 
+    console.log('📋 Fetching appointments with where:', JSON.stringify(where));
+
     if (date) {
       where.date = date;
     }
@@ -100,6 +105,8 @@ export async function GET(request: NextRequest) {
       }),
       prisma.appointment.count({ where }),
     ]);
+
+    console.log('📋 Found appointments count:', appointments.length);
 
     // Format appointments
     const formattedAppointments = appointments.map((apt) => ({
