@@ -18,6 +18,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useAuthStore } from '../../../src/store/auth.store';
 import { appointmentService } from '../../../src/services/appointment.service';
 import { Appointment, AppointmentStatus } from '../../../src/types';
@@ -25,25 +26,25 @@ import DrawerMenu from '../../../src/components/DrawerMenu';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
-// Status configurations
-const STATUS_CONFIG: Record<string, { bg: string; text: string; label: string; icon: string }> = {
-  all: { bg: '#F3F4F6', text: '#374151', label: 'Tümü', icon: 'list' },
-  pending: { bg: '#FEF3C7', text: '#D97706', label: 'Beklemede', icon: 'time-outline' },
-  scheduled: { bg: '#DBEAFE', text: '#2563EB', label: 'Planlandı', icon: 'calendar-outline' },
-  confirmed: { bg: '#D1FAE5', text: '#059669', label: 'Onaylandı', icon: 'checkmark-circle-outline' },
-  completed: { bg: '#DBEAFE', text: '#2563EB', label: 'Tamamlandı', icon: 'checkmark-done-outline' },
-  cancelled: { bg: '#FEE2E2', text: '#DC2626', label: 'İptal', icon: 'close-circle-outline' },
-  no_show: { bg: '#FFEDD5', text: '#EA580C', label: 'Gelmedi', icon: 'alert-circle-outline' },
+// Status configurations with modern colors
+const STATUS_CONFIG: Record<string, { bg: string; text: string; label: string; icon: string; gradient: string[] }> = {
+  all: { bg: '#F3F4F6', text: '#374151', label: 'Tümü', icon: 'apps', gradient: ['#6B7280', '#4B5563'] },
+  pending: { bg: '#FEF3C7', text: '#D97706', label: 'Beklemede', icon: 'time', gradient: ['#F59E0B', '#D97706'] },
+  scheduled: { bg: '#DBEAFE', text: '#2563EB', label: 'Planlandı', icon: 'calendar', gradient: ['#3B82F6', '#2563EB'] },
+  confirmed: { bg: '#D1FAE5', text: '#059669', label: 'Onaylandı', icon: 'checkmark-circle', gradient: ['#10B981', '#059669'] },
+  completed: { bg: '#E0E7FF', text: '#4F46E5', label: 'Tamamlandı', icon: 'checkmark-done', gradient: ['#6366F1', '#4F46E5'] },
+  cancelled: { bg: '#FEE2E2', text: '#DC2626', label: 'İptal', icon: 'close-circle', gradient: ['#EF4444', '#DC2626'] },
+  no_show: { bg: '#FFEDD5', text: '#EA580C', label: 'Gelmedi', icon: 'alert-circle', gradient: ['#F97316', '#EA580C'] },
 };
 
 const STATUS_OPTIONS: { status: AppointmentStatus; label: string; color: string; icon: string }[] = [
   { status: 'confirmed', label: 'Onayla', color: '#059669', icon: 'checkmark-circle' },
-  { status: 'completed', label: 'Tamamlandı', color: '#2563EB', icon: 'checkmark-done' },
+  { status: 'completed', label: 'Tamamlandı', color: '#4F46E5', icon: 'checkmark-done' },
   { status: 'cancelled', label: 'İptal Et', color: '#DC2626', icon: 'close-circle' },
   { status: 'no_show', label: 'Gelmedi', color: '#EA580C', icon: 'alert-circle' },
 ];
 
-const FILTER_TABS = ['all', 'pending', 'scheduled', 'confirmed', 'completed', 'cancelled', 'no_show'];
+const FILTER_TABS = ['all', 'pending', 'confirmed', 'completed', 'cancelled'];
 
 export default function StaffAppointmentsScreen() {
   const router = useRouter();
@@ -53,7 +54,7 @@ export default function StaffAppointmentsScreen() {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [selectedDate, setSelectedDate] = useState<string>(''); // Empty means all dates
+  const [selectedDate, setSelectedDate] = useState<string>('');
   const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
   const [showStatusModal, setShowStatusModal] = useState(false);
   const [showDetailModal, setShowDetailModal] = useState(false);
@@ -90,29 +91,24 @@ export default function StaffAppointmentsScreen() {
   const filteredAppointments = useMemo(() => {
     let result = appointments || [];
 
-    // Apply date filter
     if (selectedDate) {
       result = result.filter((apt) => apt.date === selectedDate);
     }
 
-    // Apply status filter
     if (activeFilter !== 'all') {
       result = result.filter((apt) => apt.status === activeFilter);
     }
 
-    // Apply search filter
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase().trim();
       result = result.filter(
         (apt) =>
           apt.customerName?.toLowerCase().includes(query) ||
           apt.customerPhone?.includes(query) ||
-          apt.serviceName?.toLowerCase().includes(query) ||
-          apt.staffName?.toLowerCase().includes(query)
+          apt.serviceName?.toLowerCase().includes(query)
       );
     }
 
-    // Sort by date (newest first) and time
     return result.sort((a, b) => {
       const dateCompare = b.date.localeCompare(a.date);
       if (dateCompare !== 0) return dateCompare;
@@ -120,30 +116,38 @@ export default function StaffAppointmentsScreen() {
     });
   }, [appointments, selectedDate, activeFilter, searchQuery]);
 
-  // Get appointment counts by status
+  // Get appointment counts
   const statusCounts = useMemo(() => {
     let result = appointments || [];
-
-    // Apply date filter for counts too
     if (selectedDate) {
       result = result.filter((apt) => apt.date === selectedDate);
     }
-
     return {
       all: result.length,
       pending: result.filter((apt) => apt.status === 'pending').length,
-      scheduled: result.filter((apt) => apt.status === 'scheduled').length,
       confirmed: result.filter((apt) => apt.status === 'confirmed').length,
       completed: result.filter((apt) => apt.status === 'completed').length,
       cancelled: result.filter((apt) => apt.status === 'cancelled').length,
-      no_show: result.filter((apt) => apt.status === 'no_show').length,
     };
   }, [appointments, selectedDate]);
 
-  // Handle status change
+  // Today's stats
+  const todayStats = useMemo(() => {
+    const today = new Date().toISOString().split('T')[0];
+    const todayApts = appointments.filter((apt) => apt.date === today);
+    const revenue = todayApts
+      .filter((apt) => apt.status === 'completed')
+      .reduce((sum, apt) => sum + (apt.price || 0), 0);
+    return {
+      total: todayApts.length,
+      completed: todayApts.filter((apt) => apt.status === 'completed').length,
+      pending: todayApts.filter((apt) => apt.status === 'pending' || apt.status === 'confirmed').length,
+      revenue,
+    };
+  }, [appointments]);
+
   const handleStatusChange = async (status: AppointmentStatus) => {
     if (!selectedAppointment) return;
-
     try {
       await appointmentService.updateAppointmentStatus(selectedAppointment.id, status);
       setShowStatusModal(false);
@@ -156,47 +160,27 @@ export default function StaffAppointmentsScreen() {
     }
   };
 
-  // Handle WhatsApp send
   const handleSendWhatsApp = async (appointment: Appointment) => {
-    Alert.alert(
-      'WhatsApp Gönder',
-      `${appointment.customerName} müşterisine WhatsApp mesajı gönderilsin mi?`,
-      [
-        { text: 'İptal', style: 'cancel' },
-        {
-          text: 'Gönder',
-          onPress: async () => {
-            try {
-              // Format message
-              const message = `Merhaba ${appointment.customerName}, ${appointment.date} tarihinde saat ${appointment.time}'de ${appointment.serviceName} randevunuz bulunmaktadır. ${selectedTenant?.businessName}`;
-              const phone = appointment.customerPhone.replace(/\D/g, '');
-              const url = `whatsapp://send?phone=90${phone}&text=${encodeURIComponent(message)}`;
+    const message = `Merhaba ${appointment.customerName}, ${appointment.date} tarihinde saat ${appointment.time}'de ${appointment.serviceName} randevunuz bulunmaktadır. ${selectedTenant?.businessName}`;
+    const phone = appointment.customerPhone.replace(/\D/g, '');
+    const url = `whatsapp://send?phone=90${phone}&text=${encodeURIComponent(message)}`;
 
-              const canOpen = await Linking.canOpenURL(url);
-              if (canOpen) {
-                await Linking.openURL(url);
-              } else {
-                Alert.alert('Hata', 'WhatsApp uygulaması bulunamadı');
-              }
-            } catch (error) {
-              Alert.alert('Hata', 'WhatsApp açılamadı');
-            }
-          },
-        },
-      ]
-    );
+    const canOpen = await Linking.canOpenURL(url);
+    if (canOpen) {
+      await Linking.openURL(url);
+    } else {
+      Alert.alert('Hata', 'WhatsApp uygulaması bulunamadı');
+    }
   };
 
-  // Handle phone call
   const handleCall = (phone: string) => {
     Linking.openURL(`tel:${phone}`);
   };
 
-  // Handle delete
   const handleDelete = async (appointment: Appointment) => {
     Alert.alert(
       'Randevuyu Sil',
-      `${appointment.customerName} müşterisinin randevusunu silmek istediğinize emin misiniz?`,
+      `${appointment.customerName} randevusunu silmek istediğinize emin misiniz?`,
       [
         { text: 'İptal', style: 'cancel' },
         {
@@ -217,81 +201,156 @@ export default function StaffAppointmentsScreen() {
     );
   };
 
-  // Set today's date
-  const setToday = () => {
-    const today = new Date().toISOString().split('T')[0];
-    setSelectedDate(today);
-  };
-
-  // Clear date filter
-  const clearDateFilter = () => {
-    setSelectedDate('');
-  };
-
-  // Format date for display
   const formatDate = (dateString: string) => {
     if (!dateString) return 'Tüm Tarihler';
     const date = new Date(dateString);
     const today = new Date();
     const tomorrow = new Date(today);
     tomorrow.setDate(today.getDate() + 1);
-    const yesterday = new Date(today);
-    yesterday.setDate(today.getDate() - 1);
 
     if (dateString === today.toISOString().split('T')[0]) return 'Bugün';
     if (dateString === tomorrow.toISOString().split('T')[0]) return 'Yarın';
-    if (dateString === yesterday.toISOString().split('T')[0]) return 'Dün';
 
     return date.toLocaleDateString('tr-TR', { weekday: 'short', day: 'numeric', month: 'short' });
   };
 
-  // Format time
   const formatTime = (time: string) => time.substring(0, 5);
 
-  // Render stats cards
-  const renderStatsCards = () => (
-    <ScrollView
-      horizontal
-      showsHorizontalScrollIndicator={false}
-      contentContainerStyle={styles.statsContainer}
+  // Render Header with gradient
+  const renderHeader = () => (
+    <LinearGradient
+      colors={['#1E3A8A', '#3B82F6']}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 1 }}
+      style={styles.headerGradient}
     >
-      <View style={[styles.statCard, { backgroundColor: '#3B82F6' }]}>
-        <View style={styles.statIconWrapper}>
-          <Ionicons name="calendar" size={24} color="#fff" />
+      <View style={styles.headerTop}>
+        <TouchableOpacity
+          style={styles.menuButton}
+          onPress={() => setDrawerOpen(true)}
+        >
+          <Ionicons name="menu" size={24} color="#fff" />
+        </TouchableOpacity>
+        <View style={styles.headerTitleContainer}>
+          <Text style={styles.headerTitle}>Randevular</Text>
+          <Text style={styles.headerSubtitle}>{selectedTenant?.businessName}</Text>
         </View>
-        <Text style={[styles.statValue, { color: '#fff' }]}>{statusCounts.all}</Text>
-        <Text style={[styles.statLabel, { color: 'rgba(255,255,255,0.8)' }]}>Toplam</Text>
-      </View>
-      <View style={styles.statCard}>
-        <View style={[styles.statIconWrapper, { backgroundColor: '#D1FAE5' }]}>
-          <Ionicons name="checkmark-circle" size={24} color="#059669" />
+        <View style={styles.headerActions}>
+          <TouchableOpacity
+            style={styles.headerBtn}
+            onPress={() => router.push('/(tabs)/staff/calendar')}
+          >
+            <Ionicons name="calendar" size={22} color="#fff" />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.headerBtn, showSearch && styles.headerBtnActive]}
+            onPress={() => setShowSearch(!showSearch)}
+          >
+            <Ionicons name={showSearch ? 'close' : 'search'} size={22} color="#fff" />
+          </TouchableOpacity>
         </View>
-        <Text style={styles.statValue}>{statusCounts.scheduled + statusCounts.confirmed}</Text>
-        <Text style={styles.statLabel}>Planlandı</Text>
       </View>
-      <View style={styles.statCard}>
-        <View style={[styles.statIconWrapper, { backgroundColor: '#FEF3C7' }]}>
-          <Ionicons name="time" size={24} color="#D97706" />
+
+      {/* Today Stats */}
+      <View style={styles.statsRow}>
+        <View style={styles.statItem}>
+          <View style={styles.statIconBg}>
+            <Ionicons name="calendar" size={18} color="#3B82F6" />
+          </View>
+          <View>
+            <Text style={styles.statNumber}>{todayStats.total}</Text>
+            <Text style={styles.statLabel}>Bugün</Text>
+          </View>
         </View>
-        <Text style={styles.statValue}>{statusCounts.pending}</Text>
-        <Text style={styles.statLabel}>Beklemede</Text>
-      </View>
-      <View style={styles.statCard}>
-        <View style={[styles.statIconWrapper, { backgroundColor: '#FEE2E2' }]}>
-          <Ionicons name="close-circle" size={24} color="#DC2626" />
+        <View style={styles.statDivider} />
+        <View style={styles.statItem}>
+          <View style={[styles.statIconBg, { backgroundColor: '#D1FAE5' }]}>
+            <Ionicons name="checkmark" size={18} color="#059669" />
+          </View>
+          <View>
+            <Text style={styles.statNumber}>{todayStats.completed}</Text>
+            <Text style={styles.statLabel}>Tamamlanan</Text>
+          </View>
         </View>
-        <Text style={styles.statValue}>{statusCounts.cancelled}</Text>
-        <Text style={styles.statLabel}>İptal</Text>
+        <View style={styles.statDivider} />
+        <View style={styles.statItem}>
+          <View style={[styles.statIconBg, { backgroundColor: '#FEF3C7' }]}>
+            <Ionicons name="time" size={18} color="#D97706" />
+          </View>
+          <View>
+            <Text style={styles.statNumber}>{todayStats.pending}</Text>
+            <Text style={styles.statLabel}>Bekleyen</Text>
+          </View>
+        </View>
+        <View style={styles.statDivider} />
+        <View style={styles.statItem}>
+          <View style={[styles.statIconBg, { backgroundColor: '#E0E7FF' }]}>
+            <Ionicons name="cash" size={18} color="#4F46E5" />
+          </View>
+          <View>
+            <Text style={styles.statNumber}>{todayStats.revenue > 999 ? `${(todayStats.revenue / 1000).toFixed(1)}K` : todayStats.revenue}</Text>
+            <Text style={styles.statLabel}>Kazanç ₺</Text>
+          </View>
+        </View>
       </View>
-    </ScrollView>
+
+      {/* Search */}
+      {showSearch && (
+        <View style={styles.searchContainer}>
+          <Ionicons name="search" size={20} color="rgba(255,255,255,0.6)" />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Müşteri, telefon veya hizmet ara..."
+            placeholderTextColor="rgba(255,255,255,0.5)"
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            autoFocus
+          />
+          {searchQuery.length > 0 && (
+            <TouchableOpacity onPress={() => setSearchQuery('')}>
+              <Ionicons name="close-circle" size={20} color="rgba(255,255,255,0.6)" />
+            </TouchableOpacity>
+          )}
+        </View>
+      )}
+    </LinearGradient>
   );
 
-  // Render filter tabs
-  const renderFilterTabs = () => (
+  // Render Date Selector
+  const renderDateSelector = () => (
+    <View style={styles.dateSelectorContainer}>
+      <TouchableOpacity
+        style={styles.dateSelector}
+        onPress={() => setShowDatePicker(true)}
+      >
+        <Ionicons name="calendar-outline" size={18} color="#3B82F6" />
+        <Text style={styles.dateSelectorText}>{formatDate(selectedDate)}</Text>
+        <Ionicons name="chevron-down" size={16} color="#6B7280" />
+      </TouchableOpacity>
+      {!selectedDate ? (
+        <TouchableOpacity
+          style={styles.todayChip}
+          onPress={() => setSelectedDate(new Date().toISOString().split('T')[0])}
+        >
+          <Text style={styles.todayChipText}>Bugün</Text>
+        </TouchableOpacity>
+      ) : (
+        <TouchableOpacity
+          style={styles.clearDateBtn}
+          onPress={() => setSelectedDate('')}
+        >
+          <Ionicons name="close" size={18} color="#6B7280" />
+        </TouchableOpacity>
+      )}
+    </View>
+  );
+
+  // Render Filter Pills
+  const renderFilterPills = () => (
     <ScrollView
       horizontal
       showsHorizontalScrollIndicator={false}
-      contentContainerStyle={styles.filterTabsContent}
+      contentContainerStyle={styles.filterPillsContainer}
     >
       {FILTER_TABS.map((filter) => {
         const config = STATUS_CONFIG[filter];
@@ -302,37 +361,21 @@ export default function StaffAppointmentsScreen() {
           <TouchableOpacity
             key={filter}
             style={[
-              styles.filterTab,
+              styles.filterPill,
               isActive && { backgroundColor: config.bg, borderColor: config.text },
             ]}
             onPress={() => setActiveFilter(filter)}
-            activeOpacity={0.7}
           >
             <Ionicons
               name={config.icon as any}
               size={14}
               color={isActive ? config.text : '#9CA3AF'}
             />
-            <Text
-              style={[
-                styles.filterTabText,
-                isActive && { color: config.text, fontWeight: '600' },
-              ]}
-            >
+            <Text style={[styles.filterPillText, isActive && { color: config.text }]}>
               {config.label}
             </Text>
-            <View
-              style={[
-                styles.filterTabBadge,
-                isActive && { backgroundColor: config.text },
-              ]}
-            >
-              <Text
-                style={[
-                  styles.filterTabBadgeText,
-                  isActive && { color: '#fff' },
-                ]}
-              >
+            <View style={[styles.filterPillBadge, isActive && { backgroundColor: config.text }]}>
+              <Text style={[styles.filterPillBadgeText, isActive && { color: '#fff' }]}>
                 {count}
               </Text>
             </View>
@@ -342,117 +385,86 @@ export default function StaffAppointmentsScreen() {
     </ScrollView>
   );
 
-  // Render search bar
-  const renderSearchBar = () => (
-    <View style={styles.searchContainer}>
-      <View style={styles.searchInputWrapper}>
-        <Ionicons name="search" size={20} color="#9CA3AF" />
-        <TextInput
-          style={styles.searchInput}
-          placeholder="Müşteri, telefon veya hizmet ara..."
-          placeholderTextColor="#9CA3AF"
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-          returnKeyType="search"
-        />
-        {searchQuery.length > 0 && (
-          <TouchableOpacity onPress={() => setSearchQuery('')}>
-            <Ionicons name="close-circle" size={20} color="#9CA3AF" />
-          </TouchableOpacity>
-        )}
-      </View>
-    </View>
-  );
-
-  // Render appointment card
+  // Render Appointment Card - Modern Design
   const renderAppointment = ({ item }: { item: Appointment }) => {
     const status = STATUS_CONFIG[item.status] || STATUS_CONFIG.pending;
     const isToday = item.date === new Date().toISOString().split('T')[0];
-    const isPast = new Date(item.date) < new Date(new Date().toISOString().split('T')[0]);
 
     return (
       <TouchableOpacity
-        style={[styles.appointmentCard, isPast && styles.appointmentCardPast]}
+        style={styles.appointmentCard}
         onPress={() => {
           setSelectedAppointment(item);
           setShowDetailModal(true);
         }}
         activeOpacity={0.7}
       >
-        {/* Time indicator */}
-        <View style={[styles.timeIndicator, { backgroundColor: status.text }]} />
+        {/* Left accent bar */}
+        <LinearGradient
+          colors={status.gradient}
+          style={styles.cardAccent}
+        />
 
-        <View style={styles.cardBody}>
-          {/* Date badge for non-filtered view */}
+        <View style={styles.cardContent}>
+          {/* Top Row - Time & Status */}
+          <View style={styles.cardTopRow}>
+            <View style={styles.timeBox}>
+              <Ionicons name="time-outline" size={14} color="#3B82F6" />
+              <Text style={styles.timeText}>{formatTime(item.time)}</Text>
+              <Text style={styles.durationText}>• {item.duration}dk</Text>
+            </View>
+            <View style={[styles.statusChip, { backgroundColor: status.bg }]}>
+              <Ionicons name={status.icon as any} size={12} color={status.text} />
+              <Text style={[styles.statusChipText, { color: status.text }]}>{status.label}</Text>
+            </View>
+          </View>
+
+          {/* Date badge if showing all dates */}
           {!selectedDate && (
-            <View style={styles.dateBadgeRow}>
-              <View style={[styles.dateBadge, isToday && styles.dateBadgeToday]}>
-                <Text style={[styles.dateBadgeText, isToday && styles.dateBadgeTextToday]}>
-                  {formatDate(item.date)}
-                </Text>
-              </View>
+            <View style={[styles.dateBadge, isToday && styles.dateBadgeToday]}>
+              <Text style={[styles.dateBadgeText, isToday && styles.dateBadgeTextToday]}>
+                {formatDate(item.date)}
+              </Text>
             </View>
           )}
 
-          {/* Header row */}
-          <View style={styles.cardHeader}>
-            <View style={styles.timeSection}>
-              <Text style={styles.aptTime}>{formatTime(item.time)}</Text>
-              <Text style={styles.aptDuration}>{item.duration} dk</Text>
-            </View>
-            <View style={[styles.statusBadge, { backgroundColor: status.bg }]}>
-              <Ionicons name={status.icon as any} size={12} color={status.text} />
-              <Text style={[styles.statusText, { color: status.text }]}>{status.label}</Text>
-            </View>
-          </View>
-
-          {/* Customer info */}
-          <View style={styles.customerSection}>
+          {/* Customer Info */}
+          <View style={styles.customerRow}>
             <View style={styles.customerAvatar}>
-              <Text style={styles.customerAvatarText}>
-                {item.customerName?.charAt(0).toUpperCase()}
-              </Text>
+              <Text style={styles.avatarText}>{item.customerName?.charAt(0).toUpperCase()}</Text>
             </View>
-            <View style={styles.customerInfo}>
-              <Text style={styles.customerName} numberOfLines={1}>
-                {item.customerName}
-              </Text>
-              <View style={styles.phoneRow}>
-                <Ionicons name="call-outline" size={12} color="#6B7280" />
-                <Text style={styles.customerPhone}>{item.customerPhone}</Text>
-              </View>
+            <View style={styles.customerDetails}>
+              <Text style={styles.customerName} numberOfLines={1}>{item.customerName}</Text>
+              <Text style={styles.customerPhone}>{item.customerPhone}</Text>
             </View>
-            {/* Quick actions */}
-            <View style={styles.quickActions}>
+            <View style={styles.quickActionsRow}>
               <TouchableOpacity
-                style={styles.quickActionBtn}
+                style={styles.actionBtn}
                 onPress={() => handleCall(item.customerPhone)}
               >
-                <Ionicons name="call" size={18} color="#3B82F6" />
+                <Ionicons name="call" size={16} color="#3B82F6" />
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.quickActionBtn, { backgroundColor: '#D1FAE5' }]}
+                style={[styles.actionBtn, styles.whatsappBtn]}
                 onPress={() => handleSendWhatsApp(item)}
               >
-                <Ionicons name="logo-whatsapp" size={18} color="#059669" />
+                <Ionicons name="logo-whatsapp" size={16} color="#25D366" />
               </TouchableOpacity>
             </View>
           </View>
 
-          {/* Service info */}
-          <View style={styles.serviceSection}>
-            <View style={styles.serviceRow}>
+          {/* Service & Price */}
+          <View style={styles.serviceRow}>
+            <View style={styles.serviceInfo}>
               <Ionicons name="cut-outline" size={14} color="#6B7280" />
-              <Text style={styles.serviceName} numberOfLines={1}>
-                {item.serviceName}
-              </Text>
+              <Text style={styles.serviceName} numberOfLines={1}>{item.serviceName}</Text>
             </View>
-            <Text style={styles.priceText}>{item.price?.toLocaleString('tr-TR')} ₺</Text>
+            <Text style={styles.priceTag}>{item.price?.toLocaleString('tr-TR')} ₺</Text>
           </View>
 
-          {/* Staff info */}
+          {/* Staff */}
           {item.staffName && (
-            <View style={styles.staffSection}>
+            <View style={styles.staffRow}>
               <Ionicons name="person-outline" size={12} color="#9CA3AF" />
               <Text style={styles.staffName}>{item.staffName}</Text>
             </View>
@@ -462,34 +474,34 @@ export default function StaffAppointmentsScreen() {
     );
   };
 
-  // Render empty state
+  // Render Empty State
   const renderEmpty = () => (
     <View style={styles.emptyContainer}>
-      <View style={styles.emptyIconWrapper}>
-        <Ionicons name="calendar-outline" size={48} color="#D1D5DB" />
-      </View>
+      <LinearGradient
+        colors={['#EFF6FF', '#DBEAFE']}
+        style={styles.emptyIconWrapper}
+      >
+        <Ionicons name="calendar-outline" size={48} color="#3B82F6" />
+      </LinearGradient>
       <Text style={styles.emptyTitle}>Randevu bulunamadı</Text>
       <Text style={styles.emptySubtitle}>
-        {searchQuery
-          ? 'Farklı bir arama terimi deneyin'
-          : selectedDate
-          ? 'Bu tarihte randevu bulunmuyor'
-          : 'Henüz randevu eklenmemiş'}
+        {searchQuery ? 'Farklı bir arama terimi deneyin' : 'Henüz randevu eklenmemiş'}
       </Text>
-      {selectedDate && (
-        <TouchableOpacity style={styles.clearFilterBtn} onPress={clearDateFilter}>
-          <Text style={styles.clearFilterText}>Tüm Randevuları Göster</Text>
-        </TouchableOpacity>
-      )}
+      <TouchableOpacity
+        style={styles.emptyActionBtn}
+        onPress={() => router.push('/appointment/new')}
+      >
+        <Ionicons name="add" size={20} color="#fff" />
+        <Text style={styles.emptyActionText}>Yeni Randevu</Text>
+      </TouchableOpacity>
     </View>
   );
 
-  // Render date picker modal
+  // Render Date Picker Modal
   const renderDatePickerModal = () => {
     const dates: string[] = [];
     const today = new Date();
-    // 30 days before and 30 days after
-    for (let i = -30; i <= 30; i++) {
+    for (let i = -14; i <= 30; i++) {
       const date = new Date(today);
       date.setDate(today.getDate() + i);
       dates.push(date.toISOString().split('T')[0]);
@@ -504,12 +516,10 @@ export default function StaffAppointmentsScreen() {
       >
         <View style={styles.modalOverlay}>
           <View style={styles.datePickerModal}>
+            <View style={styles.modalHandle} />
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Tarih Seçin</Text>
-              <TouchableOpacity
-                style={styles.closeButton}
-                onPress={() => setShowDatePicker(false)}
-              >
+              <TouchableOpacity onPress={() => setShowDatePicker(false)}>
                 <Ionicons name="close" size={24} color="#6B7280" />
               </TouchableOpacity>
             </View>
@@ -517,11 +527,11 @@ export default function StaffAppointmentsScreen() {
             <TouchableOpacity
               style={styles.allDatesBtn}
               onPress={() => {
-                clearDateFilter();
+                setSelectedDate('');
                 setShowDatePicker(false);
               }}
             >
-              <Ionicons name="calendar-outline" size={20} color="#3B82F6" />
+              <Ionicons name="layers-outline" size={20} color="#3B82F6" />
               <Text style={styles.allDatesText}>Tüm Tarihleri Göster</Text>
             </TouchableOpacity>
 
@@ -535,35 +545,25 @@ export default function StaffAppointmentsScreen() {
 
                 return (
                   <TouchableOpacity
-                    style={[
-                      styles.datePickerItem,
-                      isSelected && styles.datePickerItemSelected,
-                    ]}
+                    style={[styles.dateItem, isSelected && styles.dateItemSelected]}
                     onPress={() => {
                       setSelectedDate(item);
                       setShowDatePicker(false);
                     }}
                   >
                     <View>
-                      <Text
-                        style={[
-                          styles.datePickerItemText,
-                          isSelected && styles.datePickerItemTextSelected,
-                        ]}
-                      >
+                      <Text style={[styles.dateItemText, isSelected && styles.dateItemTextSelected]}>
                         {new Date(item).toLocaleDateString('tr-TR', {
                           weekday: 'long',
                           day: 'numeric',
                           month: 'long',
                         })}
                       </Text>
-                      {isToday && (
-                        <Text style={styles.todayLabel}>Bugün</Text>
-                      )}
+                      {isToday && <Text style={styles.todayTag}>Bugün</Text>}
                     </View>
                     {aptCount > 0 && (
-                      <View style={[styles.datePickerBadge, isSelected && styles.datePickerBadgeSelected]}>
-                        <Text style={[styles.datePickerBadgeText, isSelected && { color: '#fff' }]}>
+                      <View style={[styles.dateItemBadge, isSelected && styles.dateItemBadgeSelected]}>
+                        <Text style={[styles.dateItemBadgeText, isSelected && { color: '#fff' }]}>
                           {aptCount}
                         </Text>
                       </View>
@@ -572,12 +572,8 @@ export default function StaffAppointmentsScreen() {
                 );
               }}
               showsVerticalScrollIndicator={false}
-              initialScrollIndex={30}
-              getItemLayout={(data, index) => ({
-                length: 60,
-                offset: 60 * index,
-                index,
-              })}
+              initialScrollIndex={14}
+              getItemLayout={(_, index) => ({ length: 60, offset: 60 * index, index })}
             />
           </View>
         </View>
@@ -585,7 +581,7 @@ export default function StaffAppointmentsScreen() {
     );
   };
 
-  // Render appointment detail modal
+  // Render Detail Modal
   const renderDetailModal = () => {
     if (!selectedAppointment) return null;
     const status = STATUS_CONFIG[selectedAppointment.status] || STATUS_CONFIG.pending;
@@ -598,169 +594,139 @@ export default function StaffAppointmentsScreen() {
         onRequestClose={() => setShowDetailModal(false)}
       >
         <View style={styles.modalOverlay}>
-          <View style={styles.detailModalContent}>
-            {/* Modal header */}
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Randevu Detayı</Text>
+          <View style={styles.detailModal}>
+            <View style={styles.modalHandle} />
+
+            {/* Header */}
+            <LinearGradient
+              colors={status.gradient}
+              style={styles.detailHeader}
+            >
+              <View style={styles.detailHeaderContent}>
+                <View style={styles.detailStatusIcon}>
+                  <Ionicons name={status.icon as any} size={24} color="#fff" />
+                </View>
+                <Text style={styles.detailStatusText}>{status.label}</Text>
+              </View>
               <TouchableOpacity
-                style={styles.closeButton}
+                style={styles.detailCloseBtn}
                 onPress={() => setShowDetailModal(false)}
               >
-                <Ionicons name="close" size={24} color="#6B7280" />
+                <Ionicons name="close" size={24} color="#fff" />
               </TouchableOpacity>
-            </View>
+            </LinearGradient>
 
-            <ScrollView showsVerticalScrollIndicator={false}>
-              {/* Status banner */}
-              <View style={[styles.statusBanner, { backgroundColor: status.bg }]}>
-                <Ionicons name={status.icon as any} size={20} color={status.text} />
-                <Text style={[styles.statusBannerText, { color: status.text }]}>
-                  {status.label}
-                </Text>
-              </View>
-
+            <ScrollView showsVerticalScrollIndicator={false} style={styles.detailContent}>
               {/* Date & Time */}
-              <View style={styles.detailSection}>
-                <View style={styles.detailRow}>
-                  <View style={styles.detailIconWrapper}>
-                    <Ionicons name="calendar" size={20} color="#3B82F6" />
-                  </View>
-                  <View>
-                    <Text style={styles.detailLabel}>Tarih & Saat</Text>
-                    <Text style={styles.detailValue}>
-                      {new Date(selectedAppointment.date).toLocaleDateString('tr-TR', {
-                        weekday: 'long',
-                        day: 'numeric',
-                        month: 'long',
-                        year: 'numeric',
-                      })}
-                    </Text>
-                    <Text style={styles.detailSubValue}>
-                      {formatTime(selectedAppointment.time)} - {selectedAppointment.duration} dakika
-                    </Text>
-                  </View>
+              <View style={styles.detailCard}>
+                <View style={styles.detailCardIcon}>
+                  <Ionicons name="calendar" size={20} color="#3B82F6" />
+                </View>
+                <View style={styles.detailCardContent}>
+                  <Text style={styles.detailCardLabel}>Tarih & Saat</Text>
+                  <Text style={styles.detailCardValue}>
+                    {new Date(selectedAppointment.date).toLocaleDateString('tr-TR', {
+                      weekday: 'long',
+                      day: 'numeric',
+                      month: 'long',
+                    })}
+                  </Text>
+                  <Text style={styles.detailCardSubValue}>
+                    {formatTime(selectedAppointment.time)} • {selectedAppointment.duration} dakika
+                  </Text>
                 </View>
               </View>
 
               {/* Customer */}
-              <View style={styles.detailSection}>
-                <View style={styles.detailRow}>
-                  <View style={styles.detailIconWrapper}>
-                    <Ionicons name="person" size={20} color="#3B82F6" />
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.detailLabel}>Müşteri</Text>
-                    <Text style={styles.detailValue}>{selectedAppointment.customerName}</Text>
-                    <View style={styles.contactButtons}>
-                      <TouchableOpacity
-                        style={styles.contactBtn}
-                        onPress={() => handleCall(selectedAppointment.customerPhone)}
-                      >
-                        <Ionicons name="call" size={16} color="#3B82F6" />
-                        <Text style={styles.contactBtnText}>{selectedAppointment.customerPhone}</Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity
-                        style={[styles.contactBtn, { backgroundColor: '#D1FAE5' }]}
-                        onPress={() => handleSendWhatsApp(selectedAppointment)}
-                      >
-                        <Ionicons name="logo-whatsapp" size={16} color="#059669" />
-                        <Text style={[styles.contactBtnText, { color: '#059669' }]}>WhatsApp</Text>
-                      </TouchableOpacity>
-                    </View>
+              <View style={styles.detailCard}>
+                <View style={[styles.detailCardIcon, { backgroundColor: '#D1FAE5' }]}>
+                  <Ionicons name="person" size={20} color="#059669" />
+                </View>
+                <View style={styles.detailCardContent}>
+                  <Text style={styles.detailCardLabel}>Müşteri</Text>
+                  <Text style={styles.detailCardValue}>{selectedAppointment.customerName}</Text>
+                  <View style={styles.contactRow}>
+                    <TouchableOpacity
+                      style={styles.contactBtn}
+                      onPress={() => handleCall(selectedAppointment.customerPhone)}
+                    >
+                      <Ionicons name="call" size={14} color="#3B82F6" />
+                      <Text style={styles.contactBtnText}>{selectedAppointment.customerPhone}</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[styles.contactBtn, { backgroundColor: '#D1FAE5' }]}
+                      onPress={() => handleSendWhatsApp(selectedAppointment)}
+                    >
+                      <Ionicons name="logo-whatsapp" size={14} color="#25D366" />
+                      <Text style={[styles.contactBtnText, { color: '#25D366' }]}>WhatsApp</Text>
+                    </TouchableOpacity>
                   </View>
                 </View>
               </View>
 
               {/* Service */}
-              <View style={styles.detailSection}>
-                <View style={styles.detailRow}>
-                  <View style={styles.detailIconWrapper}>
-                    <Ionicons name="cut" size={20} color="#3B82F6" />
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.detailLabel}>Hizmet</Text>
-                    <Text style={styles.detailValue}>{selectedAppointment.serviceName}</Text>
-                    <Text style={styles.priceValue}>
-                      {selectedAppointment.price?.toLocaleString('tr-TR')} ₺
-                    </Text>
-                  </View>
+              <View style={styles.detailCard}>
+                <View style={[styles.detailCardIcon, { backgroundColor: '#E0E7FF' }]}>
+                  <Ionicons name="cut" size={20} color="#4F46E5" />
+                </View>
+                <View style={styles.detailCardContent}>
+                  <Text style={styles.detailCardLabel}>Hizmet</Text>
+                  <Text style={styles.detailCardValue}>{selectedAppointment.serviceName}</Text>
+                  <Text style={styles.priceValue}>{selectedAppointment.price?.toLocaleString('tr-TR')} ₺</Text>
                 </View>
               </View>
 
               {/* Staff */}
-              <View style={styles.detailSection}>
-                <View style={styles.detailRow}>
-                  <View style={styles.detailIconWrapper}>
-                    <Ionicons name="people" size={20} color="#3B82F6" />
-                  </View>
-                  <View>
-                    <Text style={styles.detailLabel}>Personel</Text>
-                    <Text style={styles.detailValue}>{selectedAppointment.staffName}</Text>
-                  </View>
+              <View style={styles.detailCard}>
+                <View style={[styles.detailCardIcon, { backgroundColor: '#FEF3C7' }]}>
+                  <Ionicons name="people" size={20} color="#D97706" />
+                </View>
+                <View style={styles.detailCardContent}>
+                  <Text style={styles.detailCardLabel}>Personel</Text>
+                  <Text style={styles.detailCardValue}>{selectedAppointment.staffName}</Text>
                 </View>
               </View>
 
               {/* Notes */}
               {selectedAppointment.notes && (
-                <View style={styles.detailSection}>
-                  <View style={styles.detailRow}>
-                    <View style={styles.detailIconWrapper}>
-                      <Ionicons name="document-text" size={20} color="#3B82F6" />
-                    </View>
-                    <View style={{ flex: 1 }}>
-                      <Text style={styles.detailLabel}>Notlar</Text>
-                      <Text style={styles.detailValue}>{selectedAppointment.notes}</Text>
-                    </View>
+                <View style={styles.detailCard}>
+                  <View style={[styles.detailCardIcon, { backgroundColor: '#F3F4F6' }]}>
+                    <Ionicons name="document-text" size={20} color="#6B7280" />
+                  </View>
+                  <View style={styles.detailCardContent}>
+                    <Text style={styles.detailCardLabel}>Notlar</Text>
+                    <Text style={styles.detailCardValue}>{selectedAppointment.notes}</Text>
                   </View>
                 </View>
               )}
-
-              {/* Payment */}
-              <View style={styles.detailSection}>
-                <View style={styles.detailRow}>
-                  <View style={styles.detailIconWrapper}>
-                    <Ionicons name="card" size={20} color="#3B82F6" />
-                  </View>
-                  <View>
-                    <Text style={styles.detailLabel}>Ödeme Tipi</Text>
-                    <Text style={styles.detailValue}>
-                      {selectedAppointment.paymentType === 'cash'
-                        ? 'Nakit'
-                        : selectedAppointment.paymentType === 'card'
-                        ? 'Kart'
-                        : 'Havale'}
-                    </Text>
-                  </View>
-                </View>
-              </View>
             </ScrollView>
 
-            {/* Action buttons */}
+            {/* Actions */}
             <View style={styles.detailActions}>
               <TouchableOpacity
-                style={styles.editButton}
+                style={styles.detailActionBtn}
                 onPress={() => {
                   setShowDetailModal(false);
                   router.push(`/appointment/edit?id=${selectedAppointment.id}`);
                 }}
               >
-                <Ionicons name="create-outline" size={20} color="#059669" />
+                <Ionicons name="create-outline" size={22} color="#059669" />
               </TouchableOpacity>
               <TouchableOpacity
-                style={styles.changeStatusButton}
+                style={styles.statusChangeBtn}
                 onPress={() => {
                   setShowDetailModal(false);
                   setTimeout(() => setShowStatusModal(true), 300);
                 }}
               >
-                <Ionicons name="swap-horizontal" size={20} color="#3B82F6" />
-                <Text style={styles.changeStatusButtonText}>Durum Değiştir</Text>
+                <Ionicons name="swap-horizontal" size={20} color="#fff" />
+                <Text style={styles.statusChangeBtnText}>Durum Değiştir</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={styles.deleteButton}
+                style={[styles.detailActionBtn, { backgroundColor: '#FEE2E2' }]}
                 onPress={() => handleDelete(selectedAppointment)}
               >
-                <Ionicons name="trash-outline" size={20} color="#DC2626" />
+                <Ionicons name="trash-outline" size={22} color="#DC2626" />
               </TouchableOpacity>
             </View>
           </View>
@@ -769,7 +735,7 @@ export default function StaffAppointmentsScreen() {
     );
   };
 
-  // Render status change modal
+  // Render Status Modal
   const renderStatusModal = () => (
     <Modal
       visible={showStatusModal}
@@ -778,53 +744,40 @@ export default function StaffAppointmentsScreen() {
       onRequestClose={() => setShowStatusModal(false)}
     >
       <View style={styles.modalOverlay}>
-        <View style={styles.statusModalContent}>
+        <View style={styles.statusModal}>
+          <View style={styles.modalHandle} />
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>Durum Değiştir</Text>
-            <TouchableOpacity
-              style={styles.closeButton}
-              onPress={() => setShowStatusModal(false)}
-            >
+            <TouchableOpacity onPress={() => setShowStatusModal(false)}>
               <Ionicons name="close" size={24} color="#6B7280" />
             </TouchableOpacity>
           </View>
 
           {selectedAppointment && (
-            <View style={styles.modalInfo}>
-              <View style={styles.modalInfoRow}>
-                <Ionicons name="person" size={16} color="#6B7280" />
-                <Text style={styles.modalCustomer}>{selectedAppointment.customerName}</Text>
-              </View>
-              <View style={styles.modalInfoRow}>
-                <Ionicons name="cut-outline" size={16} color="#6B7280" />
-                <Text style={styles.modalService}>
-                  {selectedAppointment.serviceName} • {formatTime(selectedAppointment.time)}
-                </Text>
-              </View>
+            <View style={styles.statusModalInfo}>
+              <Text style={styles.statusModalCustomer}>{selectedAppointment.customerName}</Text>
+              <Text style={styles.statusModalService}>
+                {selectedAppointment.serviceName} • {formatTime(selectedAppointment.time)}
+              </Text>
             </View>
           )}
 
           <View style={styles.statusOptions}>
             {STATUS_OPTIONS.map((option) => {
               const isCurrentStatus = selectedAppointment?.status === option.status;
-
               return (
                 <TouchableOpacity
                   key={option.status}
-                  style={[
-                    styles.statusOption,
-                    isCurrentStatus && styles.statusOptionActive,
-                  ]}
+                  style={[styles.statusOption, isCurrentStatus && styles.statusOptionCurrent]}
                   onPress={() => handleStatusChange(option.status)}
-                  activeOpacity={0.7}
                 >
-                  <View style={[styles.statusDot, { backgroundColor: option.color }]}>
-                    <Ionicons name={option.icon as any} size={16} color="#fff" />
+                  <View style={[styles.statusOptionIcon, { backgroundColor: option.color }]}>
+                    <Ionicons name={option.icon as any} size={18} color="#fff" />
                   </View>
                   <Text style={styles.statusOptionText}>{option.label}</Text>
                   {isCurrentStatus && (
-                    <View style={styles.currentBadge}>
-                      <Text style={styles.currentBadgeText}>Mevcut</Text>
+                    <View style={styles.currentStatusBadge}>
+                      <Text style={styles.currentStatusText}>Mevcut</Text>
                     </View>
                   )}
                 </TouchableOpacity>
@@ -838,110 +791,55 @@ export default function StaffAppointmentsScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      {/* Header */}
-      <View style={styles.header}>
-        <View style={styles.headerTop}>
-          <TouchableOpacity
-            style={styles.menuButton}
-            onPress={() => setDrawerOpen(true)}
-          >
-            <Ionicons name="menu" size={24} color="#1F2937" />
-          </TouchableOpacity>
-          <View style={styles.headerTitleContainer}>
-            <Text style={styles.title}>Randevular</Text>
-            <Text style={styles.subtitle}>{selectedTenant?.businessName}</Text>
+      {renderHeader()}
+
+      <View style={styles.content}>
+        {renderDateSelector()}
+        {renderFilterPills()}
+
+        {isLoading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color="#3B82F6" />
+            <Text style={styles.loadingText}>Yükleniyor...</Text>
           </View>
-          <View style={styles.headerActions}>
-            <TouchableOpacity
-              style={styles.headerButton}
-              onPress={() => router.push('/(tabs)/staff/calendar')}
-            >
-              <Ionicons name="calendar" size={22} color="#6B7280" />
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.headerButton, showSearch && styles.headerButtonActive]}
-              onPress={() => setShowSearch(!showSearch)}
-            >
-              <Ionicons
-                name={showSearch ? 'close' : 'search'}
-                size={22}
-                color={showSearch ? '#3B82F6' : '#6B7280'}
+        ) : (
+          <FlatList
+            data={filteredAppointments}
+            renderItem={renderAppointment}
+            keyExtractor={(item) => item.id}
+            contentContainerStyle={styles.listContent}
+            showsVerticalScrollIndicator={false}
+            refreshControl={
+              <RefreshControl
+                refreshing={isRefreshing}
+                onRefresh={() => fetchAppointments(true)}
+                tintColor="#3B82F6"
+                colors={['#3B82F6']}
               />
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        {/* Search bar */}
-        {showSearch && renderSearchBar()}
-
-        {/* Date selector */}
-        <View style={styles.dateSelector}>
-          <TouchableOpacity
-            style={styles.dateSelectorBtn}
-            onPress={() => setShowDatePicker(true)}
-          >
-            <Ionicons name="calendar-outline" size={18} color="#3B82F6" />
-            <Text style={styles.dateSelectorText}>{formatDate(selectedDate)}</Text>
-            <Ionicons name="chevron-down" size={16} color="#6B7280" />
-          </TouchableOpacity>
-          {!selectedDate ? (
-            <TouchableOpacity style={styles.todayBtn} onPress={setToday}>
-              <Text style={styles.todayBtnText}>Bugün</Text>
-            </TouchableOpacity>
-          ) : (
-            <TouchableOpacity style={styles.clearBtn} onPress={clearDateFilter}>
-              <Ionicons name="close-circle" size={20} color="#6B7280" />
-            </TouchableOpacity>
-          )}
-        </View>
+            }
+            ListEmptyComponent={renderEmpty}
+          />
+        )}
       </View>
 
-      {/* Stats cards */}
-      {renderStatsCards()}
-
-      {/* Filter tabs */}
-      <View style={styles.filterTabs}>{renderFilterTabs()}</View>
-
-      {/* Appointments list */}
-      {isLoading ? (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#3B82F6" />
-          <Text style={styles.loadingText}>Randevular yükleniyor...</Text>
-        </View>
-      ) : (
-        <FlatList
-          data={filteredAppointments}
-          renderItem={renderAppointment}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.listContent}
-          showsVerticalScrollIndicator={false}
-          refreshControl={
-            <RefreshControl
-              refreshing={isRefreshing}
-              onRefresh={() => fetchAppointments(true)}
-              tintColor="#3B82F6"
-              colors={['#3B82F6']}
-            />
-          }
-          ListEmptyComponent={renderEmpty}
-        />
-      )}
-
-      {/* FAB - New Appointment */}
+      {/* FAB */}
       <TouchableOpacity
         style={styles.fab}
         onPress={() => router.push('/appointment/new')}
         activeOpacity={0.8}
       >
-        <Ionicons name="add" size={28} color="#fff" />
+        <LinearGradient
+          colors={['#3B82F6', '#1E40AF']}
+          style={styles.fabGradient}
+        >
+          <Ionicons name="add" size={28} color="#fff" />
+        </LinearGradient>
       </TouchableOpacity>
 
-      {/* Modals */}
       {renderDatePickerModal()}
       {renderDetailModal()}
       {renderStatusModal()}
 
-      {/* Drawer Menu */}
       <DrawerMenu isOpen={drawerOpen} onClose={() => setDrawerOpen(false)} />
     </SafeAreaView>
   );
@@ -950,87 +848,128 @@ export default function StaffAppointmentsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: '#F8FAFC',
   },
 
   // Header
-  header: {
-    backgroundColor: '#fff',
+  headerGradient: {
     paddingHorizontal: 20,
-    paddingTop: 12,
-    paddingBottom: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
+    paddingTop: 16,
+    paddingBottom: 20,
   },
   headerTop: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   menuButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 10,
-    backgroundColor: '#F3F4F6',
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.15)',
     alignItems: 'center',
     justifyContent: 'center',
   },
   headerTitleContainer: {
     flex: 1,
-    marginLeft: 12,
+    marginLeft: 14,
   },
-  title: {
-    fontSize: 24,
+  headerTitle: {
+    fontSize: 26,
     fontWeight: '700',
-    color: '#1F2937',
+    color: '#fff',
   },
-  subtitle: {
+  headerSubtitle: {
     fontSize: 13,
-    color: '#6B7280',
+    color: 'rgba(255,255,255,0.7)',
     marginTop: 2,
   },
   headerActions: {
     flexDirection: 'row',
-    gap: 8,
+    gap: 10,
   },
-  headerButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#F3F4F6',
+  headerBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.15)',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  headerButtonActive: {
+  headerBtnActive: {
+    backgroundColor: 'rgba(255,255,255,0.3)',
+  },
+
+  // Stats Row
+  statsRow: {
+    flexDirection: 'row',
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    borderRadius: 16,
+    padding: 14,
+    marginTop: 20,
+  },
+  statItem: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  statIconBg: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
     backgroundColor: '#EFF6FF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  statNumber: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#fff',
+  },
+  statLabel: {
+    fontSize: 11,
+    color: 'rgba(255,255,255,0.7)',
+  },
+  statDivider: {
+    width: 1,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    marginHorizontal: 8,
   },
 
   // Search
   searchContainer: {
-    marginTop: 12,
-  },
-  searchInputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F3F4F6',
+    backgroundColor: 'rgba(255,255,255,0.15)',
     borderRadius: 12,
-    paddingHorizontal: 12,
-    height: 44,
-    gap: 8,
+    paddingHorizontal: 14,
+    marginTop: 16,
+    height: 48,
+    gap: 10,
   },
   searchInput: {
     flex: 1,
     fontSize: 15,
-    color: '#1F2937',
+    color: '#fff',
   },
 
-  // Date selector
-  dateSelector: {
+  // Content
+  content: {
+    flex: 1,
+  },
+
+  // Date Selector
+  dateSelectorContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 12,
+    paddingHorizontal: 20,
+    paddingVertical: 14,
     gap: 12,
+    backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
   },
-  dateSelectorBtn: {
+  dateSelector: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
@@ -1046,95 +985,58 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     color: '#1F2937',
   },
-  todayBtn: {
+  todayChip: {
     paddingHorizontal: 16,
     paddingVertical: 10,
     backgroundColor: '#3B82F6',
     borderRadius: 10,
   },
-  todayBtnText: {
+  todayChipText: {
     fontSize: 14,
     fontWeight: '600',
     color: '#fff',
   },
-  clearBtn: {
-    padding: 8,
-  },
-
-  // Stats
-  statsContainer: {
-    paddingHorizontal: 16,
-    paddingVertical: 16,
-    gap: 12,
-  },
-  statCard: {
-    width: (SCREEN_WIDTH - 48) / 4,
-    minWidth: 85,
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 12,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 1,
-  },
-  statIconWrapper: {
-    width: 36,
-    height: 36,
+  clearDateBtn: {
+    width: 40,
+    height: 40,
     borderRadius: 10,
-    backgroundColor: 'rgba(255,255,255,0.2)',
+    backgroundColor: '#F3F4F6',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 8,
-  },
-  statValue: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#1F2937',
-  },
-  statLabel: {
-    fontSize: 11,
-    color: '#6B7280',
-    marginTop: 2,
   },
 
-  // Filter tabs
-  filterTabs: {
-    backgroundColor: '#fff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
-  },
-  filterTabsContent: {
-    paddingHorizontal: 16,
-    paddingVertical: 10,
+  // Filter Pills
+  filterPillsContainer: {
+    paddingHorizontal: 20,
+    paddingVertical: 12,
     gap: 8,
+    backgroundColor: '#fff',
   },
-  filterTab: {
+  filterPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
     backgroundColor: '#F9FAFB',
-    borderWidth: 1,
+    borderWidth: 1.5,
     borderColor: '#E5E7EB',
-    gap: 4,
+    gap: 6,
   },
-  filterTabText: {
-    fontSize: 12,
+  filterPillText: {
+    fontSize: 13,
+    fontWeight: '500',
     color: '#6B7280',
   },
-  filterTabBadge: {
-    minWidth: 18,
-    paddingHorizontal: 5,
-    paddingVertical: 1,
-    borderRadius: 9,
+  filterPillBadge: {
+    minWidth: 20,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 10,
     backgroundColor: '#E5E7EB',
   },
-  filterTabBadgeText: {
-    fontSize: 10,
+  filterPillBadgeText: {
+    fontSize: 11,
     fontWeight: '600',
     color: '#6B7280',
     textAlign: 'center',
@@ -1158,31 +1060,57 @@ const styles = StyleSheet.create({
     paddingBottom: 100,
   },
 
-  // Appointment card
+  // Appointment Card
   appointmentCard: {
     flexDirection: 'row',
     backgroundColor: '#fff',
-    borderRadius: 14,
+    borderRadius: 16,
     marginBottom: 12,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 2,
+    shadowRadius: 12,
+    elevation: 3,
     overflow: 'hidden',
   },
-  appointmentCardPast: {
-    opacity: 0.7,
+  cardAccent: {
+    width: 5,
   },
-  timeIndicator: {
-    width: 4,
-  },
-  cardBody: {
+  cardContent: {
     flex: 1,
-    padding: 14,
+    padding: 16,
   },
-  dateBadgeRow: {
-    marginBottom: 10,
+  cardTopRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  timeBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  timeText: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#1F2937',
+  },
+  durationText: {
+    fontSize: 13,
+    color: '#9CA3AF',
+  },
+  statusChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 12,
+    gap: 4,
+  },
+  statusChipText: {
+    fontSize: 11,
+    fontWeight: '600',
   },
   dateBadge: {
     alignSelf: 'flex-start',
@@ -1190,9 +1118,10 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     backgroundColor: '#F3F4F6',
     borderRadius: 8,
+    marginBottom: 12,
   },
   dateBadgeToday: {
-    backgroundColor: '#DBEAFE',
+    backgroundColor: '#EFF6FF',
   },
   dateBadgeText: {
     fontSize: 12,
@@ -1202,58 +1131,26 @@ const styles = StyleSheet.create({
   dateBadgeTextToday: {
     color: '#3B82F6',
   },
-  cardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  timeSection: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-    gap: 6,
-  },
-  aptTime: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#1F2937',
-  },
-  aptDuration: {
-    fontSize: 12,
-    color: '#9CA3AF',
-  },
-  statusBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 10,
-    gap: 4,
-  },
-  statusText: {
-    fontSize: 11,
-    fontWeight: '600',
-  },
-  customerSection: {
+  customerRow: {
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 12,
-    gap: 10,
+    gap: 12,
   },
   customerAvatar: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 42,
+    height: 42,
+    borderRadius: 12,
     backgroundColor: '#EFF6FF',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  customerAvatarText: {
-    fontSize: 14,
+  avatarText: {
+    fontSize: 16,
     fontWeight: '700',
     color: '#3B82F6',
   },
-  customerInfo: {
+  customerDetails: {
     flex: 1,
   },
   customerName: {
@@ -1261,37 +1158,35 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#1F2937',
   },
-  phoneRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 2,
-    gap: 4,
-  },
   customerPhone: {
-    fontSize: 12,
+    fontSize: 13,
     color: '#6B7280',
+    marginTop: 2,
   },
-  quickActions: {
+  quickActionsRow: {
     flexDirection: 'row',
     gap: 8,
   },
-  quickActionBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 8,
+  actionBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
     backgroundColor: '#EFF6FF',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  serviceSection: {
+  whatsappBtn: {
+    backgroundColor: '#D1FAE5',
+  },
+  serviceRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingTop: 10,
+    paddingTop: 12,
     borderTopWidth: 1,
     borderTopColor: '#F3F4F6',
   },
-  serviceRow: {
+  serviceInfo: {
     flexDirection: 'row',
     alignItems: 'center',
     flex: 1,
@@ -1302,12 +1197,12 @@ const styles = StyleSheet.create({
     color: '#6B7280',
     flex: 1,
   },
-  priceText: {
-    fontSize: 15,
+  priceTag: {
+    fontSize: 16,
     fontWeight: '700',
     color: '#059669',
   },
-  staffSection: {
+  staffRow: {
     flexDirection: 'row',
     alignItems: 'center',
     marginTop: 8,
@@ -1318,43 +1213,44 @@ const styles = StyleSheet.create({
     color: '#9CA3AF',
   },
 
-  // Empty state
+  // Empty State
   emptyContainer: {
     alignItems: 'center',
     paddingVertical: 60,
     paddingHorizontal: 32,
   },
   emptyIconWrapper: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: '#F3F4F6',
+    width: 100,
+    height: 100,
+    borderRadius: 50,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 16,
+    marginBottom: 20,
   },
   emptyTitle: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: '600',
-    color: '#4B5563',
+    color: '#1F2937',
     textAlign: 'center',
   },
   emptySubtitle: {
     fontSize: 14,
-    color: '#9CA3AF',
+    color: '#6B7280',
     marginTop: 8,
     textAlign: 'center',
-    lineHeight: 20,
   },
-  clearFilterBtn: {
-    marginTop: 16,
-    paddingHorizontal: 20,
-    paddingVertical: 10,
+  emptyActionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: '#3B82F6',
-    borderRadius: 10,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 12,
+    marginTop: 24,
+    gap: 8,
   },
-  clearFilterText: {
-    fontSize: 14,
+  emptyActionText: {
+    fontSize: 15,
     fontWeight: '600',
     color: '#fff',
   },
@@ -1364,27 +1260,51 @@ const styles = StyleSheet.create({
     position: 'absolute',
     right: 20,
     bottom: 24,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: '#3B82F6',
-    alignItems: 'center',
-    justifyContent: 'center',
     shadowColor: '#3B82F6',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.4,
-    shadowRadius: 8,
+    shadowRadius: 12,
     elevation: 8,
   },
+  fabGradient: {
+    width: 60,
+    height: 60,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
 
-  // Modal overlay
+  // Modals
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.5)',
     justifyContent: 'flex-end',
   },
+  modalHandle: {
+    width: 40,
+    height: 4,
+    backgroundColor: '#D1D5DB',
+    borderRadius: 2,
+    alignSelf: 'center',
+    marginTop: 12,
+    marginBottom: 8,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#1F2937',
+  },
 
-  // Date picker modal
+  // Date Picker Modal
   datePickerModal: {
     backgroundColor: '#fff',
     borderTopLeftRadius: 24,
@@ -1397,7 +1317,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginHorizontal: 20,
-    marginBottom: 16,
+    marginBottom: 12,
     paddingVertical: 14,
     backgroundColor: '#EFF6FF',
     borderRadius: 12,
@@ -1408,7 +1328,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#3B82F6',
   },
-  datePickerItem: {
+  dateItem: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -1417,119 +1337,122 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#F3F4F6',
   },
-  datePickerItemSelected: {
+  dateItemSelected: {
     backgroundColor: '#EFF6FF',
   },
-  datePickerItemText: {
+  dateItemText: {
     fontSize: 15,
     color: '#1F2937',
   },
-  datePickerItemTextSelected: {
+  dateItemTextSelected: {
     fontWeight: '600',
     color: '#3B82F6',
   },
-  todayLabel: {
+  todayTag: {
     fontSize: 11,
     color: '#3B82F6',
     marginTop: 2,
   },
-  datePickerBadge: {
-    minWidth: 24,
+  dateItemBadge: {
+    minWidth: 26,
     paddingHorizontal: 8,
     paddingVertical: 4,
     backgroundColor: '#E5E7EB',
-    borderRadius: 12,
+    borderRadius: 13,
   },
-  datePickerBadgeSelected: {
+  dateItemBadgeSelected: {
     backgroundColor: '#3B82F6',
   },
-  datePickerBadgeText: {
+  dateItemBadgeText: {
     fontSize: 12,
     fontWeight: '600',
     color: '#6B7280',
     textAlign: 'center',
   },
 
-  // Detail modal
-  detailModalContent: {
+  // Detail Modal
+  detailModal: {
     backgroundColor: '#fff',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
-    maxHeight: '85%',
-    paddingBottom: Platform.OS === 'ios' ? 40 : 24,
+    maxHeight: '90%',
   },
-  modalHeader: {
+  detailHeader: {
     flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#1F2937',
-  },
-  closeButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: '#F3F4F6',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  statusBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 12,
-    gap: 8,
-    marginHorizontal: 20,
-    marginTop: 16,
-    borderRadius: 12,
-  },
-  statusBannerText: {
-    fontSize: 15,
-    fontWeight: '600',
-  },
-  detailSection: {
     paddingHorizontal: 20,
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
+    paddingVertical: 20,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
   },
-  detailRow: {
+  detailHeaderContent: {
     flexDirection: 'row',
-    gap: 16,
+    alignItems: 'center',
+    gap: 12,
   },
-  detailIconWrapper: {
+  detailStatusIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  detailStatusText: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#fff',
+  },
+  detailCloseBtn: {
     width: 40,
     height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  detailContent: {
+    padding: 20,
+  },
+  detailCard: {
+    flexDirection: 'row',
+    backgroundColor: '#F9FAFB',
+    borderRadius: 14,
+    padding: 16,
+    marginBottom: 12,
+    gap: 14,
+  },
+  detailCardIcon: {
+    width: 44,
+    height: 44,
     borderRadius: 12,
     backgroundColor: '#EFF6FF',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  detailLabel: {
+  detailCardContent: {
+    flex: 1,
+  },
+  detailCardLabel: {
     fontSize: 12,
     color: '#9CA3AF',
     marginBottom: 4,
   },
-  detailValue: {
+  detailCardValue: {
     fontSize: 16,
     fontWeight: '500',
     color: '#1F2937',
   },
-  detailSubValue: {
+  detailCardSubValue: {
     fontSize: 14,
     color: '#6B7280',
     marginTop: 2,
   },
-  contactButtons: {
+  contactRow: {
     flexDirection: 'row',
     gap: 8,
-    marginTop: 8,
+    marginTop: 10,
   },
   contactBtn: {
     flexDirection: 'row',
@@ -1546,7 +1469,7 @@ const styles = StyleSheet.create({
     color: '#3B82F6',
   },
   priceValue: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: '700',
     color: '#059669',
     marginTop: 4,
@@ -1554,90 +1477,80 @@ const styles = StyleSheet.create({
   detailActions: {
     flexDirection: 'row',
     padding: 20,
+    paddingBottom: Platform.OS === 'ios' ? 40 : 24,
     gap: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#E5E7EB',
   },
-  editButton: {
-    width: 52,
-    height: 52,
-    borderRadius: 12,
+  detailActionBtn: {
+    width: 56,
+    height: 56,
+    borderRadius: 16,
     backgroundColor: '#D1FAE5',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  changeStatusButton: {
+  statusChangeBtn: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 14,
-    borderRadius: 12,
-    backgroundColor: '#EFF6FF',
+    paddingVertical: 16,
+    borderRadius: 16,
+    backgroundColor: '#3B82F6',
     gap: 8,
   },
-  changeStatusButtonText: {
+  statusChangeBtnText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#3B82F6',
-  },
-  deleteButton: {
-    width: 52,
-    height: 52,
-    borderRadius: 12,
-    backgroundColor: '#FEE2E2',
-    alignItems: 'center',
-    justifyContent: 'center',
+    color: '#fff',
   },
 
-  // Status modal
-  statusModalContent: {
+  // Status Modal
+  statusModal: {
     backgroundColor: '#fff',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     paddingBottom: Platform.OS === 'ios' ? 40 : 24,
   },
-  modalInfo: {
+  statusModalInfo: {
     backgroundColor: '#F9FAFB',
     marginHorizontal: 20,
     padding: 16,
-    borderRadius: 12,
+    borderRadius: 14,
     marginBottom: 20,
-    gap: 8,
   },
-  modalInfoRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  modalCustomer: {
-    fontSize: 16,
+  statusModalCustomer: {
+    fontSize: 17,
     fontWeight: '600',
     color: '#1F2937',
   },
-  modalService: {
+  statusModalService: {
     fontSize: 14,
     color: '#6B7280',
+    marginTop: 4,
   },
   statusOptions: {
     paddingHorizontal: 20,
-    gap: 8,
+    gap: 10,
   },
   statusOption: {
     flexDirection: 'row',
     alignItems: 'center',
     padding: 16,
     backgroundColor: '#F9FAFB',
-    borderRadius: 12,
-    gap: 12,
+    borderRadius: 14,
+    gap: 14,
   },
-  statusOptionActive: {
+  statusOptionCurrent: {
     backgroundColor: '#EFF6FF',
-    borderWidth: 1,
+    borderWidth: 2,
     borderColor: '#3B82F6',
   },
-  statusDot: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+  statusOptionIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1647,13 +1560,13 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     color: '#1F2937',
   },
-  currentBadge: {
-    paddingHorizontal: 8,
+  currentStatusBadge: {
+    paddingHorizontal: 10,
     paddingVertical: 4,
     backgroundColor: '#3B82F6',
     borderRadius: 8,
   },
-  currentBadgeText: {
+  currentStatusText: {
     fontSize: 11,
     fontWeight: '600',
     color: '#fff',
