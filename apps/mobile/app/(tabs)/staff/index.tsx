@@ -239,42 +239,6 @@ export default function StaffHomeScreen() {
           </LinearGradient>
         </View>
 
-        {/* Stats Grid */}
-        <View style={styles.section}>
-          <View style={styles.statsGrid}>
-            <View style={styles.statCard}>
-              <View style={[styles.statIconContainer, { backgroundColor: '#EFF6FF' }]}>
-                <Ionicons name="calendar-outline" size={22} color={THEME_COLOR} />
-              </View>
-              <Text style={styles.statValue}>{stats.todayTotal}</Text>
-              <Text style={styles.statLabel}>Bugün</Text>
-            </View>
-
-            <View style={styles.statCard}>
-              <View style={[styles.statIconContainer, { backgroundColor: '#FEF3C7' }]}>
-                <Ionicons name="time-outline" size={22} color="#D97706" />
-              </View>
-              <Text style={styles.statValue}>{stats.todayPending}</Text>
-              <Text style={styles.statLabel}>Bekleyen</Text>
-            </View>
-
-            <View style={styles.statCard}>
-              <View style={[styles.statIconContainer, { backgroundColor: '#DBEAFE' }]}>
-                <Ionicons name="checkmark-circle-outline" size={22} color="#2563EB" />
-              </View>
-              <Text style={styles.statValue}>{stats.todayConfirmed}</Text>
-              <Text style={styles.statLabel}>Onaylanan</Text>
-            </View>
-
-            <View style={styles.statCard}>
-              <View style={[styles.statIconContainer, { backgroundColor: '#D1FAE5' }]}>
-                <Ionicons name="checkmark-done-outline" size={22} color="#059669" />
-              </View>
-              <Text style={styles.statValue}>{stats.todayCompleted}</Text>
-              <Text style={styles.statLabel}>Tamamlanan</Text>
-            </View>
-          </View>
-        </View>
 
         {/* Upcoming Appointments */}
         <View style={styles.section}>
@@ -374,24 +338,13 @@ export default function StaffHomeScreen() {
 
             <TouchableOpacity
               style={styles.quickAction}
-              onPress={() => router.push('/(tabs)/staff/kasa')}
+              onPress={() => router.push('/(tabs)/staff/appointments')}
               activeOpacity={0.7}
             >
               <View style={[styles.quickActionIcon, { backgroundColor: '#FEF3C7' }]}>
-                <Ionicons name="cash-outline" size={24} color="#D97706" />
+                <Ionicons name="calendar-outline" size={24} color="#D97706" />
               </View>
-              <Text style={styles.quickActionLabel}>Kasa</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.quickAction}
-              onPress={() => router.push('/(tabs)/staff/reports')}
-              activeOpacity={0.7}
-            >
-              <View style={[styles.quickActionIcon, { backgroundColor: '#E0E7FF' }]}>
-                <Ionicons name="bar-chart-outline" size={24} color="#6366F1" />
-              </View>
-              <Text style={styles.quickActionLabel}>Raporlar</Text>
+              <Text style={styles.quickActionLabel}>Takvim</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -658,43 +611,6 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
   },
 
-  // Stats Grid
-  statsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-  },
-  statCard: {
-    width: (SCREEN_WIDTH - 52) / 2,
-    backgroundColor: '#fff',
-    borderRadius: 16,
-    padding: 16,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  statIconContainer: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  statValue: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#1F2937',
-  },
-  statLabel: {
-    fontSize: 13,
-    color: '#6B7280',
-    marginTop: 4,
-  },
-
   // Empty State
   emptyCard: {
     backgroundColor: '#fff',
@@ -825,12 +741,10 @@ const styles = StyleSheet.create({
   // Quick Actions
   quickActionsGrid: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
+    justifyContent: 'space-around',
     marginTop: 12,
   },
   quickAction: {
-    width: (SCREEN_WIDTH - 52) / 4,
     alignItems: 'center',
   },
   quickActionIcon: {
