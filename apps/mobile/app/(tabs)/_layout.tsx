@@ -66,7 +66,7 @@ export default function TabLayout() {
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: '#3B82F6',
+        tabBarActiveTintColor: '#163974',
         tabBarInactiveTintColor: '#9CA3AF',
         tabBarStyle: {
           backgroundColor: '#fff',
@@ -85,18 +85,9 @@ export default function TabLayout() {
       <Tabs.Screen
         name="staff/index"
         options={{
-          title: 'Ana Sayfa',
+          title: 'Yeni Randevu',
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="home" size={size} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="staff/appointments"
-        options={{
-          title: 'Randevular',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="calendar" size={size} color={color} />
+            <Ionicons name="add-circle" size={size} color={color} />
           ),
         }}
       />
@@ -110,14 +101,16 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="staff/settings"
+        name="staff/appointments"
         options={{
-          title: 'Ayarlar',
+          title: 'Takvim',
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="settings" size={size} color={color} />
+            <Ionicons name="calendar" size={size} color={color} />
           ),
         }}
       />
+      {/* Hide other staff tabs */}
+      <Tabs.Screen name="staff/settings" options={{ href: null }} />
       {/* Hide customer tabs for staff */}
       <Tabs.Screen name="customer/index" options={{ href: null }} />
       <Tabs.Screen name="customer/new-appointment" options={{ href: null }} />
