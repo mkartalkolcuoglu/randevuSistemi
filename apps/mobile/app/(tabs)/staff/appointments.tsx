@@ -255,42 +255,31 @@ export default function StaffAppointmentsScreen() {
       <View style={styles.statsRow}>
         <View style={styles.statItem}>
           <View style={styles.statIconBg}>
-            <Ionicons name="calendar" size={18} color="#3B82F6" />
+            <Ionicons name="calendar" size={16} color="#3B82F6" />
           </View>
-          <View>
-            <Text style={styles.statNumber}>{todayStats.total}</Text>
-            <Text style={styles.statLabel}>Bugün</Text>
-          </View>
+          <Text style={styles.statNumber}>{todayStats.total}</Text>
+          <Text style={styles.statLabel}>Bugün</Text>
         </View>
-        <View style={styles.statDivider} />
         <View style={styles.statItem}>
           <View style={[styles.statIconBg, { backgroundColor: '#D1FAE5' }]}>
-            <Ionicons name="checkmark" size={18} color="#059669" />
+            <Ionicons name="checkmark" size={16} color="#059669" />
           </View>
-          <View>
-            <Text style={styles.statNumber}>{todayStats.completed}</Text>
-            <Text style={styles.statLabel}>Tamamlanan</Text>
-          </View>
+          <Text style={styles.statNumber}>{todayStats.completed}</Text>
+          <Text style={styles.statLabel}>Tamam</Text>
         </View>
-        <View style={styles.statDivider} />
         <View style={styles.statItem}>
           <View style={[styles.statIconBg, { backgroundColor: '#FEF3C7' }]}>
-            <Ionicons name="time" size={18} color="#D97706" />
+            <Ionicons name="time" size={16} color="#D97706" />
           </View>
-          <View>
-            <Text style={styles.statNumber}>{todayStats.pending}</Text>
-            <Text style={styles.statLabel}>Bekleyen</Text>
-          </View>
+          <Text style={styles.statNumber}>{todayStats.pending}</Text>
+          <Text style={styles.statLabel}>Bekleyen</Text>
         </View>
-        <View style={styles.statDivider} />
         <View style={styles.statItem}>
           <View style={[styles.statIconBg, { backgroundColor: '#E0E7FF' }]}>
-            <Ionicons name="cash" size={18} color="#4F46E5" />
+            <Ionicons name="cash" size={16} color="#4F46E5" />
           </View>
-          <View>
-            <Text style={styles.statNumber}>{todayStats.revenue > 999 ? `${(todayStats.revenue / 1000).toFixed(1)}K` : todayStats.revenue}</Text>
-            <Text style={styles.statLabel}>Kazanç ₺</Text>
-          </View>
+          <Text style={styles.statNumber}>{todayStats.revenue > 999 ? `${(todayStats.revenue / 1000).toFixed(1)}K` : todayStats.revenue}</Text>
+          <Text style={styles.statLabel}>Kazanç ₺</Text>
         </View>
       </View>
 
@@ -904,36 +893,36 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     backgroundColor: 'rgba(255,255,255,0.15)',
     borderRadius: 16,
-    padding: 14,
+    padding: 12,
     marginTop: 20,
+    justifyContent: 'space-around',
   },
   statItem: {
-    flex: 1,
-    flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    paddingHorizontal: 4,
   },
   statIconBg: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
+    width: 32,
+    height: 32,
+    borderRadius: 8,
     backgroundColor: '#EFF6FF',
     alignItems: 'center',
     justifyContent: 'center',
+    marginBottom: 6,
   },
   statNumber: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '700',
     color: '#fff',
   },
   statLabel: {
-    fontSize: 11,
-    color: 'rgba(255,255,255,0.7)',
+    fontSize: 10,
+    color: 'rgba(255,255,255,0.8)',
+    marginTop: 2,
   },
   statDivider: {
     width: 1,
     backgroundColor: 'rgba(255,255,255,0.2)',
-    marginHorizontal: 8,
   },
 
   // Search
