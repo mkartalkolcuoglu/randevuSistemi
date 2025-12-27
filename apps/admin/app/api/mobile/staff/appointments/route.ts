@@ -53,7 +53,7 @@ export async function GET(request: NextRequest) {
     const date = searchParams.get('date');
     const status = searchParams.get('status');
     const page = parseInt(searchParams.get('page') || '1');
-    const limit = parseInt(searchParams.get('limit') || '50');
+    const limit = parseInt(searchParams.get('limit') || '100');
     const skip = (page - 1) * limit;
 
     // Build where clause
@@ -77,12 +77,13 @@ export async function GET(request: NextRequest) {
     }
 
     // Get appointments - use denormalized fields (no relations in this schema)
+    // Order by date DESC so newest appointments appear first
     const [appointments, total] = await Promise.all([
       prisma.appointment.findMany({
         where,
         skip,
         take: limit,
-        orderBy: [{ date: 'asc' }, { time: 'asc' }],
+        orderBy: [{ date: 'desc' }, { time: 'desc' }],
         select: {
           id: true,
           tenantId: true,
