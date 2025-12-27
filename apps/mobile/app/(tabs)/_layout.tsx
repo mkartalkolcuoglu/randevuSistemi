@@ -68,6 +68,7 @@ export default function TabLayout() {
         <Tabs.Screen name="staff/stock" options={{ href: null }} />
         <Tabs.Screen name="staff/team" options={{ href: null }} />
         <Tabs.Screen name="staff/kasa" options={{ href: null }} />
+        <Tabs.Screen name="staff/notifications" options={{ href: null }} />
       </Tabs>
     );
   }
@@ -133,6 +134,7 @@ export default function TabLayout() {
       <Tabs.Screen name="staff/stock" options={{ href: null }} />
       <Tabs.Screen name="staff/team" options={{ href: null }} />
       <Tabs.Screen name="staff/kasa" options={{ href: null }} />
+      <Tabs.Screen name="staff/notifications" options={{ href: null }} />
 
       {/* Hide customer tabs for staff */}
       <Tabs.Screen name="customer/index" options={{ href: null }} />

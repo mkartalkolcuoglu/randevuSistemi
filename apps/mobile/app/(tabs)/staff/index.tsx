@@ -18,6 +18,7 @@ import { useAuthStore } from '../../../src/store/auth.store';
 import { appointmentService } from '../../../src/services/appointment.service';
 import { Appointment } from '../../../src/types';
 import DrawerMenu from '../../../src/components/DrawerMenu';
+import api from '../../../src/services/api';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const THEME_COLOR = '#163974';
@@ -39,6 +40,7 @@ export default function StaffHomeScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [unreadNotifications, setUnreadNotifications] = useState(0);
 
   // Today's date
   const today = new Date().toISOString().split('T')[0];
@@ -60,9 +62,22 @@ export default function StaffHomeScreen() {
     }
   };
 
+  // Fetch notifications count
+  const fetchNotificationsCount = async () => {
+    try {
+      const response = await api.get('/api/mobile/notifications');
+      if (response.data.success) {
+        setUnreadNotifications(response.data.unreadCount || 0);
+      }
+    } catch (error) {
+      console.error('Error fetching notifications:', error);
+    }
+  };
+
   useFocusEffect(
     useCallback(() => {
       fetchData();
+      fetchNotificationsCount();
     }, [])
   );
 
@@ -188,13 +203,13 @@ export default function StaffHomeScreen() {
           </View>
           <TouchableOpacity
             style={styles.notificationButton}
-            onPress={() => Alert.alert('Bildirimler', 'Bu özellik yakında eklenecek')}
+            onPress={() => router.push('/(tabs)/staff/notifications')}
           >
             <Ionicons name="notifications-outline" size={22} color="#1F2937" />
-            {stats.todayPending > 0 && (
+            {unreadNotifications > 0 && (
               <View style={styles.notificationBadge}>
                 <Text style={styles.notificationBadgeText}>
-                  {stats.todayPending > 9 ? '9+' : stats.todayPending}
+                  {unreadNotifications > 9 ? '9+' : unreadNotifications}
                 </Text>
               </View>
             )}
