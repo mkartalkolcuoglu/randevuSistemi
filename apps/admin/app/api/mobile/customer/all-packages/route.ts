@@ -99,25 +99,15 @@ export async function GET(request: NextRequest) {
           }
         });
 
-        // Get service names for usages
-        const usagesWithServiceNames = await Promise.all(
-          usages
-            .filter(usage => usage.serviceId) // Filter out usages without serviceId
-            .map(async (usage) => {
-              const service = await prisma.service.findUnique({
-                where: { id: usage.serviceId },
-                select: { name: true }
-              });
-              return {
-                id: usage.id,
-                serviceId: usage.serviceId,
-                serviceName: service?.name || 'Bilinmeyen Hizmet',
-                totalQuantity: usage.totalQuantity,
-                usedQuantity: usage.usedQuantity,
-                remainingQuantity: usage.remainingQuantity
-              };
-            })
-        );
+        // Map usages to items - using itemId and itemName from schema
+        const usageItems = usages.map((usage) => ({
+          id: usage.id,
+          serviceId: usage.itemId,
+          serviceName: usage.itemName || 'Bilinmeyen Hizmet',
+          totalQuantity: usage.totalQuantity,
+          usedQuantity: usage.usedQuantity,
+          remainingQuantity: usage.remainingQuantity
+        }));
 
         return {
           id: cp.id,
@@ -128,7 +118,7 @@ export async function GET(request: NextRequest) {
           assignedAt: cp.assignedAt,
           expiresAt: cp.expiresAt,
           status: cp.status,
-          items: usagesWithServiceNames
+          items: usageItems
         };
       })
     );
