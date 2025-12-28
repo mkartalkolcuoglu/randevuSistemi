@@ -46,19 +46,22 @@ export async function GET(request: NextRequest) {
     }
 
     const { searchParams } = new URL(request.url);
-    const search = searchParams.get('search') || '';
+    const search = (searchParams.get('search') || '').trim();
 
-    // Build where clause
-    const whereClause: any = {
-      status: 'active',
-    };
+    console.log('🔍 Tenant search API called - search query:', `"${search}"`, 'length:', search.length);
 
+    // Build where clause - tüm işletmeler görünsün
+    const whereClause: any = {};
+
+    // Arama varsa filtrele
     if (search.length >= 2) {
       whereClause.OR = [
         { businessName: { contains: search, mode: 'insensitive' } },
         { slug: { contains: search, mode: 'insensitive' } },
       ];
     }
+
+    console.log('🔍 Tenant search - whereClause:', JSON.stringify(whereClause));
 
     const tenants = await prisma.tenant.findMany({
       where: whereClause,
@@ -73,6 +76,8 @@ export async function GET(request: NextRequest) {
       orderBy: { businessName: 'asc' },
       take: 20, // Limit results
     });
+
+    console.log('🔍 Tenant search - found:', tenants.length, 'tenants:', tenants.map(t => t.businessName));
 
     return NextResponse.json({
       success: true,

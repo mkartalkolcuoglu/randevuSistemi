@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../../../src/store/auth.store';
 import { appointmentService } from '../../../src/services/appointment.service';
@@ -85,6 +86,35 @@ export default function NewAppointmentScreen() {
   const [paymentOption, setPaymentOption] = useState<'package' | 'pay' | 'later' | null>(null);
   const [agreementAccepted, setAgreementAccepted] = useState(false);
 
+  // Reset all states when screen gains focus
+  const resetAllStates = useCallback(() => {
+    setStep('tenant');
+    setIsLoading(false);
+    setIsSubmitting(false);
+    setIsSearching(false);
+    setSearchQuery('');
+    setSearchResults([]);
+    setTenantSettings(null);
+    setCustomerPackages(null);
+    setServices([]);
+    setStaff([]);
+    setTimeSlots([]);
+    setSelectedTenantState(null);
+    setSelectedService(null);
+    setSelectedStaff(null);
+    setSelectedDate(null);
+    setSelectedTime(null);
+    setPaymentOption(null);
+    setAgreementAccepted(false);
+  }, []);
+
+  // Reset states when screen is focused
+  useFocusEffect(
+    useCallback(() => {
+      resetAllStates();
+    }, [resetAllStates])
+  );
+
   // Generate next 14 days with availability info
   const getAvailableDates = () => {
     const dates: { date: Date; isOpen: boolean; dayName: string }[] = [];
@@ -156,11 +186,15 @@ export default function NewAppointmentScreen() {
   const searchTenants = async () => {
     setIsSearching(true);
     try {
+      console.log('🔍 Searching tenants with query:', searchQuery);
       const response = await api.get(`/api/mobile/tenants/search?search=${encodeURIComponent(searchQuery)}`);
-      console.log('🔍 Search results:', response.data.data?.length);
+      console.log('🔍 Search response:', response.data);
+      console.log('🔍 Search results count:', response.data.data?.length);
       setSearchResults(response.data.data || []);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error searching tenants:', error);
+      console.error('Error response:', error.response?.data);
+      Alert.alert('Hata', 'İşletme aranırken bir hata oluştu');
     } finally {
       setIsSearching(false);
     }
