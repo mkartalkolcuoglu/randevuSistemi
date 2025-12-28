@@ -233,7 +233,7 @@ export default function StaffAppointmentsScreen() {
       searchQuery={searchQuery}
       onSearchChange={setSearchQuery}
       searchPlaceholder="Müşteri, telefon veya hizmet ara..."
-      gradientColors={['#1E3A8A', '#3B82F6']}
+      gradientColors={['#163974', '#1e4a8f']}
       stats={[
         {
           icon: 'calendar',

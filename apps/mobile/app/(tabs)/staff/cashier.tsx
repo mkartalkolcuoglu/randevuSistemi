@@ -21,6 +21,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import api from '../../../src/services/api';
 import DrawerMenu from '../../../src/components/DrawerMenu';
+import Header from '../../../src/components/Header';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -1043,29 +1044,18 @@ export default function CashierScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      {/* Premium Gradient Header */}
-      <LinearGradient
-        colors={['#163974', '#0F2A52']}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.header}
-      >
-        <View style={styles.headerTop}>
-          <TouchableOpacity
-            style={styles.menuBtn}
-            onPress={() => setDrawerOpen(true)}
-          >
-            <Ionicons name="menu" size={24} color="#fff" />
-          </TouchableOpacity>
-
-          <View style={styles.headerCenter}>
-            <Text style={styles.title}>Kasa</Text>
-            <Text style={styles.subtitle}>Gelir & Gider Yönetimi</Text>
-          </View>
-
-          <View style={styles.headerRight} />
-        </View>
-      </LinearGradient>
+      {/* Header */}
+      <Header
+        title="Kasa"
+        subtitle="Gelir & Gider Yönetimi"
+        onMenuPress={() => setDrawerOpen(true)}
+        gradientColors={['#163974', '#1e4a8f']}
+        stats={[
+          { icon: 'trending-up', iconColor: '#059669', iconBg: '#D1FAE5', value: `₺${summary.income.toLocaleString('tr-TR')}`, label: 'Gelir' },
+          { icon: 'trending-down', iconColor: '#DC2626', iconBg: '#FEE2E2', value: `₺${summary.expense.toLocaleString('tr-TR')}`, label: 'Gider' },
+          { icon: 'wallet', iconColor: summary.profit >= 0 ? '#059669' : '#DC2626', iconBg: summary.profit >= 0 ? '#D1FAE5' : '#FEE2E2', value: `₺${summary.profit.toLocaleString('tr-TR')}`, label: 'Net' },
+        ]}
+      />
 
       {/* Date filters */}
       <View style={styles.dateFilters}>{renderDateFilters()}</View>

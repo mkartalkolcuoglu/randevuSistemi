@@ -1404,7 +1404,37 @@ export default function StaffCustomersScreen() {
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
         searchPlaceholder="İsim, telefon veya e-posta ara..."
-        gradientColors={['#163974', '#0F2A52']}
+        gradientColors={['#163974', '#1e4a8f']}
+        stats={[
+          {
+            icon: 'people',
+            iconColor: '#3B82F6',
+            iconBg: '#EFF6FF',
+            value: statusCounts.all,
+            label: 'Toplam',
+          },
+          {
+            icon: 'checkmark-circle',
+            iconColor: '#059669',
+            iconBg: '#D1FAE5',
+            value: statusCounts.active,
+            label: 'Aktif',
+          },
+          {
+            icon: 'star',
+            iconColor: '#D97706',
+            iconBg: '#FEF3C7',
+            value: statusCounts.vip,
+            label: 'VIP',
+          },
+          {
+            icon: 'pause-circle',
+            iconColor: '#DC2626',
+            iconBg: '#FEE2E2',
+            value: statusCounts.inactive,
+            label: 'Pasif',
+          },
+        ]}
       />
 
       {/* Filter tabs */}

@@ -14,6 +14,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Rect, Text as SvgText, G } from 'react-native-svg';
 import api from '../../../src/services/api';
+import DrawerMenu from '../../../src/components/DrawerMenu';
+import Header from '../../../src/components/Header';
 
 const THEME_COLOR = '#163974';
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -68,6 +70,7 @@ export default function PerformanceScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [data, setData] = useState<PerformanceData | null>(null);
   const [activeTab, setActiveTab] = useState<'overview' | 'staff' | 'services' | 'feedbacks'>('overview');
+  const [drawerOpen, setDrawerOpen] = useState(false);
 
   const fetchPerformance = async () => {
     try {
@@ -182,16 +185,23 @@ export default function PerformanceScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
+      {/* Header */}
+      <Header
+        title="Performans"
+        subtitle="Müşteri geri bildirimleri"
+        onMenuPress={() => setDrawerOpen(true)}
+        gradientColors={['#163974', '#1e4a8f']}
+        stats={data ? [
+          { icon: 'star', iconColor: '#F59E0B', iconBg: '#FEF3C7', value: data.stats.averageRating.toFixed(1), label: 'Ortalama' },
+          { icon: 'chatbubbles', iconColor: '#3B82F6', iconBg: '#DBEAFE', value: data.stats.totalFeedbacks, label: 'Değerlendirme' },
+          { icon: 'happy', iconColor: '#10B981', iconBg: '#D1FAE5', value: `%${data.stats.satisfactionRate}`, label: 'Memnuniyet' },
+        ] : undefined}
+      />
+
       <ScrollView
         showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[THEME_COLOR]} />}
       >
-        {/* Header */}
-        <View style={styles.header}>
-          <Text style={styles.title}>Performans</Text>
-          <Text style={styles.subtitle}>Müşteri geri bildirimleri</Text>
-        </View>
-
         {/* Stats Cards */}
         <View style={styles.statsGrid}>
           {/* Average Rating */}
@@ -463,6 +473,9 @@ export default function PerformanceScreen() {
         {/* Bottom Spacing */}
         <View style={{ height: 100 }} />
       </ScrollView>
+
+      {/* Drawer Menu */}
+      <DrawerMenu isOpen={drawerOpen} onClose={() => setDrawerOpen(false)} />
     </SafeAreaView>
   );
 }

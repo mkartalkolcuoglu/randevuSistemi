@@ -21,6 +21,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import api from '../../../src/services/api';
 import DrawerMenu from '../../../src/components/DrawerMenu';
+import Header from '../../../src/components/Header';
 
 // Interfaces
 interface PackageItem {
@@ -884,44 +885,23 @@ export default function PackagesScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       {/* Header */}
-      <View style={styles.header}>
-        <View style={styles.headerLeft}>
-          <TouchableOpacity style={styles.menuBtn} onPress={() => setDrawerOpen(true)}>
-            <Ionicons name="menu" size={24} color="#1F2937" />
-          </TouchableOpacity>
-          <View>
-            <Text style={styles.headerTitle}>Paketler</Text>
-            <Text style={styles.headerSubtitle}>{packages.length} paket</Text>
-          </View>
-        </View>
-        <View style={styles.headerRight}>
-          <TouchableOpacity style={styles.headerBtn} onPress={() => setShowSearch(!showSearch)}>
-            <Ionicons name={showSearch ? 'close' : 'search'} size={22} color="#374151" />
-          </TouchableOpacity>
-        </View>
-      </View>
-
-      {/* Search Bar */}
-      {showSearch && (
-        <View style={styles.searchContainer}>
-          <View style={styles.searchInputContainer}>
-            <Ionicons name="search" size={20} color="#9CA3AF" />
-            <TextInput
-              style={styles.searchInput}
-              placeholder="Paket ara..."
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-              placeholderTextColor="#9CA3AF"
-              autoFocus
-            />
-            {searchQuery.length > 0 && (
-              <TouchableOpacity onPress={() => setSearchQuery('')}>
-                <Ionicons name="close-circle" size={20} color="#9CA3AF" />
-              </TouchableOpacity>
-            )}
-          </View>
-        </View>
-      )}
+      <Header
+        title="Paketler"
+        subtitle={`${packages.length} paket kayıtlı`}
+        onMenuPress={() => setDrawerOpen(true)}
+        showSearch
+        searchActive={showSearch}
+        onSearchPress={() => setShowSearch(!showSearch)}
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
+        searchPlaceholder="Paket adı veya açıklama ara..."
+        gradientColors={['#163974', '#1e4a8f']}
+        stats={[
+          { icon: 'gift', iconColor: '#8B5CF6', iconBg: '#F3E8FF', value: statusCounts.all, label: 'Toplam' },
+          { icon: 'checkmark-circle', iconColor: '#059669', iconBg: '#D1FAE5', value: statusCounts.active, label: 'Aktif' },
+          { icon: 'pause-circle', iconColor: '#DC2626', iconBg: '#FEE2E2', value: statusCounts.inactive, label: 'Pasif' },
+        ]}
+      />
 
       {/* Filter Tabs */}
       <View style={styles.filterTabs}>{renderFilterTabs()}</View>

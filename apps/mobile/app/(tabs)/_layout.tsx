@@ -16,8 +16,9 @@ export default function TabLayout() {
   const insets = useSafeAreaInsets();
   const isCustomer = user?.userType === 'customer';
 
-  // Calculate tab bar height with safe area
-  const tabBarHeight = TAB_BAR_BASE_HEIGHT + (Platform.OS === 'ios' ? insets.bottom : 0);
+  // Calculate tab bar height with safe area - both platforms need bottom inset
+  const bottomInset = insets.bottom > 0 ? insets.bottom : (Platform.OS === 'android' ? 16 : 0);
+  const tabBarHeight = TAB_BAR_BASE_HEIGHT + bottomInset;
 
   // Common screen options for HIG compliance
   const getScreenOptions = (activeColor: string) => ({
@@ -28,7 +29,7 @@ export default function TabLayout() {
       borderTopColor: Platform.OS === 'ios' ? '#C6C6C8' : '#E7E0EC', // iOS: separator, Android: surfaceVariant
       borderTopWidth: Platform.OS === 'ios' ? 0.5 : 1,
       height: tabBarHeight,
-      paddingBottom: Platform.OS === 'ios' ? insets.bottom : 12,
+      paddingBottom: bottomInset,
       paddingTop: Platform.OS === 'ios' ? 8 : 12,
       // iOS uses subtle shadow, Android uses elevation
       ...(Platform.OS === 'ios' ? {
@@ -95,18 +96,26 @@ export default function TabLayout() {
         <Tabs.Screen name="staff/services" options={{ href: null }} />
         <Tabs.Screen name="staff/stock" options={{ href: null }} />
         <Tabs.Screen name="staff/team" options={{ href: null }} />
-        <Tabs.Screen name="staff/kasa" options={{ href: null }} />
         <Tabs.Screen name="staff/notifications" options={{ href: null }} />
       </Tabs>
     );
   }
 
-  // Staff/Owner layout - Only 3 tabs: Yeni Randevu, Müşteriler, Takvim
+  // Staff/Owner layout - 4 tabs: Ana Sayfa, Yeni Randevu, Müşteriler, Takvim
   return (
     <Tabs screenOptions={getScreenOptions(TAB_ACTIVE_COLOR)}>
       {/* Visible tabs */}
       <Tabs.Screen
         name="staff/index"
+        options={{
+          title: 'Ana Sayfa',
+          tabBarIcon: ({ color }) => (
+            <Ionicons name="home" size={TAB_ICON_SIZE} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="staff/appointments"
         options={{
           title: 'Yeni Randevu',
           tabBarIcon: ({ color }) => (
@@ -124,7 +133,7 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="staff/appointments"
+        name="staff/calendar"
         options={{
           title: 'Takvim',
           tabBarIcon: ({ color }) => (
@@ -136,7 +145,6 @@ export default function TabLayout() {
       {/* Hidden staff tabs - accessible via navigation but not shown in tab bar */}
       <Tabs.Screen name="staff/settings" options={{ href: null }} />
       <Tabs.Screen name="staff/business-settings" options={{ href: null }} />
-      <Tabs.Screen name="staff/calendar" options={{ href: null }} />
       <Tabs.Screen name="staff/cashier" options={{ href: null }} />
       <Tabs.Screen name="staff/packages" options={{ href: null }} />
       <Tabs.Screen name="staff/performance" options={{ href: null }} />
@@ -144,7 +152,6 @@ export default function TabLayout() {
       <Tabs.Screen name="staff/services" options={{ href: null }} />
       <Tabs.Screen name="staff/stock" options={{ href: null }} />
       <Tabs.Screen name="staff/team" options={{ href: null }} />
-      <Tabs.Screen name="staff/kasa" options={{ href: null }} />
       <Tabs.Screen name="staff/notifications" options={{ href: null }} />
 
       {/* Hide customer tabs for staff */}

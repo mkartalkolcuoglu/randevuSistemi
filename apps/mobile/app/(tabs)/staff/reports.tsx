@@ -16,6 +16,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Rect, Circle, Text as SvgText, G, Line, Path } from 'react-native-svg';
 import api from '../../../src/services/api';
+import DrawerMenu from '../../../src/components/DrawerMenu';
+import Header from '../../../src/components/Header';
 
 const THEME_COLOR = '#163974';
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -79,6 +81,7 @@ export default function ReportsScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [data, setData] = useState<ReportsData | null>(null);
   const [activeTab, setActiveTab] = useState<'overview' | 'services' | 'staff'>('overview');
+  const [drawerOpen, setDrawerOpen] = useState(false);
 
   const fetchReports = async () => {
     try {
@@ -339,21 +342,25 @@ export default function ReportsScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
+      {/* Header */}
+      <Header
+        title="Raporlar"
+        subtitle="İşletme performans analizi"
+        onMenuPress={() => setDrawerOpen(true)}
+        gradientColors={['#163974', '#1e4a8f']}
+        stats={data ? [
+          { icon: 'wallet', iconColor: '#059669', iconBg: '#D1FAE5', value: formatCurrency(data.kpiSummary.monthlyRevenue.value), label: 'Aylık Gelir' },
+          { icon: 'calendar', iconColor: '#3B82F6', iconBg: '#DBEAFE', value: data.kpiSummary.monthlyAppointments.value, label: 'Randevu' },
+          { icon: 'people', iconColor: '#8B5CF6', iconBg: '#F3E8FF', value: data.kpiSummary.newCustomers.value, label: 'Yeni Müşteri' },
+        ] : undefined}
+        rightIcon="share-outline"
+        onRightPress={handleExport}
+      />
+
       <ScrollView
         showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[THEME_COLOR]} />}
       >
-        {/* Header */}
-        <View style={styles.header}>
-          <View>
-            <Text style={styles.title}>Raporlar</Text>
-            <Text style={styles.subtitle}>İşletme performans analizi</Text>
-          </View>
-          <TouchableOpacity style={styles.exportButton} onPress={handleExport}>
-            <Ionicons name="share-outline" size={20} color={THEME_COLOR} />
-          </TouchableOpacity>
-        </View>
-
         {/* Tabs */}
         <View style={styles.tabContainer}>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tabScroll}>
@@ -546,6 +553,9 @@ export default function ReportsScreen() {
         {/* Bottom Spacing */}
         <View style={{ height: 100 }} />
       </ScrollView>
+
+      {/* Drawer Menu */}
+      <DrawerMenu isOpen={drawerOpen} onClose={() => setDrawerOpen(false)} />
     </SafeAreaView>
   );
 }

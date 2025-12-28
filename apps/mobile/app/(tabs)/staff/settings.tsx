@@ -22,6 +22,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useAuthStore } from '../../../src/store/auth.store';
 import api from '../../../src/services/api';
+import DrawerMenu from '../../../src/components/DrawerMenu';
+import Header from '../../../src/components/Header';
 
 const THEME_COLOR = '#163974';
 
@@ -155,6 +157,7 @@ export default function StaffSettingsScreen() {
   const [hasChanges, setHasChanges] = useState(false);
   const [newPassword, setNewPassword] = useState('');
   const [formData, setFormData] = useState<Partial<SettingsData>>({});
+  const [drawerOpen, setDrawerOpen] = useState(false);
 
   // Modal states
   const [showTimeIntervalPicker, setShowTimeIntervalPicker] = useState(false);
@@ -301,38 +304,20 @@ export default function StaffSettingsScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
+      {/* Header */}
+      <Header
+        title="Ayarlar"
+        subtitle={data?.businessName || selectedTenant?.businessName || 'İşletme Ayarları'}
+        onMenuPress={() => setDrawerOpen(true)}
+        gradientColors={['#163974', '#1e4a8f']}
+        rightIcon={(hasChanges || newPassword) ? (saving ? undefined : "checkmark") : undefined}
+        onRightPress={(hasChanges || newPassword) ? handleSave : undefined}
+      />
+
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
-        {/* Header */}
-        <View style={styles.header}>
-          <View style={styles.headerLeft}>
-            <Text style={styles.title}>Ayarlar</Text>
-            <Text style={styles.subtitle}>{data?.businessName || selectedTenant?.businessName}</Text>
-          </View>
-          {(hasChanges || newPassword) && (
-            <TouchableOpacity
-              style={styles.saveButton}
-              onPress={handleSave}
-              disabled={saving}
-            >
-              <LinearGradient
-                colors={['#059669', '#047857']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={styles.saveButtonGradient}
-              >
-                {saving ? (
-                  <ActivityIndicator size="small" color="#fff" />
-                ) : (
-                  <Ionicons name="checkmark" size={20} color="#fff" />
-                )}
-              </LinearGradient>
-            </TouchableOpacity>
-          )}
-        </View>
-
         {/* Tabs */}
         <View style={styles.tabContainer}>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tabScroll}>
@@ -1124,6 +1109,9 @@ export default function StaffSettingsScreen() {
           </View>
         </View>
       </Modal>
+
+      {/* Drawer Menu */}
+      <DrawerMenu isOpen={drawerOpen} onClose={() => setDrawerOpen(false)} />
     </SafeAreaView>
   );
 }

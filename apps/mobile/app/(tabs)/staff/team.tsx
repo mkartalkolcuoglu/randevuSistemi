@@ -21,6 +21,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import api from '../../../src/services/api';
 import DrawerMenu from '../../../src/components/DrawerMenu';
+import Header from '../../../src/components/Header';
 
 // Staff interface
 interface Staff {
@@ -1743,57 +1744,49 @@ export default function StaffTeamScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      {/* Premium Gradient Header */}
-      <LinearGradient
-        colors={['#163974', '#0F2A52']}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.header}
-      >
-        <View style={styles.headerTop}>
-          <TouchableOpacity
-            style={styles.menuBtn}
-            onPress={() => setDrawerOpen(true)}
-          >
-            <Ionicons name="menu" size={24} color="#fff" />
-          </TouchableOpacity>
-
-          <View style={styles.headerCenter}>
-            <Text style={styles.title}>Personel</Text>
-            <Text style={styles.subtitle}>{staff.length} personel kayıtlı</Text>
-          </View>
-
-          <TouchableOpacity
-            style={styles.searchBtn}
-            onPress={() => setShowSearch(!showSearch)}
-          >
-            <Ionicons name={showSearch ? 'close' : 'search'} size={22} color="#fff" />
-          </TouchableOpacity>
-        </View>
-
-        {/* Search bar - collapsible */}
-        {showSearch && (
-          <View style={styles.searchContainer}>
-            <View style={styles.searchInputWrapper}>
-              <Ionicons name="search" size={18} color="rgba(255,255,255,0.6)" />
-              <TextInput
-                style={styles.searchInput}
-                placeholder="İsim, e-posta veya pozisyon ara..."
-                placeholderTextColor="rgba(255,255,255,0.5)"
-                value={searchQuery}
-                onChangeText={setSearchQuery}
-                returnKeyType="search"
-                autoFocus
-              />
-              {searchQuery.length > 0 && (
-                <TouchableOpacity onPress={() => setSearchQuery('')}>
-                  <Ionicons name="close-circle" size={18} color="rgba(255,255,255,0.6)" />
-                </TouchableOpacity>
-              )}
-            </View>
-          </View>
-        )}
-      </LinearGradient>
+      {/* Header */}
+      <Header
+        title="Personel"
+        subtitle={`${staff.length} personel kayıtlı`}
+        onMenuPress={() => setDrawerOpen(true)}
+        showSearch
+        searchActive={showSearch}
+        onSearchPress={() => setShowSearch(!showSearch)}
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
+        searchPlaceholder="İsim, e-posta veya pozisyon ara..."
+        gradientColors={['#163974', '#1e4a8f']}
+        stats={[
+          {
+            icon: 'people-circle',
+            iconColor: '#06B6D4',
+            iconBg: '#ECFEFF',
+            value: statusCounts.all,
+            label: 'Toplam',
+          },
+          {
+            icon: 'checkmark-circle',
+            iconColor: '#059669',
+            iconBg: '#D1FAE5',
+            value: statusCounts.active,
+            label: 'Aktif',
+          },
+          {
+            icon: 'pause-circle',
+            iconColor: '#DC2626',
+            iconBg: '#FEE2E2',
+            value: statusCounts.inactive,
+            label: 'Pasif',
+          },
+          {
+            icon: 'sunny',
+            iconColor: '#D97706',
+            iconBg: '#FEF3C7',
+            value: statusCounts.vacation,
+            label: 'İzinli',
+          },
+        ]}
+      />
 
       {/* Filter tabs */}
       <View style={styles.filterTabs}>{renderFilterTabs()}</View>

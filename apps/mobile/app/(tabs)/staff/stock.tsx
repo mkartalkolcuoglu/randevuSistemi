@@ -21,6 +21,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import api from '../../../src/services/api';
 import DrawerMenu from '../../../src/components/DrawerMenu';
+import Header from '../../../src/components/Header';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -1422,57 +1423,25 @@ export default function StockScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      {/* Premium Gradient Header */}
-      <LinearGradient
-        colors={['#163974', '#0F2A52']}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.header}
-      >
-        <View style={styles.headerTop}>
-          <TouchableOpacity
-            style={styles.menuBtn}
-            onPress={() => setDrawerOpen(true)}
-          >
-            <Ionicons name="menu" size={24} color="#fff" />
-          </TouchableOpacity>
-
-          <View style={styles.headerCenter}>
-            <Text style={styles.title}>Stok</Text>
-            <Text style={styles.subtitle}>{products.length} ürün kayıtlı</Text>
-          </View>
-
-          <TouchableOpacity
-            style={styles.searchBtn}
-            onPress={() => setShowSearch(!showSearch)}
-          >
-            <Ionicons name={showSearch ? 'close' : 'search'} size={22} color="#fff" />
-          </TouchableOpacity>
-        </View>
-
-        {/* Search bar - collapsible */}
-        {showSearch && (
-          <View style={styles.searchContainer}>
-            <View style={styles.searchInputWrapper}>
-              <Ionicons name="search" size={18} color="rgba(255,255,255,0.6)" />
-              <TextInput
-                style={styles.searchInput}
-                placeholder="Ürün adı, barkod veya SKU ara..."
-                placeholderTextColor="rgba(255,255,255,0.5)"
-                value={searchQuery}
-                onChangeText={setSearchQuery}
-                returnKeyType="search"
-                autoFocus
-              />
-              {searchQuery.length > 0 && (
-                <TouchableOpacity onPress={() => setSearchQuery('')}>
-                  <Ionicons name="close-circle" size={18} color="rgba(255,255,255,0.6)" />
-                </TouchableOpacity>
-              )}
-            </View>
-          </View>
-        )}
-      </LinearGradient>
+      {/* Header */}
+      <Header
+        title="Stok"
+        subtitle={`${products.length} ürün kayıtlı`}
+        onMenuPress={() => setDrawerOpen(true)}
+        showSearch
+        searchActive={showSearch}
+        onSearchPress={() => setShowSearch(!showSearch)}
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
+        searchPlaceholder="Ürün adı, barkod veya SKU ara..."
+        gradientColors={['#163974', '#1e4a8f']}
+        stats={[
+          { icon: 'cube', iconColor: '#6366F1', iconBg: '#EEF2FF', value: statusCounts.all, label: 'Toplam' },
+          { icon: 'checkmark-circle', iconColor: '#059669', iconBg: '#D1FAE5', value: statusCounts.inStock, label: 'Stokta' },
+          { icon: 'warning', iconColor: '#D97706', iconBg: '#FEF3C7', value: statusCounts.lowStock, label: 'Az Stok' },
+          { icon: 'close-circle', iconColor: '#DC2626', iconBg: '#FEE2E2', value: statusCounts.outOfStock, label: 'Tükendi' },
+        ]}
+      />
 
       {/* Filter tabs */}
       <View style={styles.filterTabs}>{renderFilterTabs()}</View>

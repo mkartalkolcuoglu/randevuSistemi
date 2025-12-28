@@ -25,6 +25,9 @@ import api from '../../../src/services/api';
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const THEME_COLOR = '#163974';
 
+// HIG/Material Design compliant values
+const IS_IOS = Platform.OS === 'ios';
+
 // Status configuration
 const STATUS_CONFIG: Record<string, { bg: string; text: string; label: string; icon: string }> = {
   pending: { bg: '#FEF3C7', text: '#D97706', label: 'Bekliyor', icon: 'time-outline' },

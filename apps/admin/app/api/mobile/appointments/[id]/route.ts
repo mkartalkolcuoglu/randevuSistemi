@@ -321,6 +321,9 @@ export async function PATCH(
       );
     }
 
+    // Store old status for comparison
+    const oldStatus = appointment.status;
+
     const updateData: any = {};
     if (status) updateData.status = status;
     if (notes !== undefined) updateData.notes = notes;
@@ -329,6 +332,29 @@ export async function PATCH(
       where: { id },
       data: updateData,
     });
+
+    // Handle status change side effects
+    const isCompleted = status === 'confirmed' || status === 'completed';
+    const wasCompleted = oldStatus === 'confirmed' || oldStatus === 'completed';
+
+    // If status changed to "confirmed" or "completed", handle package and transaction
+    if (isCompleted && !wasCompleted) {
+      console.log(`✅ [MOBILE] Status changed to ${status} - processing package and transaction`);
+      await deductFromPackage(updatedAppointment);
+      await createAppointmentTransaction(updatedAppointment);
+    }
+
+    // If status changed to "no_show", handle blacklist
+    if (status === 'no_show' && oldStatus !== 'no_show' && updatedAppointment.customerPhone) {
+      console.log(`🚫 [MOBILE] Status changed to no_show - checking blacklist`);
+      await handleNoShowBlacklist(updatedAppointment);
+    }
+
+    // If status changed to "cancelled" from completed/confirmed, refund package
+    if (status === 'cancelled' && oldStatus !== 'cancelled' && wasCompleted) {
+      console.log(`🔄 [MOBILE] Status changed to cancelled - refunding package usage`);
+      await refundPackageUsage(updatedAppointment);
+    }
 
     return NextResponse.json({
       success: true,
@@ -344,6 +370,213 @@ export async function PATCH(
       { success: false, message: 'Bir hata oluştu' },
       { status: 500 }
     );
+  }
+}
+
+// Helper: Deduct from package when appointment is completed
+async function deductFromPackage(appointment: any) {
+  try {
+    if (!appointment.packageInfo) {
+      console.log('ℹ️ [MOBILE] No package info - skipping deduction');
+      return;
+    }
+
+    let packageInfo;
+    try {
+      packageInfo = typeof appointment.packageInfo === 'string'
+        ? JSON.parse(appointment.packageInfo)
+        : appointment.packageInfo;
+    } catch (e) {
+      console.error('❌ [MOBILE] Failed to parse packageInfo:', e);
+      return;
+    }
+
+    const usage = await prisma.customerPackageUsage.findUnique({
+      where: { id: packageInfo.usageId }
+    });
+
+    if (!usage || usage.remainingQuantity <= 0) {
+      console.log('⚠️ [MOBILE] Package usage not found or depleted');
+      return;
+    }
+
+    await prisma.customerPackageUsage.update({
+      where: { id: usage.id },
+      data: {
+        usedQuantity: usage.usedQuantity + 1,
+        remainingQuantity: usage.remainingQuantity - 1
+      }
+    });
+
+    console.log('✅ [MOBILE] Package usage updated');
+
+    // Check if all usages depleted
+    const allUsages = await prisma.customerPackageUsage.findMany({
+      where: { customerPackageId: packageInfo.customerPackageId }
+    });
+
+    const allDepleted = allUsages.every(u =>
+      u.id === usage.id ? usage.remainingQuantity - 1 <= 0 : u.remainingQuantity <= 0
+    );
+
+    if (allDepleted) {
+      await prisma.customerPackage.update({
+        where: { id: packageInfo.customerPackageId },
+        data: { status: 'completed' }
+      });
+      console.log('🎉 [MOBILE] Package marked as completed');
+    }
+  } catch (error) {
+    console.error('❌ [MOBILE] Error deducting from package:', error);
+  }
+}
+
+// Helper: Create transaction for completed appointment
+async function createAppointmentTransaction(appointment: any) {
+  try {
+    // Skip if package was used
+    if (appointment.packageInfo) {
+      console.log('⚠️ [MOBILE] Skipping transaction - package used');
+      return;
+    }
+
+    // Skip if no price
+    if (!appointment.price || appointment.price <= 0) {
+      console.log('⚠️ [MOBILE] Skipping transaction - no price');
+      return;
+    }
+
+    // Check for existing transaction
+    const existingTransaction = await prisma.transaction.findFirst({
+      where: {
+        appointmentId: appointment.id,
+        type: 'appointment'
+      }
+    });
+
+    if (existingTransaction) {
+      console.log('ℹ️ [MOBILE] Transaction already exists');
+      return;
+    }
+
+    // Create transaction with today's date
+    const today = new Date();
+    const transactionDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+
+    const transaction = await prisma.transaction.create({
+      data: {
+        tenantId: appointment.tenantId,
+        type: 'appointment',
+        amount: appointment.price,
+        description: `Randevu: ${appointment.serviceName} - ${appointment.customerName}`,
+        paymentType: appointment.paymentType || 'cash',
+        customerId: appointment.customerId,
+        customerName: appointment.customerName,
+        appointmentId: appointment.id,
+        date: transactionDate,
+        profit: 0
+      }
+    });
+
+    console.log('✅ [MOBILE] Transaction created:', transaction.id, 'Amount:', transaction.amount);
+  } catch (error) {
+    console.error('❌ [MOBILE] Error creating transaction:', error);
+  }
+}
+
+// Helper: Handle no-show blacklist
+async function handleNoShowBlacklist(appointment: any) {
+  try {
+    const customer = await prisma.customer.findFirst({
+      where: {
+        tenantId: appointment.tenantId,
+        phone: appointment.customerPhone
+      }
+    });
+
+    if (!customer) {
+      console.log('⚠️ [MOBILE] Customer not found for blacklist check');
+      return;
+    }
+
+    const newNoShowCount = customer.noShowCount + 1;
+
+    const settings = await prisma.settings.findUnique({
+      where: { tenantId: appointment.tenantId }
+    });
+
+    const threshold = settings?.blacklistThreshold || 3;
+    const shouldBlacklist = newNoShowCount >= threshold;
+
+    const updateData: any = { noShowCount: newNoShowCount };
+
+    if (shouldBlacklist && !customer.isBlacklisted) {
+      updateData.isBlacklisted = true;
+      updateData.blacklistedAt = new Date();
+      console.log('🚨 [MOBILE] Customer blacklisted');
+    }
+
+    await prisma.customer.update({
+      where: { id: customer.id },
+      data: updateData
+    });
+
+    console.log(`✅ [MOBILE] No-show count updated to ${newNoShowCount}`);
+  } catch (error) {
+    console.error('❌ [MOBILE] Error handling no-show:', error);
+  }
+}
+
+// Helper: Refund package usage when cancelled
+async function refundPackageUsage(appointment: any) {
+  try {
+    if (!appointment.packageInfo) {
+      console.log('ℹ️ [MOBILE] No package info - nothing to refund');
+      return;
+    }
+
+    let packageInfo;
+    try {
+      packageInfo = typeof appointment.packageInfo === 'string'
+        ? JSON.parse(appointment.packageInfo)
+        : appointment.packageInfo;
+    } catch (e) {
+      console.error('❌ [MOBILE] Failed to parse packageInfo:', e);
+      return;
+    }
+
+    const usage = await prisma.customerPackageUsage.findUnique({
+      where: { id: packageInfo.usageId }
+    });
+
+    if (!usage || usage.usedQuantity <= 0) {
+      console.log('⚠️ [MOBILE] Nothing to refund');
+      return;
+    }
+
+    await prisma.customerPackageUsage.update({
+      where: { id: usage.id },
+      data: {
+        usedQuantity: usage.usedQuantity - 1,
+        remainingQuantity: usage.remainingQuantity + 1
+      }
+    });
+
+    console.log('✅ [MOBILE] Package usage refunded');
+
+    const customerPackage = await prisma.customerPackage.findUnique({
+      where: { id: packageInfo.customerPackageId }
+    });
+
+    if (customerPackage?.status === 'completed') {
+      await prisma.customerPackage.update({
+        where: { id: packageInfo.customerPackageId },
+        data: { status: 'active' }
+      });
+      console.log('🔓 [MOBILE] Package reactivated');
+    }
+  } catch (error) {
+    console.error('❌ [MOBILE] Error refunding package:', error);
   }
 }
 

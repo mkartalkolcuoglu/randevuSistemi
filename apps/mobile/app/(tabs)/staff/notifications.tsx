@@ -15,6 +15,8 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import api from '../../../src/services/api';
+import DrawerMenu from '../../../src/components/DrawerMenu';
+import Header from '../../../src/components/Header';
 
 const THEME_COLOR = '#163974';
 
@@ -50,6 +52,7 @@ export default function NotificationsScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [drawerOpen, setDrawerOpen] = useState(false);
 
   const fetchNotifications = async () => {
     try {
@@ -153,24 +156,19 @@ export default function NotificationsScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color="#1F2937" />
-        </TouchableOpacity>
-        <View style={styles.headerContent}>
-          <Text style={styles.title}>Bildirimler</Text>
-          {unreadCount > 0 && (
-            <View style={styles.unreadBadge}>
-              <Text style={styles.unreadBadgeText}>{unreadCount} yeni</Text>
-            </View>
-          )}
-        </View>
-        {unreadCount > 0 && (
-          <TouchableOpacity onPress={markAllAsRead} style={styles.markAllButton}>
-            <Text style={styles.markAllText}>Tümünü Oku</Text>
-          </TouchableOpacity>
-        )}
-      </View>
+      <Header
+        title="Bildirimler"
+        subtitle={unreadCount > 0 ? `${unreadCount} okunmamış bildirim` : 'Tüm bildirimler'}
+        onMenuPress={() => setDrawerOpen(true)}
+        gradientColors={['#163974', '#1e4a8f']}
+        stats={[
+          { icon: 'notifications', iconColor: '#3B82F6', iconBg: '#DBEAFE', value: notifications.length, label: 'Toplam' },
+          { icon: 'mail-unread', iconColor: '#F59E0B', iconBg: '#FEF3C7', value: unreadCount, label: 'Okunmamış' },
+          { icon: 'checkmark-done', iconColor: '#10B981', iconBg: '#D1FAE5', value: notifications.length - unreadCount, label: 'Okunmuş' },
+        ]}
+        rightIcon={unreadCount > 0 ? "checkmark-done-outline" : undefined}
+        onRightPress={unreadCount > 0 ? markAllAsRead : undefined}
+      />
 
       <ScrollView
         showsVerticalScrollIndicator={false}
@@ -223,6 +221,9 @@ export default function NotificationsScreen() {
 
         <View style={{ height: 100 }} />
       </ScrollView>
+
+      {/* Drawer Menu */}
+      <DrawerMenu isOpen={drawerOpen} onClose={() => setDrawerOpen(false)} />
     </SafeAreaView>
   );
 }

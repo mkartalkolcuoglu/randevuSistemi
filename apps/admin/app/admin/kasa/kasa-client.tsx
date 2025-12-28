@@ -66,6 +66,29 @@ export default function KasaClient({ tenantId, user }: KasaClientProps) {
     fetchTransactions();
   }, [dateFilter, customStartDate, customEndDate]);
 
+  // Sayfa yüklendiğinde eksik transaction'ları otomatik düzelt
+  useEffect(() => {
+    const fixMissingTransactions = async () => {
+      try {
+        // Sessizce eksik transaction'ları düzelt
+        const response = await fetch('/api/fix-missing-transactions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ tenantId })
+        });
+        const data = await response.json();
+        if (data.success && data.created > 0) {
+          console.log(`✅ ${data.created} eksik işlem otomatik eklendi`);
+          fetchTransactions(); // Listeyi yenile
+        }
+      } catch (error) {
+        console.error('Auto-fix error:', error);
+      }
+    };
+
+    fixMissingTransactions();
+  }, [tenantId]);
+
   const formatLocalDate = (date: Date) => {
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -144,6 +167,7 @@ export default function KasaClient({ tenantId, user }: KasaClientProps) {
       console.error('Error deleting transaction:', error);
     }
   };
+
 
   const getTypeLabel = (type: string) => {
     switch (type) {

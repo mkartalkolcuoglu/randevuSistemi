@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -14,7 +14,6 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter, usePathname } from 'expo-router';
 import { useAuthStore } from '../store/auth.store';
-import api from '../services/api';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 // HIG: iOS max 280pt, Material: max 360dp - use 85% or max
@@ -50,8 +49,7 @@ interface DrawerMenuProps {
 export default function DrawerMenu({ isOpen, onClose }: DrawerMenuProps) {
   const router = useRouter();
   const pathname = usePathname();
-  const { user, selectedTenant, logout } = useAuthStore();
-  const [unreadCount, setUnreadCount] = useState(0);
+  const { user, logout } = useAuthStore();
 
   // Animation values
   const slideAnim = useRef(new Animated.Value(-DRAWER_WIDTH)).current;
@@ -59,7 +57,6 @@ export default function DrawerMenu({ isOpen, onClose }: DrawerMenuProps) {
 
   useEffect(() => {
     if (isOpen) {
-      fetchNotifications();
       Animated.parallel([
         Animated.timing(slideAnim, {
           toValue: 0,
@@ -88,25 +85,13 @@ export default function DrawerMenu({ isOpen, onClose }: DrawerMenuProps) {
     }
   }, [isOpen]);
 
-  const fetchNotifications = async () => {
-    try {
-      const response = await api.get('/api/mobile/notifications');
-      if (response.data.success) {
-        setUnreadCount(response.data.unreadCount || 0);
-      }
-    } catch (error) {
-      console.error('Error fetching notifications:', error);
-    }
-  };
-
   const menuSections: MenuSection[] = [
     {
       title: 'ANA MENÜ',
       items: [
         { id: 'dashboard', label: 'Ana Sayfa', icon: 'home', route: '/(tabs)/staff', color: THEME_COLOR, bgColor: '#EFF6FF' },
-        { id: 'appointments', label: 'Takvim', icon: 'calendar', route: '/(tabs)/staff/appointments', color: '#8B5CF6', bgColor: '#F3E8FF' },
+        { id: 'appointments', label: 'Randevular', icon: 'calendar', route: '/(tabs)/staff/appointments', color: '#8B5CF6', bgColor: '#F3E8FF' },
         { id: 'customers', label: 'Müşteriler', icon: 'people', route: '/(tabs)/staff/customers', color: '#10B981', bgColor: '#D1FAE5' },
-        { id: 'notifications', label: 'Bildirimler', icon: 'notifications', route: '/(tabs)/staff/notifications', color: '#F59E0B', bgColor: '#FEF3C7', badge: unreadCount },
       ],
     },
     {
@@ -121,7 +106,7 @@ export default function DrawerMenu({ isOpen, onClose }: DrawerMenuProps) {
     {
       title: 'FİNANS & RAPORLAR',
       items: [
-        { id: 'kasa', label: 'Kasa', icon: 'wallet', route: '/(tabs)/staff/kasa', color: '#22C55E', bgColor: '#DCFCE7' },
+        { id: 'kasa', label: 'Kasa', icon: 'wallet', route: '/(tabs)/staff/cashier', color: '#22C55E', bgColor: '#DCFCE7' },
         { id: 'reports', label: 'Raporlar', icon: 'bar-chart', route: '/(tabs)/staff/reports', color: '#3B82F6', bgColor: '#DBEAFE' },
         { id: 'performance', label: 'Performans', icon: 'trending-up', route: '/(tabs)/staff/performance', color: '#F97316', bgColor: '#FFEDD5' },
       ],
@@ -174,41 +159,30 @@ export default function DrawerMenu({ isOpen, onClose }: DrawerMenuProps) {
             end={{ x: 1, y: 1 }}
             style={styles.header}
           >
-            <TouchableOpacity
-              style={styles.closeButton}
-              onPress={onClose}
-              activeOpacity={0.7}
-            >
-              <Ionicons name="close" size={22} color="#fff" />
-            </TouchableOpacity>
-
-            {/* User Info */}
-            <View style={styles.userSection}>
-              <View style={styles.userAvatar}>
-                <Text style={styles.userAvatarText}>
-                  {user?.firstName?.charAt(0)?.toUpperCase() || 'U'}
-                </Text>
+            {/* User Info & Close Button Row */}
+            <View style={styles.headerRow}>
+              <View style={styles.userSection}>
+                <View style={styles.userAvatar}>
+                  <Text style={styles.userAvatarText}>
+                    {user?.firstName?.charAt(0)?.toUpperCase() || 'U'}
+                  </Text>
+                </View>
+                <View style={styles.userInfo}>
+                  <Text style={styles.userName} numberOfLines={1}>
+                    {user?.firstName} {user?.lastName}
+                  </Text>
+                  <Text style={styles.userRole}>
+                    {user?.userType === 'owner' ? 'İşletme Sahibi' : 'Personel'}
+                  </Text>
+                </View>
               </View>
-              <View style={styles.userInfo}>
-                <Text style={styles.userName} numberOfLines={1}>
-                  {user?.firstName} {user?.lastName}
-                </Text>
-                <Text style={styles.userRole}>
-                  {user?.userType === 'owner' ? 'İşletme Sahibi' : 'Personel'}
-                </Text>
-              </View>
-            </View>
-
-            {/* Business Info */}
-            <View style={styles.businessCard}>
-              <View style={styles.businessIcon}>
-                <Text style={styles.businessIconText}>
-                  {selectedTenant?.businessName?.charAt(0)?.toUpperCase() || 'N'}
-                </Text>
-              </View>
-              <Text style={styles.businessName} numberOfLines={1}>
-                {selectedTenant?.businessName || 'Net Randevu'}
-              </Text>
+              <TouchableOpacity
+                style={styles.closeButton}
+                onPress={onClose}
+                activeOpacity={0.7}
+              >
+                <Ionicons name="close" size={22} color="#fff" />
+              </TouchableOpacity>
             </View>
           </LinearGradient>
 
@@ -280,19 +254,19 @@ export default function DrawerMenu({ isOpen, onClose }: DrawerMenuProps) {
                 <Ionicons name="chevron-forward" size={18} color="#D1D5DB" />
               </TouchableOpacity>
             </View>
-          </ScrollView>
 
-          {/* Footer */}
-          <View style={styles.footer}>
-            <TouchableOpacity
-              style={styles.logoutButton}
-              onPress={handleLogout}
-              activeOpacity={0.8}
-            >
-              <Ionicons name="log-out-outline" size={20} color="#DC2626" />
-              <Text style={styles.logoutText}>Çıkış Yap</Text>
-            </TouchableOpacity>
-          </View>
+            {/* Logout Button - inside ScrollView */}
+            <View style={styles.logoutSection}>
+              <TouchableOpacity
+                style={styles.logoutButton}
+                onPress={handleLogout}
+                activeOpacity={0.8}
+              >
+                <Ionicons name="log-out-outline" size={20} color="#DC2626" />
+                <Text style={styles.logoutText}>Çıkış Yap</Text>
+              </TouchableOpacity>
+            </View>
+          </ScrollView>
         </SafeAreaView>
       </Animated.View>
     </View>
@@ -340,28 +314,29 @@ const styles = StyleSheet.create({
   // Header
   header: {
     paddingHorizontal: IS_IOS ? 20 : 16,
-    paddingTop: IS_IOS ? 16 : 24,
-    paddingBottom: 20,
+    paddingTop: IS_IOS ? 8 : 12,
+    paddingBottom: IS_IOS ? 16 : 20,
+  },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
   closeButton: {
-    position: 'absolute',
-    top: IS_IOS ? 16 : 20,
-    right: 16,
     width: TOUCH_TARGET,
     height: TOUCH_TARGET,
     borderRadius: BORDER_RADIUS,
     backgroundColor: 'rgba(255,255,255,0.15)',
     justifyContent: 'center',
     alignItems: 'center',
-    zIndex: 10,
   },
 
   // User Section
   userSection: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: IS_IOS ? 8 : 16,
-    marginBottom: 16,
+    flex: 1,
+    marginRight: 12,
   },
   userAvatar: {
     width: IS_IOS ? 52 : 56, // Android: 56dp for large avatars
@@ -397,36 +372,6 @@ const styles = StyleSheet.create({
     fontSize: IS_IOS ? 13 : 14, // iOS: 13pt footnote, Android: 14sp body
     color: 'rgba(255,255,255,0.75)',
     marginTop: 2,
-  },
-
-  // Business Card
-  businessCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.12)',
-    borderRadius: BORDER_RADIUS,
-    padding: IS_IOS ? 12 : 16,
-    minHeight: TOUCH_TARGET,
-  },
-  businessIcon: {
-    width: IS_IOS ? 36 : 40,
-    height: IS_IOS ? 36 : 40,
-    borderRadius: IS_IOS ? 10 : 20,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  businessIconText: {
-    fontSize: IS_IOS ? 16 : 18,
-    fontWeight: '700',
-    color: '#fff',
-  },
-  businessName: {
-    flex: 1,
-    fontSize: IS_IOS ? 15 : 14,
-    fontWeight: '600',
-    color: '#fff',
-    marginLeft: IS_IOS ? 10 : 12,
   },
 
   // Menu
@@ -526,19 +471,17 @@ const styles = StyleSheet.create({
     marginLeft: 12,
   },
 
-  // Footer
-  footer: {
+  // Logout Section
+  logoutSection: {
     paddingHorizontal: 16,
-    paddingVertical: 16,
-    borderTopWidth: IS_IOS ? 0.5 : 1,
-    borderTopColor: IS_IOS ? '#C6C6C8' : '#E7E0EC',
+    marginTop: 16,
+    marginBottom: 16,
   },
   logoutButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    minHeight: TOUCH_TARGET,
-    paddingVertical: IS_IOS ? 12 : 14,
+    height: TOUCH_TARGET,
     backgroundColor: IS_IOS ? '#FEF2F2' : '#FFEDEA',
     borderRadius: BORDER_RADIUS,
   },
