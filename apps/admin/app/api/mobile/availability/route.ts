@@ -50,6 +50,19 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    // For customers, get tenantId from header (they don't have tenantId in token)
+    let tenantId = auth.tenantId;
+    if (auth.userType === 'customer') {
+      const headerTenantId = request.headers.get('X-Tenant-ID');
+      if (!headerTenantId) {
+        return NextResponse.json(
+          { success: false, message: 'Tenant ID gerekli' },
+          { status: 400 }
+        );
+      }
+      tenantId = headerTenantId;
+    }
+
     // Get service duration
     let serviceDuration = 30; // Default
     if (serviceId) {
@@ -70,7 +83,7 @@ export async function GET(request: NextRequest) {
 
     // Get tenant settings for working hours
     const tenant = await prisma.tenant.findUnique({
-      where: { id: auth.tenantId },
+      where: { id: tenantId },
       select: { settings: true },
     });
 

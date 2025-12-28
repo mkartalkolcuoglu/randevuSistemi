@@ -49,9 +49,22 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get('search') || '';
     const status = searchParams.get('status') || 'all';
 
+    // For customers, get tenantId from header (they don't have tenantId in token)
+    let tenantId = auth.tenantId;
+    if (auth.userType === 'customer') {
+      const headerTenantId = request.headers.get('X-Tenant-ID');
+      if (!headerTenantId) {
+        return NextResponse.json(
+          { success: false, message: 'Tenant ID gerekli' },
+          { status: 400 }
+        );
+      }
+      tenantId = headerTenantId;
+    }
+
     // Build where clause
     const whereClause: any = {
-      tenantId: auth.tenantId,
+      tenantId: tenantId,
     };
 
     // Status filter

@@ -172,14 +172,67 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // For customers, get tenantId from header (they don't have tenantId in token)
+    let tenantId = auth.tenantId;
+    if (auth.userType === 'customer') {
+      const headerTenantId = request.headers.get('X-Tenant-ID');
+      if (!headerTenantId) {
+        return NextResponse.json(
+          { success: false, message: 'Tenant ID gerekli' },
+          { status: 400 }
+        );
+      }
+      tenantId = headerTenantId;
+    }
+
     // Get customer ID (for customer user type)
     let customerId = auth.customerId;
 
-    if (!customerId && auth.userType === 'customer') {
-      return NextResponse.json(
-        { success: false, message: 'Müşteri bilgisi bulunamadı' },
-        { status: 400 }
-      );
+    // For customer user type, find or create customer record in target tenant
+    if (auth.userType === 'customer') {
+      if (!auth.customerId) {
+        return NextResponse.json(
+          { success: false, message: 'Müşteri bilgisi bulunamadı' },
+          { status: 400 }
+        );
+      }
+
+      // Get the customer's phone number from their original record
+      const originalCustomer = await prisma.customer.findUnique({
+        where: { id: auth.customerId },
+        select: { phone: true, firstName: true, lastName: true, email: true }
+      });
+
+      if (!originalCustomer?.phone) {
+        return NextResponse.json(
+          { success: false, message: 'Müşteri telefon bilgisi bulunamadı' },
+          { status: 400 }
+        );
+      }
+
+      // Find or create customer record in the target tenant
+      let targetCustomer = await prisma.customer.findFirst({
+        where: {
+          tenantId: tenantId,
+          phone: originalCustomer.phone,
+        },
+      });
+
+      if (!targetCustomer) {
+        // Create customer record in target tenant
+        targetCustomer = await prisma.customer.create({
+          data: {
+            tenantId: tenantId,
+            firstName: originalCustomer.firstName,
+            lastName: originalCustomer.lastName,
+            phone: originalCustomer.phone,
+            email: originalCustomer.email || `${originalCustomer.phone}@temp.com`,
+            status: 'active',
+          },
+        });
+      }
+
+      customerId = targetCustomer.id;
     }
 
     // If staff/owner creating appointment, find or create customer
@@ -194,7 +247,7 @@ export async function POST(request: NextRequest) {
       // Try to find existing customer by phone
       let customer = await prisma.customer.findFirst({
         where: {
-          tenantId: auth.tenantId,
+          tenantId: tenantId,
           phone: customerPhone,
         },
       });
@@ -207,7 +260,7 @@ export async function POST(request: NextRequest) {
 
         customer = await prisma.customer.create({
           data: {
-            tenantId: auth.tenantId,
+            tenantId: tenantId,
             firstName,
             lastName,
             phone: customerPhone,
@@ -283,7 +336,7 @@ export async function POST(request: NextRequest) {
     // Create appointment
     const appointment = await prisma.appointment.create({
       data: {
-        tenantId: auth.tenantId,
+        tenantId: tenantId,
         customerId,
         customerName: `${customer.firstName} ${customer.lastName}`.trim(),
         customerPhone: customer.phone || '',

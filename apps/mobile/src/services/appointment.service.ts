@@ -62,7 +62,9 @@ export const appointmentService = {
     notes?: string;
   }): Promise<ApiResponse<Appointment>> {
     try {
-      const response = await api.post('/api/mobile/appointments', data);
+      const response = await api.post('/api/mobile/appointments', data, {
+        headers: { 'X-Tenant-ID': data.tenantId }
+      });
       return response.data;
     } catch (error: any) {
       console.error('Create appointment error:', error);

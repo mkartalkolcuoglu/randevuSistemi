@@ -44,8 +44,21 @@ export async function GET(request: NextRequest) {
     const category = searchParams.get('category');
     const status = searchParams.get('status');
 
+    // For customers, get tenantId from header (they don't have tenantId in token)
+    let tenantId = auth.tenantId;
+    if (auth.userType === 'customer') {
+      const headerTenantId = request.headers.get('X-Tenant-ID');
+      if (!headerTenantId) {
+        return NextResponse.json(
+          { success: false, message: 'Tenant ID gerekli' },
+          { status: 400 }
+        );
+      }
+      tenantId = headerTenantId;
+    }
+
     // Build where clause
-    let whereClause: any = { tenantId: auth.tenantId };
+    let whereClause: any = { tenantId: tenantId };
 
     // If customer or not requesting inactive, only show active
     if (auth.userType === 'customer' || !includeInactive) {
