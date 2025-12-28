@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Alert,
+  TextInput,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -18,14 +19,13 @@ import { Service, Staff, TimeSlot } from '../../../src/types';
 
 type Step = 'tenant' | 'service' | 'staff' | 'date' | 'time' | 'confirm';
 
-interface CustomerTenant {
+interface TenantSearchResult {
   id: string;
   businessName: string;
   slug: string;
   logo?: string;
   phone?: string;
   address?: string;
-  customerId: string;
 }
 
 export default function NewAppointmentScreen() {
@@ -34,15 +34,19 @@ export default function NewAppointmentScreen() {
   const [step, setStep] = useState<Step>('tenant');
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSearching, setIsSearching] = useState(false);
+
+  // Search
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<TenantSearchResult[]>([]);
 
   // Data
-  const [customerTenants, setCustomerTenants] = useState<CustomerTenant[]>([]);
   const [services, setServices] = useState<Service[]>([]);
   const [staff, setStaff] = useState<Staff[]>([]);
   const [timeSlots, setTimeSlots] = useState<TimeSlot[]>([]);
 
   // Selections
-  const [selectedTenant, setSelectedTenantState] = useState<CustomerTenant | null>(null);
+  const [selectedTenant, setSelectedTenantState] = useState<TenantSearchResult | null>(null);
   const [selectedService, setSelectedService] = useState<Service | null>(null);
   const [selectedStaff, setSelectedStaff] = useState<Staff | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
@@ -62,9 +66,18 @@ export default function NewAppointmentScreen() {
 
   const availableDates = getAvailableDates();
 
+  // Debounced search
   useEffect(() => {
-    fetchCustomerTenants();
-  }, []);
+    const timeoutId = setTimeout(() => {
+      if (searchQuery.length >= 2) {
+        searchTenants();
+      } else {
+        setSearchResults([]);
+      }
+    }, 300);
+
+    return () => clearTimeout(timeoutId);
+  }, [searchQuery]);
 
   useEffect(() => {
     if (selectedTenant) {
@@ -84,17 +97,16 @@ export default function NewAppointmentScreen() {
     }
   }, [selectedService, selectedStaff, selectedDate]);
 
-  const fetchCustomerTenants = async () => {
-    setIsLoading(true);
+  const searchTenants = async () => {
+    setIsSearching(true);
     try {
-      const response = await api.get('/api/mobile/customer/tenants');
-      console.log('📱 Fetched customer tenants:', response.data.data?.length);
-      setCustomerTenants(response.data.data || []);
+      const response = await api.get(`/api/mobile/tenants/search?search=${encodeURIComponent(searchQuery)}`);
+      console.log('🔍 Search results:', response.data.data?.length);
+      setSearchResults(response.data.data || []);
     } catch (error) {
-      console.error('Error fetching customer tenants:', error);
-      Alert.alert('Hata', 'İşletme listesi yüklenemedi');
+      console.error('Error searching tenants:', error);
     } finally {
-      setIsLoading(false);
+      setIsSearching(false);
     }
   };
 
@@ -173,7 +185,6 @@ export default function NewAppointmentScreen() {
     try {
       await appointmentService.createAppointment({
         tenantId: selectedTenant.id,
-        customerId: selectedTenant.customerId,
         serviceId: selectedService.id,
         staffId: selectedStaff.id,
         date: selectedDate.toISOString().split('T')[0],
@@ -199,59 +210,107 @@ export default function NewAppointmentScreen() {
 
   const renderTenantStep = () => (
     <View style={styles.stepContent}>
-      <Text style={styles.stepTitle}>Salon Seçin</Text>
-      <Text style={styles.stepSubtitle}>Randevu almak istediğiniz salonu seçin</Text>
-      {isLoading ? (
-        <ActivityIndicator size="large" color="#3B82F6" style={styles.loader} />
-      ) : customerTenants.length === 0 ? (
-        <View style={styles.noSlots}>
-          <Ionicons name="business-outline" size={48} color="#D1D5DB" />
-          <Text style={styles.noSlotsText}>Kayıtlı olduğunuz salon bulunamadı</Text>
-        </View>
-      ) : (
-        customerTenants.map((tenant) => (
-          <TouchableOpacity
-            key={tenant.id}
-            style={[
-              styles.optionCard,
-              selectedTenant?.id === tenant.id && styles.optionCardSelected,
-            ]}
-            onPress={() => {
-              setSelectedTenantState(tenant);
-              // Reset other selections when tenant changes
-              setSelectedService(null);
-              setSelectedStaff(null);
-              setSelectedDate(null);
-              setSelectedTime(null);
-              setServices([]);
-              setStaff([]);
-              setTimeSlots([]);
-            }}
-          >
-            <View style={styles.tenantAvatar}>
-              <Ionicons name="business" size={24} color="#3B82F6" />
-            </View>
-            <View style={styles.optionInfo}>
-              <Text style={styles.optionName}>{tenant.businessName}</Text>
-              {tenant.address && (
-                <Text style={styles.optionDesc} numberOfLines={1}>{tenant.address}</Text>
-              )}
-              {tenant.phone && (
-                <Text style={styles.tenantPhone}>{tenant.phone}</Text>
-              )}
-            </View>
-            {selectedTenant?.id === tenant.id && (
-              <Ionicons name="checkmark-circle" size={24} color="#3B82F6" />
-            )}
+      <Text style={styles.stepTitle}>İşletme Seçin</Text>
+      <Text style={styles.stepSubtitle}>Randevu almak istediğiniz işletmeyi arayın</Text>
+
+      {/* Search Input */}
+      <View style={styles.searchContainer}>
+        <Ionicons name="search" size={20} color="#9CA3AF" style={styles.searchIcon} />
+        <TextInput
+          style={styles.searchInput}
+          placeholder="İşletme adı yazın..."
+          placeholderTextColor="#9CA3AF"
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+          autoCapitalize="none"
+          autoCorrect={false}
+        />
+        {searchQuery.length > 0 && (
+          <TouchableOpacity onPress={() => {
+            setSearchQuery('');
+            setSearchResults([]);
+          }}>
+            <Ionicons name="close-circle" size={20} color="#9CA3AF" />
           </TouchableOpacity>
-        ))
+        )}
+      </View>
+
+      {/* Selected Tenant Display */}
+      {selectedTenant && (
+        <View style={styles.selectedTenantCard}>
+          <View style={styles.tenantAvatar}>
+            <Ionicons name="business" size={24} color="#3B82F6" />
+          </View>
+          <View style={styles.optionInfo}>
+            <Text style={styles.optionName}>{selectedTenant.businessName}</Text>
+            {selectedTenant.address && (
+              <Text style={styles.optionDesc} numberOfLines={1}>{selectedTenant.address}</Text>
+            )}
+          </View>
+          <TouchableOpacity onPress={() => {
+            setSelectedTenantState(null);
+            setSearchQuery('');
+          }}>
+            <Ionicons name="close-circle" size={24} color="#EF4444" />
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {/* Search Results */}
+      {!selectedTenant && (
+        <>
+          {isSearching ? (
+            <ActivityIndicator size="large" color="#3B82F6" style={styles.loader} />
+          ) : searchQuery.length < 2 ? (
+            <View style={styles.noSlots}>
+              <Ionicons name="search-outline" size={48} color="#D1D5DB" />
+              <Text style={styles.noSlotsText}>İşletme aramak için en az 2 karakter girin</Text>
+            </View>
+          ) : searchResults.length === 0 ? (
+            <View style={styles.noSlots}>
+              <Ionicons name="business-outline" size={48} color="#D1D5DB" />
+              <Text style={styles.noSlotsText}>İşletme bulunamadı</Text>
+            </View>
+          ) : (
+            searchResults.map((tenant) => (
+              <TouchableOpacity
+                key={tenant.id}
+                style={styles.optionCard}
+                onPress={() => {
+                  setSelectedTenantState(tenant);
+                  // Reset other selections when tenant changes
+                  setSelectedService(null);
+                  setSelectedStaff(null);
+                  setSelectedDate(null);
+                  setSelectedTime(null);
+                  setServices([]);
+                  setStaff([]);
+                  setTimeSlots([]);
+                }}
+              >
+                <View style={styles.tenantAvatar}>
+                  <Ionicons name="business" size={24} color="#3B82F6" />
+                </View>
+                <View style={styles.optionInfo}>
+                  <Text style={styles.optionName}>{tenant.businessName}</Text>
+                  {tenant.address && (
+                    <Text style={styles.optionDesc} numberOfLines={1}>{tenant.address}</Text>
+                  )}
+                  {tenant.phone && (
+                    <Text style={styles.tenantPhone}>{tenant.phone}</Text>
+                  )}
+                </View>
+              </TouchableOpacity>
+            ))
+          )}
+        </>
       )}
     </View>
   );
 
   const renderStepIndicator = () => {
     const steps: { key: Step; label: string }[] = [
-      { key: 'tenant', label: 'Salon' },
+      { key: 'tenant', label: 'İşletme' },
       { key: 'service', label: 'Hizmet' },
       { key: 'staff', label: 'Personel' },
       { key: 'date', label: 'Tarih' },
@@ -434,7 +493,7 @@ export default function NewAppointmentScreen() {
         <View style={styles.summaryRow}>
           <Ionicons name="business" size={20} color="#6B7280" />
           <View style={styles.summaryInfo}>
-            <Text style={styles.summaryLabel}>Salon</Text>
+            <Text style={styles.summaryLabel}>İşletme</Text>
             <Text style={styles.summaryValue}>{selectedTenant?.businessName}</Text>
           </View>
         </View>
@@ -627,6 +686,33 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#6B7280',
     marginBottom: 20,
+  },
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F3F4F6',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    marginBottom: 20,
+  },
+  searchIcon: {
+    marginRight: 12,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 16,
+    color: '#1F2937',
+  },
+  selectedTenantCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#EFF6FF',
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 12,
+    borderWidth: 2,
+    borderColor: '#3B82F6',
   },
   loader: {
     marginTop: 40,
