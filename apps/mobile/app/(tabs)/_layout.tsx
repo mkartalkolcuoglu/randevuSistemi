@@ -119,7 +119,7 @@ export default function TabLayout() {
         options={{
           title: 'Randevular',
           tabBarIcon: ({ color }) => (
-            <Ionicons name="calendar-outline" size={TAB_ICON_SIZE} color={color} />
+            <Ionicons name="list" size={TAB_ICON_SIZE} color={color} />
           ),
         }}
       />
