@@ -28,6 +28,19 @@ interface TenantSearchResult {
   address?: string;
 }
 
+interface WorkingHours {
+  [key: string]: {
+    start: string;
+    end: string;
+    closed: boolean;
+  };
+}
+
+interface TenantSettings {
+  workingHours: WorkingHours;
+  appointmentTimeInterval: number;
+}
+
 export default function NewAppointmentScreen() {
   const router = useRouter();
   const { user } = useAuthStore();
@@ -41,6 +54,7 @@ export default function NewAppointmentScreen() {
   const [searchResults, setSearchResults] = useState<TenantSearchResult[]>([]);
 
   // Data
+  const [tenantSettings, setTenantSettings] = useState<TenantSettings | null>(null);
   const [services, setServices] = useState<Service[]>([]);
   const [staff, setStaff] = useState<Staff[]>([]);
   const [timeSlots, setTimeSlots] = useState<TimeSlot[]>([]);
@@ -52,14 +66,35 @@ export default function NewAppointmentScreen() {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
 
-  // Generate next 14 days
+  // Generate next 14 days with availability info
   const getAvailableDates = () => {
-    const dates: Date[] = [];
+    const dates: { date: Date; isOpen: boolean; dayName: string }[] = [];
     const today = new Date();
+
+    const dayNames: { [key: number]: string } = {
+      0: 'sunday',
+      1: 'monday',
+      2: 'tuesday',
+      3: 'wednesday',
+      4: 'thursday',
+      5: 'friday',
+      6: 'saturday',
+    };
+
     for (let i = 0; i < 14; i++) {
       const date = new Date(today);
       date.setDate(today.getDate() + i);
-      dates.push(date);
+
+      const dayName = dayNames[date.getDay()];
+      let isOpen = true;
+
+      // Check if tenant is open on this day
+      if (tenantSettings?.workingHours) {
+        const dayHours = tenantSettings.workingHours[dayName];
+        isOpen = dayHours ? !dayHours.closed : true;
+      }
+
+      dates.push({ date, isOpen, dayName });
     }
     return dates;
   };
@@ -81,6 +116,7 @@ export default function NewAppointmentScreen() {
 
   useEffect(() => {
     if (selectedTenant) {
+      fetchTenantSettings();
       fetchServices();
     }
   }, [selectedTenant]);
@@ -107,6 +143,20 @@ export default function NewAppointmentScreen() {
       console.error('Error searching tenants:', error);
     } finally {
       setIsSearching(false);
+    }
+  };
+
+  const fetchTenantSettings = async () => {
+    if (!selectedTenant) return;
+
+    try {
+      const response = await api.get(`/api/mobile/tenants/${selectedTenant.id}/settings`);
+      console.log('⚙️ Tenant settings:', response.data.data);
+      if (response.data.success) {
+        setTenantSettings(response.data.data);
+      }
+    } catch (error) {
+      console.error('Error fetching tenant settings:', error);
     }
   };
 
@@ -279,6 +329,7 @@ export default function NewAppointmentScreen() {
                 onPress={() => {
                   setSelectedTenantState(tenant);
                   // Reset other selections when tenant changes
+                  setTenantSettings(null);
                   setSelectedService(null);
                   setSelectedStaff(null);
                   setSelectedDate(null);
@@ -419,26 +470,52 @@ export default function NewAppointmentScreen() {
   const renderDateStep = () => (
     <View style={styles.stepContent}>
       <Text style={styles.stepTitle}>Tarih Seçin</Text>
+      {tenantSettings && (
+        <Text style={styles.stepSubtitle}>
+          Randevu aralığı: {tenantSettings.appointmentTimeInterval} dakika
+        </Text>
+      )}
       <ScrollView horizontal showsHorizontalScrollIndicator={false}>
         <View style={styles.dateGrid}>
-          {availableDates.map((date) => {
+          {availableDates.map((item) => {
             const isSelected =
-              selectedDate?.toDateString() === date.toDateString();
+              selectedDate?.toDateString() === item.date.toDateString();
+            const isClosed = !item.isOpen;
             return (
               <TouchableOpacity
-                key={date.toISOString()}
-                style={[styles.dateCard, isSelected && styles.dateCardSelected]}
-                onPress={() => setSelectedDate(date)}
+                key={item.date.toISOString()}
+                style={[
+                  styles.dateCard,
+                  isSelected && styles.dateCardSelected,
+                  isClosed && styles.dateCardClosed,
+                ]}
+                onPress={() => !isClosed && setSelectedDate(item.date)}
+                disabled={isClosed}
               >
-                <Text style={[styles.dateDay, isSelected && styles.dateDaySelected]}>
-                  {date.toLocaleDateString('tr-TR', { weekday: 'short' })}
+                <Text style={[
+                  styles.dateDay,
+                  isSelected && styles.dateDaySelected,
+                  isClosed && styles.dateDayClosed,
+                ]}>
+                  {item.date.toLocaleDateString('tr-TR', { weekday: 'short' })}
                 </Text>
-                <Text style={[styles.dateNum, isSelected && styles.dateNumSelected]}>
-                  {date.getDate()}
+                <Text style={[
+                  styles.dateNum,
+                  isSelected && styles.dateNumSelected,
+                  isClosed && styles.dateNumClosed,
+                ]}>
+                  {item.date.getDate()}
                 </Text>
-                <Text style={[styles.dateMonth, isSelected && styles.dateMonthSelected]}>
-                  {date.toLocaleDateString('tr-TR', { month: 'short' })}
+                <Text style={[
+                  styles.dateMonth,
+                  isSelected && styles.dateMonthSelected,
+                  isClosed && styles.dateMonthClosed,
+                ]}>
+                  {item.date.toLocaleDateString('tr-TR', { month: 'short' })}
                 </Text>
+                {isClosed && (
+                  <Text style={styles.closedLabel}>Kapalı</Text>
+                )}
               </TouchableOpacity>
             );
           })}
@@ -824,6 +901,25 @@ const styles = StyleSheet.create({
   },
   dateMonthSelected: {
     color: '#BFDBFE',
+  },
+  dateCardClosed: {
+    backgroundColor: '#F3F4F6',
+    opacity: 0.6,
+  },
+  dateDayClosed: {
+    color: '#9CA3AF',
+  },
+  dateNumClosed: {
+    color: '#9CA3AF',
+  },
+  dateMonthClosed: {
+    color: '#9CA3AF',
+  },
+  closedLabel: {
+    fontSize: 9,
+    color: '#EF4444',
+    fontWeight: '600',
+    marginTop: 2,
   },
   noSlots: {
     alignItems: 'center',

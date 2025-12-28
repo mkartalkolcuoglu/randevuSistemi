@@ -84,19 +84,41 @@ export async function GET(request: NextRequest) {
     // Get tenant settings for working hours
     const tenant = await prisma.tenant.findUnique({
       where: { id: tenantId },
-      select: { settings: true },
+      select: { workingHours: true },
     });
 
-    const tenantSettings = tenant?.settings as any;
+    // Get settings for appointment interval
+    const settings = await prisma.settings.findUnique({
+      where: { tenantId },
+      select: {
+        workingHours: true,
+        appointmentTimeInterval: true,
+      },
+    });
+
+    // Parse working hours - prefer settings, fallback to tenant
+    let tenantWorkingHours: any = null;
+    const workingHoursData = settings?.workingHours || tenant?.workingHours;
+    if (workingHoursData) {
+      try {
+        tenantWorkingHours = typeof workingHoursData === 'string'
+          ? JSON.parse(workingHoursData)
+          : workingHoursData;
+      } catch (e) {
+        console.error('Error parsing workingHours:', e);
+      }
+    }
 
     // Get day of week
     const dayOfWeek = new Date(date).toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
 
     // Determine working hours
     let startHour = 9;
+    let startMinute = 0;
     let endHour = 18;
+    let endMinute = 0;
 
-    // Check staff-specific hours
+    // Check staff-specific hours first
     const staffHours = staff?.workingHours as any;
     if (staffHours && staffHours[dayOfWeek]) {
       if (staffHours[dayOfWeek].closed) {
@@ -107,19 +129,35 @@ export async function GET(request: NextRequest) {
       }
       const start = staffHours[dayOfWeek].start;
       const end = staffHours[dayOfWeek].end;
-      if (start) startHour = parseInt(start.split(':')[0]);
-      if (end) endHour = parseInt(end.split(':')[0]);
-    } else if (tenantSettings?.workingHours) {
+      if (start) {
+        const [h, m] = start.split(':').map(Number);
+        startHour = h;
+        startMinute = m || 0;
+      }
+      if (end) {
+        const [h, m] = end.split(':').map(Number);
+        endHour = h;
+        endMinute = m || 0;
+      }
+    } else if (tenantWorkingHours && tenantWorkingHours[dayOfWeek]) {
       // Fallback to tenant hours
-      const tenantHours = tenantSettings.workingHours[dayOfWeek];
+      const tenantHours = tenantWorkingHours[dayOfWeek];
       if (tenantHours?.closed) {
         return NextResponse.json({
           success: true,
           data: [],
         });
       }
-      if (tenantHours?.start) startHour = parseInt(tenantHours.start.split(':')[0]);
-      if (tenantHours?.end) endHour = parseInt(tenantHours.end.split(':')[0]);
+      if (tenantHours?.start) {
+        const [h, m] = tenantHours.start.split(':').map(Number);
+        startHour = h;
+        startMinute = m || 0;
+      }
+      if (tenantHours?.end) {
+        const [h, m] = tenantHours.end.split(':').map(Number);
+        endHour = h;
+        endMinute = m || 0;
+      }
     }
 
     // Get existing appointments for the day
@@ -140,41 +178,45 @@ export async function GET(request: NextRequest) {
 
     // Generate all possible time slots
     const slots: { time: string; available: boolean }[] = [];
-    const slotInterval = 30; // 30 minute slots
+    const slotInterval = settings?.appointmentTimeInterval || 30;
 
-    for (let hour = startHour; hour < endHour; hour++) {
-      for (let minute = 0; minute < 60; minute += slotInterval) {
-        const timeStr = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
+    // Convert to minutes for easier calculation
+    const startTimeMinutes = startHour * 60 + startMinute;
+    const endTimeMinutes = endHour * 60 + endMinute;
 
-        // Check if this slot is in the past
-        const now = new Date();
-        const slotDate = new Date(date);
-        slotDate.setHours(hour, minute, 0, 0);
+    for (let minutes = startTimeMinutes; minutes < endTimeMinutes; minutes += slotInterval) {
+      const hour = Math.floor(minutes / 60);
+      const minute = minutes % 60;
+      const timeStr = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
 
-        if (slotDate < now) {
-          slots.push({ time: timeStr, available: false });
-          continue;
-        }
+      // Check if this slot is in the past
+      const now = new Date();
+      const slotDate = new Date(date);
+      slotDate.setHours(hour, minute, 0, 0);
 
-        // Check if slot conflicts with existing appointments
-        let isAvailable = true;
-        const slotStart = hour * 60 + minute;
-        const slotEnd = slotStart + serviceDuration;
-
-        for (const apt of appointments) {
-          const [aptHour, aptMinute] = apt.time.split(':').map(Number);
-          const aptStart = aptHour * 60 + aptMinute;
-          const aptEnd = aptStart + apt.service.duration;
-
-          // Check overlap
-          if (slotStart < aptEnd && slotEnd > aptStart) {
-            isAvailable = false;
-            break;
-          }
-        }
-
-        slots.push({ time: timeStr, available: isAvailable });
+      if (slotDate < now) {
+        slots.push({ time: timeStr, available: false });
+        continue;
       }
+
+      // Check if slot conflicts with existing appointments
+      let isAvailable = true;
+      const slotStart = hour * 60 + minute;
+      const slotEnd = slotStart + serviceDuration;
+
+      for (const apt of appointments) {
+        const [aptHour, aptMinute] = apt.time.split(':').map(Number);
+        const aptStart = aptHour * 60 + aptMinute;
+        const aptEnd = aptStart + apt.service.duration;
+
+        // Check overlap
+        if (slotStart < aptEnd && slotEnd > aptStart) {
+          isAvailable = false;
+          break;
+        }
+      }
+
+      slots.push({ time: timeStr, available: isAvailable });
     }
 
     return NextResponse.json({
