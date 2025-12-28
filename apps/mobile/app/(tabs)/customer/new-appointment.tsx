@@ -16,21 +16,33 @@ import { appointmentService } from '../../../src/services/appointment.service';
 import api from '../../../src/services/api';
 import { Service, Staff, TimeSlot } from '../../../src/types';
 
-type Step = 'service' | 'staff' | 'date' | 'time' | 'confirm';
+type Step = 'tenant' | 'service' | 'staff' | 'date' | 'time' | 'confirm';
+
+interface CustomerTenant {
+  id: string;
+  businessName: string;
+  slug: string;
+  logo?: string;
+  phone?: string;
+  address?: string;
+  customerId: string;
+}
 
 export default function NewAppointmentScreen() {
   const router = useRouter();
-  const { selectedTenant } = useAuthStore();
-  const [step, setStep] = useState<Step>('service');
+  const { user } = useAuthStore();
+  const [step, setStep] = useState<Step>('tenant');
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Data
+  const [customerTenants, setCustomerTenants] = useState<CustomerTenant[]>([]);
   const [services, setServices] = useState<Service[]>([]);
   const [staff, setStaff] = useState<Staff[]>([]);
   const [timeSlots, setTimeSlots] = useState<TimeSlot[]>([]);
 
   // Selections
+  const [selectedTenant, setSelectedTenantState] = useState<CustomerTenant | null>(null);
   const [selectedService, setSelectedService] = useState<Service | null>(null);
   const [selectedStaff, setSelectedStaff] = useState<Staff | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
@@ -51,8 +63,14 @@ export default function NewAppointmentScreen() {
   const availableDates = getAvailableDates();
 
   useEffect(() => {
-    fetchServices();
+    fetchCustomerTenants();
   }, []);
+
+  useEffect(() => {
+    if (selectedTenant) {
+      fetchServices();
+    }
+  }, [selectedTenant]);
 
   useEffect(() => {
     if (selectedService) {
@@ -66,10 +84,28 @@ export default function NewAppointmentScreen() {
     }
   }, [selectedService, selectedStaff, selectedDate]);
 
-  const fetchServices = async () => {
+  const fetchCustomerTenants = async () => {
     setIsLoading(true);
     try {
-      const response = await api.get('/api/mobile/services');
+      const response = await api.get('/api/mobile/customer/tenants');
+      console.log('📱 Fetched customer tenants:', response.data.data?.length);
+      setCustomerTenants(response.data.data || []);
+    } catch (error) {
+      console.error('Error fetching customer tenants:', error);
+      Alert.alert('Hata', 'İşletme listesi yüklenemedi');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const fetchServices = async () => {
+    if (!selectedTenant) return;
+
+    setIsLoading(true);
+    try {
+      const response = await api.get('/api/mobile/services', {
+        headers: { 'X-Tenant-ID': selectedTenant.id }
+      });
       setServices(response.data.data || []);
     } catch (error) {
       console.error('Error fetching services:', error);
@@ -79,9 +115,13 @@ export default function NewAppointmentScreen() {
   };
 
   const fetchStaff = async () => {
+    if (!selectedTenant || !selectedService) return;
+
     setIsLoading(true);
     try {
-      const response = await api.get(`/api/mobile/staff?serviceId=${selectedService?.id}`);
+      const response = await api.get(`/api/mobile/staff?serviceId=${selectedService.id}`, {
+        headers: { 'X-Tenant-ID': selectedTenant.id }
+      });
       setStaff(response.data.data || []);
     } catch (error) {
       console.error('Error fetching staff:', error);
@@ -91,13 +131,14 @@ export default function NewAppointmentScreen() {
   };
 
   const fetchTimeSlots = async () => {
-    if (!selectedDate || !selectedStaff || !selectedService) return;
+    if (!selectedDate || !selectedStaff || !selectedService || !selectedTenant) return;
 
     setIsLoading(true);
     try {
       const dateStr = selectedDate.toISOString().split('T')[0];
       const response = await api.get(
-        `/api/mobile/availability?staffId=${selectedStaff.id}&date=${dateStr}&serviceId=${selectedService.id}`
+        `/api/mobile/availability?staffId=${selectedStaff.id}&date=${dateStr}&serviceId=${selectedService.id}`,
+        { headers: { 'X-Tenant-ID': selectedTenant.id } }
       );
       setTimeSlots(response.data.data || []);
     } catch (error) {
@@ -108,7 +149,7 @@ export default function NewAppointmentScreen() {
   };
 
   const handleNext = () => {
-    const steps: Step[] = ['service', 'staff', 'date', 'time', 'confirm'];
+    const steps: Step[] = ['tenant', 'service', 'staff', 'date', 'time', 'confirm'];
     const currentIndex = steps.indexOf(step);
     if (currentIndex < steps.length - 1) {
       setStep(steps[currentIndex + 1]);
@@ -116,20 +157,23 @@ export default function NewAppointmentScreen() {
   };
 
   const handleBack = () => {
-    const steps: Step[] = ['service', 'staff', 'date', 'time', 'confirm'];
+    const steps: Step[] = ['tenant', 'service', 'staff', 'date', 'time', 'confirm'];
     const currentIndex = steps.indexOf(step);
     if (currentIndex > 0) {
       setStep(steps[currentIndex - 1]);
+    } else {
+      router.back();
     }
   };
 
   const handleSubmit = async () => {
-    if (!selectedService || !selectedStaff || !selectedDate || !selectedTime) return;
+    if (!selectedTenant || !selectedService || !selectedStaff || !selectedDate || !selectedTime) return;
 
     setIsSubmitting(true);
     try {
       await appointmentService.createAppointment({
-        tenantId: selectedTenant?.id || '',
+        tenantId: selectedTenant.id,
+        customerId: selectedTenant.customerId,
         serviceId: selectedService.id,
         staffId: selectedStaff.id,
         date: selectedDate.toISOString().split('T')[0],
@@ -153,8 +197,61 @@ export default function NewAppointmentScreen() {
     });
   };
 
+  const renderTenantStep = () => (
+    <View style={styles.stepContent}>
+      <Text style={styles.stepTitle}>Salon Seçin</Text>
+      <Text style={styles.stepSubtitle}>Randevu almak istediğiniz salonu seçin</Text>
+      {isLoading ? (
+        <ActivityIndicator size="large" color="#3B82F6" style={styles.loader} />
+      ) : customerTenants.length === 0 ? (
+        <View style={styles.noSlots}>
+          <Ionicons name="business-outline" size={48} color="#D1D5DB" />
+          <Text style={styles.noSlotsText}>Kayıtlı olduğunuz salon bulunamadı</Text>
+        </View>
+      ) : (
+        customerTenants.map((tenant) => (
+          <TouchableOpacity
+            key={tenant.id}
+            style={[
+              styles.optionCard,
+              selectedTenant?.id === tenant.id && styles.optionCardSelected,
+            ]}
+            onPress={() => {
+              setSelectedTenantState(tenant);
+              // Reset other selections when tenant changes
+              setSelectedService(null);
+              setSelectedStaff(null);
+              setSelectedDate(null);
+              setSelectedTime(null);
+              setServices([]);
+              setStaff([]);
+              setTimeSlots([]);
+            }}
+          >
+            <View style={styles.tenantAvatar}>
+              <Ionicons name="business" size={24} color="#3B82F6" />
+            </View>
+            <View style={styles.optionInfo}>
+              <Text style={styles.optionName}>{tenant.businessName}</Text>
+              {tenant.address && (
+                <Text style={styles.optionDesc} numberOfLines={1}>{tenant.address}</Text>
+              )}
+              {tenant.phone && (
+                <Text style={styles.tenantPhone}>{tenant.phone}</Text>
+              )}
+            </View>
+            {selectedTenant?.id === tenant.id && (
+              <Ionicons name="checkmark-circle" size={24} color="#3B82F6" />
+            )}
+          </TouchableOpacity>
+        ))
+      )}
+    </View>
+  );
+
   const renderStepIndicator = () => {
     const steps: { key: Step; label: string }[] = [
+      { key: 'tenant', label: 'Salon' },
       { key: 'service', label: 'Hizmet' },
       { key: 'staff', label: 'Personel' },
       { key: 'date', label: 'Tarih' },
@@ -391,6 +488,8 @@ export default function NewAppointmentScreen() {
 
   const canProceed = () => {
     switch (step) {
+      case 'tenant':
+        return selectedTenant !== null;
       case 'service':
         return selectedService !== null;
       case 'staff':
@@ -409,11 +508,11 @@ export default function NewAppointmentScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={handleBack} disabled={step === 'service'}>
+        <TouchableOpacity onPress={handleBack}>
           <Ionicons
             name="arrow-back"
             size={24}
-            color={step === 'service' ? '#D1D5DB' : '#1F2937'}
+            color="#1F2937"
           />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Yeni Randevu</Text>
@@ -423,6 +522,7 @@ export default function NewAppointmentScreen() {
       {renderStepIndicator()}
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+        {step === 'tenant' && renderTenantStep()}
         {step === 'service' && renderServiceStep()}
         {step === 'staff' && renderStaffStep()}
         {step === 'date' && renderDateStep()}
@@ -504,7 +604,7 @@ const styles = StyleSheet.create({
     borderColor: '#BFDBFE',
   },
   stepLine: {
-    width: 40,
+    width: 28,
     height: 2,
     backgroundColor: '#E5E7EB',
   },
@@ -521,6 +621,11 @@ const styles = StyleSheet.create({
     fontSize: 22,
     fontWeight: '700',
     color: '#1F2937',
+    marginBottom: 8,
+  },
+  stepSubtitle: {
+    fontSize: 14,
+    color: '#6B7280',
     marginBottom: 20,
   },
   loader: {
@@ -566,6 +671,20 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: '#059669',
+  },
+  tenantAvatar: {
+    width: 48,
+    height: 48,
+    borderRadius: 12,
+    backgroundColor: '#EFF6FF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  tenantPhone: {
+    fontSize: 13,
+    color: '#6B7280',
+    marginTop: 4,
   },
   staffAvatar: {
     width: 48,
