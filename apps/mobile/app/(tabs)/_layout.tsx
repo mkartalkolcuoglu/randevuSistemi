@@ -117,9 +117,9 @@ export default function TabLayout() {
       <Tabs.Screen
         name="staff/appointments"
         options={{
-          title: 'Yeni Randevu',
+          title: 'Randevular',
           tabBarIcon: ({ color }) => (
-            <Ionicons name="add-circle" size={TAB_ICON_SIZE} color={color} />
+            <Ionicons name="calendar-outline" size={TAB_ICON_SIZE} color={color} />
           ),
         }}
       />
