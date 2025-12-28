@@ -54,7 +54,7 @@ export const authService = {
   },
 
   /**
-   * Verify OTP code
+   * Verify OTP code (for business users - staff/owner)
    */
   async verifyOtp(phone: string, code: string): Promise<VerifyOtpResponse> {
     try {
@@ -82,6 +82,40 @@ export const authService = {
       return {
         success: false,
         message: error.response?.data?.error || 'Doğrulama başarısız',
+      };
+    }
+  },
+
+  /**
+   * Verify OTP code for CUSTOMER login
+   * Customers are not bound to a single tenant
+   */
+  async verifyOtpCustomer(phone: string, code: string): Promise<VerifyOtpResponse> {
+    try {
+      const response = await api.post('/api/mobile/auth/verify-otp-customer', {
+        phone,
+        code,
+      });
+
+      if (response.data.success && response.data.token) {
+        // Store auth token
+        await SecureStore.setItemAsync('authToken', response.data.token);
+
+        // Store user data
+        if (response.data.user) {
+          await SecureStore.setItemAsync(
+            'userData',
+            JSON.stringify(response.data.user)
+          );
+        }
+      }
+
+      return response.data;
+    } catch (error: any) {
+      console.error('Verify OTP Customer error:', error);
+      return {
+        success: false,
+        message: error.response?.data?.message || error.response?.data?.error || 'Doğrulama başarısız',
       };
     }
   },

@@ -16,8 +16,8 @@ import { OTP_LENGTH, OTP_RESEND_TIMEOUT } from '../../src/constants/config';
 
 export default function VerifyScreen() {
   const router = useRouter();
-  const { phone } = useLocalSearchParams<{ phone: string }>();
-  const { verifyOtp, sendOtp, isLoading } = useAuthStore();
+  const { phone, userType } = useLocalSearchParams<{ phone: string; userType?: string }>();
+  const { verifyOtp, verifyOtpCustomer, sendOtp, isLoading } = useAuthStore();
 
   const [otp, setOtp] = useState<string[]>(new Array(OTP_LENGTH).fill(''));
   const [resendTimer, setResendTimer] = useState(OTP_RESEND_TIMEOUT);
@@ -88,19 +88,33 @@ export default function VerifyScreen() {
       return;
     }
 
-    const result = await verifyOtp(phone, code);
+    // Use different verification based on userType
+    if (userType === 'customer') {
+      // Customer login - no tenant selection
+      const result = await verifyOtpCustomer(phone, code);
 
-    if (result.success) {
-      if (result.needsTenantSelection) {
-        router.replace('/(auth)/select-tenant');
-      } else {
+      if (result.success) {
         router.replace('/');
+      } else {
+        Alert.alert('Hata', result.message);
+        setOtp(new Array(OTP_LENGTH).fill(''));
+        inputRefs.current[0]?.focus();
       }
     } else {
-      Alert.alert('Hata', result.message);
-      // Clear OTP on error
-      setOtp(new Array(OTP_LENGTH).fill(''));
-      inputRefs.current[0]?.focus();
+      // Business login (staff/owner) - may need tenant selection
+      const result = await verifyOtp(phone, code);
+
+      if (result.success) {
+        if (result.needsTenantSelection) {
+          router.replace('/(auth)/select-tenant');
+        } else {
+          router.replace('/');
+        }
+      } else {
+        Alert.alert('Hata', result.message);
+        setOtp(new Array(OTP_LENGTH).fill(''));
+        inputRefs.current[0]?.focus();
+      }
     }
   };
 

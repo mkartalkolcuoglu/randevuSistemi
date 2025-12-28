@@ -19,7 +19,7 @@ export const appointmentService = {
     limit?: number;
   }): Promise<PaginatedResponse<Appointment>> {
     try {
-      const response = await api.get('/api/mobile/appointments/my', { params });
+      const response = await api.get('/api/mobile/appointments', { params });
       return response.data;
     } catch (error: any) {
       console.error('Get appointments error:', error);
@@ -78,13 +78,15 @@ export const appointmentService = {
    */
   async cancelAppointment(id: string): Promise<ApiResponse<void>> {
     try {
-      const response = await api.put(`/api/mobile/appointments/${id}/cancel`);
+      const response = await api.patch(`/api/mobile/appointments/${id}`, {
+        status: 'cancelled'
+      });
       return response.data;
     } catch (error: any) {
       console.error('Cancel appointment error:', error);
       return {
         success: false,
-        error: error.response?.data?.error || 'Randevu iptal edilemedi',
+        error: error.response?.data?.error || error.response?.data?.message || 'Randevu iptal edilemedi',
       };
     }
   },

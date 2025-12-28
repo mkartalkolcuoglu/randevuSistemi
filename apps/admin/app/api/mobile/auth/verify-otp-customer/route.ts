@@ -1,0 +1,135 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { prisma } from '../../../../../lib/prisma';
+import jwt from 'jsonwebtoken';
+
+const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
+
+/**
+ * Müşteri girişi için OTP doğrulama
+ * Müşteri tenant'a bağlı değildir - tüm işletmelerdeki randevularını görebilir
+ */
+export async function POST(request: NextRequest) {
+  try {
+    const { phone, code } = await request.json();
+
+    if (!phone || !code) {
+      return NextResponse.json(
+        { success: false, message: 'Telefon numarası ve doğrulama kodu gerekli' },
+        { status: 400 }
+      );
+    }
+
+    // Format phone number
+    let formattedPhone = phone.replace(/\s/g, '').replace(/^0/, '');
+    if (!formattedPhone.startsWith('90')) {
+      formattedPhone = '90' + formattedPhone;
+    }
+
+    console.log('📱 [CUSTOMER] Verify OTP - Phone:', formattedPhone);
+
+    // Find OTP record
+    const otpRecord = await prisma.otpVerification.findFirst({
+      where: {
+        phone: formattedPhone,
+        code,
+        expiresAt: {
+          gte: new Date(),
+        },
+      },
+    });
+
+    if (!otpRecord) {
+      return NextResponse.json(
+        { success: false, message: 'Geçersiz veya süresi dolmuş doğrulama kodu' },
+        { status: 400 }
+      );
+    }
+
+    // Delete used OTP
+    await prisma.otpVerification.delete({
+      where: { id: otpRecord.id },
+    });
+
+    // Find customer by phone (across all tenants)
+    const phoneLastDigits = phone.replace(/^0/, '').slice(-10);
+
+    const customers = await prisma.customer.findMany({
+      where: {
+        phone: {
+          contains: phoneLastDigits,
+        },
+      },
+      include: {
+        tenant: {
+          select: {
+            id: true,
+            businessName: true,
+            slug: true,
+          },
+        },
+      },
+    });
+
+    console.log('📱 [CUSTOMER] Found customers:', customers.length);
+
+    if (customers.length === 0) {
+      return NextResponse.json(
+        { success: false, message: 'Bu telefon numarası ile kayıtlı müşteri bulunamadı' },
+        { status: 404 }
+      );
+    }
+
+    // Use first customer's info (name, email)
+    const firstCustomer = customers[0];
+
+    // Create user object - NO tenantId for customers
+    const user = {
+      id: firstCustomer.id,
+      phone: formattedPhone,
+      userType: 'customer' as const,
+      firstName: firstCustomer.firstName,
+      lastName: firstCustomer.lastName,
+      email: firstCustomer.email,
+      // Customer is not bound to a single tenant
+      tenantId: null,
+      tenantName: null,
+    };
+
+    // Generate JWT token - customer token does NOT have tenantId
+    const token = jwt.sign(
+      {
+        phone: formattedPhone,
+        userType: 'customer',
+        customerId: firstCustomer.id,
+        // No tenantId - customer can see all their appointments across tenants
+      },
+      JWT_SECRET,
+      { expiresIn: '30d' }
+    );
+
+    // Return list of tenants where customer has records (for info only)
+    const customerTenants = customers.map(c => ({
+      id: c.tenant.id,
+      businessName: c.tenant.businessName,
+      slug: c.tenant.slug,
+      customerId: c.id,
+    }));
+
+    console.log('📱 [CUSTOMER] Login successful, tenants:', customerTenants.length);
+
+    return NextResponse.json({
+      success: true,
+      message: 'Giriş başarılı',
+      user,
+      token,
+      customerTenants, // Info about which tenants customer is registered with
+    });
+
+  } catch (error: any) {
+    console.error('❌ [CUSTOMER] Verify OTP error:', error);
+    return NextResponse.json(
+      { success: false, message: 'Bir hata oluştu', error: error?.message },
+      { status: 500 }
+    );
+  }
+}

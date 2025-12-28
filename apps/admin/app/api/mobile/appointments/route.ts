@@ -43,16 +43,35 @@ export async function GET(request: NextRequest) {
     const date = searchParams.get('date');
     const status = searchParams.get('status');
 
-    let whereClause: any = { tenantId: auth.tenantId };
+    let whereClause: any = {};
 
-    // If customer, only show their appointments
+    // Customer - can see appointments from ALL tenants where they have records
     if (auth.userType === 'customer' && auth.customerId) {
-      whereClause.customerId = auth.customerId;
-    }
+      // Find all customer IDs with the same phone across tenants
+      const customer = await prisma.customer.findUnique({
+        where: { id: auth.customerId },
+        select: { phone: true }
+      });
 
-    // If staff (not owner), only show their appointments
-    if (auth.userType === 'staff' && auth.staffId) {
-      whereClause.staffId = auth.staffId;
+      if (customer?.phone) {
+        // Get all customer records with same phone
+        const allCustomerRecords = await prisma.customer.findMany({
+          where: { phone: customer.phone },
+          select: { id: true }
+        });
+        const customerIds = allCustomerRecords.map(c => c.id);
+        whereClause.customerId = { in: customerIds };
+      } else {
+        whereClause.customerId = auth.customerId;
+      }
+    } else {
+      // Staff/Owner - only see appointments from their tenant
+      whereClause.tenantId = auth.tenantId;
+
+      // If staff (not owner), only show their appointments
+      if (auth.userType === 'staff' && auth.staffId) {
+        whereClause.staffId = auth.staffId;
+      }
     }
 
     if (date) {
@@ -87,13 +106,19 @@ export async function GET(request: NextRequest) {
             lastName: true,
           },
         },
+        tenant: {
+          select: {
+            businessName: true,
+          },
+        },
       },
-      orderBy: [{ date: 'asc' }, { time: 'asc' }],
+      orderBy: [{ date: 'desc' }, { time: 'desc' }],
     });
 
-    const formattedAppointments = appointments.map((apt) => ({
+    const formattedAppointments = appointments.map((apt: any) => ({
       id: apt.id,
       tenantId: apt.tenantId,
+      tenantName: apt.tenant?.businessName || '',
       customerId: apt.customerId,
       customerName: `${apt.customer.firstName} ${apt.customer.lastName}`,
       customerPhone: apt.customer.phone,

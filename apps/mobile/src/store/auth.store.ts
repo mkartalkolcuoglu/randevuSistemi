@@ -15,6 +15,10 @@ interface AuthStore extends AuthState {
     message: string;
     needsTenantSelection?: boolean;
   }>;
+  verifyOtpCustomer: (phone: string, code: string) => Promise<{
+    success: boolean;
+    message: string;
+  }>;
   selectTenant: (tenant: Tenant) => Promise<boolean>;
   logout: () => Promise<void>;
   setUser: (user: User | null) => void;
@@ -36,7 +40,8 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
       const isAuth = await authService.isAuthenticated();
       if (isAuth) {
         const user = await authService.getStoredUser();
-        if (user && user.tenantId) {
+        // Check if user exists - customers may not have tenantId
+        if (user) {
           // Verify token is still valid by making a test API call
           try {
             const refreshedUser = await authService.refreshUserData();
@@ -44,6 +49,7 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
               set({
                 isAuthenticated: true,
                 user: refreshedUser,
+                // Customers don't have tenantId, staff/owner do
                 selectedTenant: refreshedUser.tenantId
                   ? {
                       id: refreshedUser.tenantId,
@@ -130,7 +136,7 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
     }
   },
 
-  // Verify OTP
+  // Verify OTP (for business users - staff/owner)
   verifyOtp: async (phone: string, code: string) => {
     set({ isLoading: true });
     try {
@@ -164,6 +170,35 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
           success: true,
           message: 'Giriş başarılı',
           needsTenantSelection: false,
+        };
+      }
+
+      return {
+        success: false,
+        message: result.message,
+      };
+    } finally {
+      set({ isLoading: false });
+    }
+  },
+
+  // Verify OTP for CUSTOMER - no tenant selection needed
+  verifyOtpCustomer: async (phone: string, code: string) => {
+    set({ isLoading: true });
+    try {
+      const result = await authService.verifyOtpCustomer(phone, code);
+
+      if (result.success) {
+        // Customer login - no tenant selection
+        set({
+          isAuthenticated: true,
+          user: result.user || null,
+          selectedTenant: null, // Customers don't have a selected tenant
+        });
+
+        return {
+          success: true,
+          message: 'Giriş başarılı',
         };
       }
 
