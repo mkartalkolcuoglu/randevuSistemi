@@ -81,8 +81,8 @@ export default function NewAppointmentScreen() {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
 
-  // Payment options
-  const [usePackage, setUsePackage] = useState<boolean | null>(null);
+  // Payment options: 'package' | 'pay' | 'later' | null
+  const [paymentOption, setPaymentOption] = useState<'package' | 'pay' | 'later' | null>(null);
   const [agreementAccepted, setAgreementAccepted] = useState(false);
 
   // Generate next 14 days with availability info
@@ -273,18 +273,23 @@ export default function NewAppointmentScreen() {
       return;
     }
 
-    // Get package info for the selected service
-    const packageInfo = customerPackages?.servicePackageMap?.[selectedService.id];
-    const hasPackageOption = packageInfo && packageInfo.remainingQuantity > 0;
-
-    // If has package option but not selected, show error
-    if (hasPackageOption && usePackage === null) {
-      Alert.alert('Hata', 'Lütfen paket kullanımı seçeneğini belirleyin.');
+    // Check payment option selected
+    if (!paymentOption) {
+      Alert.alert('Hata', 'Lütfen ödeme seçeneğini belirleyin.');
       return;
     }
 
-    // If not using package (paying with card), redirect to payment screen
-    if (!hasPackageOption || usePackage === false) {
+    // Get package info for the selected service
+    const packageInfo = customerPackages?.servicePackageMap?.[selectedService.id];
+
+    // If selected package but no package available
+    if (paymentOption === 'package' && !packageInfo) {
+      Alert.alert('Hata', 'Bu hizmet için paket hakkınız bulunmuyor.');
+      return;
+    }
+
+    // If paying now, redirect to payment screen
+    if (paymentOption === 'pay') {
       const appointmentData = {
         tenantId: selectedTenant.id,
         serviceId: selectedService.id,
@@ -293,7 +298,6 @@ export default function NewAppointmentScreen() {
         time: selectedTime,
       };
 
-      // Navigate to payment screen
       router.push({
         pathname: '/(tabs)/customer/payment',
         params: {
@@ -307,7 +311,7 @@ export default function NewAppointmentScreen() {
       return;
     }
 
-    // Using package - create appointment directly
+    // Create appointment directly (package or pay later)
     setIsSubmitting(true);
     try {
       const appointmentData: any = {
@@ -316,14 +320,22 @@ export default function NewAppointmentScreen() {
         staffId: selectedStaff.id,
         date: selectedDate.toISOString().split('T')[0],
         time: selectedTime,
-        usePackage: true,
-        customerPackageId: packageInfo.customerPackageId,
-        packageUsageId: packageInfo.usageId,
       };
+
+      // Add package info if using package
+      if (paymentOption === 'package' && packageInfo) {
+        appointmentData.usePackage = true;
+        appointmentData.customerPackageId = packageInfo.customerPackageId;
+        appointmentData.packageUsageId = packageInfo.usageId;
+      }
 
       await appointmentService.createAppointment(appointmentData);
 
-      Alert.alert('Başarılı', 'Randevunuz oluşturuldu ve paket hakkınızdan düşüldü!', [
+      const successMessage = paymentOption === 'package'
+        ? 'Randevunuz oluşturuldu ve paket hakkınızdan düşüldü!'
+        : 'Randevunuz oluşturuldu!';
+
+      Alert.alert('Başarılı', successMessage, [
         { text: 'Tamam', onPress: () => router.replace('/(tabs)/customer') },
       ]);
     } catch (error: any) {
@@ -503,8 +515,8 @@ export default function NewAppointmentScreen() {
                 ]}
                 onPress={() => {
                   setSelectedService(service);
-                  // Reset package usage when service changes
-                  setUsePackage(null);
+                  // Reset payment option when service changes
+                  setPaymentOption(null);
                 }}
               >
                 <View style={styles.optionInfo}>
@@ -734,90 +746,99 @@ export default function NewAppointmentScreen() {
           </View>
         </View>
 
-        {/* Package Usage Option */}
-        {showPackageOption && (
-          <View style={styles.packageUsageCard}>
-            <View style={styles.packageUsageHeader}>
-              <Ionicons name="gift" size={24} color="#059669" />
-              <Text style={styles.packageUsageTitle}>Paket Kullanımı</Text>
-            </View>
-            <Text style={styles.packageUsageDesc}>
-              Aldığınız <Text style={styles.packageUsageBold}>{selectedService?.name}</Text> hizmeti,
-              aktif olan <Text style={styles.packageUsageBold}>{packageInfo.packageName}</Text> paketinizde mevcut.
-            </Text>
-            <Text style={styles.packageUsageDesc}>
-              Paketinizde <Text style={styles.packageUsageBold}>{packageInfo.remainingQuantity} seans</Text> hakkınız bulunuyor.
-            </Text>
-            <Text style={styles.packageUsageQuestion}>
-              Bu randevuyu paketinizden düşürmek ister misiniz?
-            </Text>
+        {/* Payment Options */}
+        <View style={styles.paymentOptionsCard}>
+          <View style={styles.paymentOptionsHeader}>
+            <Ionicons name="wallet" size={24} color="#3B82F6" />
+            <Text style={styles.paymentOptionsTitle}>Ödeme Seçenekleri</Text>
+          </View>
 
-            <View style={styles.packageOptionsContainer}>
+          <View style={styles.paymentOptionsAmount}>
+            <Text style={styles.paymentOptionsLabel}>Hizmet Ücreti</Text>
+            <Text style={styles.paymentOptionsPrice}>{selectedService?.price} ₺</Text>
+          </View>
+
+          <View style={styles.packageOptionsContainer}>
+            {/* Package Option - Only show if customer has package */}
+            {showPackageOption && (
               <TouchableOpacity
                 style={[
                   styles.packageOption,
-                  usePackage === true && styles.packageOptionSelected,
+                  paymentOption === 'package' && styles.packageOptionSelected,
                 ]}
-                onPress={() => setUsePackage(true)}
+                onPress={() => setPaymentOption('package')}
               >
                 <Ionicons
-                  name={usePackage === true ? "checkmark-circle" : "ellipse-outline"}
+                  name={paymentOption === 'package' ? "checkmark-circle" : "ellipse-outline"}
                   size={24}
-                  color={usePackage === true ? "#059669" : "#9CA3AF"}
+                  color={paymentOption === 'package' ? "#059669" : "#9CA3AF"}
                 />
                 <View style={styles.packageOptionContent}>
                   <Text style={[
                     styles.packageOptionTitle,
-                    usePackage === true && styles.packageOptionTitleSelected
-                  ]}>Evet, Paketten Düş</Text>
+                    paymentOption === 'package' && styles.packageOptionTitleSelected
+                  ]}>Paketten Düş</Text>
                   <Text style={styles.packageOptionDesc}>
-                    Randevu tamamlandığında paket hakkınız azalacaktır.
+                    {packageInfo?.packageName} - {packageInfo?.remainingQuantity} seans hakkınız var
                   </Text>
                 </View>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[
-                  styles.packageOption,
-                  usePackage === false && styles.packageOptionSelected,
-                ]}
-                onPress={() => setUsePackage(false)}
-              >
-                <Ionicons
-                  name={usePackage === false ? "checkmark-circle" : "ellipse-outline"}
-                  size={24}
-                  color={usePackage === false ? "#3B82F6" : "#9CA3AF"}
-                />
-                <View style={styles.packageOptionContent}>
-                  <Text style={[
-                    styles.packageOptionTitle,
-                    usePackage === false && styles.packageOptionTitleSelected
-                  ]}>Hayır, Ödeme Yapacağım</Text>
-                  <Text style={styles.packageOptionDesc}>
-                    Normal ücret ({selectedService?.price} ₺) tahsil edilecektir.
-                  </Text>
+                <View style={styles.packageBadgeSmall}>
+                  <Ionicons name="gift" size={14} color="#fff" />
                 </View>
               </TouchableOpacity>
-            </View>
-          </View>
-        )}
+            )}
 
-        {/* Payment Section - Show if not using package or no package available */}
-        {(!showPackageOption || usePackage === false) && (
-          <View style={styles.paymentCard}>
-            <View style={styles.paymentHeader}>
-              <Ionicons name="card" size={24} color="#3B82F6" />
-              <Text style={styles.paymentTitle}>Ödeme</Text>
-            </View>
-            <View style={styles.paymentAmount}>
-              <Text style={styles.paymentLabel}>Toplam Tutar</Text>
-              <Text style={styles.paymentPrice}>{selectedService?.price} ₺</Text>
-            </View>
-            <Text style={styles.paymentNote}>
-              Ödeme randevu sonrasında işletmede yapılacaktır.
-            </Text>
+            {/* Pay Now Option */}
+            <TouchableOpacity
+              style={[
+                styles.packageOption,
+                paymentOption === 'pay' && styles.packageOptionSelectedBlue,
+              ]}
+              onPress={() => setPaymentOption('pay')}
+            >
+              <Ionicons
+                name={paymentOption === 'pay' ? "checkmark-circle" : "ellipse-outline"}
+                size={24}
+                color={paymentOption === 'pay' ? "#3B82F6" : "#9CA3AF"}
+              />
+              <View style={styles.packageOptionContent}>
+                <Text style={[
+                  styles.packageOptionTitle,
+                  paymentOption === 'pay' && styles.packageOptionTitleSelectedBlue
+                ]}>Şimdi Öde</Text>
+                <Text style={styles.packageOptionDesc}>
+                  Kredi kartı ile güvenli ödeme yapın
+                </Text>
+              </View>
+              <Ionicons name="card" size={20} color={paymentOption === 'pay' ? "#3B82F6" : "#9CA3AF"} />
+            </TouchableOpacity>
+
+            {/* Pay Later Option */}
+            <TouchableOpacity
+              style={[
+                styles.packageOption,
+                paymentOption === 'later' && styles.packageOptionSelectedGray,
+              ]}
+              onPress={() => setPaymentOption('later')}
+            >
+              <Ionicons
+                name={paymentOption === 'later' ? "checkmark-circle" : "ellipse-outline"}
+                size={24}
+                color={paymentOption === 'later' ? "#6B7280" : "#9CA3AF"}
+              />
+              <View style={styles.packageOptionContent}>
+                <Text style={[
+                  styles.packageOptionTitle,
+                  paymentOption === 'later' && styles.packageOptionTitleSelectedGray
+                ]}>İşletmede Öde</Text>
+                <Text style={styles.packageOptionDesc}>
+                  Randevu sonrası işletmede ödeme yapın
+                </Text>
+              </View>
+              <Ionicons name="storefront" size={20} color={paymentOption === 'later' ? "#6B7280" : "#9CA3AF"} />
+            </TouchableOpacity>
           </View>
-        )}
+        </View>
 
         {/* Agreement Section */}
         <TouchableOpacity
@@ -853,11 +874,8 @@ export default function NewAppointmentScreen() {
         // Agreement must be accepted
         if (!agreementAccepted) return false;
 
-        // If service has package, user must select package option
-        const packageInfo = selectedService ? customerPackages?.servicePackageMap?.[selectedService.id] : null;
-        if (packageInfo && packageInfo.remainingQuantity > 0) {
-          if (usePackage === null) return false;
-        }
+        // Payment option must be selected
+        if (!paymentOption) return false;
 
         return true;
       }
@@ -1352,12 +1370,67 @@ const styles = StyleSheet.create({
   packageOptionTitleSelected: {
     color: '#059669',
   },
+  packageOptionTitleSelectedBlue: {
+    color: '#3B82F6',
+  },
+  packageOptionTitleSelectedGray: {
+    color: '#374151',
+  },
+  packageOptionSelectedBlue: {
+    borderColor: '#3B82F6',
+    backgroundColor: '#EFF6FF',
+  },
+  packageOptionSelectedGray: {
+    borderColor: '#6B7280',
+    backgroundColor: '#F3F4F6',
+  },
   packageOptionDesc: {
     fontSize: 13,
     color: '#6B7280',
     marginTop: 4,
   },
-  // Payment card styles
+  packageBadgeSmall: {
+    backgroundColor: '#059669',
+    padding: 6,
+    borderRadius: 12,
+  },
+  // Payment options card
+  paymentOptionsCard: {
+    backgroundColor: '#F9FAFB',
+    borderRadius: 16,
+    padding: 20,
+    marginTop: 16,
+  },
+  paymentOptionsHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  paymentOptionsTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#1F2937',
+    marginLeft: 8,
+  },
+  paymentOptionsAmount: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    padding: 12,
+    borderRadius: 10,
+    marginBottom: 16,
+  },
+  paymentOptionsLabel: {
+    fontSize: 14,
+    color: '#6B7280',
+  },
+  paymentOptionsPrice: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#059669',
+  },
+  // Payment card styles (keep for backwards compatibility)
   paymentCard: {
     backgroundColor: '#EFF6FF',
     borderRadius: 16,
