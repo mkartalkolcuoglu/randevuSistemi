@@ -90,16 +90,15 @@ export async function GET(request: NextRequest) {
       ];
     }
 
-    // Service filter
-    if (serviceId) {
-      whereClause.services = {
-        some: {
-          id: serviceId,
-        },
-      };
-    }
-
-    // Note: services relation temporarily disabled - _ServiceToStaff table doesn't exist
+    // Service filter - disabled because _ServiceToStaff table doesn't exist
+    // When staff-service relation is implemented, uncomment this:
+    // if (serviceId) {
+    //   whereClause.services = {
+    //     some: {
+    //       id: serviceId,
+    //     },
+    //   };
+    // }
     const staff = await prisma.staff.findMany({
       where: whereClause,
       orderBy: { firstName: 'asc' },
