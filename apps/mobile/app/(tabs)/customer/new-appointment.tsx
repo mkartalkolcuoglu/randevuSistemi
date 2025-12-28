@@ -41,6 +41,20 @@ interface TenantSettings {
   appointmentTimeInterval: number;
 }
 
+interface PackageInfo {
+  packageId: string;
+  packageName: string;
+  usageId: string;
+  remainingQuantity: number;
+  customerPackageId: string;
+}
+
+interface CustomerPackageData {
+  hasPackages: boolean;
+  packages: any[];
+  servicePackageMap: Record<string, PackageInfo>;
+}
+
 export default function NewAppointmentScreen() {
   const router = useRouter();
   const { user } = useAuthStore();
@@ -55,6 +69,7 @@ export default function NewAppointmentScreen() {
 
   // Data
   const [tenantSettings, setTenantSettings] = useState<TenantSettings | null>(null);
+  const [customerPackages, setCustomerPackages] = useState<CustomerPackageData | null>(null);
   const [services, setServices] = useState<Service[]>([]);
   const [staff, setStaff] = useState<Staff[]>([]);
   const [timeSlots, setTimeSlots] = useState<TimeSlot[]>([]);
@@ -65,6 +80,10 @@ export default function NewAppointmentScreen() {
   const [selectedStaff, setSelectedStaff] = useState<Staff | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
+
+  // Payment options
+  const [usePackage, setUsePackage] = useState<boolean | null>(null);
+  const [agreementAccepted, setAgreementAccepted] = useState(false);
 
   // Generate next 14 days with availability info
   const getAvailableDates = () => {
@@ -117,6 +136,7 @@ export default function NewAppointmentScreen() {
   useEffect(() => {
     if (selectedTenant) {
       fetchTenantSettings();
+      fetchCustomerPackages();
       fetchServices();
     }
   }, [selectedTenant]);
@@ -157,6 +177,22 @@ export default function NewAppointmentScreen() {
       }
     } catch (error) {
       console.error('Error fetching tenant settings:', error);
+    }
+  };
+
+  const fetchCustomerPackages = async () => {
+    if (!selectedTenant) return;
+
+    try {
+      const response = await api.get('/api/mobile/customer/packages', {
+        headers: { 'X-Tenant-ID': selectedTenant.id }
+      });
+      console.log('📦 Customer packages:', response.data.data);
+      if (response.data.success) {
+        setCustomerPackages(response.data.data);
+      }
+    } catch (error) {
+      console.error('Error fetching customer packages:', error);
     }
   };
 
@@ -231,16 +267,46 @@ export default function NewAppointmentScreen() {
   const handleSubmit = async () => {
     if (!selectedTenant || !selectedService || !selectedStaff || !selectedDate || !selectedTime) return;
 
+    // Check agreement
+    if (!agreementAccepted) {
+      Alert.alert('Hata', 'Devam etmek için sözleşme koşullarını kabul etmelisiniz.');
+      return;
+    }
+
+    // Get package info for the selected service
+    const packageInfo = customerPackages?.servicePackageMap?.[selectedService.id];
+    const hasPackageOption = packageInfo && packageInfo.remainingQuantity > 0;
+
+    // If has package option but not selected, show error
+    if (hasPackageOption && usePackage === null) {
+      Alert.alert('Hata', 'Lütfen paket kullanımı seçeneğini belirleyin.');
+      return;
+    }
+
     setIsSubmitting(true);
     try {
-      await appointmentService.createAppointment({
+      const appointmentData: any = {
         tenantId: selectedTenant.id,
         serviceId: selectedService.id,
         staffId: selectedStaff.id,
         date: selectedDate.toISOString().split('T')[0],
         time: selectedTime,
-      });
-      Alert.alert('Başarılı', 'Randevunuz oluşturuldu!', [
+      };
+
+      // Add package usage info if applicable
+      if (hasPackageOption && usePackage === true) {
+        appointmentData.usePackage = true;
+        appointmentData.customerPackageId = packageInfo.customerPackageId;
+        appointmentData.packageUsageId = packageInfo.usageId;
+      }
+
+      await appointmentService.createAppointment(appointmentData);
+
+      const successMessage = usePackage === true
+        ? 'Randevunuz oluşturuldu ve paket hakkınızdan düşüldü!'
+        : 'Randevunuz oluşturuldu!';
+
+      Alert.alert('Başarılı', successMessage, [
         { text: 'Tamam', onPress: () => router.replace('/(tabs)/customer') },
       ]);
     } catch (error: any) {
@@ -397,39 +463,71 @@ export default function NewAppointmentScreen() {
     );
   };
 
-  const renderServiceStep = () => (
-    <View style={styles.stepContent}>
-      <Text style={styles.stepTitle}>Hizmet Seçin</Text>
-      {isLoading ? (
-        <ActivityIndicator size="large" color="#3B82F6" style={styles.loader} />
-      ) : (
-        services.map((service) => (
-          <TouchableOpacity
-            key={service.id}
-            style={[
-              styles.optionCard,
-              selectedService?.id === service.id && styles.optionCardSelected,
-            ]}
-            onPress={() => setSelectedService(service)}
-          >
-            <View style={styles.optionInfo}>
-              <Text style={styles.optionName}>{service.name}</Text>
-              {service.description && (
-                <Text style={styles.optionDesc}>{service.description}</Text>
-              )}
-              <View style={styles.optionMeta}>
-                <Text style={styles.optionDuration}>{service.duration} dk</Text>
-                <Text style={styles.optionPrice}>{service.price} ₺</Text>
-              </View>
-            </View>
-            {selectedService?.id === service.id && (
-              <Ionicons name="checkmark-circle" size={24} color="#3B82F6" />
-            )}
-          </TouchableOpacity>
-        ))
-      )}
-    </View>
-  );
+  const renderServiceStep = () => {
+    const getPackageForService = (serviceId: string) => {
+      return customerPackages?.servicePackageMap?.[serviceId] || null;
+    };
+
+    return (
+      <View style={styles.stepContent}>
+        <Text style={styles.stepTitle}>Hizmet Seçin</Text>
+        {isLoading ? (
+          <ActivityIndicator size="large" color="#3B82F6" style={styles.loader} />
+        ) : (
+          services.map((service) => {
+            const packageInfo = getPackageForService(service.id);
+            return (
+              <TouchableOpacity
+                key={service.id}
+                style={[
+                  styles.optionCard,
+                  selectedService?.id === service.id && styles.optionCardSelected,
+                  packageInfo && styles.optionCardWithPackage,
+                ]}
+                onPress={() => {
+                  setSelectedService(service);
+                  // Reset package usage when service changes
+                  setUsePackage(null);
+                }}
+              >
+                <View style={styles.optionInfo}>
+                  <View style={styles.serviceHeader}>
+                    <Text style={styles.optionName}>{service.name}</Text>
+                    {packageInfo && (
+                      <View style={styles.packageBadge}>
+                        <Ionicons name="gift" size={12} color="#fff" />
+                        <Text style={styles.packageBadgeText}>Paket</Text>
+                      </View>
+                    )}
+                  </View>
+                  {service.description && (
+                    <Text style={styles.optionDesc}>{service.description}</Text>
+                  )}
+                  {packageInfo && (
+                    <View style={styles.packageInfoRow}>
+                      <Ionicons name="checkmark-circle" size={14} color="#059669" />
+                      <Text style={styles.packageInfoText}>
+                        {packageInfo.packageName} - {packageInfo.remainingQuantity} seans hakkınız var
+                      </Text>
+                    </View>
+                  )}
+                  <View style={styles.optionMeta}>
+                    <Text style={styles.optionDuration}>{service.duration} dk</Text>
+                    <Text style={[styles.optionPrice, packageInfo && styles.optionPriceWithPackage]}>
+                      {packageInfo ? 'Paketten kullanılabilir' : `${service.price} ₺`}
+                    </Text>
+                  </View>
+                </View>
+                {selectedService?.id === service.id && (
+                  <Ionicons name="checkmark-circle" size={24} color="#3B82F6" />
+                )}
+              </TouchableOpacity>
+            );
+          })
+        )}
+      </View>
+    );
+  };
 
   const renderStaffStep = () => (
     <View style={styles.stepContent}>
@@ -563,64 +661,164 @@ export default function NewAppointmentScreen() {
     </View>
   );
 
-  const renderConfirmStep = () => (
-    <View style={styles.stepContent}>
-      <Text style={styles.stepTitle}>Randevu Özeti</Text>
-      <View style={styles.summaryCard}>
-        <View style={styles.summaryRow}>
-          <Ionicons name="business" size={20} color="#6B7280" />
-          <View style={styles.summaryInfo}>
-            <Text style={styles.summaryLabel}>İşletme</Text>
-            <Text style={styles.summaryValue}>{selectedTenant?.businessName}</Text>
+  const renderConfirmStep = () => {
+    const packageInfo = selectedService ? customerPackages?.servicePackageMap?.[selectedService.id] : null;
+    const showPackageOption = packageInfo && packageInfo.remainingQuantity > 0;
+
+    return (
+      <View style={styles.stepContent}>
+        <Text style={styles.stepTitle}>Randevu Özeti</Text>
+
+        {/* Summary Card */}
+        <View style={styles.summaryCard}>
+          <View style={styles.summaryRow}>
+            <Ionicons name="business" size={20} color="#6B7280" />
+            <View style={styles.summaryInfo}>
+              <Text style={styles.summaryLabel}>İşletme</Text>
+              <Text style={styles.summaryValue}>{selectedTenant?.businessName}</Text>
+            </View>
+          </View>
+          <View style={styles.summaryRow}>
+            <Ionicons name="cut" size={20} color="#6B7280" />
+            <View style={styles.summaryInfo}>
+              <Text style={styles.summaryLabel}>Hizmet</Text>
+              <Text style={styles.summaryValue}>{selectedService?.name}</Text>
+            </View>
+          </View>
+          <View style={styles.summaryRow}>
+            <Ionicons name="person" size={20} color="#6B7280" />
+            <View style={styles.summaryInfo}>
+              <Text style={styles.summaryLabel}>Personel</Text>
+              <Text style={styles.summaryValue}>
+                {selectedStaff?.firstName} {selectedStaff?.lastName}
+              </Text>
+            </View>
+          </View>
+          <View style={styles.summaryRow}>
+            <Ionicons name="calendar" size={20} color="#6B7280" />
+            <View style={styles.summaryInfo}>
+              <Text style={styles.summaryLabel}>Tarih</Text>
+              <Text style={styles.summaryValue}>
+                {selectedDate?.toLocaleDateString('tr-TR', {
+                  weekday: 'long',
+                  day: 'numeric',
+                  month: 'long',
+                  year: 'numeric',
+                })}
+              </Text>
+            </View>
+          </View>
+          <View style={[styles.summaryRow, styles.summaryRowLast]}>
+            <Ionicons name="time" size={20} color="#6B7280" />
+            <View style={styles.summaryInfo}>
+              <Text style={styles.summaryLabel}>Saat</Text>
+              <Text style={styles.summaryValue}>{selectedTime}</Text>
+            </View>
           </View>
         </View>
-        <View style={styles.summaryRow}>
-          <Ionicons name="cut" size={20} color="#6B7280" />
-          <View style={styles.summaryInfo}>
-            <Text style={styles.summaryLabel}>Hizmet</Text>
-            <Text style={styles.summaryValue}>{selectedService?.name}</Text>
+
+        {/* Package Usage Option */}
+        {showPackageOption && (
+          <View style={styles.packageUsageCard}>
+            <View style={styles.packageUsageHeader}>
+              <Ionicons name="gift" size={24} color="#059669" />
+              <Text style={styles.packageUsageTitle}>Paket Kullanımı</Text>
+            </View>
+            <Text style={styles.packageUsageDesc}>
+              Aldığınız <Text style={styles.packageUsageBold}>{selectedService?.name}</Text> hizmeti,
+              aktif olan <Text style={styles.packageUsageBold}>{packageInfo.packageName}</Text> paketinizde mevcut.
+            </Text>
+            <Text style={styles.packageUsageDesc}>
+              Paketinizde <Text style={styles.packageUsageBold}>{packageInfo.remainingQuantity} seans</Text> hakkınız bulunuyor.
+            </Text>
+            <Text style={styles.packageUsageQuestion}>
+              Bu randevuyu paketinizden düşürmek ister misiniz?
+            </Text>
+
+            <View style={styles.packageOptionsContainer}>
+              <TouchableOpacity
+                style={[
+                  styles.packageOption,
+                  usePackage === true && styles.packageOptionSelected,
+                ]}
+                onPress={() => setUsePackage(true)}
+              >
+                <Ionicons
+                  name={usePackage === true ? "checkmark-circle" : "ellipse-outline"}
+                  size={24}
+                  color={usePackage === true ? "#059669" : "#9CA3AF"}
+                />
+                <View style={styles.packageOptionContent}>
+                  <Text style={[
+                    styles.packageOptionTitle,
+                    usePackage === true && styles.packageOptionTitleSelected
+                  ]}>Evet, Paketten Düş</Text>
+                  <Text style={styles.packageOptionDesc}>
+                    Randevu tamamlandığında paket hakkınız azalacaktır.
+                  </Text>
+                </View>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[
+                  styles.packageOption,
+                  usePackage === false && styles.packageOptionSelected,
+                ]}
+                onPress={() => setUsePackage(false)}
+              >
+                <Ionicons
+                  name={usePackage === false ? "checkmark-circle" : "ellipse-outline"}
+                  size={24}
+                  color={usePackage === false ? "#3B82F6" : "#9CA3AF"}
+                />
+                <View style={styles.packageOptionContent}>
+                  <Text style={[
+                    styles.packageOptionTitle,
+                    usePackage === false && styles.packageOptionTitleSelected
+                  ]}>Hayır, Ödeme Yapacağım</Text>
+                  <Text style={styles.packageOptionDesc}>
+                    Normal ücret ({selectedService?.price} ₺) tahsil edilecektir.
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            </View>
           </View>
-        </View>
-        <View style={styles.summaryRow}>
-          <Ionicons name="person" size={20} color="#6B7280" />
-          <View style={styles.summaryInfo}>
-            <Text style={styles.summaryLabel}>Personel</Text>
-            <Text style={styles.summaryValue}>
-              {selectedStaff?.firstName} {selectedStaff?.lastName}
+        )}
+
+        {/* Payment Section - Show if not using package or no package available */}
+        {(!showPackageOption || usePackage === false) && (
+          <View style={styles.paymentCard}>
+            <View style={styles.paymentHeader}>
+              <Ionicons name="card" size={24} color="#3B82F6" />
+              <Text style={styles.paymentTitle}>Ödeme</Text>
+            </View>
+            <View style={styles.paymentAmount}>
+              <Text style={styles.paymentLabel}>Toplam Tutar</Text>
+              <Text style={styles.paymentPrice}>{selectedService?.price} ₺</Text>
+            </View>
+            <Text style={styles.paymentNote}>
+              Ödeme randevu sonrasında işletmede yapılacaktır.
             </Text>
           </View>
-        </View>
-        <View style={styles.summaryRow}>
-          <Ionicons name="calendar" size={20} color="#6B7280" />
-          <View style={styles.summaryInfo}>
-            <Text style={styles.summaryLabel}>Tarih</Text>
-            <Text style={styles.summaryValue}>
-              {selectedDate?.toLocaleDateString('tr-TR', {
-                weekday: 'long',
-                day: 'numeric',
-                month: 'long',
-                year: 'numeric',
-              })}
-            </Text>
-          </View>
-        </View>
-        <View style={styles.summaryRow}>
-          <Ionicons name="time" size={20} color="#6B7280" />
-          <View style={styles.summaryInfo}>
-            <Text style={styles.summaryLabel}>Saat</Text>
-            <Text style={styles.summaryValue}>{selectedTime}</Text>
-          </View>
-        </View>
-        <View style={[styles.summaryRow, styles.summaryRowLast]}>
-          <Ionicons name="cash" size={20} color="#6B7280" />
-          <View style={styles.summaryInfo}>
-            <Text style={styles.summaryLabel}>Ücret</Text>
-            <Text style={styles.summaryPrice}>{selectedService?.price} ₺</Text>
-          </View>
-        </View>
+        )}
+
+        {/* Agreement Section */}
+        <TouchableOpacity
+          style={styles.agreementRow}
+          onPress={() => setAgreementAccepted(!agreementAccepted)}
+        >
+          <Ionicons
+            name={agreementAccepted ? "checkbox" : "square-outline"}
+            size={24}
+            color={agreementAccepted ? "#3B82F6" : "#9CA3AF"}
+          />
+          <Text style={styles.agreementText}>
+            Randevu koşullarını ve iptal politikasını okudum, kabul ediyorum.
+          </Text>
+        </TouchableOpacity>
       </View>
-    </View>
-  );
+    );
+  };
 
   const canProceed = () => {
     switch (step) {
@@ -634,8 +832,18 @@ export default function NewAppointmentScreen() {
         return selectedDate !== null;
       case 'time':
         return selectedTime !== null;
-      case 'confirm':
+      case 'confirm': {
+        // Agreement must be accepted
+        if (!agreementAccepted) return false;
+
+        // If service has package, user must select package option
+        const packageInfo = selectedService ? customerPackages?.servicePackageMap?.[selectedService.id] : null;
+        if (packageInfo && packageInfo.remainingQuantity > 0) {
+          if (usePackage === null) return false;
+        }
+
         return true;
+      }
       default:
         return false;
     }
@@ -669,9 +877,9 @@ export default function NewAppointmentScreen() {
       <View style={styles.footer}>
         {step === 'confirm' ? (
           <TouchableOpacity
-            style={[styles.nextButton, isSubmitting && styles.nextButtonDisabled]}
+            style={[styles.nextButton, (isSubmitting || !canProceed()) && styles.nextButtonDisabled]}
             onPress={handleSubmit}
-            disabled={isSubmitting}
+            disabled={isSubmitting || !canProceed()}
           >
             {isSubmitting ? (
               <ActivityIndicator color="#fff" />
@@ -1016,5 +1224,178 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#fff',
     marginRight: 8,
+  },
+  // Service step - package styles
+  serviceHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  packageBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#059669',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    marginLeft: 8,
+  },
+  packageBadgeText: {
+    color: '#fff',
+    fontSize: 11,
+    fontWeight: '600',
+    marginLeft: 4,
+  },
+  packageInfoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 8,
+    backgroundColor: '#ECFDF5',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  packageInfoText: {
+    fontSize: 12,
+    color: '#059669',
+    marginLeft: 4,
+    fontWeight: '500',
+  },
+  optionCardWithPackage: {
+    borderColor: '#059669',
+    borderWidth: 1,
+    backgroundColor: '#F0FDF4',
+  },
+  optionPriceWithPackage: {
+    color: '#059669',
+    fontSize: 13,
+  },
+  // Confirm step - package usage styles
+  packageUsageCard: {
+    backgroundColor: '#F0FDF4',
+    borderRadius: 16,
+    padding: 20,
+    marginTop: 16,
+    borderWidth: 1,
+    borderColor: '#059669',
+  },
+  packageUsageHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  packageUsageTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#059669',
+    marginLeft: 8,
+  },
+  packageUsageDesc: {
+    fontSize: 14,
+    color: '#374151',
+    marginBottom: 8,
+    lineHeight: 20,
+  },
+  packageUsageBold: {
+    fontWeight: '600',
+    color: '#059669',
+  },
+  packageUsageQuestion: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#1F2937',
+    marginTop: 8,
+    marginBottom: 16,
+  },
+  packageOptionsContainer: {
+    gap: 12,
+  },
+  packageOption: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    backgroundColor: '#fff',
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: '#E5E7EB',
+  },
+  packageOptionSelected: {
+    borderColor: '#059669',
+    backgroundColor: '#ECFDF5',
+  },
+  packageOptionContent: {
+    flex: 1,
+    marginLeft: 12,
+  },
+  packageOptionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#374151',
+  },
+  packageOptionTitleSelected: {
+    color: '#059669',
+  },
+  packageOptionDesc: {
+    fontSize: 13,
+    color: '#6B7280',
+    marginTop: 4,
+  },
+  // Payment card styles
+  paymentCard: {
+    backgroundColor: '#EFF6FF',
+    borderRadius: 16,
+    padding: 20,
+    marginTop: 16,
+    borderWidth: 1,
+    borderColor: '#3B82F6',
+  },
+  paymentHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  paymentTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#3B82F6',
+    marginLeft: 8,
+  },
+  paymentAmount: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 12,
+  },
+  paymentLabel: {
+    fontSize: 14,
+    color: '#6B7280',
+  },
+  paymentPrice: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#059669',
+  },
+  paymentNote: {
+    fontSize: 13,
+    color: '#6B7280',
+    textAlign: 'center',
+    fontStyle: 'italic',
+  },
+  // Agreement styles
+  agreementRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginTop: 20,
+    paddingHorizontal: 4,
+  },
+  agreementText: {
+    flex: 1,
+    fontSize: 14,
+    color: '#374151',
+    marginLeft: 12,
+    lineHeight: 20,
   },
 });
