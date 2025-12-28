@@ -280,19 +280,33 @@ export async function PATCH(
       );
     }
 
-    // Check access
-    if (appointment.tenantId !== auth.tenantId) {
-      return NextResponse.json(
-        { success: false, message: 'Erişim yetkisi yok' },
-        { status: 403 }
-      );
-    }
-
-    // Customers can only cancel their own appointments
+    // Check access based on user type
     if (auth.userType === 'customer') {
-      if (appointment.customerId !== auth.customerId) {
+      // Customers can only cancel their own appointments
+      // Find customer by phone in the appointment's tenant
+      const originalCustomer = await prisma.customer.findUnique({
+        where: { id: auth.customerId },
+        select: { phone: true }
+      });
+
+      if (!originalCustomer?.phone) {
         return NextResponse.json(
-          { success: false, message: 'Erişim yetkisi yok' },
+          { success: false, message: 'Müşteri bilgisi bulunamadı' },
+          { status: 403 }
+        );
+      }
+
+      // Find customer in appointment's tenant
+      const customerInTenant = await prisma.customer.findFirst({
+        where: {
+          phone: originalCustomer.phone,
+          tenantId: appointment.tenantId
+        }
+      });
+
+      if (!customerInTenant || appointment.customerId !== customerInTenant.id) {
+        return NextResponse.json(
+          { success: false, message: 'Bu randevuya erişim yetkiniz yok' },
           { status: 403 }
         );
       }
@@ -303,14 +317,22 @@ export async function PATCH(
           { status: 400 }
         );
       }
-    }
+    } else {
+      // Staff/Owner - must be from the same tenant
+      if (appointment.tenantId !== auth.tenantId) {
+        return NextResponse.json(
+          { success: false, message: 'Erişim yetkisi yok' },
+          { status: 403 }
+        );
+      }
 
-    // Staff can only update their own appointments (unless owner)
-    if (auth.userType === 'staff' && appointment.staffId !== auth.staffId) {
-      return NextResponse.json(
-        { success: false, message: 'Sadece kendi randevularınızı güncelleyebilirsiniz' },
-        { status: 403 }
-      );
+      // Staff can only update their own appointments (unless owner)
+      if (auth.userType === 'staff' && appointment.staffId !== auth.staffId) {
+        return NextResponse.json(
+          { success: false, message: 'Sadece kendi randevularınızı güncelleyebilirsiniz' },
+          { status: 403 }
+        );
+      }
     }
 
     const validStatuses = ['pending', 'confirmed', 'completed', 'cancelled', 'no_show'];
@@ -607,19 +629,43 @@ export async function DELETE(
       );
     }
 
-    // Check access
-    if (appointment.tenantId !== auth.tenantId) {
-      return NextResponse.json(
-        { success: false, message: 'Erişim yetkisi yok' },
-        { status: 403 }
-      );
-    }
+    // Check access based on user type
+    if (auth.userType === 'customer') {
+      // Find customer by phone in the appointment's tenant
+      const originalCustomer = await prisma.customer.findUnique({
+        where: { id: auth.customerId },
+        select: { phone: true }
+      });
 
-    if (auth.userType === 'customer' && appointment.customerId !== auth.customerId) {
-      return NextResponse.json(
-        { success: false, message: 'Erişim yetkisi yok' },
-        { status: 403 }
-      );
+      if (!originalCustomer?.phone) {
+        return NextResponse.json(
+          { success: false, message: 'Müşteri bilgisi bulunamadı' },
+          { status: 403 }
+        );
+      }
+
+      // Find customer in appointment's tenant
+      const customerInTenant = await prisma.customer.findFirst({
+        where: {
+          phone: originalCustomer.phone,
+          tenantId: appointment.tenantId
+        }
+      });
+
+      if (!customerInTenant || appointment.customerId !== customerInTenant.id) {
+        return NextResponse.json(
+          { success: false, message: 'Bu randevuya erişim yetkiniz yok' },
+          { status: 403 }
+        );
+      }
+    } else {
+      // Staff/Owner - must be from the same tenant
+      if (appointment.tenantId !== auth.tenantId) {
+        return NextResponse.json(
+          { success: false, message: 'Erişim yetkisi yok' },
+          { status: 403 }
+        );
+      }
     }
 
     // Cancel instead of delete
