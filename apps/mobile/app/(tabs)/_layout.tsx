@@ -74,6 +74,15 @@ export default function TabLayout() {
           }}
         />
         <Tabs.Screen
+          name="customer/packages"
+          options={{
+            title: 'Paketlerim',
+            tabBarIcon: ({ color }) => (
+              <Ionicons name="gift" size={TAB_ICON_SIZE} color={color} />
+            ),
+          }}
+        />
+        <Tabs.Screen
           name="customer/profile"
           options={{
             title: 'Profil',
@@ -157,6 +166,7 @@ export default function TabLayout() {
       {/* Hide customer tabs for staff */}
       <Tabs.Screen name="customer/index" options={{ href: null }} />
       <Tabs.Screen name="customer/new-appointment" options={{ href: null }} />
+      <Tabs.Screen name="customer/packages" options={{ href: null }} />
       <Tabs.Screen name="customer/profile" options={{ href: null }} />
     </Tabs>
   );
