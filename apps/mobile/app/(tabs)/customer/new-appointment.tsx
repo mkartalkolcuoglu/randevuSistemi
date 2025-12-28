@@ -283,6 +283,31 @@ export default function NewAppointmentScreen() {
       return;
     }
 
+    // If not using package (paying with card), redirect to payment screen
+    if (!hasPackageOption || usePackage === false) {
+      const appointmentData = {
+        tenantId: selectedTenant.id,
+        serviceId: selectedService.id,
+        staffId: selectedStaff.id,
+        date: selectedDate.toISOString().split('T')[0],
+        time: selectedTime,
+      };
+
+      // Navigate to payment screen
+      router.push({
+        pathname: '/(tabs)/customer/payment',
+        params: {
+          tenantId: selectedTenant.id,
+          serviceId: selectedService.id,
+          serviceName: selectedService.name,
+          amount: selectedService.price.toString(),
+          appointmentData: JSON.stringify(appointmentData),
+        },
+      });
+      return;
+    }
+
+    // Using package - create appointment directly
     setIsSubmitting(true);
     try {
       const appointmentData: any = {
@@ -291,22 +316,14 @@ export default function NewAppointmentScreen() {
         staffId: selectedStaff.id,
         date: selectedDate.toISOString().split('T')[0],
         time: selectedTime,
+        usePackage: true,
+        customerPackageId: packageInfo.customerPackageId,
+        packageUsageId: packageInfo.usageId,
       };
-
-      // Add package usage info if applicable
-      if (hasPackageOption && usePackage === true) {
-        appointmentData.usePackage = true;
-        appointmentData.customerPackageId = packageInfo.customerPackageId;
-        appointmentData.packageUsageId = packageInfo.usageId;
-      }
 
       await appointmentService.createAppointment(appointmentData);
 
-      const successMessage = usePackage === true
-        ? 'Randevunuz oluşturuldu ve paket hakkınızdan düşüldü!'
-        : 'Randevunuz oluşturuldu!';
-
-      Alert.alert('Başarılı', successMessage, [
+      Alert.alert('Başarılı', 'Randevunuz oluşturuldu ve paket hakkınızdan düşüldü!', [
         { text: 'Tamam', onPress: () => router.replace('/(tabs)/customer') },
       ]);
     } catch (error: any) {
