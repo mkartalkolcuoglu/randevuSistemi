@@ -53,24 +53,50 @@ export async function POST(request: NextRequest) {
     // Find customer by phone (across all tenants)
     const phoneLastDigits = phone.replace(/^0/, '').slice(-10);
 
-    const customers = await prisma.customer.findMany({
+    // First get customers without tenant relation to avoid null tenant error
+    const customersRaw = await prisma.customer.findMany({
       where: {
         phone: {
           contains: phoneLastDigits,
         },
       },
-      include: {
-        tenant: {
-          select: {
-            id: true,
-            businessName: true,
-            slug: true,
-          },
-        },
+      select: {
+        id: true,
+        tenantId: true,
+        firstName: true,
+        lastName: true,
+        email: true,
+        phone: true,
       },
     });
 
-    console.log('📱 [CUSTOMER] Found customers:', customers.length);
+    console.log('📱 [CUSTOMER] Found customers (raw):', customersRaw.length);
+
+    if (customersRaw.length === 0) {
+      return NextResponse.json(
+        { success: false, message: 'Bu telefon numarası ile kayıtlı müşteri bulunamadı' },
+        { status: 404 }
+      );
+    }
+
+    // Get valid tenants for these customers
+    const tenantIds = [...new Set(customersRaw.map(c => c.tenantId))];
+    const validTenants = await prisma.tenant.findMany({
+      where: { id: { in: tenantIds } },
+      select: { id: true, businessName: true, slug: true },
+    });
+    const validTenantIds = new Set(validTenants.map(t => t.id));
+    const tenantsById = new Map(validTenants.map(t => [t.id, t]));
+
+    // Filter customers with valid tenants
+    const customers = customersRaw
+      .filter(c => validTenantIds.has(c.tenantId))
+      .map(c => ({
+        ...c,
+        tenant: tenantsById.get(c.tenantId)!,
+      }));
+
+    console.log('📱 [CUSTOMER] Found customers (with valid tenants):', customers.length);
 
     if (customers.length === 0) {
       return NextResponse.json(
