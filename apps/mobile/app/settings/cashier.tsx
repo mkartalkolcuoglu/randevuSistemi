@@ -9,12 +9,11 @@ import {
   ActivityIndicator,
   Modal,
   TextInput,
-  ScrollView,
   Alert,
   Platform,
-  KeyboardAvoidingView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import api from '../../src/services/api';
@@ -318,10 +317,7 @@ export default function CashierScreen() {
       animationType="slide"
       onRequestClose={() => setShowAddModal(false)}
     >
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={styles.modalOverlay}
-      >
+      <View style={styles.modalOverlay}>
         <View style={styles.modalContent}>
           {/* Header */}
           <View style={styles.modalHeader}>
@@ -331,7 +327,13 @@ export default function CashierScreen() {
             </TouchableOpacity>
           </View>
 
-          <ScrollView showsVerticalScrollIndicator={false}>
+          <KeyboardAwareScrollView
+            showsVerticalScrollIndicator={false}
+            enableOnAndroid={true}
+            enableAutomaticScroll={true}
+            extraScrollHeight={Platform.OS === 'ios' ? 20 : 0}
+            keyboardShouldPersistTaps="handled"
+          >
             {/* Type selector */}
             <View style={styles.formSection}>
               <Text style={styles.formLabel}>İşlem Tipi</Text>
@@ -457,7 +459,7 @@ export default function CashierScreen() {
                 ))}
               </View>
             </View>
-          </ScrollView>
+          </KeyboardAwareScrollView>
 
           {/* Submit button */}
           <View style={styles.modalActions}>
@@ -477,7 +479,7 @@ export default function CashierScreen() {
             </TouchableOpacity>
           </View>
         </View>
-      </KeyboardAvoidingView>
+      </View>
     </Modal>
   );
 

@@ -3,7 +3,6 @@ import {
   View,
   Text,
   StyleSheet,
-  ScrollView,
   TouchableOpacity,
   TextInput,
   ActivityIndicator,
@@ -13,6 +12,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import api from '../../src/services/api';
 import { useAuthStore } from '../../src/store/auth.store';
@@ -162,7 +162,16 @@ export default function EditProfileScreen() {
         </TouchableOpacity>
       </View>
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+      <KeyboardAwareScrollView
+        style={styles.content}
+        contentContainerStyle={styles.contentContainer}
+        enableOnAndroid={true}
+        enableAutomaticScroll={true}
+        extraScrollHeight={Platform.OS === 'ios' ? 100 : 80}
+        extraHeight={Platform.OS === 'ios' ? 150 : 120}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
         {/* Avatar */}
         <View style={styles.avatarContainer}>
           <View style={styles.avatar}>
@@ -287,7 +296,7 @@ export default function EditProfileScreen() {
         </View>
 
         <View style={styles.bottomSpacer} />
-      </ScrollView>
+      </KeyboardAwareScrollView>
     </SafeAreaView>
   );
 }
@@ -334,6 +343,9 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     padding: 20,
+  },
+  contentContainer: {
+    flexGrow: 1,
   },
   avatarContainer: {
     alignItems: 'center',
@@ -438,6 +450,6 @@ const styles = StyleSheet.create({
     color: '#3B82F6',
   },
   bottomSpacer: {
-    height: 40,
+    height: 120,
   },
 });

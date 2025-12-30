@@ -13,9 +13,9 @@ import {
   Alert,
   Platform,
   Linking,
-  KeyboardAvoidingView,
   Dimensions,
 } from 'react-native';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -523,10 +523,7 @@ export default function StaffCustomersScreen() {
         animationType="slide"
         onRequestClose={closeDetailModal}
       >
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          style={styles.modalOverlay}
-        >
+        <View style={styles.modalOverlay}>
           <View style={styles.detailModalContent}>
             {/* Premium Gradient Header */}
             <LinearGradient
@@ -563,7 +560,14 @@ export default function StaffCustomersScreen() {
               </View>
             </LinearGradient>
 
-            <ScrollView showsVerticalScrollIndicator={false} style={styles.modalScrollContent}>
+            <KeyboardAwareScrollView
+              showsVerticalScrollIndicator={false}
+              style={styles.modalScrollContent}
+              enableOnAndroid={true}
+              enableAutomaticScroll={true}
+              extraScrollHeight={Platform.OS === 'ios' ? 20 : 0}
+              keyboardShouldPersistTaps="handled"
+            >
               {isEditMode && editCustomer ? (
                 // Edit Mode - Show edit form
                 <>
@@ -965,7 +969,7 @@ export default function StaffCustomersScreen() {
                   )}
                 </>
               )}
-            </ScrollView>
+            </KeyboardAwareScrollView>
 
             {/* Actions */}
             <View style={styles.modalActions}>
@@ -1030,7 +1034,7 @@ export default function StaffCustomersScreen() {
               )}
             </View>
           </View>
-        </KeyboardAvoidingView>
+        </View>
       </Modal>
     );
   };
@@ -1058,10 +1062,7 @@ export default function StaffCustomersScreen() {
       animationType="slide"
       onRequestClose={() => setShowAddModal(false)}
     >
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={styles.modalOverlay}
-      >
+      <View style={styles.modalOverlay}>
         <View style={styles.addModalContent}>
           {/* Premium Gradient Header */}
           <LinearGradient
@@ -1082,7 +1083,14 @@ export default function StaffCustomersScreen() {
             </TouchableOpacity>
           </LinearGradient>
 
-          <ScrollView showsVerticalScrollIndicator={false} style={styles.addModalScroll}>
+          <KeyboardAwareScrollView
+            showsVerticalScrollIndicator={false}
+            style={styles.addModalScroll}
+            enableOnAndroid={true}
+            enableAutomaticScroll={true}
+            extraScrollHeight={Platform.OS === 'ios' ? 20 : 0}
+            keyboardShouldPersistTaps="handled"
+          >
             {/* Kişisel Bilgiler Section */}
             <View style={styles.formSectionCard}>
               <Text style={styles.formSectionTitle}>Kişisel Bilgiler</Text>
@@ -1307,7 +1315,7 @@ export default function StaffCustomersScreen() {
                 <Text style={styles.infoCardText}>• Doğum tarihi bilgisi özel günlerde hatırlatma için kullanılır</Text>
               </View>
             </View>
-          </ScrollView>
+          </KeyboardAwareScrollView>
 
           {/* DateTimePicker for birth date */}
           {showDatePicker && (
@@ -1387,7 +1395,7 @@ export default function StaffCustomersScreen() {
             </TouchableOpacity>
           </View>
         </View>
-      </KeyboardAvoidingView>
+      </View>
     </Modal>
   );
 

@@ -5,13 +5,11 @@ import {
   TextInput,
   TouchableOpacity,
   StyleSheet,
-  KeyboardAvoidingView,
   Platform,
   Alert,
   ActivityIndicator,
   Dimensions,
   StatusBar,
-  ScrollView,
   Keyboard,
   TouchableWithoutFeedback,
 } from 'react-native';
@@ -19,6 +17,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { useAuthStore } from '../../src/store/auth.store';
 
 const { width, height } = Dimensions.get('window');
@@ -74,18 +73,16 @@ export default function BusinessLoginScreen() {
       <View style={[styles.decorativeCircle, styles.circle2]} />
 
       <SafeAreaView style={styles.safeArea}>
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          style={styles.keyboardView}
-          keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
-        >
-          <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-            <ScrollView
-              contentContainerStyle={styles.scrollContent}
-              showsVerticalScrollIndicator={false}
-              keyboardShouldPersistTaps="handled"
-              bounces={false}
-            >
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+          <KeyboardAwareScrollView
+            contentContainerStyle={styles.scrollContent}
+            enableOnAndroid={true}
+            enableAutomaticScroll={true}
+            extraScrollHeight={Platform.OS === 'ios' ? 20 : 0}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+            bounces={false}
+          >
               {/* Header */}
               <View style={styles.header}>
                 <TouchableOpacity
@@ -246,9 +243,8 @@ export default function BusinessLoginScreen() {
                   </View>
                 </View>
               </View>
-            </ScrollView>
-          </TouchableWithoutFeedback>
-        </KeyboardAvoidingView>
+          </KeyboardAwareScrollView>
+        </TouchableWithoutFeedback>
       </SafeAreaView>
     </View>
   );
@@ -286,9 +282,6 @@ const styles = StyleSheet.create({
     left: -width * 0.2,
   },
   safeArea: {
-    flex: 1,
-  },
-  keyboardView: {
     flex: 1,
   },
   scrollContent: {

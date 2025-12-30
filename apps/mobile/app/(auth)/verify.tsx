@@ -5,15 +5,13 @@ import {
   TextInput,
   TouchableOpacity,
   StyleSheet,
-  KeyboardAvoidingView,
   Platform,
   Alert,
-  ScrollView,
-  Keyboard,
-  TouchableWithoutFeedback,
+  Pressable,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { useAuthStore } from '../../src/store/auth.store';
 import { OTP_LENGTH, OTP_RESEND_TIMEOUT } from '../../src/constants/config';
 import ErrorBottomSheet from '../../src/components/ErrorBottomSheet';
@@ -23,9 +21,9 @@ export default function VerifyScreen() {
   const { phone, userType } = useLocalSearchParams<{ phone: string; userType?: string }>();
   const { verifyOtp, verifyOtpCustomer, sendOtp, isLoading } = useAuthStore();
 
-  const [otp, setOtp] = useState<string[]>(new Array(OTP_LENGTH).fill(''));
+  const [code, setCode] = useState('');
   const [resendTimer, setResendTimer] = useState(OTP_RESEND_TIMEOUT);
-  const inputRefs = useRef<TextInput[]>([]);
+  const inputRef = useRef<TextInput>(null);
 
   // Error bottom sheet state
   const [errorSheetVisible, setErrorSheetVisible] = useState(false);
@@ -39,87 +37,50 @@ export default function VerifyScreen() {
     }
   }, [resendTimer]);
 
-  const handleOtpChange = (value: string, index: number) => {
-    // Only allow digits
-    if (value && !/^\d+$/.test(value)) return;
+  // Focus input on mount
+  useEffect(() => {
+    setTimeout(() => {
+      inputRef.current?.focus();
+    }, 100);
+  }, []);
 
-    const newOtp = [...otp];
-
-    // Handle paste (multiple digits)
-    if (value.length > 1) {
-      const digits = value.split('').slice(0, OTP_LENGTH);
-      digits.forEach((digit, i) => {
-        if (i < OTP_LENGTH) {
-          newOtp[i] = digit;
-        }
-      });
-      setOtp(newOtp);
-
-      // Focus last filled input or verify if complete
-      const lastIndex = Math.min(digits.length - 1, OTP_LENGTH - 1);
-      inputRefs.current[lastIndex]?.focus();
-
-      if (digits.length >= OTP_LENGTH) {
-        handleVerify(newOtp.join(''));
-      }
-      return;
+  // Auto verify when code is complete
+  useEffect(() => {
+    if (code.length === OTP_LENGTH) {
+      handleVerify(code);
     }
+  }, [code]);
 
-    // Single digit
-    newOtp[index] = value;
-    setOtp(newOtp);
-
-    // Auto-focus next input
-    if (value && index < OTP_LENGTH - 1) {
-      inputRefs.current[index + 1]?.focus();
-    }
-
-    // Auto-verify when complete
-    if (value && index === OTP_LENGTH - 1) {
-      const code = newOtp.join('');
-      if (code.length === OTP_LENGTH) {
-        handleVerify(code);
-      }
-    }
+  const handleCodeChange = (value: string) => {
+    // Only allow digits, max OTP_LENGTH
+    const digits = value.replace(/\D/g, '').slice(0, OTP_LENGTH);
+    setCode(digits);
   };
 
-  const handleKeyPress = (e: any, index: number) => {
-    if (e.nativeEvent.key === 'Backspace' && !otp[index] && index > 0) {
-      inputRefs.current[index - 1]?.focus();
-    }
-  };
-
-  const handleVerify = async (code: string) => {
+  const handleVerify = async (verifyCode: string) => {
     if (!phone) {
       Alert.alert('Hata', 'Telefon numarası bulunamadı');
       router.back();
       return;
     }
 
-    // Use different verification based on userType
     if (userType === 'customer') {
-      // Customer login - no tenant selection
-      const result = await verifyOtpCustomer(phone, code);
+      const result = await verifyOtpCustomer(phone, verifyCode);
 
       if (result.success) {
-        // Check if this is a new customer
         if (result.isNewCustomer) {
-          // New customer - redirect to onboarding
           router.replace('/onboarding/profile');
         } else {
-          // Existing customer - go to main app
           router.replace('/');
         }
       } else {
-        // Show error in bottom sheet for customer login errors
         setErrorMessage(result.message);
         setErrorSheetVisible(true);
-        setOtp(new Array(OTP_LENGTH).fill(''));
-        inputRefs.current[0]?.focus();
+        setCode('');
+        inputRef.current?.focus();
       }
     } else {
-      // Business login (staff/owner) - may need tenant selection
-      const result = await verifyOtp(phone, code);
+      const result = await verifyOtp(phone, verifyCode);
 
       if (result.success) {
         if (result.needsTenantSelection) {
@@ -129,8 +90,8 @@ export default function VerifyScreen() {
         }
       } else {
         Alert.alert('Hata', result.message);
-        setOtp(new Array(OTP_LENGTH).fill(''));
-        inputRefs.current[0]?.focus();
+        setCode('');
+        inputRef.current?.focus();
       }
     }
   };
@@ -159,94 +120,111 @@ export default function VerifyScreen() {
     return `+90 ${phoneNumber}`;
   };
 
+  // Render the masked OTP boxes
+  const renderOtpBoxes = () => {
+    const boxes = [];
+    for (let i = 0; i < OTP_LENGTH; i++) {
+      const digit = code[i] || '';
+      const isFilled = digit !== '';
+      const isCurrentIndex = code.length === i;
+
+      boxes.push(
+        <View
+          key={i}
+          style={[
+            styles.otpBox,
+            isFilled && styles.otpBoxFilled,
+            isCurrentIndex && styles.otpBoxActive,
+          ]}
+        >
+          <Text style={styles.otpDigit}>{digit}</Text>
+        </View>
+      );
+    }
+    return boxes;
+  };
+
   return (
     <SafeAreaView style={styles.container}>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={styles.keyboardView}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+      <KeyboardAwareScrollView
+        contentContainerStyle={styles.scrollContent}
+        enableOnAndroid={true}
+        enableAutomaticScroll={true}
+        extraScrollHeight={Platform.OS === 'ios' ? 20 : 0}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
       >
-        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-          <ScrollView
-            contentContainerStyle={styles.scrollContent}
-            keyboardShouldPersistTaps="handled"
-            showsVerticalScrollIndicator={false}
+        <View style={styles.content}>
+          {/* Back Button */}
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => router.back()}
           >
-            <View style={styles.content}>
-              {/* Back Button */}
-              <TouchableOpacity
-                style={styles.backButton}
-                onPress={() => router.back()}
-              >
-                <Text style={styles.backButtonText}>← Geri</Text>
-              </TouchableOpacity>
+            <Text style={styles.backButtonText}>← Geri</Text>
+          </TouchableOpacity>
 
-              {/* Title */}
-              <Text style={styles.title}>Doğrulama Kodu</Text>
-              <Text style={styles.subtitle}>
-                <Text style={styles.phoneNumber}>{formatPhone(phone || '')}</Text>
-                {'\n'}numarasına gönderilen 6 haneli kodu girin
-              </Text>
+          {/* Title */}
+          <Text style={styles.title}>Doğrulama Kodu</Text>
+          <Text style={styles.subtitle}>
+            <Text style={styles.phoneNumber}>{formatPhone(phone || '')}</Text>
+            {'\n'}numarasına gönderilen 6 haneli kodu girin
+          </Text>
 
-              {/* OTP Input */}
-              <View style={styles.otpContainer}>
-                {otp.map((digit, index) => (
-                  <TextInput
-                    key={index}
-                    ref={(ref) => {
-                      if (ref) inputRefs.current[index] = ref;
-                    }}
-                    style={[
-                      styles.otpInput,
-                      digit && styles.otpInputFilled,
-                    ]}
-                    value={digit}
-                    onChangeText={(value) => handleOtpChange(value, index)}
-                    onKeyPress={(e) => handleKeyPress(e, index)}
-                    keyboardType="number-pad"
-                    maxLength={index === 0 ? OTP_LENGTH : 1}
-                    editable={!isLoading}
-                    selectTextOnFocus
-                  />
-                ))}
-              </View>
+          {/* OTP Input with Mask */}
+          <Pressable
+            style={styles.otpContainer}
+            onPress={() => inputRef.current?.focus()}
+          >
+            {renderOtpBoxes()}
 
-              {/* Verify Button */}
-              <TouchableOpacity
+            {/* Hidden actual input */}
+            <TextInput
+              ref={inputRef}
+              style={styles.hiddenInput}
+              value={code}
+              onChangeText={handleCodeChange}
+              keyboardType="number-pad"
+              textContentType="oneTimeCode"
+              autoComplete="sms-otp"
+              maxLength={OTP_LENGTH}
+              editable={!isLoading}
+              autoFocus
+            />
+          </Pressable>
+
+          {/* Verify Button */}
+          <TouchableOpacity
+            style={[
+              styles.button,
+              (isLoading || code.length < OTP_LENGTH) && styles.buttonDisabled,
+            ]}
+            onPress={() => handleVerify(code)}
+            disabled={isLoading || code.length < OTP_LENGTH}
+          >
+            <Text style={styles.buttonText}>
+              {isLoading ? 'Doğrulanıyor...' : 'Doğrula'}
+            </Text>
+          </TouchableOpacity>
+
+          {/* Resend */}
+          <View style={styles.resendContainer}>
+            <Text style={styles.resendText}>Kod gelmedi mi? </Text>
+            <TouchableOpacity
+              onPress={handleResend}
+              disabled={resendTimer > 0 || isLoading}
+            >
+              <Text
                 style={[
-                  styles.button,
-                  (isLoading || otp.join('').length < OTP_LENGTH) &&
-                    styles.buttonDisabled,
+                  styles.resendLink,
+                  resendTimer > 0 && styles.resendLinkDisabled,
                 ]}
-                onPress={() => handleVerify(otp.join(''))}
-                disabled={isLoading || otp.join('').length < OTP_LENGTH}
               >
-                <Text style={styles.buttonText}>
-                  {isLoading ? 'Doğrulanıyor...' : 'Doğrula'}
-                </Text>
-              </TouchableOpacity>
-
-              {/* Resend */}
-              <View style={styles.resendContainer}>
-                <Text style={styles.resendText}>Kod gelmedi mi? </Text>
-                <TouchableOpacity
-                  onPress={handleResend}
-                  disabled={resendTimer > 0 || isLoading}
-                >
-                  <Text
-                    style={[
-                      styles.resendLink,
-                      resendTimer > 0 && styles.resendLinkDisabled,
-                    ]}
-                  >
-                    {resendTimer > 0 ? `Tekrar gönder (${resendTimer}s)` : 'Tekrar gönder'}
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          </ScrollView>
-        </TouchableWithoutFeedback>
-      </KeyboardAvoidingView>
+                {resendTimer > 0 ? `Tekrar gönder (${resendTimer}s)` : 'Tekrar gönder'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </KeyboardAwareScrollView>
 
       {/* Error Bottom Sheet */}
       <ErrorBottomSheet
@@ -268,9 +246,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#fff',
-  },
-  keyboardView: {
-    flex: 1,
   },
   scrollContent: {
     flexGrow: 1,
@@ -307,21 +282,35 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginBottom: 32,
+    position: 'relative',
   },
-  otpInput: {
+  otpBox: {
     width: 48,
     height: 56,
     backgroundColor: '#F3F4F6',
     borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: 'transparent',
+  },
+  otpBoxFilled: {
+    backgroundColor: '#EFF6FF',
+    borderColor: '#3B82F6',
+  },
+  otpBoxActive: {
+    borderColor: '#3B82F6',
+  },
+  otpDigit: {
     fontSize: 24,
     fontWeight: '600',
-    textAlign: 'center',
     color: '#1F2937',
   },
-  otpInputFilled: {
-    backgroundColor: '#EFF6FF',
-    borderWidth: 2,
-    borderColor: '#3B82F6',
+  hiddenInput: {
+    position: 'absolute',
+    opacity: 0,
+    height: 56,
+    width: '100%',
   },
   button: {
     backgroundColor: '#3B82F6',

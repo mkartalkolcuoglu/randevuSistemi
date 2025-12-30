@@ -1,4 +1,4 @@
-import { View, Text, TouchableOpacity, StyleSheet, Image, Dimensions, StatusBar } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Image, Dimensions, StatusBar, Linking } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -96,7 +96,7 @@ export default function LoginScreen() {
             <Text style={styles.footerText}>
               Henüz hesabınız yok mu?
             </Text>
-            <TouchableOpacity>
+            <TouchableOpacity onPress={() => Linking.openURL('https://netrandevu.com/register')}>
               <Text style={styles.footerLink}>İletişime Geçin</Text>
             </TouchableOpacity>
           </View>

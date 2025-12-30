@@ -8,8 +8,10 @@ import {
   TextInput,
   ActivityIndicator,
   Alert,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../../src/store/auth.store';
@@ -164,7 +166,15 @@ export default function EditAppointmentScreen() {
         </TouchableOpacity>
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false} style={styles.content}>
+      <KeyboardAwareScrollView
+        style={styles.content}
+        contentContainerStyle={styles.contentContainer}
+        enableOnAndroid={true}
+        enableAutomaticScroll={true}
+        extraScrollHeight={Platform.OS === 'ios' ? 20 : 0}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
         {/* Customer Section */}
         <TouchableOpacity
           style={styles.section}
@@ -421,7 +431,7 @@ export default function EditAppointmentScreen() {
         )}
 
         <View style={{ height: 40 }} />
-      </ScrollView>
+      </KeyboardAwareScrollView>
 
       {/* Bottom Save Button */}
       <View style={styles.bottomButtons}>
@@ -493,6 +503,9 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     padding: 16,
+  },
+  contentContainer: {
+    flexGrow: 1,
   },
   section: {
     backgroundColor: '#fff',

@@ -9,8 +9,10 @@ import {
   ActivityIndicator,
   Alert,
   Keyboard,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -424,7 +426,15 @@ export default function NewAppointmentScreen() {
 
       {renderStepIndicator()}
 
-      <ScrollView showsVerticalScrollIndicator={false} style={styles.content}>
+      <KeyboardAwareScrollView
+        style={styles.content}
+        contentContainerStyle={styles.contentContainer}
+        enableOnAndroid={true}
+        enableAutomaticScroll={true}
+        extraScrollHeight={Platform.OS === 'ios' ? 20 : 0}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
         {/* Step 1: Service Selection */}
         {step === 1 && (
           <View>
@@ -714,7 +724,7 @@ export default function NewAppointmentScreen() {
         )}
 
         <View style={{ height: 100 }} />
-      </ScrollView>
+      </KeyboardAwareScrollView>
 
       {/* Bottom Buttons */}
       <View style={styles.bottomButtons}>
@@ -843,6 +853,9 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     padding: 16,
+  },
+  contentContainer: {
+    flexGrow: 1,
   },
   stepTitle: {
     fontSize: 22,

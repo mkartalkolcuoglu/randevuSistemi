@@ -7,13 +7,12 @@ import {
   TouchableOpacity,
   Alert,
   ActivityIndicator,
-  KeyboardAvoidingView,
   Platform,
-  ScrollView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import api from '../../src/services/api';
 import { useAuthStore } from '../../src/store/auth.store';
@@ -96,17 +95,15 @@ export default function OnboardingProfileScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={styles.keyboardView}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+      <KeyboardAwareScrollView
+        contentContainerStyle={styles.scrollContent}
+        enableOnAndroid={true}
+        enableAutomaticScroll={true}
+        extraScrollHeight={Platform.OS === 'ios' ? 20 : 0}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+        bounces={false}
       >
-        <ScrollView
-          contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
-          bounces={false}
-        >
           {/* Header */}
           <View style={styles.header}>
             <View style={styles.iconContainer}>
@@ -185,8 +182,7 @@ export default function OnboardingProfileScreen() {
               'nı kabul etmiş olursunuz.
             </Text>
           </View>
-        </ScrollView>
-      </KeyboardAvoidingView>
+      </KeyboardAwareScrollView>
     </SafeAreaView>
   );
 }
@@ -195,9 +191,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#fff',
-  },
-  keyboardView: {
-    flex: 1,
   },
   scrollContent: {
     flexGrow: 1,

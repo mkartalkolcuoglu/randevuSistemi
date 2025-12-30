@@ -9,13 +9,12 @@ import {
   ActivityIndicator,
   Modal,
   TextInput,
-  ScrollView,
   Alert,
   Platform,
-  KeyboardAvoidingView,
   Switch,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import api from '../../src/services/api';
@@ -441,10 +440,7 @@ export default function PackagesScreen() {
         resetForm();
       }}
     >
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={styles.modalOverlay}
-      >
+      <View style={styles.modalOverlay}>
         <View style={styles.modalContent}>
           {/* Header */}
           <View style={styles.modalHeader}>
@@ -467,7 +463,13 @@ export default function PackagesScreen() {
             </TouchableOpacity>
           </View>
 
-          <ScrollView showsVerticalScrollIndicator={false}>
+          <KeyboardAwareScrollView
+            showsVerticalScrollIndicator={false}
+            enableOnAndroid={true}
+            enableAutomaticScroll={true}
+            extraScrollHeight={Platform.OS === 'ios' ? 20 : 0}
+            keyboardShouldPersistTaps="handled"
+          >
             {/* Package name */}
             <View style={styles.formSection}>
               <Text style={styles.formLabel}>Paket Adı *</Text>
@@ -578,7 +580,7 @@ export default function PackagesScreen() {
                 />
               </View>
             </View>
-          </ScrollView>
+          </KeyboardAwareScrollView>
 
           {/* Actions */}
           <View style={styles.modalActions}>
@@ -606,7 +608,7 @@ export default function PackagesScreen() {
             </TouchableOpacity>
           </View>
         </View>
-      </KeyboardAvoidingView>
+      </View>
     </Modal>
   );
 
