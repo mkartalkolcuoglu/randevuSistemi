@@ -9,7 +9,7 @@ const NETGSM_MSGHEADER = process.env.NETGSM_MSGHEADER;
 
 export async function POST(request: NextRequest) {
   try {
-    const { phone } = await request.json();
+    const { phone, userType } = await request.json();
 
     if (!phone) {
       return NextResponse.json(
@@ -24,41 +24,45 @@ export async function POST(request: NextRequest) {
       formattedPhone = '90' + formattedPhone;
     }
 
-    // Check if user exists in any tenant
-    const customers = await prisma.customer.findMany({
-      where: {
-        phone: {
-          contains: phone.replace(/^0/, '').slice(-10),
+    // For customer login, skip user existence check (allow new customers to register)
+    // For business login, require existing user
+    if (userType !== 'customer') {
+      // Check if user exists in any tenant
+      const customers = await prisma.customer.findMany({
+        where: {
+          phone: {
+            contains: phone.replace(/^0/, '').slice(-10),
+          },
         },
-      },
-      select: { id: true, tenantId: true },
-    });
+        select: { id: true, tenantId: true },
+      });
 
-    const staffMembers = await prisma.staff.findMany({
-      where: {
-        phone: {
-          contains: phone.replace(/^0/, '').slice(-10),
+      const staffMembers = await prisma.staff.findMany({
+        where: {
+          phone: {
+            contains: phone.replace(/^0/, '').slice(-10),
+          },
         },
-      },
-      select: { id: true, tenantId: true },
-    });
+        select: { id: true, tenantId: true },
+      });
 
-    // Check by tenant phone field (ownerPhone may not exist in older DBs)
-    const owners = await prisma.tenant.findMany({
-      where: {
-        phone: {
-          contains: phone.replace(/^0/, '').slice(-10),
+      // Check by tenant phone field (ownerPhone may not exist in older DBs)
+      const owners = await prisma.tenant.findMany({
+        where: {
+          phone: {
+            contains: phone.replace(/^0/, '').slice(-10),
+          },
         },
-      },
-      select: { id: true },
-    });
+        select: { id: true },
+      });
 
-    // User must exist in at least one context
-    if (customers.length === 0 && staffMembers.length === 0 && owners.length === 0) {
-      return NextResponse.json(
-        { success: false, message: 'Bu telefon numarası ile kayıtlı kullanıcı bulunamadı' },
-        { status: 404 }
-      );
+      // User must exist in at least one context for business login
+      if (customers.length === 0 && staffMembers.length === 0 && owners.length === 0) {
+        return NextResponse.json(
+          { success: false, message: 'Bu telefon numarası ile kayıtlı kullanıcı bulunamadı' },
+          { status: 404 }
+        );
+      }
     }
 
     // Generate 6-digit OTP

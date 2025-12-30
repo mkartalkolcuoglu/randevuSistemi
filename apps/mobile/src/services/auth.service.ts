@@ -39,16 +39,18 @@ export const authService = {
 
   /**
    * Send OTP to phone number
+   * @param phone - Phone number
+   * @param userType - 'customer' for customer login (allows unregistered users), undefined for business login
    */
-  async sendOtp(phone: string): Promise<OtpResponse> {
+  async sendOtp(phone: string, userType?: string): Promise<OtpResponse> {
     try {
-      const response = await api.post('/api/mobile/auth/send-otp', { phone });
+      const response = await api.post('/api/mobile/auth/send-otp', { phone, userType });
       return response.data;
     } catch (error: any) {
       console.error('Send OTP error:', error);
       return {
         success: false,
-        message: error.response?.data?.error || 'SMS gönderilemedi',
+        message: error.response?.data?.message || error.response?.data?.error || 'SMS gönderilemedi',
       };
     }
   },

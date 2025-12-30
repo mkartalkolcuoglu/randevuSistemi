@@ -9,7 +9,7 @@ interface AuthStore extends AuthState {
     success: boolean;
     message: string;
   }>;
-  sendOtp: (phone: string) => Promise<{ success: boolean; message: string }>;
+  sendOtp: (phone: string, userType?: string) => Promise<{ success: boolean; message: string }>;
   verifyOtp: (phone: string, code: string) => Promise<{
     success: boolean;
     message: string;
@@ -124,10 +124,10 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
   },
 
   // Send OTP
-  sendOtp: async (phone: string) => {
+  sendOtp: async (phone: string, userType?: string) => {
     set({ isLoading: true });
     try {
-      const result = await authService.sendOtp(phone);
+      const result = await authService.sendOtp(phone, userType);
       return {
         success: result.success,
         message: result.message,

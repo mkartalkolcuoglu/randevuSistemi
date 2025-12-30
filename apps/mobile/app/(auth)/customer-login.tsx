@@ -45,7 +45,8 @@ export default function CustomerLoginScreen() {
       return;
     }
 
-    const result = await sendOtp(phone);
+    // Send userType: 'customer' to allow unregistered customers
+    const result = await sendOtp(phone, 'customer');
 
     if (result.success) {
       router.push({
