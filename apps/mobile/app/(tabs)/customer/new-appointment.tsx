@@ -8,6 +8,8 @@ import {
   ActivityIndicator,
   Alert,
   TextInput,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -941,53 +943,63 @@ export default function NewAppointmentScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={handleBack}>
-          <Ionicons
-            name="arrow-back"
-            size={24}
-            color="#1F2937"
-          />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Yeni Randevu</Text>
-        <View style={{ width: 24 }} />
-      </View>
-
-      {renderStepIndicator()}
-
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {step === 'tenant' && renderTenantStep()}
-        {step === 'service' && renderServiceStep()}
-        {step === 'staff' && renderStaffStep()}
-        {step === 'date' && renderDateStep()}
-        {step === 'time' && renderTimeStep()}
-        {step === 'confirm' && renderConfirmStep()}
-      </ScrollView>
-
-      <View style={styles.footer}>
-        {step === 'confirm' ? (
-          <TouchableOpacity
-            style={[styles.nextButton, (isSubmitting || !canProceed()) && styles.nextButtonDisabled]}
-            onPress={handleSubmit}
-            disabled={isSubmitting || !canProceed()}
-          >
-            {isSubmitting ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <Text style={styles.nextButtonText}>Randevuyu Onayla</Text>
-            )}
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.keyboardView}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+      >
+        <View style={styles.header}>
+          <TouchableOpacity onPress={handleBack}>
+            <Ionicons
+              name="arrow-back"
+              size={24}
+              color="#1F2937"
+            />
           </TouchableOpacity>
-        ) : (
-          <TouchableOpacity
-            style={[styles.nextButton, !canProceed() && styles.nextButtonDisabled]}
-            onPress={handleNext}
-            disabled={!canProceed()}
-          >
-            <Text style={styles.nextButtonText}>Devam Et</Text>
-            <Ionicons name="arrow-forward" size={20} color="#fff" />
-          </TouchableOpacity>
-        )}
-      </View>
+          <Text style={styles.headerTitle}>Yeni Randevu</Text>
+          <View style={{ width: 24 }} />
+        </View>
+
+        {renderStepIndicator()}
+
+        <ScrollView
+          style={styles.content}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
+          {step === 'tenant' && renderTenantStep()}
+          {step === 'service' && renderServiceStep()}
+          {step === 'staff' && renderStaffStep()}
+          {step === 'date' && renderDateStep()}
+          {step === 'time' && renderTimeStep()}
+          {step === 'confirm' && renderConfirmStep()}
+        </ScrollView>
+
+        <View style={styles.footer}>
+          {step === 'confirm' ? (
+            <TouchableOpacity
+              style={[styles.nextButton, (isSubmitting || !canProceed()) && styles.nextButtonDisabled]}
+              onPress={handleSubmit}
+              disabled={isSubmitting || !canProceed()}
+            >
+              {isSubmitting ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <Text style={styles.nextButtonText}>Randevuyu Onayla</Text>
+              )}
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity
+              style={[styles.nextButton, !canProceed() && styles.nextButtonDisabled]}
+              onPress={handleNext}
+              disabled={!canProceed()}
+            >
+              <Text style={styles.nextButtonText}>Devam Et</Text>
+              <Ionicons name="arrow-forward" size={20} color="#fff" />
+            </TouchableOpacity>
+          )}
+        </View>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
@@ -996,6 +1008,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#fff',
+  },
+  keyboardView: {
+    flex: 1,
   },
   header: {
     flexDirection: 'row',

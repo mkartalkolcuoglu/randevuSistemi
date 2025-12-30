@@ -9,6 +9,9 @@ import {
   Platform,
   Alert,
   ActivityIndicator,
+  ScrollView,
+  Keyboard,
+  TouchableWithoutFeedback,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -63,78 +66,87 @@ export default function CustomerLoginScreen() {
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardView}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
       >
-        {/* Header */}
-        <View style={styles.header}>
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => router.back()}
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+          <ScrollView
+            contentContainerStyle={styles.scrollContent}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
           >
-            <Ionicons name="arrow-back" size={24} color="#1F2937" />
-          </TouchableOpacity>
-        </View>
-
-        <View style={styles.content}>
-          {/* Icon */}
-          <View style={styles.iconContainer}>
-            <View style={styles.iconCircle}>
-              <Ionicons name="person" size={40} color="#059669" />
+            {/* Header */}
+            <View style={styles.header}>
+              <TouchableOpacity
+                style={styles.backButton}
+                onPress={() => router.back()}
+              >
+                <Ionicons name="arrow-back" size={24} color="#1F2937" />
+              </TouchableOpacity>
             </View>
-          </View>
 
-          {/* Title */}
-          <Text style={styles.title}>Müşteri Girişi</Text>
-          <Text style={styles.subtitle}>
-            Telefon numaranıza doğrulama kodu göndereceğiz
-          </Text>
+            <View style={styles.content}>
+              {/* Icon */}
+              <View style={styles.iconContainer}>
+                <View style={styles.iconCircle}>
+                  <Ionicons name="person" size={40} color="#059669" />
+                </View>
+              </View>
 
-          {/* Phone Input */}
-          <View style={styles.inputWrapper}>
-            <View style={styles.countryCode}>
-              <Text style={styles.countryFlag}>🇹🇷</Text>
-              <Text style={styles.countryCodeText}>+90</Text>
+              {/* Title */}
+              <Text style={styles.title}>Müşteri Girişi</Text>
+              <Text style={styles.subtitle}>
+                Telefon numaranıza doğrulama kodu göndereceğiz
+              </Text>
+
+              {/* Phone Input */}
+              <View style={styles.inputWrapper}>
+                <View style={styles.countryCode}>
+                  <Text style={styles.countryFlag}>🇹🇷</Text>
+                  <Text style={styles.countryCodeText}>+90</Text>
+                </View>
+                <View style={styles.inputContainer}>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="5XX XXX XX XX"
+                    placeholderTextColor="#9CA3AF"
+                    keyboardType="phone-pad"
+                    value={formatDisplayPhone(phone)}
+                    onChangeText={handlePhoneChange}
+                    maxLength={14}
+                    editable={!isLoading}
+                  />
+                </View>
+              </View>
+
+              {/* Continue Button */}
+              <TouchableOpacity
+                style={[
+                  styles.button,
+                  (isLoading || phone.length < 10) && styles.buttonDisabled,
+                ]}
+                onPress={handleSendOtp}
+                disabled={isLoading || phone.length < 10}
+              >
+                {isLoading ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <>
+                    <Text style={styles.buttonText}>Doğrulama Kodu Gönder</Text>
+                    <Ionicons name="arrow-forward" size={20} color="#fff" />
+                  </>
+                )}
+              </TouchableOpacity>
+
+              {/* Terms */}
+              <Text style={styles.terms}>
+                Devam ederek{' '}
+                <Text style={styles.termsLink}>Kullanım Koşulları</Text> ve{' '}
+                <Text style={styles.termsLink}>Gizlilik Politikası</Text>'nı kabul
+                etmiş olursunuz.
+              </Text>
             </View>
-            <View style={styles.inputContainer}>
-              <TextInput
-                style={styles.input}
-                placeholder="5XX XXX XX XX"
-                placeholderTextColor="#9CA3AF"
-                keyboardType="phone-pad"
-                value={formatDisplayPhone(phone)}
-                onChangeText={handlePhoneChange}
-                maxLength={14}
-                editable={!isLoading}
-              />
-            </View>
-          </View>
-
-          {/* Continue Button */}
-          <TouchableOpacity
-            style={[
-              styles.button,
-              (isLoading || phone.length < 10) && styles.buttonDisabled,
-            ]}
-            onPress={handleSendOtp}
-            disabled={isLoading || phone.length < 10}
-          >
-            {isLoading ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <>
-                <Text style={styles.buttonText}>Doğrulama Kodu Gönder</Text>
-                <Ionicons name="arrow-forward" size={20} color="#fff" />
-              </>
-            )}
-          </TouchableOpacity>
-
-          {/* Terms */}
-          <Text style={styles.terms}>
-            Devam ederek{' '}
-            <Text style={styles.termsLink}>Kullanım Koşulları</Text> ve{' '}
-            <Text style={styles.termsLink}>Gizlilik Politikası</Text>'nı kabul
-            etmiş olursunuz.
-          </Text>
-        </View>
+          </ScrollView>
+        </TouchableWithoutFeedback>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -147,6 +159,9 @@ const styles = StyleSheet.create({
   },
   keyboardView: {
     flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
   },
   header: {
     paddingHorizontal: 16,

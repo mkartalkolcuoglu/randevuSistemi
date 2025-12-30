@@ -8,6 +8,9 @@ import {
   KeyboardAvoidingView,
   Platform,
   Alert,
+  ScrollView,
+  Keyboard,
+  TouchableWithoutFeedback,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
@@ -161,79 +164,88 @@ export default function VerifyScreen() {
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardView}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
       >
-        <View style={styles.content}>
-          {/* Back Button */}
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => router.back()}
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+          <ScrollView
+            contentContainerStyle={styles.scrollContent}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
           >
-            <Text style={styles.backButtonText}>← Geri</Text>
-          </TouchableOpacity>
-
-          {/* Title */}
-          <Text style={styles.title}>Doğrulama Kodu</Text>
-          <Text style={styles.subtitle}>
-            <Text style={styles.phoneNumber}>{formatPhone(phone || '')}</Text>
-            {'\n'}numarasına gönderilen 6 haneli kodu girin
-          </Text>
-
-          {/* OTP Input */}
-          <View style={styles.otpContainer}>
-            {otp.map((digit, index) => (
-              <TextInput
-                key={index}
-                ref={(ref) => {
-                  if (ref) inputRefs.current[index] = ref;
-                }}
-                style={[
-                  styles.otpInput,
-                  digit && styles.otpInputFilled,
-                ]}
-                value={digit}
-                onChangeText={(value) => handleOtpChange(value, index)}
-                onKeyPress={(e) => handleKeyPress(e, index)}
-                keyboardType="number-pad"
-                maxLength={index === 0 ? OTP_LENGTH : 1}
-                editable={!isLoading}
-                selectTextOnFocus
-              />
-            ))}
-          </View>
-
-          {/* Verify Button */}
-          <TouchableOpacity
-            style={[
-              styles.button,
-              (isLoading || otp.join('').length < OTP_LENGTH) &&
-                styles.buttonDisabled,
-            ]}
-            onPress={() => handleVerify(otp.join(''))}
-            disabled={isLoading || otp.join('').length < OTP_LENGTH}
-          >
-            <Text style={styles.buttonText}>
-              {isLoading ? 'Doğrulanıyor...' : 'Doğrula'}
-            </Text>
-          </TouchableOpacity>
-
-          {/* Resend */}
-          <View style={styles.resendContainer}>
-            <Text style={styles.resendText}>Kod gelmedi mi? </Text>
-            <TouchableOpacity
-              onPress={handleResend}
-              disabled={resendTimer > 0 || isLoading}
-            >
-              <Text
-                style={[
-                  styles.resendLink,
-                  resendTimer > 0 && styles.resendLinkDisabled,
-                ]}
+            <View style={styles.content}>
+              {/* Back Button */}
+              <TouchableOpacity
+                style={styles.backButton}
+                onPress={() => router.back()}
               >
-                {resendTimer > 0 ? `Tekrar gönder (${resendTimer}s)` : 'Tekrar gönder'}
+                <Text style={styles.backButtonText}>← Geri</Text>
+              </TouchableOpacity>
+
+              {/* Title */}
+              <Text style={styles.title}>Doğrulama Kodu</Text>
+              <Text style={styles.subtitle}>
+                <Text style={styles.phoneNumber}>{formatPhone(phone || '')}</Text>
+                {'\n'}numarasına gönderilen 6 haneli kodu girin
               </Text>
-            </TouchableOpacity>
-          </View>
-        </View>
+
+              {/* OTP Input */}
+              <View style={styles.otpContainer}>
+                {otp.map((digit, index) => (
+                  <TextInput
+                    key={index}
+                    ref={(ref) => {
+                      if (ref) inputRefs.current[index] = ref;
+                    }}
+                    style={[
+                      styles.otpInput,
+                      digit && styles.otpInputFilled,
+                    ]}
+                    value={digit}
+                    onChangeText={(value) => handleOtpChange(value, index)}
+                    onKeyPress={(e) => handleKeyPress(e, index)}
+                    keyboardType="number-pad"
+                    maxLength={index === 0 ? OTP_LENGTH : 1}
+                    editable={!isLoading}
+                    selectTextOnFocus
+                  />
+                ))}
+              </View>
+
+              {/* Verify Button */}
+              <TouchableOpacity
+                style={[
+                  styles.button,
+                  (isLoading || otp.join('').length < OTP_LENGTH) &&
+                    styles.buttonDisabled,
+                ]}
+                onPress={() => handleVerify(otp.join(''))}
+                disabled={isLoading || otp.join('').length < OTP_LENGTH}
+              >
+                <Text style={styles.buttonText}>
+                  {isLoading ? 'Doğrulanıyor...' : 'Doğrula'}
+                </Text>
+              </TouchableOpacity>
+
+              {/* Resend */}
+              <View style={styles.resendContainer}>
+                <Text style={styles.resendText}>Kod gelmedi mi? </Text>
+                <TouchableOpacity
+                  onPress={handleResend}
+                  disabled={resendTimer > 0 || isLoading}
+                >
+                  <Text
+                    style={[
+                      styles.resendLink,
+                      resendTimer > 0 && styles.resendLinkDisabled,
+                    ]}
+                  >
+                    {resendTimer > 0 ? `Tekrar gönder (${resendTimer}s)` : 'Tekrar gönder'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </ScrollView>
+        </TouchableWithoutFeedback>
       </KeyboardAvoidingView>
 
       {/* Error Bottom Sheet */}
@@ -259,6 +271,9 @@ const styles = StyleSheet.create({
   },
   keyboardView: {
     flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
   },
   content: {
     flex: 1,
