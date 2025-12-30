@@ -57,6 +57,19 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    // New customers don't have customerId yet - return empty packages
+    if (!auth.customerId) {
+      console.log('📦 New customer - no customerId, returning empty packages');
+      return NextResponse.json({
+        success: true,
+        data: {
+          hasPackages: false,
+          packages: [],
+          servicePackageMap: {}
+        }
+      });
+    }
+
     // Get customer's phone from original record
     const originalCustomer = await prisma.customer.findUnique({
       where: { id: auth.customerId },
@@ -70,7 +83,8 @@ export async function GET(request: NextRequest) {
         success: true,
         data: {
           hasPackages: false,
-          packages: []
+          packages: [],
+          servicePackageMap: {}
         }
       });
     }

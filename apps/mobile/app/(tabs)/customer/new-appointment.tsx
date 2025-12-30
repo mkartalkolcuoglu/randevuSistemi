@@ -217,6 +217,13 @@ export default function NewAppointmentScreen() {
   const fetchCustomerPackages = async () => {
     if (!selectedTenant) return;
 
+    // Skip for new customers - they don't have packages yet
+    if (user?.isNewCustomer) {
+      console.log('📦 Skipping package fetch for new customer');
+      setCustomerPackages({ hasPackages: false, packages: [], servicePackageMap: {} });
+      return;
+    }
+
     try {
       const response = await api.get('/api/mobile/customer/packages', {
         headers: { 'X-Tenant-ID': selectedTenant.id }
@@ -227,6 +234,8 @@ export default function NewAppointmentScreen() {
       }
     } catch (error) {
       console.error('Error fetching customer packages:', error);
+      // Set empty packages on error to prevent blocking the flow
+      setCustomerPackages({ hasPackages: false, packages: [], servicePackageMap: {} });
     }
   };
 
