@@ -118,6 +118,21 @@ export async function GET(request: NextRequest) {
           email: customer.email,
         },
       });
+    } else if (decoded.userType === 'customer' && decoded.isNewCustomer) {
+      // New customer token (not yet registered)
+      return NextResponse.json({
+        success: true,
+        user: {
+          id: null,
+          phone: decoded.phone || '',
+          userType: 'customer',
+          tenantId: null,
+          firstName: null,
+          lastName: null,
+          email: null,
+          isNewCustomer: true,
+        },
+      });
     }
 
     return NextResponse.json(
