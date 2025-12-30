@@ -91,6 +91,8 @@ export default function TabLayout() {
             ),
           }}
         />
+        {/* Hide payment screen from tab bar */}
+        <Tabs.Screen name="customer/payment" options={{ href: null }} />
         {/* Hide all staff tabs for customers */}
         <Tabs.Screen name="staff/index" options={{ href: null }} />
         <Tabs.Screen name="staff/appointments" options={{ href: null }} />
@@ -168,6 +170,7 @@ export default function TabLayout() {
       <Tabs.Screen name="customer/new-appointment" options={{ href: null }} />
       <Tabs.Screen name="customer/packages" options={{ href: null }} />
       <Tabs.Screen name="customer/profile" options={{ href: null }} />
+      <Tabs.Screen name="customer/payment" options={{ href: null }} />
     </Tabs>
   );
 }

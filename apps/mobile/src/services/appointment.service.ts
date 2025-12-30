@@ -19,10 +19,14 @@ export const appointmentService = {
     limit?: number;
   }): Promise<PaginatedResponse<Appointment>> {
     try {
+      console.log('📅 [getMyAppointments] Fetching appointments...');
       const response = await api.get('/api/mobile/appointments', { params });
+      console.log('📅 [getMyAppointments] Response:', JSON.stringify(response.data, null, 2));
       return response.data;
     } catch (error: any) {
-      console.error('Get appointments error:', error);
+      console.error('❌ [getMyAppointments] Error:', error.message);
+      console.error('❌ [getMyAppointments] Status:', error.response?.status);
+      console.error('❌ [getMyAppointments] Response data:', JSON.stringify(error.response?.data, null, 2));
       return {
         success: false,
         data: [],

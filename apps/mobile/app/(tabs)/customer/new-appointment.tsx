@@ -324,13 +324,19 @@ export default function NewAppointmentScreen() {
 
     // If paying now, redirect to payment screen
     if (paymentOption === 'pay') {
-      const appointmentData = {
+      const appointmentData: any = {
         tenantId: selectedTenant.id,
         serviceId: selectedService.id,
         staffId: selectedStaff.id,
         date: selectedDate.toISOString().split('T')[0],
         time: selectedTime,
       };
+
+      // Add customer info for new customers
+      if (user?.isNewCustomer) {
+        appointmentData.customerFirstName = user.firstName || 'Müşteri';
+        appointmentData.customerLastName = user.lastName || '';
+      }
 
       router.push({
         pathname: '/(tabs)/customer/payment',
@@ -355,6 +361,12 @@ export default function NewAppointmentScreen() {
         date: selectedDate.toISOString().split('T')[0],
         time: selectedTime,
       };
+
+      // Add customer info for new customers
+      if (user?.isNewCustomer) {
+        appointmentData.customerFirstName = user.firstName || 'Müşteri';
+        appointmentData.customerLastName = user.lastName || '';
+      }
 
       // Add package info if using package
       if (paymentOption === 'package' && packageInfo) {

@@ -23,6 +23,12 @@ const STATUS_COLORS: Record<string, { bg: string; text: string; label: string }>
   no_show: { bg: '#F3F4F6', text: '#6B7280', label: 'Gelmedi' },
 };
 
+const TENANT_STATUS_COLORS: Record<string, { bg: string; text: string; label: string }> = {
+  active: { bg: '#D1FAE5', text: '#059669', label: '' },
+  inactive: { bg: '#FEF3C7', text: '#D97706', label: 'Pasif İşletme' },
+  deleted: { bg: '#FEE2E2', text: '#DC2626', label: 'Silinmiş İşletme' },
+};
+
 export default function CustomerAppointmentsScreen() {
   const { user, selectedTenant } = useAuthStore();
   const [appointments, setAppointments] = useState<Appointment[]>([]);
@@ -81,11 +87,35 @@ export default function CustomerAppointmentsScreen() {
 
   const renderAppointment = ({ item }: { item: Appointment }) => {
     const status = STATUS_COLORS[item.status] || STATUS_COLORS.pending;
+    const tenantStatus = TENANT_STATUS_COLORS[item.tenantStatus || 'active'];
     const aptDate = new Date(`${item.date}T${item.time}`);
-    const canCancel = aptDate > new Date() && ['pending', 'confirmed'].includes(item.status);
+    const canCancel = aptDate > new Date() && ['pending', 'confirmed'].includes(item.status) && item.tenantStatus === 'active';
+    const isInactiveTenant = item.tenantStatus === 'inactive' || item.tenantStatus === 'deleted';
 
     return (
-      <View style={styles.appointmentCard}>
+      <View style={[styles.appointmentCard, isInactiveTenant && styles.appointmentCardInactive]}>
+        {/* Tenant Badge - show if inactive or deleted */}
+        {isInactiveTenant && (
+          <View style={[styles.tenantBadge, { backgroundColor: tenantStatus.bg }]}>
+            <Ionicons
+              name={item.tenantStatus === 'deleted' ? 'close-circle' : 'pause-circle'}
+              size={14}
+              color={tenantStatus.text}
+            />
+            <Text style={[styles.tenantBadgeText, { color: tenantStatus.text }]}>
+              {tenantStatus.label}
+            </Text>
+          </View>
+        )}
+
+        {/* Tenant Name */}
+        <View style={styles.tenantNameRow}>
+          <Ionicons name="storefront" size={16} color="#6B7280" />
+          <Text style={[styles.tenantName, isInactiveTenant && styles.tenantNameInactive]}>
+            {item.tenantName || 'Bilinmiyor'}
+          </Text>
+        </View>
+
         <View style={styles.cardHeader}>
           <View style={styles.dateContainer}>
             <Text style={styles.dateText}>{formatDate(item.date)}</Text>
@@ -260,6 +290,42 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.05,
     shadowRadius: 8,
     elevation: 2,
+  },
+  appointmentCardInactive: {
+    opacity: 0.85,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  tenantBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    marginBottom: 10,
+  },
+  tenantBadgeText: {
+    fontSize: 12,
+    fontWeight: '600',
+    marginLeft: 4,
+  },
+  tenantNameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+  },
+  tenantName: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#4B5563',
+    marginLeft: 8,
+  },
+  tenantNameInactive: {
+    color: '#9CA3AF',
   },
   cardHeader: {
     flexDirection: 'row',

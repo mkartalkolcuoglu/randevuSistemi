@@ -89,8 +89,9 @@ export const authService = {
   /**
    * Verify OTP code for CUSTOMER login
    * Customers are not bound to a single tenant
+   * Returns isNewCustomer: true if customer is not registered
    */
-  async verifyOtpCustomer(phone: string, code: string): Promise<VerifyOtpResponse> {
+  async verifyOtpCustomer(phone: string, code: string): Promise<VerifyOtpResponse & { isNewCustomer?: boolean }> {
     try {
       const response = await api.post('/api/mobile/auth/verify-otp-customer', {
         phone,
@@ -110,7 +111,10 @@ export const authService = {
         }
       }
 
-      return response.data;
+      return {
+        ...response.data,
+        isNewCustomer: response.data.isNewCustomer || false,
+      };
     } catch (error: any) {
       console.error('Verify OTP Customer error:', error);
       return {

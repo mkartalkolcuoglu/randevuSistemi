@@ -245,49 +245,87 @@ export async function POST(request: NextRequest) {
 
     // For customer user type, find or create customer record in target tenant
     if (auth.userType === 'customer') {
-      if (!auth.customerId) {
-        return NextResponse.json(
-          { success: false, message: 'Müşteri bilgisi bulunamadı' },
-          { status: 400 }
-        );
-      }
+      // Check if this is a new customer (isNewCustomer flag in token)
+      const isNewCustomer = (auth as any).isNewCustomer;
 
-      // Get the customer's phone number from their original record
-      const originalCustomer = await prisma.customer.findUnique({
-        where: { id: auth.customerId },
-        select: { phone: true, firstName: true, lastName: true, email: true }
-      });
+      if (isNewCustomer || !auth.customerId) {
+        // New customer - create customer record using phone from token and name from body
+        const phone = auth.phone;
+        if (!phone) {
+          return NextResponse.json(
+            { success: false, message: 'Telefon bilgisi bulunamadı' },
+            { status: 400 }
+          );
+        }
 
-      if (!originalCustomer?.phone) {
-        return NextResponse.json(
-          { success: false, message: 'Müşteri telefon bilgisi bulunamadı' },
-          { status: 400 }
-        );
-      }
+        // Get customer name from body (set during onboarding)
+        const firstName = body.customerFirstName || 'Müşteri';
+        const lastName = body.customerLastName || '';
 
-      // Find or create customer record in the target tenant
-      let targetCustomer = await prisma.customer.findFirst({
-        where: {
-          tenantId: tenantId,
-          phone: originalCustomer.phone,
-        },
-      });
-
-      if (!targetCustomer) {
-        // Create customer record in target tenant
-        targetCustomer = await prisma.customer.create({
-          data: {
+        // Find or create customer record in the target tenant
+        let targetCustomer = await prisma.customer.findFirst({
+          where: {
             tenantId: tenantId,
-            firstName: originalCustomer.firstName,
-            lastName: originalCustomer.lastName,
-            phone: originalCustomer.phone,
-            email: originalCustomer.email || `${originalCustomer.phone}@temp.com`,
-            status: 'active',
+            phone: {
+              contains: phone.slice(-10),
+            },
           },
         });
-      }
 
-      customerId = targetCustomer.id;
+        if (!targetCustomer) {
+          // Create new customer record
+          targetCustomer = await prisma.customer.create({
+            data: {
+              tenantId: tenantId,
+              firstName,
+              lastName,
+              phone,
+              email: `${phone}@temp.com`,
+              status: 'active',
+            },
+          });
+          console.log('📱 [APPOINTMENT] Created new customer:', targetCustomer.id);
+        }
+
+        customerId = targetCustomer.id;
+      } else {
+        // Existing customer - get phone from their record
+        const originalCustomer = await prisma.customer.findUnique({
+          where: { id: auth.customerId },
+          select: { phone: true, firstName: true, lastName: true, email: true }
+        });
+
+        if (!originalCustomer?.phone) {
+          return NextResponse.json(
+            { success: false, message: 'Müşteri telefon bilgisi bulunamadı' },
+            { status: 400 }
+          );
+        }
+
+        // Find or create customer record in the target tenant
+        let targetCustomer = await prisma.customer.findFirst({
+          where: {
+            tenantId: tenantId,
+            phone: originalCustomer.phone,
+          },
+        });
+
+        if (!targetCustomer) {
+          // Create customer record in target tenant
+          targetCustomer = await prisma.customer.create({
+            data: {
+              tenantId: tenantId,
+              firstName: originalCustomer.firstName,
+              lastName: originalCustomer.lastName,
+              phone: originalCustomer.phone,
+              email: originalCustomer.email || `${originalCustomer.phone}@temp.com`,
+              status: 'active',
+            },
+          });
+        }
+
+        customerId = targetCustomer.id;
+      }
     }
 
     // If staff/owner creating appointment, find or create customer

@@ -13,6 +13,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useAuthStore } from '../../src/store/auth.store';
 import { OTP_LENGTH, OTP_RESEND_TIMEOUT } from '../../src/constants/config';
+import ErrorBottomSheet from '../../src/components/ErrorBottomSheet';
 
 export default function VerifyScreen() {
   const router = useRouter();
@@ -22,6 +23,10 @@ export default function VerifyScreen() {
   const [otp, setOtp] = useState<string[]>(new Array(OTP_LENGTH).fill(''));
   const [resendTimer, setResendTimer] = useState(OTP_RESEND_TIMEOUT);
   const inputRefs = useRef<TextInput[]>([]);
+
+  // Error bottom sheet state
+  const [errorSheetVisible, setErrorSheetVisible] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
 
   // Countdown timer for resend
   useEffect(() => {
@@ -94,9 +99,18 @@ export default function VerifyScreen() {
       const result = await verifyOtpCustomer(phone, code);
 
       if (result.success) {
-        router.replace('/');
+        // Check if this is a new customer
+        if (result.isNewCustomer) {
+          // New customer - redirect to onboarding
+          router.replace('/onboarding/profile');
+        } else {
+          // Existing customer - go to main app
+          router.replace('/');
+        }
       } else {
-        Alert.alert('Hata', result.message);
+        // Show error in bottom sheet for customer login errors
+        setErrorMessage(result.message);
+        setErrorSheetVisible(true);
         setOtp(new Array(OTP_LENGTH).fill(''));
         inputRefs.current[0]?.focus();
       }
@@ -221,6 +235,19 @@ export default function VerifyScreen() {
           </View>
         </View>
       </KeyboardAvoidingView>
+
+      {/* Error Bottom Sheet */}
+      <ErrorBottomSheet
+        visible={errorSheetVisible}
+        onClose={() => setErrorSheetVisible(false)}
+        title="Giriş Başarısız"
+        message={errorMessage}
+        icon="person-remove"
+        iconColor="#EF4444"
+        primaryButtonText="Tekrar Dene"
+        secondaryButtonText="Geri Dön"
+        secondaryButtonAction={() => router.back()}
+      />
     </SafeAreaView>
   );
 }

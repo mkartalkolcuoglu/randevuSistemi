@@ -18,6 +18,7 @@ interface AuthStore extends AuthState {
   verifyOtpCustomer: (phone: string, code: string) => Promise<{
     success: boolean;
     message: string;
+    isNewCustomer?: boolean;
   }>;
   selectTenant: (tenant: Tenant) => Promise<boolean>;
   logout: () => Promise<void>;
@@ -189,7 +190,23 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
       const result = await authService.verifyOtpCustomer(phone, code);
 
       if (result.success) {
-        // Customer login - no tenant selection
+        // Check if this is a new customer (not registered yet)
+        if (result.isNewCustomer) {
+          // New customer - set authenticated but with isNewCustomer flag
+          set({
+            isAuthenticated: true,
+            user: result.user || null,
+            selectedTenant: null,
+          });
+
+          return {
+            success: true,
+            message: 'Yeni müşteri kaydı gerekiyor',
+            isNewCustomer: true,
+          };
+        }
+
+        // Existing customer login - no tenant selection
         set({
           isAuthenticated: true,
           user: result.user || null,
@@ -199,6 +216,7 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
         return {
           success: true,
           message: 'Giriş başarılı',
+          isNewCustomer: false,
         };
       }
 

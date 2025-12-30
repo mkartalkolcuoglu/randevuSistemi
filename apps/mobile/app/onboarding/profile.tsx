@@ -18,7 +18,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import api from '../../src/services/api';
 import { useAuthStore } from '../../src/store/auth.store';
 
-const ONBOARDING_COMPLETED_KEY = 'onboarding_completed';
+// Same key as in index.tsx to mark onboarding as shown
+const ONBOARDING_SHOWN_KEY = 'onboarding_shown_v1';
 
 export default function OnboardingProfileScreen() {
   const router = useRouter();
@@ -41,13 +42,11 @@ export default function OnboardingProfileScreen() {
 
     setIsLoading(true);
     try {
-      const response = await api.put('/api/mobile/customer/profile', {
-        firstName: formData.firstName.trim(),
-        lastName: formData.lastName.trim(),
-      });
+      // Check if user is new (isNewCustomer flag from auth)
+      const isNewCustomer = user?.isNewCustomer;
 
-      if (response.data.success) {
-        // Update user in store
+      if (isNewCustomer) {
+        // New customer - save profile locally, will be saved when creating first appointment
         if (user) {
           setUser({
             ...user,
@@ -56,13 +55,36 @@ export default function OnboardingProfileScreen() {
           });
         }
 
-        // Mark onboarding as completed
-        await AsyncStorage.setItem(ONBOARDING_COMPLETED_KEY, 'true');
+        // Mark onboarding as shown on this device
+        await AsyncStorage.setItem(ONBOARDING_SHOWN_KEY, 'true');
 
-        // Navigate to main app
-        router.replace('/(tabs)/customer');
+        // Navigate to new appointment screen for new customers
+        router.replace('/(tabs)/customer/new-appointment');
       } else {
-        Alert.alert('Hata', response.data.message || 'Bilgiler kaydedilemedi');
+        // Existing customer - save to backend
+        const response = await api.put('/api/mobile/customer/profile', {
+          firstName: formData.firstName.trim(),
+          lastName: formData.lastName.trim(),
+        });
+
+        if (response.data.success) {
+          // Update user in store
+          if (user) {
+            setUser({
+              ...user,
+              firstName: formData.firstName.trim(),
+              lastName: formData.lastName.trim(),
+            });
+          }
+
+          // Mark onboarding as shown on this device
+          await AsyncStorage.setItem(ONBOARDING_SHOWN_KEY, 'true');
+
+          // Navigate to main app
+          router.replace('/(tabs)/customer');
+        } else {
+          Alert.alert('Hata', response.data.message || 'Bilgiler kaydedilemedi');
+        }
       }
     } catch (error: any) {
       console.error('Error saving profile:', error);

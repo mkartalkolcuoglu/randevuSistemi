@@ -2,17 +2,18 @@
 export type UserType = 'customer' | 'staff' | 'owner';
 
 export interface User {
-  id: string;
+  id: string | null;
   phone: string;
   userType: UserType;
-  tenantId?: string;
-  tenantName?: string;
+  tenantId?: string | null;
+  tenantName?: string | null;
   customerId?: string;
   staffId?: string;
-  firstName?: string;
-  lastName?: string;
-  email?: string;
+  firstName?: string | null;
+  lastName?: string | null;
+  email?: string | null;
   avatar?: string;
+  isNewCustomer?: boolean;
 }
 
 export interface Tenant {
@@ -51,6 +52,8 @@ export interface VerifyOtpResponse {
 export interface Appointment {
   id: string;
   tenantId: string;
+  tenantName?: string;
+  tenantStatus?: 'active' | 'inactive' | 'deleted';
   customerId: string;
   customerName: string;
   customerPhone: string;

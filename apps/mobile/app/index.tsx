@@ -4,7 +4,9 @@ import { View, ActivityIndicator, StyleSheet } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuthStore } from '../src/store/auth.store';
 
-const ONBOARDING_COMPLETED_KEY = 'onboarding_completed';
+// Onboarding key is device-specific (not phone-specific)
+// This ensures onboarding is shown on first app install on any device
+const ONBOARDING_SHOWN_KEY = 'onboarding_shown_v1';
 
 export default function Index() {
   const { isAuthenticated, user } = useAuthStore();
@@ -22,14 +24,12 @@ export default function Index() {
     }
 
     try {
-      // Check if onboarding was already completed
-      const onboardingCompleted = await AsyncStorage.getItem(ONBOARDING_COMPLETED_KEY);
+      // Check if onboarding was shown on this device
+      const onboardingShown = await AsyncStorage.getItem(ONBOARDING_SHOWN_KEY);
 
-      // Check if profile is incomplete (no firstName or lastName)
-      const profileIncomplete = !user?.firstName || !user?.lastName;
-
-      // Need onboarding if not completed before AND profile is incomplete
-      if (!onboardingCompleted && profileIncomplete) {
+      // Show onboarding if never shown on this device
+      // This ensures every new device/install sees the onboarding
+      if (!onboardingShown) {
         setNeedsOnboarding(true);
       } else {
         setNeedsOnboarding(false);

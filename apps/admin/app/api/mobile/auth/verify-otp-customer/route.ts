@@ -72,11 +72,42 @@ export async function POST(request: NextRequest) {
 
     console.log('📱 [CUSTOMER] Found customers (raw):', customersRaw.length);
 
+    // Kayıtlı müşteri yoksa, yeni müşteri olarak işaretle
     if (customersRaw.length === 0) {
-      return NextResponse.json(
-        { success: false, message: 'Bu telefon numarası ile kayıtlı müşteri bulunamadı' },
-        { status: 404 }
+      console.log('📱 [CUSTOMER] New customer - no existing records');
+
+      // Yeni müşteri için geçici token oluştur
+      const token = jwt.sign(
+        {
+          phone: formattedPhone,
+          userType: 'customer',
+          isNewCustomer: true,
+          // customerId yok - henüz kayıt olmadı
+        },
+        JWT_SECRET,
+        { expiresIn: '30d' }
       );
+
+      // Yeni müşteri için user objesi
+      const newUser = {
+        id: null,
+        phone: formattedPhone,
+        userType: 'customer' as const,
+        firstName: null,
+        lastName: null,
+        email: null,
+        tenantId: null,
+        tenantName: null,
+        isNewCustomer: true,
+      };
+
+      return NextResponse.json({
+        success: true,
+        message: 'Yeni müşteri kaydı gerekiyor',
+        user: newUser,
+        token,
+        isNewCustomer: true,
+      });
     }
 
     // Get valid tenants for these customers
@@ -98,11 +129,39 @@ export async function POST(request: NextRequest) {
 
     console.log('📱 [CUSTOMER] Found customers (with valid tenants):', customers.length);
 
+    // Müşteri kayıtları var ama tüm tenant'lar silinmiş - yeni müşteri gibi davran
     if (customers.length === 0) {
-      return NextResponse.json(
-        { success: false, message: 'Bu telefon numarası ile kayıtlı müşteri bulunamadı' },
-        { status: 404 }
+      console.log('📱 [CUSTOMER] Customer records exist but all tenants deleted - treating as new customer');
+
+      const token = jwt.sign(
+        {
+          phone: formattedPhone,
+          userType: 'customer',
+          isNewCustomer: true,
+        },
+        JWT_SECRET,
+        { expiresIn: '30d' }
       );
+
+      const newUser = {
+        id: null,
+        phone: formattedPhone,
+        userType: 'customer' as const,
+        firstName: customersRaw[0]?.firstName || null,
+        lastName: customersRaw[0]?.lastName || null,
+        email: customersRaw[0]?.email || null,
+        tenantId: null,
+        tenantName: null,
+        isNewCustomer: true,
+      };
+
+      return NextResponse.json({
+        success: true,
+        message: 'Yeni müşteri kaydı gerekiyor',
+        user: newUser,
+        token,
+        isNewCustomer: true,
+      });
     }
 
     // Use first customer's info (name, email)
