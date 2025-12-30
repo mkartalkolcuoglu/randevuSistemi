@@ -47,22 +47,72 @@ export async function GET(request: NextRequest) {
 
     // Customer - can see appointments from ALL tenants where they have records
     if (auth.userType === 'customer' && auth.customerId) {
+      console.log('📱 [CUSTOMER] Looking up customerId:', auth.customerId);
+
       // Find all customer IDs with the same phone across tenants
       const customer = await prisma.customer.findUnique({
         where: { id: auth.customerId },
         select: { phone: true }
       });
 
+      console.log('📱 [CUSTOMER] Found customer:', customer);
+
       if (customer?.phone) {
-        // Get all customer records with same phone
+        // Normalize phone for matching - get last 10 digits
+        const phoneDigits = customer.phone.replace(/\D/g, '');
+        const phoneLastDigits = phoneDigits.slice(-10);
+
+        console.log('📱 [CUSTOMER] Phone:', customer.phone, 'Last 10:', phoneLastDigits);
+
+        // Get all customer records with matching phone (last 10 digits)
         const allCustomerRecords = await prisma.customer.findMany({
-          where: { phone: customer.phone },
+          where: {
+            phone: {
+              contains: phoneLastDigits
+            }
+          },
           select: { id: true }
         });
+
+        console.log('📱 [CUSTOMER] Found customer records:', allCustomerRecords.length, allCustomerRecords.map(c => c.id));
+
         const customerIds = allCustomerRecords.map(c => c.id);
+        if (customerIds.length > 0) {
+          whereClause.customerId = { in: customerIds };
+        } else {
+          whereClause.customerId = auth.customerId;
+        }
+      } else {
+        // Customer not found or has no phone - return empty
+        console.log('📱 [CUSTOMER] Customer not found or no phone, using customerId:', auth.customerId);
+        whereClause.customerId = auth.customerId;
+      }
+    } else if (auth.userType === 'customer' && auth.phone) {
+      // Fallback: use phone from token if customerId not set
+      console.log('📱 [CUSTOMER] Using phone from token:', auth.phone);
+      const phoneDigits = auth.phone.replace(/\D/g, '');
+      const phoneLastDigits = phoneDigits.slice(-10);
+
+      const allCustomerRecords = await prisma.customer.findMany({
+        where: {
+          phone: {
+            contains: phoneLastDigits
+          }
+        },
+        select: { id: true }
+      });
+
+      console.log('📱 [CUSTOMER] Found customer records by phone:', allCustomerRecords.length);
+
+      const customerIds = allCustomerRecords.map(c => c.id);
+      if (customerIds.length > 0) {
         whereClause.customerId = { in: customerIds };
       } else {
-        whereClause.customerId = auth.customerId;
+        // No customers found - return empty list
+        return NextResponse.json({
+          success: true,
+          data: [],
+        });
       }
     } else {
       // Staff/Owner - only see appointments from their tenant
@@ -82,70 +132,75 @@ export async function GET(request: NextRequest) {
       whereClause.status = status;
     }
 
+    // Use raw query approach - get appointments without requiring valid relations
+    // This ensures deleted/inactive tenants, services, staff don't break the query
     const appointments = await prisma.appointment.findMany({
       where: whereClause,
-      include: {
-        customer: {
-          select: {
-            firstName: true,
-            lastName: true,
-            phone: true,
-            email: true,
-          },
-        },
-        service: {
-          select: {
-            name: true,
-            duration: true,
-            price: true,
-          },
-        },
-        staff: {
-          select: {
-            firstName: true,
-            lastName: true,
-          },
-        },
-        tenant: {
-          select: {
-            businessName: true,
-          },
-        },
-      },
       orderBy: [{ date: 'desc' }, { time: 'desc' }],
     });
 
-    const formattedAppointments = appointments.map((apt: any) => ({
-      id: apt.id,
-      tenantId: apt.tenantId,
-      tenantName: apt.tenant?.businessName || '',
-      customerId: apt.customerId,
-      customerName: `${apt.customer.firstName} ${apt.customer.lastName}`,
-      customerPhone: apt.customer.phone,
-      customerEmail: apt.customer.email,
-      serviceId: apt.serviceId,
-      serviceName: apt.service.name,
-      staffId: apt.staffId,
-      staffName: `${apt.staff.firstName} ${apt.staff.lastName}`,
-      date: apt.date,
-      time: apt.time,
-      duration: apt.service.duration,
-      status: apt.status,
-      notes: apt.notes,
-      price: apt.service.price,
-      paymentType: apt.paymentType,
-      createdAt: apt.createdAt.toISOString(),
-      updatedAt: apt.updatedAt.toISOString(),
-    }));
+    console.log('📋 [APPOINTMENTS] Found appointments:', appointments.length);
+
+    // Get tenant info separately to handle deleted tenants
+    const tenantIds = [...new Set(appointments.map(apt => apt.tenantId))];
+    const tenants = await prisma.tenant.findMany({
+      where: { id: { in: tenantIds } },
+      select: { id: true, businessName: true, status: true },
+    });
+    const tenantMap = new Map(tenants.map(t => [t.id, t]));
+
+    const formattedAppointments = appointments.map((apt: any) => {
+      const tenant = tenantMap.get(apt.tenantId);
+
+      // Determine tenant status for UI display
+      let tenantStatus = 'active';
+      let tenantName = apt.serviceName ? `${apt.serviceName} - İşletme` : 'Bilinmiyor';
+
+      if (tenant) {
+        tenantName = tenant.businessName;
+        tenantStatus = tenant.status || 'active';
+      } else {
+        tenantStatus = 'deleted';
+        tenantName = 'Silinmiş İşletme';
+      }
+
+      return {
+        id: apt.id,
+        tenantId: apt.tenantId,
+        tenantName: tenantName,
+        tenantStatus: tenantStatus, // 'active', 'inactive', 'deleted'
+        customerId: apt.customerId,
+        customerName: apt.customerName || 'Bilinmiyor',
+        customerPhone: apt.customerPhone || '',
+        customerEmail: apt.customerEmail || '',
+        serviceId: apt.serviceId,
+        serviceName: apt.serviceName || 'Bilinmiyor',
+        staffId: apt.staffId,
+        staffName: apt.staffName || 'Bilinmiyor',
+        date: apt.date,
+        time: apt.time,
+        duration: apt.duration || 0,
+        status: apt.status,
+        notes: apt.notes,
+        price: apt.price || 0,
+        paymentType: apt.paymentType,
+        createdAt: apt.createdAt?.toISOString() || new Date().toISOString(),
+        updatedAt: apt.updatedAt?.toISOString() || new Date().toISOString(),
+      };
+    });
+
+    console.log('📋 [APPOINTMENTS] Formatted:', formattedAppointments.length);
 
     return NextResponse.json({
       success: true,
       data: formattedAppointments,
     });
-  } catch (error) {
-    console.error('Get appointments error:', error);
+  } catch (error: any) {
+    console.error('❌ Get appointments error:', error);
+    console.error('❌ Error message:', error?.message);
+    console.error('❌ Error stack:', error?.stack);
     return NextResponse.json(
-      { success: false, message: 'Bir hata oluştu' },
+      { success: false, message: 'Bir hata oluştu', error: error?.message },
       { status: 500 }
     );
   }
