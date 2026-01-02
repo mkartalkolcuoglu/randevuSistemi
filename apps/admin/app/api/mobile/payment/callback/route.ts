@@ -30,7 +30,9 @@ export async function GET(request: NextRequest) {
     });
 
     if (payment) {
-      // Ödeme durumunu güncelle ve randevu oluştur (PayTR POST callback'i gelmeden önce)
+      console.log('📲 [MOBILE PAYMENT CALLBACK GET] Payment found:', payment.id, 'status:', payment.status);
+
+      // Ödeme durumu pending ise completed yap
       if (payment.status === 'pending') {
         await prisma.payment.update({
           where: { id: payment.id },
@@ -40,79 +42,87 @@ export async function GET(request: NextRequest) {
           }
         });
         console.log('✅ [MOBILE PAYMENT CALLBACK GET] Payment marked as completed:', payment.id);
+      }
 
-        // Randevu oluştur
-        if (payment.userBasket) {
-          try {
-            const appointmentData = JSON.parse(payment.userBasket);
-            console.log('📅 [MOBILE PAYMENT CALLBACK GET] Appointment data:', appointmentData);
+      // Randevu oluştur (status'tan bağımsız - her zaman kontrol et)
+      if (payment.userBasket) {
+        try {
+          const appointmentData = JSON.parse(payment.userBasket);
+          console.log('📅 [MOBILE PAYMENT CALLBACK GET] Appointment data:', appointmentData);
 
-            if (appointmentData.tenantId && appointmentData.serviceId && appointmentData.staffId && appointmentData.date && appointmentData.time) {
-              // Mevcut randevu var mı kontrol et
-              const existingAppointment = await prisma.appointment.findFirst({
-                where: {
-                  paymentId: payment.id
-                }
+          if (appointmentData.tenantId && appointmentData.serviceId && appointmentData.staffId && appointmentData.date && appointmentData.time) {
+            // Mevcut randevu var mı kontrol et
+            const existingAppointment = await prisma.appointment.findFirst({
+              where: {
+                paymentId: payment.id
+              }
+            });
+
+            if (!existingAppointment) {
+              console.log('📅 [MOBILE PAYMENT CALLBACK GET] No existing appointment, creating new one...');
+
+              // Get service details
+              const service = await prisma.service.findUnique({
+                where: { id: appointmentData.serviceId }
               });
 
-              if (!existingAppointment) {
-                // Get service details
-                const service = await prisma.service.findUnique({
-                  where: { id: appointmentData.serviceId }
+              // Get staff details
+              const staff = await prisma.staff.findUnique({
+                where: { id: appointmentData.staffId }
+              });
+
+              // Get customer info
+              let customerId = payment.customerId;
+              let customerName = payment.customerName || 'Müşteri';
+              let customerPhone = payment.customerPhone || '';
+
+              if (customerId) {
+                const customer = await prisma.customer.findUnique({
+                  where: { id: customerId }
                 });
-
-                // Get staff details
-                const staff = await prisma.staff.findUnique({
-                  where: { id: appointmentData.staffId }
-                });
-
-                // Get customer info
-                let customerId = payment.customerId;
-                let customerName = payment.customerName || 'Müşteri';
-                let customerPhone = payment.customerPhone || '';
-
-                if (customerId) {
-                  const customer = await prisma.customer.findUnique({
-                    where: { id: customerId }
-                  });
-                  if (customer) {
-                    customerName = `${customer.firstName} ${customer.lastName}`.trim();
-                    customerPhone = customer.phone || '';
-                  }
+                if (customer) {
+                  customerName = `${customer.firstName} ${customer.lastName}`.trim();
+                  customerPhone = customer.phone || '';
                 }
-
-                if (service && staff) {
-                  const newAppointment = await prisma.appointment.create({
-                    data: {
-                      tenantId: appointmentData.tenantId,
-                      customerId: customerId || '',
-                      customerName,
-                      customerPhone,
-                      serviceId: appointmentData.serviceId,
-                      serviceName: service.name,
-                      staffId: appointmentData.staffId,
-                      staffName: `${staff.firstName} ${staff.lastName}`.trim(),
-                      date: appointmentData.date,
-                      time: appointmentData.time,
-                      duration: service.duration,
-                      price: service.price,
-                      status: 'confirmed',
-                      paymentType: 'credit_card',
-                      paymentStatus: 'paid',
-                      paymentId: payment.id,
-                      notes: appointmentData.notes || '',
-                    }
-                  });
-                  console.log('✅ [MOBILE PAYMENT CALLBACK GET] Appointment created:', newAppointment.id);
-                }
-              } else {
-                console.log('ℹ️ [MOBILE PAYMENT CALLBACK GET] Appointment already exists:', existingAppointment.id);
               }
+
+              if (service && staff) {
+                const newAppointment = await prisma.appointment.create({
+                  data: {
+                    tenantId: appointmentData.tenantId,
+                    customerId: customerId || '',
+                    customerName,
+                    customerPhone,
+                    serviceId: appointmentData.serviceId,
+                    serviceName: service.name,
+                    staffId: appointmentData.staffId,
+                    staffName: `${staff.firstName} ${staff.lastName}`.trim(),
+                    date: appointmentData.date,
+                    time: appointmentData.time,
+                    duration: service.duration,
+                    price: service.price,
+                    status: 'confirmed',
+                    paymentType: 'credit_card',
+                    paymentStatus: 'paid',
+                    paymentId: payment.id,
+                    notes: appointmentData.notes || '',
+                  }
+                });
+                console.log('✅ [MOBILE PAYMENT CALLBACK GET] Appointment created:', newAppointment.id);
+              } else {
+                console.log('⚠️ [MOBILE PAYMENT CALLBACK GET] Service or staff not found:', { serviceId: appointmentData.serviceId, staffId: appointmentData.staffId });
+              }
+            } else {
+              console.log('ℹ️ [MOBILE PAYMENT CALLBACK GET] Appointment already exists:', existingAppointment.id);
             }
-          } catch (e) {
-            console.error('⚠️ [MOBILE PAYMENT CALLBACK GET] Error creating appointment:', e);
+          } else {
+            console.log('⚠️ [MOBILE PAYMENT CALLBACK GET] Missing appointment data fields:', appointmentData);
           }
+        } catch (e) {
+          console.error('⚠️ [MOBILE PAYMENT CALLBACK GET] Error creating appointment:', e);
         }
+      } else {
+        console.log('⚠️ [MOBILE PAYMENT CALLBACK GET] No userBasket in payment');
       }
 
       const redirectUrl = `${deepLinkBase}/success?merchant_oid=${merchantOid}&payment_id=${payment.id}`;
