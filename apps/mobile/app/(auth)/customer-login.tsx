@@ -8,17 +8,22 @@ import {
   Platform,
   Alert,
   ActivityIndicator,
+  Dimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { useAuthStore } from '../../src/store/auth.store';
+
+const { width } = Dimensions.get('window');
 
 export default function CustomerLoginScreen() {
   const router = useRouter();
   const { sendOtp, isLoading } = useAuthStore();
   const [phone, setPhone] = useState('');
+  const [isPhoneFocused, setIsPhoneFocused] = useState(false);
 
   const formatPhoneNumber = (text: string) => {
     const digits = text.replace(/\D/g, '');
@@ -59,153 +64,261 @@ export default function CustomerLoginScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <KeyboardAwareScrollView
-        contentContainerStyle={styles.scrollContent}
-        enableOnAndroid={true}
-        enableAutomaticScroll={true}
-        extraScrollHeight={Platform.OS === 'ios' ? 20 : 0}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
-      >
-        {/* Header */}
-        <View style={styles.header}>
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => router.back()}
-          >
-            <Ionicons name="arrow-back" size={24} color="#1F2937" />
-          </TouchableOpacity>
-        </View>
+    <LinearGradient
+      colors={['#059669', '#10B981']}
+      style={styles.gradient}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 1 }}
+    >
+      <SafeAreaView style={styles.container}>
+        {/* Decorative circles */}
+        <View style={styles.decorativeCircle1} />
+        <View style={styles.decorativeCircle2} />
+        <View style={styles.decorativeCircle3} />
 
-        <View style={styles.content}>
-          {/* Icon */}
-          <View style={styles.iconContainer}>
-            <View style={styles.iconCircle}>
-              <Ionicons name="person" size={40} color="#059669" />
-            </View>
+        <KeyboardAwareScrollView
+          contentContainerStyle={styles.scrollContent}
+          enableOnAndroid={true}
+          enableAutomaticScroll={true}
+          extraScrollHeight={Platform.OS === 'ios' ? 20 : 0}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          {/* Header */}
+          <View style={styles.header}>
+            <TouchableOpacity
+              style={styles.backButton}
+              onPress={() => router.back()}
+            >
+              <Ionicons name="arrow-back" size={24} color="#059669" />
+            </TouchableOpacity>
           </View>
 
-          {/* Title */}
-          <Text style={styles.title}>Müşteri Girişi</Text>
-          <Text style={styles.subtitle}>
-            Telefon numaranıza doğrulama kodu göndereceğiz
-          </Text>
+          {/* Main Content Card */}
+          <View style={styles.cardContainer}>
+            <View style={styles.card}>
+              {/* Icon */}
+              <View style={styles.iconContainer}>
+                <View style={styles.iconCircle}>
+                  <Ionicons name="person" size={32} color="#fff" />
+                </View>
+              </View>
 
-          {/* Phone Input */}
-          <View style={styles.inputWrapper}>
-            <View style={styles.countryCode}>
-              <Text style={styles.countryFlag}>🇹🇷</Text>
-              <Text style={styles.countryCodeText}>+90</Text>
+              {/* Title */}
+              <Text style={styles.title}>Müşteri Girişi</Text>
+              <Text style={styles.subtitle}>
+                Telefon numaranıza doğrulama kodu göndereceğiz
+              </Text>
+
+              {/* Phone Input */}
+              <View style={styles.inputSection}>
+                <Text style={styles.inputLabel}>Telefon Numarası</Text>
+                <View style={[
+                  styles.inputWrapper,
+                  isPhoneFocused && styles.inputWrapperFocused
+                ]}>
+                  <View style={styles.countryCode}>
+                    <Text style={styles.countryFlag}>🇹🇷</Text>
+                    <Text style={styles.countryCodeText}>+90</Text>
+                  </View>
+                  <View style={styles.inputDivider} />
+                  <TextInput
+                    style={styles.input}
+                    placeholder="5XX XXX XX XX"
+                    placeholderTextColor="#9CA3AF"
+                    keyboardType="phone-pad"
+                    value={formatDisplayPhone(phone)}
+                    onChangeText={handlePhoneChange}
+                    maxLength={14}
+                    editable={!isLoading}
+                    onFocus={() => setIsPhoneFocused(true)}
+                    onBlur={() => setIsPhoneFocused(false)}
+                  />
+                </View>
+              </View>
+
+              {/* Continue Button */}
+              <TouchableOpacity
+                style={[
+                  styles.button,
+                  (isLoading || phone.length < 10) && styles.buttonDisabled,
+                ]}
+                onPress={handleSendOtp}
+                disabled={isLoading || phone.length < 10}
+                activeOpacity={0.8}
+              >
+                {isLoading ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <>
+                    <Text style={styles.buttonText}>Doğrulama Kodu Gönder</Text>
+                    <View style={styles.buttonIconContainer}>
+                      <Ionicons name="arrow-forward" size={18} color="#059669" />
+                    </View>
+                  </>
+                )}
+              </TouchableOpacity>
+
+              {/* Info Section */}
+              <View style={styles.infoSection}>
+                <View style={styles.infoItem}>
+                  <View style={styles.infoIconContainer}>
+                    <Ionicons name="shield-checkmark" size={18} color="#059669" />
+                  </View>
+                  <Text style={styles.infoText}>Güvenli ve şifreli bağlantı</Text>
+                </View>
+                <View style={styles.infoItem}>
+                  <View style={styles.infoIconContainer}>
+                    <Ionicons name="time" size={18} color="#059669" />
+                  </View>
+                  <Text style={styles.infoText}>Kod 2 dakika içinde gelecek</Text>
+                </View>
+              </View>
             </View>
-            <View style={styles.inputContainer}>
-              <TextInput
-                style={styles.input}
-                placeholder="5XX XXX XX XX"
-                placeholderTextColor="#9CA3AF"
-                keyboardType="phone-pad"
-                value={formatDisplayPhone(phone)}
-                onChangeText={handlePhoneChange}
-                maxLength={14}
-                editable={!isLoading}
-              />
-            </View>
+
+            {/* Terms */}
+            <Text style={styles.terms}>
+              Devam ederek{' '}
+              <Text style={styles.termsLink}>Kullanım Koşulları</Text> ve{' '}
+              <Text style={styles.termsLink}>Gizlilik Politikası</Text>'nı kabul
+              etmiş olursunuz.
+            </Text>
           </View>
-
-          {/* Continue Button */}
-          <TouchableOpacity
-            style={[
-              styles.button,
-              (isLoading || phone.length < 10) && styles.buttonDisabled,
-            ]}
-            onPress={handleSendOtp}
-            disabled={isLoading || phone.length < 10}
-          >
-            {isLoading ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <>
-                <Text style={styles.buttonText}>Doğrulama Kodu Gönder</Text>
-                <Ionicons name="arrow-forward" size={20} color="#fff" />
-              </>
-            )}
-          </TouchableOpacity>
-
-          {/* Terms */}
-          <Text style={styles.terms}>
-            Devam ederek{' '}
-            <Text style={styles.termsLink}>Kullanım Koşulları</Text> ve{' '}
-            <Text style={styles.termsLink}>Gizlilik Politikası</Text>'nı kabul
-            etmiş olursunuz.
-          </Text>
-        </View>
-      </KeyboardAwareScrollView>
-    </SafeAreaView>
+        </KeyboardAwareScrollView>
+      </SafeAreaView>
+    </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
+  gradient: {
+    flex: 1,
+  },
   container: {
     flex: 1,
-    backgroundColor: '#fff',
   },
   scrollContent: {
     flexGrow: 1,
   },
+  // Decorative circles
+  decorativeCircle1: {
+    position: 'absolute',
+    width: 200,
+    height: 200,
+    borderRadius: 100,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    top: -50,
+    right: -50,
+  },
+  decorativeCircle2: {
+    position: 'absolute',
+    width: 150,
+    height: 150,
+    borderRadius: 75,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    top: 150,
+    left: -75,
+  },
+  decorativeCircle3: {
+    position: 'absolute',
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    bottom: 100,
+    right: -30,
+  },
   header: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
+    paddingHorizontal: 20,
+    paddingVertical: 16,
   },
   backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    backgroundColor: '#F3F4F6',
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    backgroundColor: '#fff',
     justifyContent: 'center',
     alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
-  content: {
+  cardContainer: {
     flex: 1,
-    padding: 24,
+    paddingHorizontal: 20,
     justifyContent: 'center',
+    paddingBottom: 40,
+  },
+  card: {
+    backgroundColor: '#fff',
+    borderRadius: 24,
+    padding: 28,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.15,
+    shadowRadius: 20,
+    elevation: 10,
   },
   iconContainer: {
     alignItems: 'center',
-    marginBottom: 24,
+    marginBottom: 20,
   },
   iconCircle: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: '#D1FAE5',
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: '#059669',
     justifyContent: 'center',
     alignItems: 'center',
+    shadowColor: '#059669',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 5,
   },
   title: {
-    fontSize: 28,
+    fontSize: 26,
     fontWeight: '700',
     color: '#1F2937',
     textAlign: 'center',
     marginBottom: 8,
   },
   subtitle: {
-    fontSize: 16,
+    fontSize: 15,
     color: '#6B7280',
     textAlign: 'center',
-    marginBottom: 32,
+    marginBottom: 28,
+    lineHeight: 22,
+  },
+  inputSection: {
+    marginBottom: 24,
+  },
+  inputLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#374151',
+    marginBottom: 10,
   },
   inputWrapper: {
     flexDirection: 'row',
-    marginBottom: 24,
-    gap: 12,
+    alignItems: 'center',
+    backgroundColor: '#F9FAFB',
+    borderRadius: 14,
+    borderWidth: 2,
+    borderColor: '#E5E7EB',
+    overflow: 'hidden',
+  },
+  inputWrapperFocused: {
+    borderColor: '#059669',
+    backgroundColor: '#fff',
   },
   countryCode: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F3F4F6',
-    paddingHorizontal: 16,
+    paddingHorizontal: 14,
     paddingVertical: 16,
-    borderRadius: 12,
     gap: 8,
   },
   countryFlag: {
@@ -216,44 +329,82 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#374151',
   },
-  inputContainer: {
-    flex: 1,
-    backgroundColor: '#F3F4F6',
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    justifyContent: 'center',
+  inputDivider: {
+    width: 1,
+    height: 28,
+    backgroundColor: '#E5E7EB',
   },
   input: {
-    fontSize: 18,
+    flex: 1,
+    fontSize: 17,
     color: '#1F2937',
     fontWeight: '500',
     letterSpacing: 1,
+    paddingHorizontal: 14,
+    paddingVertical: 16,
   },
   button: {
     backgroundColor: '#059669',
     paddingVertical: 16,
-    borderRadius: 12,
+    borderRadius: 14,
     alignItems: 'center',
-    marginBottom: 24,
+    marginBottom: 20,
     flexDirection: 'row',
     justifyContent: 'center',
-    gap: 8,
+    gap: 12,
+    shadowColor: '#059669',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 5,
   },
   buttonDisabled: {
     backgroundColor: '#9CA3AF',
+    shadowColor: '#9CA3AF',
   },
   buttonText: {
     color: '#fff',
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '700',
+  },
+  buttonIconContainer: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: '#fff',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  infoSection: {
+    gap: 12,
+  },
+  infoItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  infoIconContainer: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: '#ECFDF5',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  infoText: {
+    fontSize: 14,
+    color: '#6B7280',
   },
   terms: {
     fontSize: 12,
-    color: '#9CA3AF',
+    color: 'rgba(255, 255, 255, 0.8)',
     textAlign: 'center',
     lineHeight: 18,
+    marginTop: 24,
+    paddingHorizontal: 20,
   },
   termsLink: {
-    color: '#059669',
+    color: '#fff',
+    fontWeight: '600',
   },
 });

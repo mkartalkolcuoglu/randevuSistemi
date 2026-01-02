@@ -15,6 +15,7 @@ import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view
 import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useAuthStore } from '../../../src/store/auth.store';
 import { appointmentService } from '../../../src/services/appointment.service';
 import api from '../../../src/services/api';
@@ -58,6 +59,15 @@ interface CustomerPackageData {
   servicePackageMap: Record<string, PackageInfo>;
 }
 
+const STEPS: { key: Step; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
+  { key: 'tenant', label: 'İşletme', icon: 'storefront' },
+  { key: 'service', label: 'Hizmet', icon: 'cut' },
+  { key: 'staff', label: 'Personel', icon: 'person' },
+  { key: 'date', label: 'Tarih', icon: 'calendar' },
+  { key: 'time', label: 'Saat', icon: 'time' },
+  { key: 'confirm', label: 'Onay', icon: 'checkmark-circle' },
+];
+
 export default function NewAppointmentScreen() {
   const router = useRouter();
   const { user } = useAuthStore();
@@ -84,11 +94,10 @@ export default function NewAppointmentScreen() {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
 
-  // Payment options: 'package' | 'pay' | 'later' | null
+  // Payment options
   const [paymentOption, setPaymentOption] = useState<'package' | 'pay' | 'later' | null>(null);
   const [agreementAccepted, setAgreementAccepted] = useState(false);
 
-  // Reset all states when screen gains focus
   const resetAllStates = useCallback(() => {
     setStep('tenant');
     setIsLoading(false);
@@ -110,36 +119,26 @@ export default function NewAppointmentScreen() {
     setAgreementAccepted(false);
   }, []);
 
-  // Reset states when screen is focused
   useFocusEffect(
     useCallback(() => {
       resetAllStates();
     }, [resetAllStates])
   );
 
-  // Generate next 14 days with availability info
   const getAvailableDates = () => {
     const dates: { date: Date; isOpen: boolean; dayName: string }[] = [];
     const today = new Date();
-
     const dayNames: { [key: number]: string } = {
-      0: 'sunday',
-      1: 'monday',
-      2: 'tuesday',
-      3: 'wednesday',
-      4: 'thursday',
-      5: 'friday',
-      6: 'saturday',
+      0: 'sunday', 1: 'monday', 2: 'tuesday', 3: 'wednesday',
+      4: 'thursday', 5: 'friday', 6: 'saturday',
     };
 
     for (let i = 0; i < 14; i++) {
       const date = new Date(today);
       date.setDate(today.getDate() + i);
-
       const dayName = dayNames[date.getDay()];
       let isOpen = true;
 
-      // Check if tenant is open on this day
       if (tenantSettings?.workingHours) {
         const dayHours = tenantSettings.workingHours[dayName];
         isOpen = dayHours ? !dayHours.closed : true;
@@ -152,7 +151,6 @@ export default function NewAppointmentScreen() {
 
   const availableDates = getAvailableDates();
 
-  // Debounced search
   useEffect(() => {
     const timeoutId = setTimeout(() => {
       if (searchQuery.length >= 2) {
@@ -161,7 +159,6 @@ export default function NewAppointmentScreen() {
         setSearchResults([]);
       }
     }, 300);
-
     return () => clearTimeout(timeoutId);
   }, [searchQuery]);
 
@@ -188,14 +185,10 @@ export default function NewAppointmentScreen() {
   const searchTenants = async () => {
     setIsSearching(true);
     try {
-      console.log('🔍 Searching tenants with query:', searchQuery);
       const response = await api.get(`/api/mobile/tenants/search?search=${encodeURIComponent(searchQuery)}`);
-      console.log('🔍 Search response:', response.data);
-      console.log('🔍 Search results count:', response.data.data?.length);
       setSearchResults(response.data.data || []);
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error searching tenants:', error);
-      console.error('Error response:', error.response?.data);
       Alert.alert('Hata', 'İşletme aranırken bir hata oluştu');
     } finally {
       setIsSearching(false);
@@ -204,10 +197,8 @@ export default function NewAppointmentScreen() {
 
   const fetchTenantSettings = async () => {
     if (!selectedTenant) return;
-
     try {
       const response = await api.get(`/api/mobile/tenants/${selectedTenant.id}/settings`);
-      console.log('⚙️ Tenant settings:', response.data.data);
       if (response.data.success) {
         setTenantSettings(response.data.data);
       }
@@ -218,32 +209,25 @@ export default function NewAppointmentScreen() {
 
   const fetchCustomerPackages = async () => {
     if (!selectedTenant) return;
-
-    // Skip for new customers - they don't have packages yet
     if (user?.isNewCustomer) {
-      console.log('📦 Skipping package fetch for new customer');
       setCustomerPackages({ hasPackages: false, packages: [], servicePackageMap: {} });
       return;
     }
-
     try {
       const response = await api.get('/api/mobile/customer/packages', {
         headers: { 'X-Tenant-ID': selectedTenant.id }
       });
-      console.log('📦 Customer packages:', response.data.data);
       if (response.data.success) {
         setCustomerPackages(response.data.data);
       }
     } catch (error) {
       console.error('Error fetching customer packages:', error);
-      // Set empty packages on error to prevent blocking the flow
       setCustomerPackages({ hasPackages: false, packages: [], servicePackageMap: {} });
     }
   };
 
   const fetchServices = async () => {
     if (!selectedTenant) return;
-
     setIsLoading(true);
     try {
       const response = await api.get('/api/mobile/services', {
@@ -259,7 +243,6 @@ export default function NewAppointmentScreen() {
 
   const fetchStaff = async () => {
     if (!selectedTenant || !selectedService) return;
-
     setIsLoading(true);
     try {
       const response = await api.get(`/api/mobile/staff?serviceId=${selectedService.id}`, {
@@ -275,7 +258,6 @@ export default function NewAppointmentScreen() {
 
   const fetchTimeSlots = async () => {
     if (!selectedDate || !selectedStaff || !selectedService || !selectedTenant) return;
-
     setIsLoading(true);
     try {
       const dateStr = selectedDate.toISOString().split('T')[0];
@@ -292,18 +274,16 @@ export default function NewAppointmentScreen() {
   };
 
   const handleNext = () => {
-    const steps: Step[] = ['tenant', 'service', 'staff', 'date', 'time', 'confirm'];
-    const currentIndex = steps.indexOf(step);
-    if (currentIndex < steps.length - 1) {
-      setStep(steps[currentIndex + 1]);
+    const currentIndex = STEPS.findIndex((s) => s.key === step);
+    if (currentIndex < STEPS.length - 1) {
+      setStep(STEPS[currentIndex + 1].key);
     }
   };
 
   const handleBack = () => {
-    const steps: Step[] = ['tenant', 'service', 'staff', 'date', 'time', 'confirm'];
-    const currentIndex = steps.indexOf(step);
+    const currentIndex = STEPS.findIndex((s) => s.key === step);
     if (currentIndex > 0) {
-      setStep(steps[currentIndex - 1]);
+      setStep(STEPS[currentIndex - 1].key);
     } else {
       router.back();
     }
@@ -312,28 +292,23 @@ export default function NewAppointmentScreen() {
   const handleSubmit = async () => {
     if (!selectedTenant || !selectedService || !selectedStaff || !selectedDate || !selectedTime) return;
 
-    // Check agreement
     if (!agreementAccepted) {
       Alert.alert('Hata', 'Devam etmek için sözleşme koşullarını kabul etmelisiniz.');
       return;
     }
 
-    // Check payment option selected
     if (!paymentOption) {
       Alert.alert('Hata', 'Lütfen ödeme seçeneğini belirleyin.');
       return;
     }
 
-    // Get package info for the selected service
     const packageInfo = customerPackages?.servicePackageMap?.[selectedService.id];
 
-    // If selected package but no package available
     if (paymentOption === 'package' && !packageInfo) {
       Alert.alert('Hata', 'Bu hizmet için paket hakkınız bulunmuyor.');
       return;
     }
 
-    // If paying now, redirect to payment screen
     if (paymentOption === 'pay') {
       const appointmentData: any = {
         tenantId: selectedTenant.id,
@@ -343,7 +318,6 @@ export default function NewAppointmentScreen() {
         time: selectedTime,
       };
 
-      // Add customer info for new customers
       if (user?.isNewCustomer) {
         appointmentData.customerFirstName = user.firstName || 'Müşteri';
         appointmentData.customerLastName = user.lastName || '';
@@ -362,7 +336,6 @@ export default function NewAppointmentScreen() {
       return;
     }
 
-    // Create appointment directly (package or pay later)
     setIsSubmitting(true);
     try {
       const appointmentData: any = {
@@ -373,13 +346,11 @@ export default function NewAppointmentScreen() {
         time: selectedTime,
       };
 
-      // Add customer info for new customers
       if (user?.isNewCustomer) {
         appointmentData.customerFirstName = user.firstName || 'Müşteri';
         appointmentData.customerLastName = user.lastName || '';
       }
 
-      // Add package info if using package
       if (paymentOption === 'package' && packageInfo) {
         appointmentData.usePackage = true;
         appointmentData.customerPackageId = packageInfo.customerPackageId;
@@ -402,22 +373,66 @@ export default function NewAppointmentScreen() {
     }
   };
 
-  const formatDate = (date: Date) => {
-    return date.toLocaleDateString('tr-TR', {
-      weekday: 'short',
-      day: 'numeric',
-      month: 'short',
-    });
+  const canProceed = () => {
+    switch (step) {
+      case 'tenant': return selectedTenant !== null;
+      case 'service': return selectedService !== null;
+      case 'staff': return selectedStaff !== null;
+      case 'date': return selectedDate !== null;
+      case 'time': return selectedTime !== null;
+      case 'confirm': return agreementAccepted && paymentOption !== null;
+      default: return false;
+    }
   };
+
+  const currentStepIndex = STEPS.findIndex((s) => s.key === step);
+
+  const renderStepIndicator = () => (
+    <View style={styles.stepIndicatorContainer}>
+      <View style={styles.stepIndicator}>
+        {STEPS.map((s, index) => {
+          const isActive = currentStepIndex >= index;
+          const isCurrent = s.key === step;
+          return (
+            <View key={s.key} style={styles.stepItem}>
+              <View style={[
+                styles.stepDot,
+                isActive && styles.stepDotActive,
+                isCurrent && styles.stepDotCurrent,
+              ]}>
+                {isActive && !isCurrent ? (
+                  <Ionicons name="checkmark" size={12} color="#fff" />
+                ) : (
+                  <Text style={[styles.stepNumber, isActive && styles.stepNumberActive]}>
+                    {index + 1}
+                  </Text>
+                )}
+              </View>
+              {index < STEPS.length - 1 && (
+                <View style={[styles.stepLine, isActive && styles.stepLineActive]} />
+              )}
+            </View>
+          );
+        })}
+      </View>
+      <Text style={styles.stepLabel}>{STEPS[currentStepIndex]?.label}</Text>
+    </View>
+  );
 
   const renderTenantStep = () => (
     <View style={styles.stepContent}>
-      <Text style={styles.stepTitle}>İşletme Seçin</Text>
-      <Text style={styles.stepSubtitle}>Randevu almak istediğiniz işletmeyi arayın</Text>
+      <View style={styles.stepHeader}>
+        <View style={styles.stepIconContainer}>
+          <Ionicons name="storefront" size={24} color="#059669" />
+        </View>
+        <View>
+          <Text style={styles.stepTitle}>İşletme Seçin</Text>
+          <Text style={styles.stepSubtitle}>Randevu almak istediğiniz işletmeyi arayın</Text>
+        </View>
+      </View>
 
-      {/* Search Input */}
       <View style={styles.searchContainer}>
-        <Ionicons name="search" size={20} color="#9CA3AF" style={styles.searchIcon} />
+        <Ionicons name="search" size={20} color="#9CA3AF" />
         <TextInput
           style={styles.searchInput}
           placeholder="İşletme adı yazın..."
@@ -428,50 +443,49 @@ export default function NewAppointmentScreen() {
           autoCorrect={false}
         />
         {searchQuery.length > 0 && (
-          <TouchableOpacity onPress={() => {
-            setSearchQuery('');
-            setSearchResults([]);
-          }}>
+          <TouchableOpacity onPress={() => { setSearchQuery(''); setSearchResults([]); }}>
             <Ionicons name="close-circle" size={20} color="#9CA3AF" />
           </TouchableOpacity>
         )}
       </View>
 
-      {/* Selected Tenant Display */}
       {selectedTenant && (
-        <View style={styles.selectedTenantCard}>
-          <View style={styles.tenantAvatar}>
-            <Ionicons name="business" size={24} color="#3B82F6" />
+        <View style={styles.selectedCard}>
+          <View style={styles.selectedCardIcon}>
+            <Ionicons name="business" size={24} color="#059669" />
           </View>
-          <View style={styles.optionInfo}>
-            <Text style={styles.optionName}>{selectedTenant.businessName}</Text>
+          <View style={styles.selectedCardInfo}>
+            <Text style={styles.selectedCardName}>{selectedTenant.businessName}</Text>
             {selectedTenant.address && (
-              <Text style={styles.optionDesc} numberOfLines={1}>{selectedTenant.address}</Text>
+              <Text style={styles.selectedCardDesc} numberOfLines={1}>{selectedTenant.address}</Text>
             )}
           </View>
-          <TouchableOpacity onPress={() => {
-            setSelectedTenantState(null);
-            setSearchQuery('');
-          }}>
-            <Ionicons name="close-circle" size={24} color="#EF4444" />
+          <TouchableOpacity
+            style={styles.selectedCardRemove}
+            onPress={() => { setSelectedTenantState(null); setSearchQuery(''); }}
+          >
+            <Ionicons name="close" size={18} color="#fff" />
           </TouchableOpacity>
         </View>
       )}
 
-      {/* Search Results */}
       {!selectedTenant && (
         <>
           {isSearching ? (
-            <ActivityIndicator size="large" color="#3B82F6" style={styles.loader} />
+            <ActivityIndicator size="large" color="#059669" style={styles.loader} />
           ) : searchQuery.length < 2 ? (
-            <View style={styles.noSlots}>
-              <Ionicons name="search-outline" size={48} color="#D1D5DB" />
-              <Text style={styles.noSlotsText}>İşletme aramak için en az 2 karakter girin</Text>
+            <View style={styles.emptyState}>
+              <View style={styles.emptyIconContainer}>
+                <Ionicons name="search-outline" size={40} color="#059669" />
+              </View>
+              <Text style={styles.emptyText}>İşletme aramak için en az 2 karakter girin</Text>
             </View>
           ) : searchResults.length === 0 ? (
-            <View style={styles.noSlots}>
-              <Ionicons name="business-outline" size={48} color="#D1D5DB" />
-              <Text style={styles.noSlotsText}>İşletme bulunamadı</Text>
+            <View style={styles.emptyState}>
+              <View style={styles.emptyIconContainer}>
+                <Ionicons name="business-outline" size={40} color="#059669" />
+              </View>
+              <Text style={styles.emptyText}>İşletme bulunamadı</Text>
             </View>
           ) : (
             searchResults.map((tenant) => (
@@ -480,7 +494,6 @@ export default function NewAppointmentScreen() {
                 style={styles.optionCard}
                 onPress={() => {
                   setSelectedTenantState(tenant);
-                  // Reset other selections when tenant changes
                   setTenantSettings(null);
                   setSelectedService(null);
                   setSelectedStaff(null);
@@ -490,9 +503,10 @@ export default function NewAppointmentScreen() {
                   setStaff([]);
                   setTimeSlots([]);
                 }}
+                activeOpacity={0.7}
               >
-                <View style={styles.tenantAvatar}>
-                  <Ionicons name="business" size={24} color="#3B82F6" />
+                <View style={styles.optionIcon}>
+                  <Ionicons name="business" size={22} color="#059669" />
                 </View>
                 <View style={styles.optionInfo}>
                   <Text style={styles.optionName}>{tenant.businessName}</Text>
@@ -500,9 +514,13 @@ export default function NewAppointmentScreen() {
                     <Text style={styles.optionDesc} numberOfLines={1}>{tenant.address}</Text>
                   )}
                   {tenant.phone && (
-                    <Text style={styles.tenantPhone}>{tenant.phone}</Text>
+                    <View style={styles.optionMeta}>
+                      <Ionicons name="call-outline" size={12} color="#6B7280" />
+                      <Text style={styles.optionMetaText}>{tenant.phone}</Text>
+                    </View>
                   )}
                 </View>
+                <Ionicons name="chevron-forward" size={20} color="#D1D5DB" />
               </TouchableOpacity>
             ))
           )}
@@ -511,101 +529,71 @@ export default function NewAppointmentScreen() {
     </View>
   );
 
-  const renderStepIndicator = () => {
-    const steps: { key: Step; label: string }[] = [
-      { key: 'tenant', label: 'İşletme' },
-      { key: 'service', label: 'Hizmet' },
-      { key: 'staff', label: 'Personel' },
-      { key: 'date', label: 'Tarih' },
-      { key: 'time', label: 'Saat' },
-      { key: 'confirm', label: 'Onay' },
-    ];
-
-    return (
-      <View style={styles.stepIndicator}>
-        {steps.map((s, index) => {
-          const isActive = steps.findIndex((st) => st.key === step) >= index;
-          const isCurrent = s.key === step;
-          return (
-            <View key={s.key} style={styles.stepItem}>
-              <View
-                style={[
-                  styles.stepDot,
-                  isActive && styles.stepDotActive,
-                  isCurrent && styles.stepDotCurrent,
-                ]}
-              >
-                {isActive && !isCurrent && (
-                  <Ionicons name="checkmark" size={14} color="#fff" />
-                )}
-              </View>
-              {index < steps.length - 1 && (
-                <View style={[styles.stepLine, isActive && styles.stepLineActive]} />
-              )}
-            </View>
-          );
-        })}
-      </View>
-    );
-  };
-
   const renderServiceStep = () => {
-    const getPackageForService = (serviceId: string) => {
-      return customerPackages?.servicePackageMap?.[serviceId] || null;
-    };
+    const getPackageForService = (serviceId: string) => customerPackages?.servicePackageMap?.[serviceId] || null;
 
     return (
       <View style={styles.stepContent}>
-        <Text style={styles.stepTitle}>Hizmet Seçin</Text>
+        <View style={styles.stepHeader}>
+          <View style={styles.stepIconContainer}>
+            <Ionicons name="cut" size={24} color="#059669" />
+          </View>
+          <View>
+            <Text style={styles.stepTitle}>Hizmet Seçin</Text>
+            <Text style={styles.stepSubtitle}>{selectedTenant?.businessName}</Text>
+          </View>
+        </View>
+
         {isLoading ? (
-          <ActivityIndicator size="large" color="#3B82F6" style={styles.loader} />
+          <ActivityIndicator size="large" color="#059669" style={styles.loader} />
         ) : (
           services.map((service) => {
             const packageInfo = getPackageForService(service.id);
+            const isSelected = selectedService?.id === service.id;
             return (
               <TouchableOpacity
                 key={service.id}
                 style={[
-                  styles.optionCard,
-                  selectedService?.id === service.id && styles.optionCardSelected,
-                  packageInfo && styles.optionCardWithPackage,
+                  styles.serviceCard,
+                  isSelected && styles.serviceCardSelected,
+                  packageInfo && styles.serviceCardWithPackage,
                 ]}
-                onPress={() => {
-                  setSelectedService(service);
-                  // Reset payment option when service changes
-                  setPaymentOption(null);
-                }}
+                onPress={() => { setSelectedService(service); setPaymentOption(null); }}
+                activeOpacity={0.7}
               >
-                <View style={styles.optionInfo}>
-                  <View style={styles.serviceHeader}>
-                    <Text style={styles.optionName}>{service.name}</Text>
-                    {packageInfo && (
-                      <View style={styles.packageBadge}>
-                        <Ionicons name="gift" size={12} color="#fff" />
-                        <Text style={styles.packageBadgeText}>Paket</Text>
-                      </View>
-                    )}
-                  </View>
-                  {service.description && (
-                    <Text style={styles.optionDesc}>{service.description}</Text>
-                  )}
+                <View style={styles.serviceHeader}>
+                  <Text style={styles.serviceName}>{service.name}</Text>
                   {packageInfo && (
-                    <View style={styles.packageInfoRow}>
-                      <Ionicons name="checkmark-circle" size={14} color="#059669" />
-                      <Text style={styles.packageInfoText}>
-                        {packageInfo.packageName} - {packageInfo.remainingQuantity} seans hakkınız var
-                      </Text>
+                    <View style={styles.packageBadge}>
+                      <Ionicons name="gift" size={12} color="#fff" />
+                      <Text style={styles.packageBadgeText}>Paket</Text>
                     </View>
                   )}
-                  <View style={styles.optionMeta}>
-                    <Text style={styles.optionDuration}>{service.duration} dk</Text>
-                    <Text style={[styles.optionPrice, packageInfo && styles.optionPriceWithPackage]}>
-                      {packageInfo ? 'Paketten kullanılabilir' : `${service.price} ₺`}
+                </View>
+                {service.description && (
+                  <Text style={styles.serviceDesc}>{service.description}</Text>
+                )}
+                {packageInfo && (
+                  <View style={styles.packageInfoRow}>
+                    <Ionicons name="checkmark-circle" size={14} color="#059669" />
+                    <Text style={styles.packageInfoText}>
+                      {packageInfo.remainingQuantity} seans hakkınız var
                     </Text>
                   </View>
+                )}
+                <View style={styles.serviceFooter}>
+                  <View style={styles.serviceDuration}>
+                    <Ionicons name="time-outline" size={14} color="#6B7280" />
+                    <Text style={styles.serviceDurationText}>{service.duration} dk</Text>
+                  </View>
+                  <Text style={[styles.servicePrice, packageInfo && styles.servicePricePackage]}>
+                    {packageInfo ? 'Paketten' : `${service.price} ₺`}
+                  </Text>
                 </View>
-                {selectedService?.id === service.id && (
-                  <Ionicons name="checkmark-circle" size={24} color="#3B82F6" />
+                {isSelected && (
+                  <View style={styles.selectedIndicator}>
+                    <Ionicons name="checkmark-circle" size={24} color="#059669" />
+                  </View>
                 )}
               </TouchableOpacity>
             );
@@ -617,54 +605,69 @@ export default function NewAppointmentScreen() {
 
   const renderStaffStep = () => (
     <View style={styles.stepContent}>
-      <Text style={styles.stepTitle}>Personel Seçin</Text>
+      <View style={styles.stepHeader}>
+        <View style={styles.stepIconContainer}>
+          <Ionicons name="person" size={24} color="#059669" />
+        </View>
+        <View>
+          <Text style={styles.stepTitle}>Personel Seçin</Text>
+          <Text style={styles.stepSubtitle}>{selectedService?.name}</Text>
+        </View>
+      </View>
+
       {isLoading ? (
-        <ActivityIndicator size="large" color="#3B82F6" style={styles.loader} />
+        <ActivityIndicator size="large" color="#059669" style={styles.loader} />
       ) : (
-        staff.map((s) => (
-          <TouchableOpacity
-            key={s.id}
-            style={[
-              styles.optionCard,
-              selectedStaff?.id === s.id && styles.optionCardSelected,
-            ]}
-            onPress={() => setSelectedStaff(s)}
-          >
-            <View style={styles.staffAvatar}>
-              <Text style={styles.staffInitial}>
-                {s.firstName.charAt(0)}
-                {s.lastName.charAt(0)}
-              </Text>
-            </View>
-            <View style={styles.optionInfo}>
-              <Text style={styles.optionName}>
-                {s.firstName} {s.lastName}
-              </Text>
-              {s.position && <Text style={styles.optionDesc}>{s.position}</Text>}
-            </View>
-            {selectedStaff?.id === s.id && (
-              <Ionicons name="checkmark-circle" size={24} color="#3B82F6" />
-            )}
-          </TouchableOpacity>
-        ))
+        staff.map((s) => {
+          const isSelected = selectedStaff?.id === s.id;
+          return (
+            <TouchableOpacity
+              key={s.id}
+              style={[styles.staffCard, isSelected && styles.staffCardSelected]}
+              onPress={() => setSelectedStaff(s)}
+              activeOpacity={0.7}
+            >
+              <View style={styles.staffAvatar}>
+                <Text style={styles.staffInitial}>
+                  {s.firstName.charAt(0)}{s.lastName.charAt(0)}
+                </Text>
+              </View>
+              <View style={styles.staffInfo}>
+                <Text style={styles.staffName}>{s.firstName} {s.lastName}</Text>
+                {s.position && <Text style={styles.staffPosition}>{s.position}</Text>}
+              </View>
+              {isSelected && (
+                <View style={styles.selectedCheck}>
+                  <Ionicons name="checkmark" size={16} color="#fff" />
+                </View>
+              )}
+            </TouchableOpacity>
+          );
+        })
       )}
     </View>
   );
 
   const renderDateStep = () => (
     <View style={styles.stepContent}>
-      <Text style={styles.stepTitle}>Tarih Seçin</Text>
-      {tenantSettings && (
-        <Text style={styles.stepSubtitle}>
-          Randevu aralığı: {tenantSettings.appointmentTimeInterval} dakika
-        </Text>
-      )}
-      <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+      <View style={styles.stepHeader}>
+        <View style={styles.stepIconContainer}>
+          <Ionicons name="calendar" size={24} color="#059669" />
+        </View>
+        <View>
+          <Text style={styles.stepTitle}>Tarih Seçin</Text>
+          <Text style={styles.stepSubtitle}>
+            {selectedStaff?.firstName} {selectedStaff?.lastName}
+          </Text>
+        </View>
+      </View>
+
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.dateScroll}>
         <View style={styles.dateGrid}>
           {availableDates.map((item) => {
-            const isSelected =
-              selectedDate?.toDateString() === item.date.toDateString();
+            const isSelected = selectedDate?.toDateString() === item.date.toDateString();
             const isClosed = !item.isOpen;
+            const isToday = item.date.toDateString() === new Date().toDateString();
             return (
               <TouchableOpacity
                 key={item.date.toISOString()}
@@ -675,31 +678,23 @@ export default function NewAppointmentScreen() {
                 ]}
                 onPress={() => !isClosed && setSelectedDate(item.date)}
                 disabled={isClosed}
+                activeOpacity={0.7}
               >
-                <Text style={[
-                  styles.dateDay,
-                  isSelected && styles.dateDaySelected,
-                  isClosed && styles.dateDayClosed,
-                ]}>
+                {isToday && !isClosed && (
+                  <View style={styles.todayBadge}>
+                    <Text style={styles.todayText}>Bugün</Text>
+                  </View>
+                )}
+                <Text style={[styles.dateDay, isSelected && styles.dateDaySelected, isClosed && styles.dateDayClosed]}>
                   {item.date.toLocaleDateString('tr-TR', { weekday: 'short' })}
                 </Text>
-                <Text style={[
-                  styles.dateNum,
-                  isSelected && styles.dateNumSelected,
-                  isClosed && styles.dateNumClosed,
-                ]}>
+                <Text style={[styles.dateNum, isSelected && styles.dateNumSelected, isClosed && styles.dateNumClosed]}>
                   {item.date.getDate()}
                 </Text>
-                <Text style={[
-                  styles.dateMonth,
-                  isSelected && styles.dateMonthSelected,
-                  isClosed && styles.dateMonthClosed,
-                ]}>
+                <Text style={[styles.dateMonth, isSelected && styles.dateMonthSelected, isClosed && styles.dateMonthClosed]}>
                   {item.date.toLocaleDateString('tr-TR', { month: 'short' })}
                 </Text>
-                {isClosed && (
-                  <Text style={styles.closedLabel}>Kapalı</Text>
-                )}
+                {isClosed && <Text style={styles.closedLabel}>Kapalı</Text>}
               </TouchableOpacity>
             );
           })}
@@ -710,38 +705,53 @@ export default function NewAppointmentScreen() {
 
   const renderTimeStep = () => (
     <View style={styles.stepContent}>
-      <Text style={styles.stepTitle}>Saat Seçin</Text>
+      <View style={styles.stepHeader}>
+        <View style={styles.stepIconContainer}>
+          <Ionicons name="time" size={24} color="#059669" />
+        </View>
+        <View>
+          <Text style={styles.stepTitle}>Saat Seçin</Text>
+          <Text style={styles.stepSubtitle}>
+            {selectedDate?.toLocaleDateString('tr-TR', { weekday: 'long', day: 'numeric', month: 'long' })}
+          </Text>
+        </View>
+      </View>
+
       {isLoading ? (
-        <ActivityIndicator size="large" color="#3B82F6" style={styles.loader} />
+        <ActivityIndicator size="large" color="#059669" style={styles.loader} />
       ) : timeSlots.length === 0 ? (
-        <View style={styles.noSlots}>
-          <Ionicons name="time-outline" size={48} color="#D1D5DB" />
-          <Text style={styles.noSlotsText}>Bu tarihte müsait saat yok</Text>
+        <View style={styles.emptyState}>
+          <View style={styles.emptyIconContainer}>
+            <Ionicons name="time-outline" size={40} color="#059669" />
+          </View>
+          <Text style={styles.emptyText}>Bu tarihte müsait saat yok</Text>
         </View>
       ) : (
         <View style={styles.timeGrid}>
-          {timeSlots.map((slot) => (
-            <TouchableOpacity
-              key={slot.time}
-              style={[
-                styles.timeSlot,
-                !slot.available && styles.timeSlotDisabled,
-                selectedTime === slot.time && styles.timeSlotSelected,
-              ]}
-              onPress={() => slot.available && setSelectedTime(slot.time)}
-              disabled={!slot.available}
-            >
-              <Text
+          {timeSlots.map((slot) => {
+            const isSelected = selectedTime === slot.time;
+            return (
+              <TouchableOpacity
+                key={slot.time}
                 style={[
+                  styles.timeSlot,
+                  !slot.available && styles.timeSlotDisabled,
+                  isSelected && styles.timeSlotSelected,
+                ]}
+                onPress={() => slot.available && setSelectedTime(slot.time)}
+                disabled={!slot.available}
+                activeOpacity={0.7}
+              >
+                <Text style={[
                   styles.timeText,
                   !slot.available && styles.timeTextDisabled,
-                  selectedTime === slot.time && styles.timeTextSelected,
-                ]}
-              >
-                {slot.time}
-              </Text>
-            </TouchableOpacity>
-          ))}
+                  isSelected && styles.timeTextSelected,
+                ]}>
+                  {slot.time}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
         </View>
       )}
     </View>
@@ -753,91 +763,83 @@ export default function NewAppointmentScreen() {
 
     return (
       <View style={styles.stepContent}>
-        <Text style={styles.stepTitle}>Randevu Özeti</Text>
+        <View style={styles.stepHeader}>
+          <View style={styles.stepIconContainer}>
+            <Ionicons name="checkmark-circle" size={24} color="#059669" />
+          </View>
+          <View>
+            <Text style={styles.stepTitle}>Randevu Özeti</Text>
+            <Text style={styles.stepSubtitle}>Bilgileri kontrol edin</Text>
+          </View>
+        </View>
 
-        {/* Summary Card */}
         <View style={styles.summaryCard}>
           <View style={styles.summaryRow}>
-            <Ionicons name="business" size={20} color="#6B7280" />
+            <View style={styles.summaryIconContainer}>
+              <Ionicons name="storefront" size={18} color="#059669" />
+            </View>
             <View style={styles.summaryInfo}>
               <Text style={styles.summaryLabel}>İşletme</Text>
               <Text style={styles.summaryValue}>{selectedTenant?.businessName}</Text>
             </View>
           </View>
           <View style={styles.summaryRow}>
-            <Ionicons name="cut" size={20} color="#6B7280" />
+            <View style={styles.summaryIconContainer}>
+              <Ionicons name="cut" size={18} color="#059669" />
+            </View>
             <View style={styles.summaryInfo}>
               <Text style={styles.summaryLabel}>Hizmet</Text>
               <Text style={styles.summaryValue}>{selectedService?.name}</Text>
             </View>
           </View>
           <View style={styles.summaryRow}>
-            <Ionicons name="person" size={20} color="#6B7280" />
+            <View style={styles.summaryIconContainer}>
+              <Ionicons name="person" size={18} color="#059669" />
+            </View>
             <View style={styles.summaryInfo}>
               <Text style={styles.summaryLabel}>Personel</Text>
-              <Text style={styles.summaryValue}>
-                {selectedStaff?.firstName} {selectedStaff?.lastName}
-              </Text>
+              <Text style={styles.summaryValue}>{selectedStaff?.firstName} {selectedStaff?.lastName}</Text>
             </View>
           </View>
           <View style={styles.summaryRow}>
-            <Ionicons name="calendar" size={20} color="#6B7280" />
-            <View style={styles.summaryInfo}>
-              <Text style={styles.summaryLabel}>Tarih</Text>
-              <Text style={styles.summaryValue}>
-                {selectedDate?.toLocaleDateString('tr-TR', {
-                  weekday: 'long',
-                  day: 'numeric',
-                  month: 'long',
-                  year: 'numeric',
-                })}
-              </Text>
+            <View style={styles.summaryIconContainer}>
+              <Ionicons name="calendar" size={18} color="#059669" />
             </View>
-          </View>
-          <View style={[styles.summaryRow, styles.summaryRowLast]}>
-            <Ionicons name="time" size={20} color="#6B7280" />
             <View style={styles.summaryInfo}>
-              <Text style={styles.summaryLabel}>Saat</Text>
-              <Text style={styles.summaryValue}>{selectedTime}</Text>
+              <Text style={styles.summaryLabel}>Tarih & Saat</Text>
+              <Text style={styles.summaryValue}>
+                {selectedDate?.toLocaleDateString('tr-TR', { weekday: 'long', day: 'numeric', month: 'long' })} - {selectedTime}
+              </Text>
             </View>
           </View>
         </View>
 
-        {/* Payment Options */}
-        <View style={styles.paymentOptionsCard}>
-          <View style={styles.paymentOptionsHeader}>
-            <Ionicons name="wallet" size={24} color="#3B82F6" />
-            <Text style={styles.paymentOptionsTitle}>Ödeme Seçenekleri</Text>
+        <View style={styles.paymentCard}>
+          <View style={styles.paymentHeader}>
+            <Ionicons name="wallet" size={22} color="#059669" />
+            <Text style={styles.paymentTitle}>Ödeme Seçenekleri</Text>
           </View>
 
-          <View style={styles.paymentOptionsAmount}>
-            <Text style={styles.paymentOptionsLabel}>Hizmet Ücreti</Text>
-            <Text style={styles.paymentOptionsPrice}>{selectedService?.price} ₺</Text>
+          <View style={styles.paymentAmount}>
+            <Text style={styles.paymentLabel}>Hizmet Ücreti</Text>
+            <Text style={styles.paymentPrice}>{selectedService?.price} ₺</Text>
           </View>
 
-          <View style={styles.packageOptionsContainer}>
-            {/* Package Option - Only show if customer has package */}
+          <View style={styles.paymentOptions}>
             {showPackageOption && (
               <TouchableOpacity
-                style={[
-                  styles.packageOption,
-                  paymentOption === 'package' && styles.packageOptionSelected,
-                ]}
+                style={[styles.paymentOption, paymentOption === 'package' && styles.paymentOptionSelected]}
                 onPress={() => setPaymentOption('package')}
+                activeOpacity={0.7}
               >
-                <Ionicons
-                  name={paymentOption === 'package' ? "checkmark-circle" : "ellipse-outline"}
-                  size={24}
-                  color={paymentOption === 'package' ? "#059669" : "#9CA3AF"}
-                />
-                <View style={styles.packageOptionContent}>
-                  <Text style={[
-                    styles.packageOptionTitle,
-                    paymentOption === 'package' && styles.packageOptionTitleSelected
-                  ]}>Paketten Düş</Text>
-                  <Text style={styles.packageOptionDesc}>
-                    {packageInfo?.packageName} - {packageInfo?.remainingQuantity} seans hakkınız var
+                <View style={[styles.paymentOptionRadio, paymentOption === 'package' && styles.paymentOptionRadioSelected]}>
+                  {paymentOption === 'package' && <View style={styles.paymentOptionRadioDot} />}
+                </View>
+                <View style={styles.paymentOptionContent}>
+                  <Text style={[styles.paymentOptionTitle, paymentOption === 'package' && styles.paymentOptionTitleSelected]}>
+                    Paketten Düş
                   </Text>
+                  <Text style={styles.paymentOptionDesc}>{packageInfo?.remainingQuantity} seans hakkınız var</Text>
                 </View>
                 <View style={styles.packageBadgeSmall}>
                   <Ionicons name="gift" size={14} color="#fff" />
@@ -845,68 +847,46 @@ export default function NewAppointmentScreen() {
               </TouchableOpacity>
             )}
 
-            {/* Pay Now Option */}
             <TouchableOpacity
-              style={[
-                styles.packageOption,
-                paymentOption === 'pay' && styles.packageOptionSelectedBlue,
-              ]}
+              style={[styles.paymentOption, paymentOption === 'pay' && styles.paymentOptionSelectedBlue]}
               onPress={() => setPaymentOption('pay')}
+              activeOpacity={0.7}
             >
-              <Ionicons
-                name={paymentOption === 'pay' ? "checkmark-circle" : "ellipse-outline"}
-                size={24}
-                color={paymentOption === 'pay' ? "#3B82F6" : "#9CA3AF"}
-              />
-              <View style={styles.packageOptionContent}>
-                <Text style={[
-                  styles.packageOptionTitle,
-                  paymentOption === 'pay' && styles.packageOptionTitleSelectedBlue
-                ]}>Şimdi Öde</Text>
-                <Text style={styles.packageOptionDesc}>
-                  Kredi kartı ile güvenli ödeme yapın
-                </Text>
+              <View style={[styles.paymentOptionRadio, paymentOption === 'pay' && styles.paymentOptionRadioSelectedBlue]}>
+                {paymentOption === 'pay' && <View style={styles.paymentOptionRadioDotBlue} />}
               </View>
-              <Ionicons name="card" size={20} color={paymentOption === 'pay' ? "#3B82F6" : "#9CA3AF"} />
+              <View style={styles.paymentOptionContent}>
+                <Text style={[styles.paymentOptionTitle, paymentOption === 'pay' && styles.paymentOptionTitleBlue]}>
+                  Şimdi Öde
+                </Text>
+                <Text style={styles.paymentOptionDesc}>Kredi kartı ile güvenli ödeme</Text>
+              </View>
+              <Ionicons name="card" size={20} color={paymentOption === 'pay' ? '#3B82F6' : '#9CA3AF'} />
             </TouchableOpacity>
 
-            {/* Pay Later Option */}
             <TouchableOpacity
-              style={[
-                styles.packageOption,
-                paymentOption === 'later' && styles.packageOptionSelectedGray,
-              ]}
+              style={[styles.paymentOption, paymentOption === 'later' && styles.paymentOptionSelectedGray]}
               onPress={() => setPaymentOption('later')}
+              activeOpacity={0.7}
             >
-              <Ionicons
-                name={paymentOption === 'later' ? "checkmark-circle" : "ellipse-outline"}
-                size={24}
-                color={paymentOption === 'later' ? "#6B7280" : "#9CA3AF"}
-              />
-              <View style={styles.packageOptionContent}>
-                <Text style={[
-                  styles.packageOptionTitle,
-                  paymentOption === 'later' && styles.packageOptionTitleSelectedGray
-                ]}>İşletmede Öde</Text>
-                <Text style={styles.packageOptionDesc}>
-                  Randevu sonrası işletmede ödeme yapın
-                </Text>
+              <View style={[styles.paymentOptionRadio, paymentOption === 'later' && styles.paymentOptionRadioSelectedGray]}>
+                {paymentOption === 'later' && <View style={styles.paymentOptionRadioDotGray} />}
               </View>
-              <Ionicons name="storefront" size={20} color={paymentOption === 'later' ? "#6B7280" : "#9CA3AF"} />
+              <View style={styles.paymentOptionContent}>
+                <Text style={[styles.paymentOptionTitle, paymentOption === 'later' && styles.paymentOptionTitleGray]}>
+                  İşletmede Öde
+                </Text>
+                <Text style={styles.paymentOptionDesc}>Randevu sonrası ödeme</Text>
+              </View>
+              <Ionicons name="storefront" size={20} color={paymentOption === 'later' ? '#6B7280' : '#9CA3AF'} />
             </TouchableOpacity>
           </View>
         </View>
 
-        {/* Agreement Section */}
-        <TouchableOpacity
-          style={styles.agreementRow}
-          onPress={() => setAgreementAccepted(!agreementAccepted)}
-        >
-          <Ionicons
-            name={agreementAccepted ? "checkbox" : "square-outline"}
-            size={24}
-            color={agreementAccepted ? "#3B82F6" : "#9CA3AF"}
-          />
+        <TouchableOpacity style={styles.agreementRow} onPress={() => setAgreementAccepted(!agreementAccepted)}>
+          <View style={[styles.checkbox, agreementAccepted && styles.checkboxChecked]}>
+            {agreementAccepted && <Ionicons name="checkmark" size={14} color="#fff" />}
+          </View>
           <Text style={styles.agreementText}>
             Randevu koşullarını ve iptal politikasını okudum, kabul ediyorum.
           </Text>
@@ -915,45 +895,20 @@ export default function NewAppointmentScreen() {
     );
   };
 
-  const canProceed = () => {
-    switch (step) {
-      case 'tenant':
-        return selectedTenant !== null;
-      case 'service':
-        return selectedService !== null;
-      case 'staff':
-        return selectedStaff !== null;
-      case 'date':
-        return selectedDate !== null;
-      case 'time':
-        return selectedTime !== null;
-      case 'confirm': {
-        // Agreement must be accepted
-        if (!agreementAccepted) return false;
-
-        // Payment option must be selected
-        if (!paymentOption) return false;
-
-        return true;
-      }
-      default:
-        return false;
-    }
-  };
-
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={handleBack}>
-          <Ionicons
-            name="arrow-back"
-            size={24}
-            color="#1F2937"
-          />
+    <SafeAreaView style={styles.container} edges={['top']}>
+      <LinearGradient
+        colors={['#059669', '#10B981']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.header}
+      >
+        <TouchableOpacity style={styles.backButton} onPress={handleBack}>
+          <Ionicons name="arrow-back" size={24} color="#059669" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Yeni Randevu</Text>
-        <View style={{ width: 24 }} />
-      </View>
+        <View style={{ width: 44 }} />
+      </LinearGradient>
 
       {renderStepIndicator()}
 
@@ -975,28 +930,27 @@ export default function NewAppointmentScreen() {
       </KeyboardAwareScrollView>
 
       <View style={styles.footer}>
-        {step === 'confirm' ? (
-          <TouchableOpacity
-            style={[styles.nextButton, (isSubmitting || !canProceed()) && styles.nextButtonDisabled]}
-            onPress={handleSubmit}
-            disabled={isSubmitting || !canProceed()}
-          >
-            {isSubmitting ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <Text style={styles.nextButtonText}>Randevuyu Onayla</Text>
-            )}
-          </TouchableOpacity>
-        ) : (
-          <TouchableOpacity
-            style={[styles.nextButton, !canProceed() && styles.nextButtonDisabled]}
-            onPress={handleNext}
-            disabled={!canProceed()}
-          >
-            <Text style={styles.nextButtonText}>Devam Et</Text>
-            <Ionicons name="arrow-forward" size={20} color="#fff" />
-          </TouchableOpacity>
-        )}
+        <TouchableOpacity
+          style={[styles.nextButton, (!canProceed() || isSubmitting) && styles.nextButtonDisabled]}
+          onPress={step === 'confirm' ? handleSubmit : handleNext}
+          disabled={!canProceed() || isSubmitting}
+          activeOpacity={0.8}
+        >
+          {isSubmitting ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <>
+              <Text style={styles.nextButtonText}>
+                {step === 'confirm' ? 'Randevuyu Onayla' : 'Devam Et'}
+              </Text>
+              {step !== 'confirm' && (
+                <View style={styles.nextButtonIcon}>
+                  <Ionicons name="arrow-forward" size={18} color="#059669" />
+                </View>
+              )}
+            </>
+          )}
+        </TouchableOpacity>
       </View>
     </SafeAreaView>
   );
@@ -1005,119 +959,213 @@ export default function NewAppointmentScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: '#F9FAFB',
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+  },
+  backButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    backgroundColor: '#fff',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   headerTitle: {
     fontSize: 18,
-    fontWeight: '600',
-    color: '#1F2937',
+    fontWeight: '700',
+    color: '#fff',
+  },
+  stepIndicatorContainer: {
+    backgroundColor: '#fff',
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
   },
   stepIndicator: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    paddingVertical: 20,
-    paddingHorizontal: 40,
   },
   stepItem: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   stepDot: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     backgroundColor: '#E5E7EB',
     justifyContent: 'center',
     alignItems: 'center',
   },
   stepDotActive: {
-    backgroundColor: '#3B82F6',
+    backgroundColor: '#059669',
   },
   stepDotCurrent: {
-    backgroundColor: '#3B82F6',
+    backgroundColor: '#059669',
     borderWidth: 3,
-    borderColor: '#BFDBFE',
+    borderColor: '#A7F3D0',
+  },
+  stepNumber: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#9CA3AF',
+  },
+  stepNumberActive: {
+    color: '#fff',
   },
   stepLine: {
-    width: 28,
+    width: 24,
     height: 2,
     backgroundColor: '#E5E7EB',
   },
   stepLineActive: {
-    backgroundColor: '#3B82F6',
+    backgroundColor: '#059669',
+  },
+  stepLabel: {
+    textAlign: 'center',
+    marginTop: 10,
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#059669',
   },
   content: {
     flex: 1,
   },
   contentContainer: {
     flexGrow: 1,
+    paddingBottom: 20,
   },
   stepContent: {
     padding: 20,
   },
+  stepHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  stepIconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 14,
+    backgroundColor: '#ECFDF5',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 14,
+  },
   stepTitle: {
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: '700',
     color: '#1F2937',
-    marginBottom: 8,
   },
   stepSubtitle: {
     fontSize: 14,
     color: '#6B7280',
-    marginBottom: 20,
+    marginTop: 2,
   },
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F3F4F6',
-    borderRadius: 12,
+    backgroundColor: '#fff',
+    borderRadius: 14,
     paddingHorizontal: 16,
-    paddingVertical: 12,
-    marginBottom: 20,
-  },
-  searchIcon: {
-    marginRight: 12,
+    paddingVertical: 14,
+    marginBottom: 16,
+    borderWidth: 2,
+    borderColor: '#E5E7EB',
+    gap: 12,
   },
   searchInput: {
     flex: 1,
     fontSize: 16,
     color: '#1F2937',
   },
-  selectedTenantCard: {
+  selectedCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#EFF6FF',
+    backgroundColor: '#ECFDF5',
     padding: 16,
-    borderRadius: 12,
-    marginBottom: 12,
+    borderRadius: 16,
     borderWidth: 2,
-    borderColor: '#3B82F6',
+    borderColor: '#059669',
+    marginBottom: 16,
+  },
+  selectedCardIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 14,
+    backgroundColor: '#fff',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  selectedCardInfo: {
+    flex: 1,
+    marginLeft: 14,
+  },
+  selectedCardName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1F2937',
+  },
+  selectedCardDesc: {
+    fontSize: 13,
+    color: '#6B7280',
+    marginTop: 2,
+  },
+  selectedCardRemove: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: '#EF4444',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   loader: {
     marginTop: 40,
   },
+  emptyState: {
+    alignItems: 'center',
+    paddingVertical: 40,
+  },
+  emptyIconContainer: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: '#ECFDF5',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  emptyText: {
+    fontSize: 15,
+    color: '#6B7280',
+    textAlign: 'center',
+  },
   optionCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F9FAFB',
+    backgroundColor: '#fff',
     padding: 16,
-    borderRadius: 12,
+    borderRadius: 16,
     marginBottom: 12,
     borderWidth: 2,
-    borderColor: 'transparent',
+    borderColor: '#E5E7EB',
   },
-  optionCardSelected: {
-    borderColor: '#3B82F6',
-    backgroundColor: '#EFF6FF',
+  optionIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: '#ECFDF5',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 14,
   },
   optionInfo: {
     flex: 1,
@@ -1128,74 +1176,209 @@ const styles = StyleSheet.create({
     color: '#1F2937',
   },
   optionDesc: {
-    fontSize: 14,
+    fontSize: 13,
     color: '#6B7280',
-    marginTop: 4,
+    marginTop: 2,
   },
   optionMeta: {
     flexDirection: 'row',
-    marginTop: 8,
-  },
-  optionDuration: {
-    fontSize: 13,
-    color: '#6B7280',
-    marginRight: 16,
-  },
-  optionPrice: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#059669',
-  },
-  tenantAvatar: {
-    width: 48,
-    height: 48,
-    borderRadius: 12,
-    backgroundColor: '#EFF6FF',
-    justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 12,
-  },
-  tenantPhone: {
-    fontSize: 13,
-    color: '#6B7280',
     marginTop: 4,
+    gap: 4,
   },
-  staffAvatar: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: '#3B82F6',
-    justifyContent: 'center',
+  optionMetaText: {
+    fontSize: 12,
+    color: '#6B7280',
+  },
+  serviceCard: {
+    backgroundColor: '#fff',
+    padding: 18,
+    borderRadius: 16,
+    marginBottom: 12,
+    borderWidth: 2,
+    borderColor: '#E5E7EB',
+    position: 'relative',
+  },
+  serviceCardSelected: {
+    borderColor: '#059669',
+    backgroundColor: '#ECFDF5',
+  },
+  serviceCardWithPackage: {
+    borderColor: '#10B981',
+  },
+  serviceHeader: {
+    flexDirection: 'row',
     alignItems: 'center',
-    marginRight: 12,
+    justifyContent: 'space-between',
+    marginBottom: 6,
   },
-  staffInitial: {
+  serviceName: {
     fontSize: 16,
     fontWeight: '600',
+    color: '#1F2937',
+    flex: 1,
+  },
+  serviceDesc: {
+    fontSize: 13,
+    color: '#6B7280',
+    marginBottom: 8,
+  },
+  packageBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#059669',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 10,
+    gap: 4,
+  },
+  packageBadgeText: {
     color: '#fff',
+    fontSize: 11,
+    fontWeight: '600',
+  },
+  packageInfoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#D1FAE5',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+    marginBottom: 10,
+    gap: 6,
+  },
+  packageInfoText: {
+    fontSize: 12,
+    color: '#059669',
+    fontWeight: '500',
+  },
+  serviceFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  serviceDuration: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  serviceDurationText: {
+    fontSize: 13,
+    color: '#6B7280',
+  },
+  servicePrice: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#059669',
+  },
+  servicePricePackage: {
+    color: '#10B981',
+    fontSize: 14,
+  },
+  selectedIndicator: {
+    position: 'absolute',
+    top: 16,
+    right: 16,
+  },
+  staffCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    padding: 16,
+    borderRadius: 16,
+    marginBottom: 12,
+    borderWidth: 2,
+    borderColor: '#E5E7EB',
+  },
+  staffCardSelected: {
+    borderColor: '#059669',
+    backgroundColor: '#ECFDF5',
+  },
+  staffAvatar: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: '#059669',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 14,
+  },
+  staffInitial: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#fff',
+  },
+  staffInfo: {
+    flex: 1,
+  },
+  staffName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1F2937',
+  },
+  staffPosition: {
+    fontSize: 13,
+    color: '#6B7280',
+    marginTop: 2,
+  },
+  selectedCheck: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: '#059669',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  dateScroll: {
+    marginHorizontal: -20,
+    paddingHorizontal: 20,
   },
   dateGrid: {
     flexDirection: 'row',
     paddingVertical: 8,
   },
   dateCard: {
-    width: 70,
+    width: 72,
     padding: 12,
-    borderRadius: 12,
-    backgroundColor: '#F9FAFB',
+    borderRadius: 16,
+    backgroundColor: '#fff',
     alignItems: 'center',
     marginRight: 10,
+    borderWidth: 2,
+    borderColor: '#E5E7EB',
   },
   dateCardSelected: {
-    backgroundColor: '#3B82F6',
+    backgroundColor: '#059669',
+    borderColor: '#059669',
+  },
+  dateCardClosed: {
+    backgroundColor: '#F3F4F6',
+    opacity: 0.6,
+  },
+  todayBadge: {
+    position: 'absolute',
+    top: -8,
+    backgroundColor: '#059669',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 8,
+  },
+  todayText: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: '#fff',
   },
   dateDay: {
     fontSize: 12,
     color: '#6B7280',
     textTransform: 'uppercase',
+    fontWeight: '500',
   },
   dateDaySelected: {
-    color: '#BFDBFE',
+    color: '#A7F3D0',
+  },
+  dateDayClosed: {
+    color: '#9CA3AF',
   },
   dateNum: {
     fontSize: 22,
@@ -1206,22 +1389,16 @@ const styles = StyleSheet.create({
   dateNumSelected: {
     color: '#fff',
   },
+  dateNumClosed: {
+    color: '#9CA3AF',
+  },
   dateMonth: {
     fontSize: 12,
     color: '#6B7280',
+    fontWeight: '500',
   },
   dateMonthSelected: {
-    color: '#BFDBFE',
-  },
-  dateCardClosed: {
-    backgroundColor: '#F3F4F6',
-    opacity: 0.6,
-  },
-  dateDayClosed: {
-    color: '#9CA3AF',
-  },
-  dateNumClosed: {
-    color: '#9CA3AF',
+    color: '#A7F3D0',
   },
   dateMonthClosed: {
     color: '#9CA3AF',
@@ -1230,16 +1407,7 @@ const styles = StyleSheet.create({
     fontSize: 9,
     color: '#EF4444',
     fontWeight: '600',
-    marginTop: 2,
-  },
-  noSlots: {
-    alignItems: 'center',
-    paddingVertical: 40,
-  },
-  noSlotsText: {
-    fontSize: 16,
-    color: '#6B7280',
-    marginTop: 12,
+    marginTop: 4,
   },
   timeGrid: {
     flexDirection: 'row',
@@ -1250,19 +1418,23 @@ const styles = StyleSheet.create({
     width: '30%',
     margin: '1.66%',
     paddingVertical: 14,
-    borderRadius: 10,
-    backgroundColor: '#F9FAFB',
+    borderRadius: 12,
+    backgroundColor: '#fff',
     alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#E5E7EB',
   },
   timeSlotDisabled: {
     backgroundColor: '#F3F4F6',
+    borderColor: '#F3F4F6',
   },
   timeSlotSelected: {
-    backgroundColor: '#3B82F6',
+    backgroundColor: '#059669',
+    borderColor: '#059669',
   },
   timeText: {
     fontSize: 15,
-    fontWeight: '500',
+    fontWeight: '600',
     color: '#1F2937',
   },
   timeTextDisabled: {
@@ -1272,42 +1444,196 @@ const styles = StyleSheet.create({
     color: '#fff',
   },
   summaryCard: {
-    backgroundColor: '#F9FAFB',
-    borderRadius: 16,
+    backgroundColor: '#fff',
+    borderRadius: 20,
     padding: 20,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
   },
   summaryRow: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
-    paddingVertical: 12,
+    alignItems: 'center',
+    paddingVertical: 14,
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
+    borderBottomColor: '#F3F4F6',
   },
-  summaryRowLast: {
-    borderBottomWidth: 0,
+  summaryIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: '#ECFDF5',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   summaryInfo: {
     flex: 1,
-    marginLeft: 12,
+    marginLeft: 14,
   },
   summaryLabel: {
-    fontSize: 13,
-    color: '#6B7280',
+    fontSize: 12,
+    color: '#9CA3AF',
+    fontWeight: '500',
   },
   summaryValue: {
-    fontSize: 16,
-    fontWeight: '500',
+    fontSize: 15,
+    fontWeight: '600',
     color: '#1F2937',
     marginTop: 2,
   },
-  summaryPrice: {
+  paymentCard: {
+    backgroundColor: '#fff',
+    borderRadius: 20,
+    padding: 20,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  paymentHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+    gap: 10,
+  },
+  paymentTitle: {
+    fontSize: 17,
+    fontWeight: '700',
+    color: '#1F2937',
+  },
+  paymentAmount: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: '#ECFDF5',
+    padding: 14,
+    borderRadius: 12,
+    marginBottom: 16,
+  },
+  paymentLabel: {
+    fontSize: 14,
+    color: '#6B7280',
+  },
+  paymentPrice: {
     fontSize: 20,
     fontWeight: '700',
     color: '#059669',
+  },
+  paymentOptions: {
+    gap: 12,
+  },
+  paymentOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F9FAFB',
+    padding: 16,
+    borderRadius: 14,
+    borderWidth: 2,
+    borderColor: '#E5E7EB',
+  },
+  paymentOptionSelected: {
+    borderColor: '#059669',
+    backgroundColor: '#ECFDF5',
+  },
+  paymentOptionSelectedBlue: {
+    borderColor: '#3B82F6',
+    backgroundColor: '#EFF6FF',
+  },
+  paymentOptionSelectedGray: {
+    borderColor: '#6B7280',
+    backgroundColor: '#F3F4F6',
+  },
+  paymentOptionRadio: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    borderWidth: 2,
+    borderColor: '#D1D5DB',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  paymentOptionRadioSelected: {
+    borderColor: '#059669',
+  },
+  paymentOptionRadioSelectedBlue: {
+    borderColor: '#3B82F6',
+  },
+  paymentOptionRadioSelectedGray: {
+    borderColor: '#6B7280',
+  },
+  paymentOptionRadioDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: '#059669',
+  },
+  paymentOptionRadioDotBlue: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: '#3B82F6',
+  },
+  paymentOptionRadioDotGray: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: '#6B7280',
+  },
+  paymentOptionContent: {
+    flex: 1,
+    marginLeft: 14,
+  },
+  paymentOptionTitle: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#374151',
+  },
+  paymentOptionTitleSelected: {
+    color: '#059669',
+  },
+  paymentOptionTitleBlue: {
+    color: '#3B82F6',
+  },
+  paymentOptionTitleGray: {
+    color: '#374151',
+  },
+  paymentOptionDesc: {
+    fontSize: 12,
+    color: '#6B7280',
     marginTop: 2,
+  },
+  packageBadgeSmall: {
+    backgroundColor: '#059669',
+    padding: 6,
+    borderRadius: 10,
+  },
+  agreementRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+  },
+  checkbox: {
+    width: 24,
+    height: 24,
+    borderRadius: 6,
+    borderWidth: 2,
+    borderColor: '#D1D5DB',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  checkboxChecked: {
+    backgroundColor: '#059669',
+    borderColor: '#059669',
+  },
+  agreementText: {
+    flex: 1,
+    fontSize: 14,
+    color: '#374151',
+    lineHeight: 20,
   },
   footer: {
     padding: 20,
+    paddingBottom: Platform.OS === 'ios' ? 20 : 20,
+    backgroundColor: '#fff',
     borderTopWidth: 1,
     borderTopColor: '#E5E7EB',
   },
@@ -1315,245 +1641,31 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#3B82F6',
+    backgroundColor: '#059669',
     paddingVertical: 16,
-    borderRadius: 12,
+    borderRadius: 14,
+    gap: 12,
+    shadowColor: '#059669',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 5,
   },
   nextButtonDisabled: {
     backgroundColor: '#9CA3AF',
+    shadowColor: '#9CA3AF',
   },
   nextButtonText: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '700',
     color: '#fff',
-    marginRight: 8,
   },
-  // Service step - package styles
-  serviceHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  packageBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#059669',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-    marginLeft: 8,
-  },
-  packageBadgeText: {
-    color: '#fff',
-    fontSize: 11,
-    fontWeight: '600',
-    marginLeft: 4,
-  },
-  packageInfoRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 8,
-    backgroundColor: '#ECFDF5',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
-  },
-  packageInfoText: {
-    fontSize: 12,
-    color: '#059669',
-    marginLeft: 4,
-    fontWeight: '500',
-  },
-  optionCardWithPackage: {
-    borderColor: '#059669',
-    borderWidth: 1,
-    backgroundColor: '#F0FDF4',
-  },
-  optionPriceWithPackage: {
-    color: '#059669',
-    fontSize: 13,
-  },
-  // Confirm step - package usage styles
-  packageUsageCard: {
-    backgroundColor: '#F0FDF4',
-    borderRadius: 16,
-    padding: 20,
-    marginTop: 16,
-    borderWidth: 1,
-    borderColor: '#059669',
-  },
-  packageUsageHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  packageUsageTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#059669',
-    marginLeft: 8,
-  },
-  packageUsageDesc: {
-    fontSize: 14,
-    color: '#374151',
-    marginBottom: 8,
-    lineHeight: 20,
-  },
-  packageUsageBold: {
-    fontWeight: '600',
-    color: '#059669',
-  },
-  packageUsageQuestion: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#1F2937',
-    marginTop: 8,
-    marginBottom: 16,
-  },
-  packageOptionsContainer: {
-    gap: 12,
-  },
-  packageOption: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
+  nextButtonIcon: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     backgroundColor: '#fff',
-    padding: 16,
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: '#E5E7EB',
-  },
-  packageOptionSelected: {
-    borderColor: '#059669',
-    backgroundColor: '#ECFDF5',
-  },
-  packageOptionContent: {
-    flex: 1,
-    marginLeft: 12,
-  },
-  packageOptionTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#374151',
-  },
-  packageOptionTitleSelected: {
-    color: '#059669',
-  },
-  packageOptionTitleSelectedBlue: {
-    color: '#3B82F6',
-  },
-  packageOptionTitleSelectedGray: {
-    color: '#374151',
-  },
-  packageOptionSelectedBlue: {
-    borderColor: '#3B82F6',
-    backgroundColor: '#EFF6FF',
-  },
-  packageOptionSelectedGray: {
-    borderColor: '#6B7280',
-    backgroundColor: '#F3F4F6',
-  },
-  packageOptionDesc: {
-    fontSize: 13,
-    color: '#6B7280',
-    marginTop: 4,
-  },
-  packageBadgeSmall: {
-    backgroundColor: '#059669',
-    padding: 6,
-    borderRadius: 12,
-  },
-  // Payment options card
-  paymentOptionsCard: {
-    backgroundColor: '#F9FAFB',
-    borderRadius: 16,
-    padding: 20,
-    marginTop: 16,
-  },
-  paymentOptionsHeader: {
-    flexDirection: 'row',
+    justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 16,
-  },
-  paymentOptionsTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#1F2937',
-    marginLeft: 8,
-  },
-  paymentOptionsAmount: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: '#fff',
-    padding: 12,
-    borderRadius: 10,
-    marginBottom: 16,
-  },
-  paymentOptionsLabel: {
-    fontSize: 14,
-    color: '#6B7280',
-  },
-  paymentOptionsPrice: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#059669',
-  },
-  // Payment card styles (keep for backwards compatibility)
-  paymentCard: {
-    backgroundColor: '#EFF6FF',
-    borderRadius: 16,
-    padding: 20,
-    marginTop: 16,
-    borderWidth: 1,
-    borderColor: '#3B82F6',
-  },
-  paymentHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  paymentTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#3B82F6',
-    marginLeft: 8,
-  },
-  paymentAmount: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: '#fff',
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 12,
-  },
-  paymentLabel: {
-    fontSize: 14,
-    color: '#6B7280',
-  },
-  paymentPrice: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#059669',
-  },
-  paymentNote: {
-    fontSize: 13,
-    color: '#6B7280',
-    textAlign: 'center',
-    fontStyle: 'italic',
-  },
-  // Agreement styles
-  agreementRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    marginTop: 20,
-    paddingHorizontal: 4,
-  },
-  agreementText: {
-    flex: 1,
-    fontSize: 14,
-    color: '#374151',
-    marginLeft: 12,
-    lineHeight: 20,
   },
 });
