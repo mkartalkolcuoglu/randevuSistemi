@@ -43,7 +43,7 @@ export default function PaymentScreen() {
       setIsLoading(true);
       setError(null);
 
-      console.log('💳 Initiating payment:', { tenantId, serviceId, serviceName, amount });
+      console.log('💳 Initiating payment:', { tenantId, serviceId, serviceName, amount, appointmentData: params.appointmentData });
 
       const response = await api.post('/api/mobile/payment/initiate', {
         tenantId,
@@ -75,13 +75,13 @@ export default function PaymentScreen() {
     // Deep link kontrolü
     if (url.startsWith('netrandevu://')) {
       // Deep link yakalandı - ödeme tamamlandı veya başarısız
-      if (url.includes('/success')) {
+      if (url.includes('/success') || url.includes('success')) {
         Alert.alert(
           'Ödeme Başarılı',
-          'Ödemeniz başarıyla alındı!',
-          [{ text: 'Tamam', onPress: () => router.replace('/(tabs)/customer') }]
+          'Ödemeniz başarıyla alındı! Randevularınız sayfasına yönlendiriliyorsunuz.',
+          [{ text: 'Randevularıma Git', onPress: () => router.replace('/(tabs)/customer') }]
         );
-      } else if (url.includes('/failed')) {
+      } else if (url.includes('/failed') || url.includes('failed')) {
         Alert.alert(
           'Ödeme Başarısız',
           'Ödeme işlemi tamamlanamadı. Lütfen tekrar deneyin.',
@@ -91,30 +91,43 @@ export default function PaymentScreen() {
       return false; // WebView'da bu URL'i açma
     }
 
+    // Ödeme başarı sayfası URL kontrolü (callback URL)
+    if (url.includes('/api/mobile/payment/callback') && url.includes('status=success')) {
+      console.log('✅ Payment success callback detected');
+      // 3 saniye sonra otomatik yönlendir (HTML sayfası yüklendikten sonra)
+      setTimeout(() => {
+        Alert.alert(
+          'Ödeme Başarılı',
+          'Ödemeniz başarıyla alındı! Randevularınız sayfasına yönlendiriliyorsunuz.',
+          [{ text: 'Randevularıma Git', onPress: () => router.replace('/(tabs)/customer') }]
+        );
+      }, 1500);
+    }
+
     return true;
   };
 
   const handleShouldStartLoad = (event: any) => {
     const { url } = event;
+    console.log('🔗 WebView shouldStartLoad:', url);
 
     // Deep link kontrolü
     if (url.startsWith('netrandevu://')) {
-      Linking.openURL(url).catch(() => {
-        // Deep link açılamadıysa manuel işle
-        if (url.includes('/success')) {
-          Alert.alert(
-            'Ödeme Başarılı',
-            'Ödemeniz başarıyla alındı!',
-            [{ text: 'Tamam', onPress: () => router.replace('/(tabs)/customer') }]
-          );
-        } else {
-          Alert.alert(
-            'Ödeme Başarısız',
-            'Ödeme işlemi tamamlanamadı.',
-            [{ text: 'Tamam', onPress: () => router.back() }]
-          );
-        }
-      });
+      console.log('📱 Deep link detected, redirecting to appointments...');
+      // Deep link'i açmaya çalışma, doğrudan randevular sayfasına git
+      if (url.includes('success')) {
+        Alert.alert(
+          'Ödeme Başarılı',
+          'Ödemeniz başarıyla alındı! Randevularınız sayfasına yönlendiriliyorsunuz.',
+          [{ text: 'Randevularıma Git', onPress: () => router.replace('/(tabs)/customer') }]
+        );
+      } else {
+        Alert.alert(
+          'Ödeme Başarısız',
+          'Ödeme işlemi tamamlanamadı.',
+          [{ text: 'Tamam', onPress: () => router.back() }]
+        );
+      }
       return false;
     }
 
@@ -125,6 +138,30 @@ export default function PaymentScreen() {
     const { nativeEvent } = syntheticEvent;
     console.error('WebView error:', nativeEvent);
     setError('Ödeme sayfası yüklenemedi');
+  };
+
+  // WebView'dan gelen mesajları işle (postMessage)
+  const handleWebViewMessage = (event: any) => {
+    try {
+      const data = JSON.parse(event.nativeEvent.data);
+      console.log('📱 WebView message received:', data);
+
+      if (data.type === 'PAYMENT_SUCCESS') {
+        Alert.alert(
+          'Ödeme Başarılı',
+          'Ödemeniz başarıyla alındı! Randevularınız sayfasına yönlendiriliyorsunuz.',
+          [{ text: 'Randevularıma Git', onPress: () => router.replace('/(tabs)/customer') }]
+        );
+      } else if (data.type === 'PAYMENT_FAILED') {
+        Alert.alert(
+          'Ödeme Başarısız',
+          'Ödeme işlemi tamamlanamadı.',
+          [{ text: 'Tamam', onPress: () => router.back() }]
+        );
+      }
+    } catch (e) {
+      console.log('📱 WebView message (non-JSON):', event.nativeEvent.data);
+    }
   };
 
   if (isLoading) {
@@ -197,6 +234,7 @@ export default function PaymentScreen() {
           onNavigationStateChange={handleNavigationChange}
           onShouldStartLoadWithRequest={handleShouldStartLoad}
           onError={handleWebViewError}
+          onMessage={handleWebViewMessage}
           startInLoadingState={true}
           renderLoading={() => (
             <View style={styles.webviewLoading}>

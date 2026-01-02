@@ -30,6 +30,91 @@ export async function GET(request: NextRequest) {
     });
 
     if (payment) {
+      // Ödeme durumunu güncelle ve randevu oluştur (PayTR POST callback'i gelmeden önce)
+      if (payment.status === 'pending') {
+        await prisma.payment.update({
+          where: { id: payment.id },
+          data: {
+            status: 'completed',
+            completedAt: new Date()
+          }
+        });
+        console.log('✅ [MOBILE PAYMENT CALLBACK GET] Payment marked as completed:', payment.id);
+
+        // Randevu oluştur
+        if (payment.userBasket) {
+          try {
+            const appointmentData = JSON.parse(payment.userBasket);
+            console.log('📅 [MOBILE PAYMENT CALLBACK GET] Appointment data:', appointmentData);
+
+            if (appointmentData.tenantId && appointmentData.serviceId && appointmentData.staffId && appointmentData.date && appointmentData.time) {
+              // Mevcut randevu var mı kontrol et
+              const existingAppointment = await prisma.appointment.findFirst({
+                where: {
+                  paymentId: payment.id
+                }
+              });
+
+              if (!existingAppointment) {
+                // Get service details
+                const service = await prisma.service.findUnique({
+                  where: { id: appointmentData.serviceId }
+                });
+
+                // Get staff details
+                const staff = await prisma.staff.findUnique({
+                  where: { id: appointmentData.staffId }
+                });
+
+                // Get customer info
+                let customerId = payment.customerId;
+                let customerName = payment.customerName || 'Müşteri';
+                let customerPhone = payment.customerPhone || '';
+
+                if (customerId) {
+                  const customer = await prisma.customer.findUnique({
+                    where: { id: customerId }
+                  });
+                  if (customer) {
+                    customerName = `${customer.firstName} ${customer.lastName}`.trim();
+                    customerPhone = customer.phone || '';
+                  }
+                }
+
+                if (service && staff) {
+                  const newAppointment = await prisma.appointment.create({
+                    data: {
+                      tenantId: appointmentData.tenantId,
+                      customerId: customerId || '',
+                      customerName,
+                      customerPhone,
+                      serviceId: appointmentData.serviceId,
+                      serviceName: service.name,
+                      staffId: appointmentData.staffId,
+                      staffName: `${staff.firstName} ${staff.lastName}`.trim(),
+                      date: appointmentData.date,
+                      time: appointmentData.time,
+                      duration: service.duration,
+                      price: service.price,
+                      status: 'confirmed',
+                      paymentType: 'credit_card',
+                      paymentStatus: 'paid',
+                      paymentId: payment.id,
+                      notes: appointmentData.notes || '',
+                    }
+                  });
+                  console.log('✅ [MOBILE PAYMENT CALLBACK GET] Appointment created:', newAppointment.id);
+                }
+              } else {
+                console.log('ℹ️ [MOBILE PAYMENT CALLBACK GET] Appointment already exists:', existingAppointment.id);
+              }
+            }
+          } catch (e) {
+            console.error('⚠️ [MOBILE PAYMENT CALLBACK GET] Error creating appointment:', e);
+          }
+        }
+      }
+
       const redirectUrl = `${deepLinkBase}/success?merchant_oid=${merchantOid}&payment_id=${payment.id}`;
 
       // HTML ile deep link yönlendirmesi
@@ -77,6 +162,8 @@ export async function GET(request: NextRequest) {
               border-radius: 12px;
               font-weight: 600;
               font-size: 16px;
+              cursor: pointer;
+              border: none;
             }
           </style>
         </head>
@@ -85,13 +172,23 @@ export async function GET(request: NextRequest) {
             <div class="icon">✓</div>
             <h1>Ödeme Başarılı!</h1>
             <p>Randevunuz için ödemeniz alındı.</p>
-            <a href="${redirectUrl}" class="btn">Uygulamaya Dön</a>
+            <button class="btn" onclick="goToApp()">Uygulamaya Dön</button>
           </div>
           <script>
-            // Otomatik deep link yönlendirmesi
+            function goToApp() {
+              // React Native WebView'a mesaj gönder
+              if (window.ReactNativeWebView) {
+                window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'PAYMENT_SUCCESS' }));
+              } else {
+                // Fallback: deep link dene
+                window.location.href = "${redirectUrl}";
+              }
+            }
+
+            // 3 saniye sonra otomatik yönlendir
             setTimeout(function() {
-              window.location.href = "${redirectUrl}";
-            }, 2000);
+              goToApp();
+            }, 3000);
           </script>
         </body>
         </html>
@@ -150,6 +247,8 @@ export async function GET(request: NextRequest) {
           border-radius: 12px;
           font-weight: 600;
           font-size: 16px;
+          cursor: pointer;
+          border: none;
         }
       </style>
     </head>
@@ -158,12 +257,23 @@ export async function GET(request: NextRequest) {
         <div class="icon">✗</div>
         <h1>Ödeme Başarısız</h1>
         <p>Ödeme işlemi tamamlanamadı. Lütfen tekrar deneyin.</p>
-        <a href="${redirectUrl}" class="btn">Uygulamaya Dön</a>
+        <button class="btn" onclick="goToApp()">Uygulamaya Dön</button>
       </div>
       <script>
+        function goToApp() {
+          // React Native WebView'a mesaj gönder
+          if (window.ReactNativeWebView) {
+            window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'PAYMENT_FAILED' }));
+          } else {
+            // Fallback: deep link dene
+            window.location.href = "${redirectUrl}";
+          }
+        }
+
+        // 3 saniye sonra otomatik yönlendir
         setTimeout(function() {
-          window.location.href = "${redirectUrl}";
-        }, 2000);
+          goToApp();
+        }, 3000);
       </script>
     </body>
     </html>
@@ -220,11 +330,14 @@ export async function POST(request: NextRequest) {
 
       console.log('✅ [MOBILE PAYMENT CALLBACK] Payment completed:', payment.id);
 
-      // Eğer appointmentData varsa randevuyu da güncelle
+      // Eğer appointmentData varsa randevuyu oluştur veya güncelle
       if (payment.userBasket) {
         try {
           const appointmentData = JSON.parse(payment.userBasket);
+          console.log('📅 [MOBILE PAYMENT CALLBACK] Appointment data:', appointmentData);
+
           if (appointmentData.appointmentId) {
+            // Mevcut randevuyu güncelle
             await prisma.appointment.update({
               where: { id: appointmentData.appointmentId },
               data: {
@@ -233,9 +346,64 @@ export async function POST(request: NextRequest) {
               }
             });
             console.log('✅ [MOBILE PAYMENT CALLBACK] Appointment payment status updated');
+          } else if (appointmentData.tenantId && appointmentData.serviceId && appointmentData.staffId && appointmentData.date && appointmentData.time) {
+            // Yeni randevu oluştur
+            console.log('📅 [MOBILE PAYMENT CALLBACK] Creating new appointment...');
+
+            // Get service details
+            const service = await prisma.service.findUnique({
+              where: { id: appointmentData.serviceId }
+            });
+
+            // Get staff details
+            const staff = await prisma.staff.findUnique({
+              where: { id: appointmentData.staffId }
+            });
+
+            // Get or create customer
+            let customerId = payment.customerId;
+            let customerName = payment.customerName || 'Müşteri';
+            let customerPhone = payment.customerPhone || '';
+
+            if (customerId) {
+              const customer = await prisma.customer.findUnique({
+                where: { id: customerId }
+              });
+              if (customer) {
+                customerName = `${customer.firstName} ${customer.lastName}`.trim();
+                customerPhone = customer.phone || '';
+              }
+            }
+
+            if (service && staff) {
+              const newAppointment = await prisma.appointment.create({
+                data: {
+                  tenantId: appointmentData.tenantId,
+                  customerId: customerId || '',
+                  customerName,
+                  customerPhone,
+                  serviceId: appointmentData.serviceId,
+                  serviceName: service.name,
+                  staffId: appointmentData.staffId,
+                  staffName: `${staff.firstName} ${staff.lastName}`.trim(),
+                  date: appointmentData.date,
+                  time: appointmentData.time,
+                  duration: service.duration,
+                  price: service.price,
+                  status: 'confirmed',
+                  paymentType: 'credit_card',
+                  paymentStatus: 'paid',
+                  paymentId: payment.id,
+                  notes: appointmentData.notes || '',
+                }
+              });
+              console.log('✅ [MOBILE PAYMENT CALLBACK] Appointment created:', newAppointment.id);
+            } else {
+              console.error('⚠️ [MOBILE PAYMENT CALLBACK] Service or Staff not found');
+            }
           }
         } catch (e) {
-          console.error('⚠️ [MOBILE PAYMENT CALLBACK] Error updating appointment:', e);
+          console.error('⚠️ [MOBILE PAYMENT CALLBACK] Error creating/updating appointment:', e);
         }
       }
     } else {
