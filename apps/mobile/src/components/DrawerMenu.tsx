@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useMemo } from 'react';
 import {
   View,
   Text,
@@ -14,6 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter, usePathname } from 'expo-router';
 import { useAuthStore } from '../store/auth.store';
+import { canAccessPage, StaffPermissions } from '../types';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 // HIG: iOS max 280pt, Material: max 360dp - use 85% or max
@@ -34,6 +35,7 @@ interface MenuItem {
   badge?: number;
   color?: string;
   bgColor?: string;
+  permissionKey?: keyof StaffPermissions;
 }
 
 interface MenuSection {
@@ -89,26 +91,26 @@ export default function DrawerMenu({ isOpen, onClose }: DrawerMenuProps) {
     {
       title: 'ANA MENÜ',
       items: [
-        { id: 'dashboard', label: 'Ana Sayfa', icon: 'home', route: '/(tabs)/staff', color: THEME_COLOR, bgColor: '#EFF6FF' },
-        { id: 'appointments', label: 'Randevular', icon: 'calendar', route: '/(tabs)/staff/appointments', color: '#8B5CF6', bgColor: '#F3E8FF' },
-        { id: 'customers', label: 'Müşteriler', icon: 'people', route: '/(tabs)/staff/customers', color: '#10B981', bgColor: '#D1FAE5' },
+        { id: 'dashboard', label: 'Ana Sayfa', icon: 'home', route: '/(tabs)/staff', color: THEME_COLOR, bgColor: '#EFF6FF', permissionKey: 'dashboard' },
+        { id: 'appointments', label: 'Randevular', icon: 'calendar', route: '/(tabs)/staff/appointments', color: '#8B5CF6', bgColor: '#F3E8FF', permissionKey: 'appointments' },
+        { id: 'customers', label: 'Müşteriler', icon: 'people', route: '/(tabs)/staff/customers', color: '#10B981', bgColor: '#D1FAE5', permissionKey: 'customers' },
       ],
     },
     {
       title: 'İŞLETME YÖNETİMİ',
       items: [
-        { id: 'services', label: 'Hizmetler', icon: 'cut', route: '/(tabs)/staff/services', color: '#EC4899', bgColor: '#FCE7F3' },
-        { id: 'staff', label: 'Personel', icon: 'people-circle', route: '/(tabs)/staff/team', color: '#06B6D4', bgColor: '#ECFEFF' },
-        { id: 'packages', label: 'Paketler', icon: 'gift', route: '/(tabs)/staff/packages', color: '#6366F1', bgColor: '#E0E7FF' },
-        { id: 'stock', label: 'Stok Yönetimi', icon: 'cube', route: '/(tabs)/staff/stock', color: '#14B8A6', bgColor: '#CCFBF1' },
+        { id: 'services', label: 'Hizmetler', icon: 'cut', route: '/(tabs)/staff/services', color: '#EC4899', bgColor: '#FCE7F3', permissionKey: 'services' },
+        { id: 'staff', label: 'Personel', icon: 'people-circle', route: '/(tabs)/staff/team', color: '#06B6D4', bgColor: '#ECFEFF', permissionKey: 'staff' },
+        { id: 'packages', label: 'Paketler', icon: 'gift', route: '/(tabs)/staff/packages', color: '#6366F1', bgColor: '#E0E7FF', permissionKey: 'packages' },
+        { id: 'stock', label: 'Stok Yönetimi', icon: 'cube', route: '/(tabs)/staff/stock', color: '#14B8A6', bgColor: '#CCFBF1', permissionKey: 'stock' },
       ],
     },
     {
       title: 'FİNANS & RAPORLAR',
       items: [
-        { id: 'kasa', label: 'Kasa', icon: 'wallet', route: '/(tabs)/staff/cashier', color: '#22C55E', bgColor: '#DCFCE7' },
-        { id: 'reports', label: 'Raporlar', icon: 'bar-chart', route: '/(tabs)/staff/reports', color: '#3B82F6', bgColor: '#DBEAFE' },
-        { id: 'performance', label: 'Performans', icon: 'trending-up', route: '/(tabs)/staff/performance', color: '#F97316', bgColor: '#FFEDD5' },
+        { id: 'kasa', label: 'Kasa', icon: 'wallet', route: '/(tabs)/staff/cashier', color: '#22C55E', bgColor: '#DCFCE7', permissionKey: 'kasa' },
+        { id: 'reports', label: 'Raporlar', icon: 'bar-chart', route: '/(tabs)/staff/reports', color: '#3B82F6', bgColor: '#DBEAFE', permissionKey: 'reports' },
+        { id: 'performance', label: 'Performans', icon: 'trending-up', route: '/(tabs)/staff/performance', color: '#F97316', bgColor: '#FFEDD5', permissionKey: 'reports' },
       ],
     },
   ];
@@ -192,7 +194,7 @@ export default function DrawerMenu({ isOpen, onClose }: DrawerMenuProps) {
             showsVerticalScrollIndicator={false}
             contentContainerStyle={styles.menuContent}
           >
-            {menuSections.map((section) => (
+            {filteredMenuSections.map((section) => (
               <View key={section.title} style={styles.menuSection}>
                 <Text style={styles.menuSectionTitle}>{section.title}</Text>
                 {section.items.map((item) => {

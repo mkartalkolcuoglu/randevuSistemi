@@ -1,6 +1,27 @@
 // User Types
 export type UserType = 'customer' | 'staff' | 'owner';
 
+// Permission types for staff members
+export type PagePermission = {
+  read: boolean;
+  create: boolean;
+  update: boolean;
+  delete: boolean;
+};
+
+export type StaffPermissions = {
+  dashboard: PagePermission;
+  appointments: PagePermission;
+  customers: PagePermission;
+  services: PagePermission;
+  staff: PagePermission;
+  packages: PagePermission;
+  kasa: PagePermission;
+  stock: PagePermission;
+  reports: PagePermission;
+  settings: PagePermission;
+};
+
 export interface User {
   id: string | null;
   phone: string;
@@ -14,6 +35,7 @@ export interface User {
   email?: string | null;
   avatar?: string;
   isNewCustomer?: boolean;
+  permissions?: StaffPermissions | null;
 }
 
 export interface Tenant {
@@ -177,4 +199,22 @@ export interface Notification {
 export interface TimeSlot {
   time: string;
   available: boolean;
+}
+
+// Helper function to check if user has permission
+export function hasPermission(
+  permissions: StaffPermissions | null | undefined,
+  page: keyof StaffPermissions,
+  action: keyof PagePermission
+): boolean {
+  if (!permissions) return false;
+  return permissions[page]?.[action] ?? false;
+}
+
+// Check if user can access a page (at least read permission)
+export function canAccessPage(
+  permissions: StaffPermissions | null | undefined,
+  page: keyof StaffPermissions
+): boolean {
+  return hasPermission(permissions, page, 'read');
 }

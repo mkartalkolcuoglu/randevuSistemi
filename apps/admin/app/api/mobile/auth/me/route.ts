@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '../../../../../lib/prisma';
 import jwt from 'jsonwebtoken';
+import { OWNER_PERMISSIONS } from '../../../../../lib/permissions';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 
@@ -65,6 +66,7 @@ export async function GET(request: NextRequest) {
           firstName: staff.firstName,
           lastName: staff.lastName,
           email: staff.email,
+          permissions: staff.pagePermissions || null,
         },
       });
     } else if (decoded.ownerId) {
@@ -91,6 +93,7 @@ export async function GET(request: NextRequest) {
           firstName: tenant.ownerName?.split(' ')[0] || '',
           lastName: tenant.ownerName?.split(' ').slice(1).join(' ') || '',
           email: tenant.ownerEmail,
+          permissions: OWNER_PERMISSIONS,
         },
       });
     } else if (decoded.customerId) {
