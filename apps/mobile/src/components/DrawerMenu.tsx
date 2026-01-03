@@ -115,6 +115,34 @@ export default function DrawerMenu({ isOpen, onClose }: DrawerMenuProps) {
     },
   ];
 
+  // Check if user is owner (has full access)
+  const isOwner = user?.userType === 'owner';
+  const permissions = user?.permissions as StaffPermissions | null | undefined;
+
+  // Filter menu sections based on permissions
+  const filteredMenuSections = useMemo(() => {
+    // Owner has full access
+    if (isOwner) {
+      return menuSections;
+    }
+
+    // Filter items based on staff permissions
+    return menuSections
+      .map(section => ({
+        ...section,
+        items: section.items.filter(item => {
+          // If no permission key, allow access
+          if (!item.permissionKey) return true;
+          // Check if user has read permission for this page
+          return canAccessPage(permissions, item.permissionKey);
+        }),
+      }))
+      .filter(section => section.items.length > 0); // Remove empty sections
+  }, [isOwner, permissions]);
+
+  // Check if user can access settings
+  const canAccessSettings = isOwner || canAccessPage(permissions, 'settings');
+
   const handleNavigate = (route: string) => {
     onClose();
     setTimeout(() => {
@@ -242,20 +270,22 @@ export default function DrawerMenu({ isOpen, onClose }: DrawerMenuProps) {
               </View>
             ))}
 
-            {/* Settings */}
-            <View style={styles.settingsSection}>
-              <TouchableOpacity
-                style={styles.settingsItem}
-                onPress={() => handleNavigate('/(tabs)/staff/settings')}
-                activeOpacity={0.7}
-              >
-                <View style={styles.settingsIconWrapper}>
-                  <Ionicons name="settings-outline" size={20} color="#6B7280" />
-                </View>
-                <Text style={styles.settingsText}>İşletme Ayarları</Text>
-                <Ionicons name="chevron-forward" size={18} color="#D1D5DB" />
-              </TouchableOpacity>
-            </View>
+            {/* Settings - only show if user has permission */}
+            {canAccessSettings && (
+              <View style={styles.settingsSection}>
+                <TouchableOpacity
+                  style={styles.settingsItem}
+                  onPress={() => handleNavigate('/(tabs)/staff/settings')}
+                  activeOpacity={0.7}
+                >
+                  <View style={styles.settingsIconWrapper}>
+                    <Ionicons name="settings-outline" size={20} color="#6B7280" />
+                  </View>
+                  <Text style={styles.settingsText}>İşletme Ayarları</Text>
+                  <Ionicons name="chevron-forward" size={18} color="#D1D5DB" />
+                </TouchableOpacity>
+              </View>
+            )}
 
             {/* Logout Button - inside ScrollView */}
             <View style={styles.logoutSection}>
