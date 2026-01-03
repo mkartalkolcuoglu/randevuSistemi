@@ -3,6 +3,7 @@ import { Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuthStore } from '../../src/store/auth.store';
+import { canAccessPage, StaffPermissions } from '../../src/types';
 
 // HIG/Material Design Compliant values
 const TAB_BAR_BASE_HEIGHT = Platform.OS === 'ios' ? 49 : 64; // iOS HIG: 49pt, Android Material: 64dp
@@ -15,6 +16,13 @@ export default function TabLayout() {
   const { user } = useAuthStore();
   const insets = useSafeAreaInsets();
   const isCustomer = user?.userType === 'customer';
+  const isOwner = user?.userType === 'owner';
+  const permissions = user?.permissions as StaffPermissions | null | undefined;
+  
+  // Check permissions for tab bar items
+  const canSeeDashboard = isOwner || canAccessPage(permissions, 'dashboard');
+  const canSeeAppointments = isOwner || canAccessPage(permissions, 'appointments');
+  const canSeeCustomers = isOwner || canAccessPage(permissions, 'customers');
 
   // Calculate tab bar height with safe area - both platforms need bottom inset
   const bottomInset = insets.bottom > 0 ? insets.bottom : (Platform.OS === 'android' ? 16 : 0);
