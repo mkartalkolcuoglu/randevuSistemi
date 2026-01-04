@@ -26,24 +26,17 @@ import PermissionGuard from '../../../src/components/PermissionGuard';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
-// Product type
+// Product type (matching web: name, quantity, price)
 interface Product {
   id: string;
-  tenantId: string;
+  tenantId?: string;
   name: string;
-  description?: string;
-  category?: string;
-  price?: number;
-  cost?: number;
-  stock: number;
-  minStock: number;
-  barcode?: string;
-  sku?: string;
-  supplier?: string;
-  status: string;
-  stockStatus: string;
-  createdAt: string;
-  updatedAt: string;
+  quantity: number;
+  price: number;
+  status?: string;
+  stockStatus?: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 // Status configuration with gradients
@@ -72,19 +65,11 @@ export default function StockScreen() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [categories, setCategories] = useState<string[]>([]);
 
-  // New product form state
+  // New product form state (matching web: name, quantity, price)
   const [newProduct, setNewProduct] = useState({
     name: '',
-    description: '',
-    category: '',
+    quantity: '',
     price: '',
-    cost: '',
-    stock: '',
-    minStock: '',
-    barcode: '',
-    sku: '',
-    supplier: '',
-    status: 'active',
   });
 
   // Edit mode states
@@ -132,12 +117,7 @@ export default function StockScreen() {
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase().trim();
       result = result.filter((product) => {
-        return (
-          product.name.toLowerCase().includes(query) ||
-          product.barcode?.toLowerCase().includes(query) ||
-          product.sku?.toLowerCase().includes(query) ||
-          product.category?.toLowerCase().includes(query)
-        );
+        return product.name.toLowerCase().includes(query);
       });
     }
 
@@ -158,16 +138,8 @@ export default function StockScreen() {
   const resetNewProductForm = () => {
     setNewProduct({
       name: '',
-      description: '',
-      category: '',
+      quantity: '',
       price: '',
-      cost: '',
-      stock: '',
-      minStock: '',
-      barcode: '',
-      sku: '',
-      supplier: '',
-      status: 'active',
     });
   };
 
@@ -176,24 +148,16 @@ export default function StockScreen() {
     if (!selectedProduct) return;
     setEditProduct({
       name: selectedProduct.name || '',
-      description: selectedProduct.description || '',
-      category: selectedProduct.category || '',
+      quantity: selectedProduct.quantity?.toString() || '',
       price: selectedProduct.price?.toString() || '',
-      cost: selectedProduct.cost?.toString() || '',
-      stock: selectedProduct.stock?.toString() || '',
-      minStock: selectedProduct.minStock?.toString() || '',
-      barcode: selectedProduct.barcode || '',
-      sku: selectedProduct.sku || '',
-      supplier: selectedProduct.supplier || '',
-      status: selectedProduct.status || 'active',
     });
     setIsEditMode(true);
   };
 
-  // Handle add product
+  // Handle add product (matching web: name, quantity, price)
   const handleAddProduct = async () => {
-    if (!newProduct.name.trim() || !newProduct.stock || !newProduct.price) {
-      Alert.alert('Hata', 'Ürün adı, stok ve fiyat zorunludur');
+    if (!newProduct.name.trim() || !newProduct.quantity || !newProduct.price) {
+      Alert.alert('Hata', 'Lütfen tüm alanları doldurun');
       return;
     }
 
@@ -201,16 +165,8 @@ export default function StockScreen() {
     try {
       const response = await api.post('/api/mobile/products', {
         name: newProduct.name.trim(),
-        description: newProduct.description.trim() || null,
-        category: newProduct.category.trim() || null,
+        quantity: parseInt(newProduct.quantity) || 0,
         price: parseFloat(newProduct.price) || 0,
-        cost: parseFloat(newProduct.cost) || 0,
-        stock: parseInt(newProduct.stock) || 0,
-        minStock: parseInt(newProduct.minStock) || 0,
-        barcode: newProduct.barcode.trim() || null,
-        sku: newProduct.sku.trim() || null,
-        supplier: newProduct.supplier.trim() || null,
-        status: newProduct.status,
       });
 
       if (response.data.success) {
@@ -229,11 +185,11 @@ export default function StockScreen() {
     }
   };
 
-  // Handle update product
+  // Handle update product (matching web: name, quantity, price)
   const handleUpdateProduct = async () => {
     if (!selectedProduct || !editProduct) return;
-    if (!editProduct.name.trim() || !editProduct.stock || !editProduct.price) {
-      Alert.alert('Hata', 'Ürün adı, stok ve fiyat zorunludur');
+    if (!editProduct.name.trim() || !editProduct.quantity || !editProduct.price) {
+      Alert.alert('Hata', 'Lütfen tüm alanları doldurun');
       return;
     }
 
@@ -241,16 +197,8 @@ export default function StockScreen() {
     try {
       const response = await api.put(`/api/mobile/products/${selectedProduct.id}`, {
         name: editProduct.name.trim(),
-        description: editProduct.description.trim() || null,
-        category: editProduct.category.trim() || null,
+        quantity: parseInt(editProduct.quantity) || 0,
         price: parseFloat(editProduct.price) || 0,
-        cost: parseFloat(editProduct.cost) || 0,
-        stock: parseInt(editProduct.stock) || 0,
-        minStock: parseInt(editProduct.minStock) || 0,
-        barcode: editProduct.barcode.trim() || null,
-        sku: editProduct.sku.trim() || null,
-        supplier: editProduct.supplier.trim() || null,
-        status: editProduct.status,
       });
 
       if (response.data.success) {
@@ -326,7 +274,7 @@ export default function StockScreen() {
         if (selectedProduct) {
           setSelectedProduct({
             ...selectedProduct,
-            stock: response.data.data.stock,
+            quantity: response.data.data.quantity,
             stockStatus: response.data.data.stockStatus,
           });
         }
@@ -442,12 +390,6 @@ export default function StockScreen() {
               <Text style={styles.productName} numberOfLines={1}>
                 {item.name}
               </Text>
-              {item.category && (
-                <View style={styles.categoryRow}>
-                  <Ionicons name="pricetag-outline" size={12} color="#9CA3AF" />
-                  <Text style={styles.categoryText}>{item.category}</Text>
-                </View>
-              )}
             </View>
 
             {/* Stock Status Badge */}
@@ -465,7 +407,7 @@ export default function StockScreen() {
                 item.stockStatus === 'outOfStock' && styles.stockValueDanger,
                 item.stockStatus === 'lowStock' && styles.stockValueWarning,
               ]}>
-                {item.stock}
+                {item.quantity}
               </Text>
             </View>
             <View style={styles.priceInfo}>
@@ -474,22 +416,10 @@ export default function StockScreen() {
                 {item.price ? `₺${item.price.toLocaleString('tr-TR')}` : '-'}
               </Text>
             </View>
-            {item.minStock > 0 && (
-              <View style={styles.minStockInfo}>
-                <Text style={styles.minStockLabel}>Min</Text>
-                <Text style={styles.minStockValue}>{item.minStock}</Text>
-              </View>
-            )}
           </View>
 
           {/* Bottom Row: Quick Actions */}
           <View style={styles.cardBottomRow}>
-            {item.barcode && (
-              <View style={styles.barcodeRow}>
-                <Ionicons name="barcode-outline" size={12} color="#9CA3AF" />
-                <Text style={styles.barcodeText} numberOfLines={1}>{item.barcode}</Text>
-              </View>
-            )}
             <View style={styles.quickActions}>
               <TouchableOpacity
                 style={styles.quickActionBtn}
@@ -606,17 +536,14 @@ export default function StockScreen() {
 
             <ScrollView showsVerticalScrollIndicator={false} style={styles.modalScrollContent}>
               {isEditMode && editProduct ? (
-                // Edit Mode - Show edit form
+                // Edit Mode - Show simplified edit form (matching web: name, quantity, price)
                 <View style={styles.editFormContainer}>
-                  {/* Ürün Bilgileri */}
                   <View style={styles.formSectionCard}>
-                    <Text style={styles.formSectionTitle}>Ürün Bilgileri</Text>
-
                     <View style={styles.formGroupFull}>
                       <Text style={styles.formLabel}>Ürün Adı *</Text>
                       <TextInput
                         style={styles.formInput}
-                        placeholder="Ürün adı"
+                        placeholder="Ürün adını girin"
                         placeholderTextColor="#9CA3AF"
                         value={editProduct.name}
                         onChangeText={(text) =>
@@ -625,43 +552,22 @@ export default function StockScreen() {
                       />
                     </View>
 
-                    <View style={styles.formGroupFull}>
-                      <Text style={styles.formLabel}>Açıklama</Text>
-                      <TextInput
-                        style={[styles.formInput, styles.formTextarea]}
-                        placeholder="Ürün açıklaması"
-                        placeholderTextColor="#9CA3AF"
-                        value={editProduct.description}
-                        onChangeText={(text) =>
-                          setEditProduct((prev) => prev ? { ...prev, description: text } : null)
-                        }
-                        multiline
-                        numberOfLines={3}
-                        textAlignVertical="top"
-                      />
-                    </View>
-
-                    <View style={styles.formGroupFull}>
-                      <Text style={styles.formLabel}>Kategori</Text>
-                      <TextInput
-                        style={styles.formInput}
-                        placeholder="Kategori"
-                        placeholderTextColor="#9CA3AF"
-                        value={editProduct.category}
-                        onChangeText={(text) =>
-                          setEditProduct((prev) => prev ? { ...prev, category: text } : null)
-                        }
-                      />
-                    </View>
-                  </View>
-
-                  {/* Fiyat Bilgileri */}
-                  <View style={styles.formSectionCard}>
-                    <Text style={styles.formSectionTitle}>Fiyat Bilgileri</Text>
-
                     <View style={styles.formRow}>
                       <View style={styles.formGroup}>
-                        <Text style={styles.formLabel}>Satış Fiyatı *</Text>
+                        <Text style={styles.formLabel}>Adet *</Text>
+                        <TextInput
+                          style={styles.formInput}
+                          placeholder="0"
+                          placeholderTextColor="#9CA3AF"
+                          value={editProduct.quantity}
+                          onChangeText={(text) =>
+                            setEditProduct((prev) => prev ? { ...prev, quantity: text } : null)
+                          }
+                          keyboardType="number-pad"
+                        />
+                      </View>
+                      <View style={styles.formGroup}>
+                        <Text style={styles.formLabel}>Fiyat (₺) *</Text>
                         <TextInput
                           style={styles.formInput}
                           placeholder="0.00"
@@ -673,150 +579,9 @@ export default function StockScreen() {
                           keyboardType="decimal-pad"
                         />
                       </View>
-                      <View style={styles.formGroup}>
-                        <Text style={styles.formLabel}>Maliyet</Text>
-                        <TextInput
-                          style={styles.formInput}
-                          placeholder="0.00"
-                          placeholderTextColor="#9CA3AF"
-                          value={editProduct.cost}
-                          onChangeText={(text) =>
-                            setEditProduct((prev) => prev ? { ...prev, cost: text } : null)
-                          }
-                          keyboardType="decimal-pad"
-                        />
-                      </View>
                     </View>
                   </View>
 
-                  {/* Stok Bilgileri */}
-                  <View style={styles.formSectionCard}>
-                    <Text style={styles.formSectionTitle}>Stok Bilgileri</Text>
-
-                    <View style={styles.formRow}>
-                      <View style={styles.formGroup}>
-                        <Text style={styles.formLabel}>Stok Miktarı *</Text>
-                        <TextInput
-                          style={styles.formInput}
-                          placeholder="0"
-                          placeholderTextColor="#9CA3AF"
-                          value={editProduct.stock}
-                          onChangeText={(text) =>
-                            setEditProduct((prev) => prev ? { ...prev, stock: text } : null)
-                          }
-                          keyboardType="number-pad"
-                        />
-                      </View>
-                      <View style={styles.formGroup}>
-                        <Text style={styles.formLabel}>Min. Stok</Text>
-                        <TextInput
-                          style={styles.formInput}
-                          placeholder="0"
-                          placeholderTextColor="#9CA3AF"
-                          value={editProduct.minStock}
-                          onChangeText={(text) =>
-                            setEditProduct((prev) => prev ? { ...prev, minStock: text } : null)
-                          }
-                          keyboardType="number-pad"
-                        />
-                      </View>
-                    </View>
-                  </View>
-
-                  {/* Diğer Bilgiler */}
-                  <View style={styles.formSectionCard}>
-                    <Text style={styles.formSectionTitle}>Diğer Bilgiler</Text>
-
-                    <View style={styles.formGroupFull}>
-                      <Text style={styles.formLabel}>Barkod</Text>
-                      <TextInput
-                        style={styles.formInput}
-                        placeholder="Barkod numarası"
-                        placeholderTextColor="#9CA3AF"
-                        value={editProduct.barcode}
-                        onChangeText={(text) =>
-                          setEditProduct((prev) => prev ? { ...prev, barcode: text } : null)
-                        }
-                      />
-                    </View>
-
-                    <View style={styles.formGroupFull}>
-                      <Text style={styles.formLabel}>SKU</Text>
-                      <TextInput
-                        style={styles.formInput}
-                        placeholder="Stok kodu"
-                        placeholderTextColor="#9CA3AF"
-                        value={editProduct.sku}
-                        onChangeText={(text) =>
-                          setEditProduct((prev) => prev ? { ...prev, sku: text } : null)
-                        }
-                      />
-                    </View>
-
-                    <View style={styles.formGroupFull}>
-                      <Text style={styles.formLabel}>Tedarikçi</Text>
-                      <TextInput
-                        style={styles.formInput}
-                        placeholder="Tedarikçi adı"
-                        placeholderTextColor="#9CA3AF"
-                        value={editProduct.supplier}
-                        onChangeText={(text) =>
-                          setEditProduct((prev) => prev ? { ...prev, supplier: text } : null)
-                        }
-                      />
-                    </View>
-                  </View>
-
-                  {/* Durum */}
-                  <View style={styles.formSectionCard}>
-                    <Text style={styles.formSectionTitle}>Ürün Durumu</Text>
-                    <View style={styles.statusSelector}>
-                      <TouchableOpacity
-                        style={[
-                          styles.statusOption,
-                          editProduct.status === 'active' && {
-                            backgroundColor: '#D1FAE520',
-                            borderColor: '#059669',
-                          },
-                        ]}
-                        onPress={() =>
-                          setEditProduct((prev) => prev ? { ...prev, status: 'active' } : null)
-                        }
-                      >
-                        <View style={[styles.statusDot, { backgroundColor: '#059669' }]} />
-                        <Text
-                          style={[
-                            styles.statusOptionText,
-                            editProduct.status === 'active' && { color: '#059669' },
-                          ]}
-                        >
-                          Aktif
-                        </Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity
-                        style={[
-                          styles.statusOption,
-                          editProduct.status === 'inactive' && {
-                            backgroundColor: '#FEE2E220',
-                            borderColor: '#DC2626',
-                          },
-                        ]}
-                        onPress={() =>
-                          setEditProduct((prev) => prev ? { ...prev, status: 'inactive' } : null)
-                        }
-                      >
-                        <View style={[styles.statusDot, { backgroundColor: '#DC2626' }]} />
-                        <Text
-                          style={[
-                            styles.statusOptionText,
-                            editProduct.status === 'inactive' && { color: '#DC2626' },
-                          ]}
-                        >
-                          Pasif
-                        </Text>
-                      </TouchableOpacity>
-                    </View>
-                  </View>
                 </View>
               ) : (
                 // View Mode - Show product details
@@ -873,114 +638,31 @@ export default function StockScreen() {
                         selectedProduct.stockStatus === 'outOfStock' && styles.stockValueDanger,
                         selectedProduct.stockStatus === 'lowStock' && styles.stockValueWarning,
                       ]}>
-                        {selectedProduct.stock}
+                        {selectedProduct.quantity}
                       </Text>
                     </View>
                     <View style={styles.stockInfoDivider} />
                     <View style={styles.stockInfoItem}>
-                      <Text style={styles.stockInfoLabel}>Min. Stok</Text>
-                      <Text style={styles.stockInfoValue}>{selectedProduct.minStock}</Text>
+                      <Text style={styles.stockInfoLabel}>Birim Fiyat</Text>
+                      <Text style={styles.stockInfoValue}>₺{selectedProduct.price?.toLocaleString('tr-TR') || '0'}</Text>
                     </View>
                   </View>
 
-                  {/* Price Info */}
+                  {/* Toplam Değer */}
                   <View style={styles.infoSection}>
                     <View style={styles.infoRow}>
                       <View style={styles.infoIconWrapper}>
-                        <Ionicons name="cash" size={18} color="#3B82F6" />
+                        <Ionicons name="wallet" size={18} color="#3B82F6" />
                       </View>
                       <View>
-                        <Text style={styles.infoLabel}>Satış Fiyatı</Text>
+                        <Text style={styles.infoLabel}>Toplam Değer</Text>
                         <Text style={styles.infoValue}>
-                          {selectedProduct.price ? `₺${selectedProduct.price.toLocaleString('tr-TR')}` : '-'}
+                          ₺{((selectedProduct.quantity || 0) * (selectedProduct.price || 0)).toLocaleString('tr-TR')}
                         </Text>
                       </View>
                     </View>
                   </View>
 
-                  {selectedProduct.cost ? (
-                    <View style={styles.infoSection}>
-                      <View style={styles.infoRow}>
-                        <View style={styles.infoIconWrapper}>
-                          <Ionicons name="wallet" size={18} color="#3B82F6" />
-                        </View>
-                        <View>
-                          <Text style={styles.infoLabel}>Maliyet</Text>
-                          <Text style={styles.infoValue}>₺{selectedProduct.cost.toLocaleString('tr-TR')}</Text>
-                        </View>
-                      </View>
-                    </View>
-                  ) : null}
-
-                  {selectedProduct.category && (
-                    <View style={styles.infoSection}>
-                      <View style={styles.infoRow}>
-                        <View style={styles.infoIconWrapper}>
-                          <Ionicons name="pricetag" size={18} color="#3B82F6" />
-                        </View>
-                        <View>
-                          <Text style={styles.infoLabel}>Kategori</Text>
-                          <Text style={styles.infoValue}>{selectedProduct.category}</Text>
-                        </View>
-                      </View>
-                    </View>
-                  )}
-
-                  {selectedProduct.barcode && (
-                    <View style={styles.infoSection}>
-                      <View style={styles.infoRow}>
-                        <View style={styles.infoIconWrapper}>
-                          <Ionicons name="barcode" size={18} color="#3B82F6" />
-                        </View>
-                        <View>
-                          <Text style={styles.infoLabel}>Barkod</Text>
-                          <Text style={styles.infoValue}>{selectedProduct.barcode}</Text>
-                        </View>
-                      </View>
-                    </View>
-                  )}
-
-                  {selectedProduct.sku && (
-                    <View style={styles.infoSection}>
-                      <View style={styles.infoRow}>
-                        <View style={styles.infoIconWrapper}>
-                          <Ionicons name="qr-code" size={18} color="#3B82F6" />
-                        </View>
-                        <View>
-                          <Text style={styles.infoLabel}>SKU</Text>
-                          <Text style={styles.infoValue}>{selectedProduct.sku}</Text>
-                        </View>
-                      </View>
-                    </View>
-                  )}
-
-                  {selectedProduct.supplier && (
-                    <View style={styles.infoSection}>
-                      <View style={styles.infoRow}>
-                        <View style={styles.infoIconWrapper}>
-                          <Ionicons name="business" size={18} color="#3B82F6" />
-                        </View>
-                        <View>
-                          <Text style={styles.infoLabel}>Tedarikçi</Text>
-                          <Text style={styles.infoValue}>{selectedProduct.supplier}</Text>
-                        </View>
-                      </View>
-                    </View>
-                  )}
-
-                  {selectedProduct.description && (
-                    <View style={styles.infoSection}>
-                      <View style={styles.infoRow}>
-                        <View style={styles.infoIconWrapper}>
-                          <Ionicons name="document-text" size={18} color="#3B82F6" />
-                        </View>
-                        <View style={{ flex: 1 }}>
-                          <Text style={styles.infoLabel}>Açıklama</Text>
-                          <Text style={styles.infoValue}>{selectedProduct.description}</Text>
-                        </View>
-                      </View>
-                    </View>
-                  )}
 
                   {/* Status Section */}
                   <View style={styles.statusSection}>
@@ -1071,7 +753,7 @@ export default function StockScreen() {
     );
   };
 
-  // Render add product modal
+  // Render add product modal (simplified to match web: name, quantity, price)
   const renderAddModal = () => (
     <Modal
       visible={showAddModal}
@@ -1091,7 +773,7 @@ export default function StockScreen() {
             end={{ x: 1, y: 1 }}
             style={styles.addModalHeader}
           >
-            <Text style={styles.addModalTitle}>Yeni Ürün</Text>
+            <Text style={styles.addModalTitle}>Yeni Ürün Ekle</Text>
             <TouchableOpacity
               style={styles.addModalCloseBtn}
               onPress={() => {
@@ -1106,13 +788,11 @@ export default function StockScreen() {
           <ScrollView showsVerticalScrollIndicator={false} style={styles.addModalScroll}>
             {/* Ürün Bilgileri */}
             <View style={styles.formSectionCard}>
-              <Text style={styles.formSectionTitle}>Ürün Bilgileri</Text>
-
               <View style={styles.formGroupFull}>
                 <Text style={styles.formLabel}>Ürün Adı *</Text>
                 <TextInput
                   style={styles.formInput}
-                  placeholder="Ürün adı"
+                  placeholder="Ürün adını girin"
                   placeholderTextColor="#9CA3AF"
                   value={newProduct.name}
                   onChangeText={(text) =>
@@ -1121,43 +801,22 @@ export default function StockScreen() {
                 />
               </View>
 
-              <View style={styles.formGroupFull}>
-                <Text style={styles.formLabel}>Açıklama</Text>
-                <TextInput
-                  style={[styles.formInput, styles.formTextarea]}
-                  placeholder="Ürün açıklaması"
-                  placeholderTextColor="#9CA3AF"
-                  value={newProduct.description}
-                  onChangeText={(text) =>
-                    setNewProduct((prev) => ({ ...prev, description: text }))
-                  }
-                  multiline
-                  numberOfLines={3}
-                  textAlignVertical="top"
-                />
-              </View>
-
-              <View style={styles.formGroupFull}>
-                <Text style={styles.formLabel}>Kategori</Text>
-                <TextInput
-                  style={styles.formInput}
-                  placeholder="Kategori"
-                  placeholderTextColor="#9CA3AF"
-                  value={newProduct.category}
-                  onChangeText={(text) =>
-                    setNewProduct((prev) => ({ ...prev, category: text }))
-                  }
-                />
-              </View>
-            </View>
-
-            {/* Fiyat Bilgileri */}
-            <View style={styles.formSectionCard}>
-              <Text style={styles.formSectionTitle}>Fiyat Bilgileri</Text>
-
               <View style={styles.formRow}>
                 <View style={styles.formGroup}>
-                  <Text style={styles.formLabel}>Satış Fiyatı *</Text>
+                  <Text style={styles.formLabel}>Adet *</Text>
+                  <TextInput
+                    style={styles.formInput}
+                    placeholder="0"
+                    placeholderTextColor="#9CA3AF"
+                    value={newProduct.quantity}
+                    onChangeText={(text) =>
+                      setNewProduct((prev) => ({ ...prev, quantity: text }))
+                    }
+                    keyboardType="number-pad"
+                  />
+                </View>
+                <View style={styles.formGroup}>
+                  <Text style={styles.formLabel}>Fiyat (₺) *</Text>
                   <TextInput
                     style={styles.formInput}
                     placeholder="0.00"
@@ -1169,107 +828,6 @@ export default function StockScreen() {
                     keyboardType="decimal-pad"
                   />
                 </View>
-                <View style={styles.formGroup}>
-                  <Text style={styles.formLabel}>Maliyet</Text>
-                  <TextInput
-                    style={styles.formInput}
-                    placeholder="0.00"
-                    placeholderTextColor="#9CA3AF"
-                    value={newProduct.cost}
-                    onChangeText={(text) =>
-                      setNewProduct((prev) => ({ ...prev, cost: text }))
-                    }
-                    keyboardType="decimal-pad"
-                  />
-                </View>
-              </View>
-            </View>
-
-            {/* Stok Bilgileri */}
-            <View style={styles.formSectionCard}>
-              <Text style={styles.formSectionTitle}>Stok Bilgileri</Text>
-
-              <View style={styles.formRow}>
-                <View style={styles.formGroup}>
-                  <Text style={styles.formLabel}>Stok Miktarı *</Text>
-                  <TextInput
-                    style={styles.formInput}
-                    placeholder="0"
-                    placeholderTextColor="#9CA3AF"
-                    value={newProduct.stock}
-                    onChangeText={(text) =>
-                      setNewProduct((prev) => ({ ...prev, stock: text }))
-                    }
-                    keyboardType="number-pad"
-                  />
-                </View>
-                <View style={styles.formGroup}>
-                  <Text style={styles.formLabel}>Min. Stok</Text>
-                  <TextInput
-                    style={styles.formInput}
-                    placeholder="0"
-                    placeholderTextColor="#9CA3AF"
-                    value={newProduct.minStock}
-                    onChangeText={(text) =>
-                      setNewProduct((prev) => ({ ...prev, minStock: text }))
-                    }
-                    keyboardType="number-pad"
-                  />
-                </View>
-              </View>
-            </View>
-
-            {/* Diğer Bilgiler */}
-            <View style={styles.formSectionCard}>
-              <Text style={styles.formSectionTitle}>Diğer Bilgiler</Text>
-
-              <View style={styles.formGroupFull}>
-                <Text style={styles.formLabel}>Barkod</Text>
-                <TextInput
-                  style={styles.formInput}
-                  placeholder="Barkod numarası"
-                  placeholderTextColor="#9CA3AF"
-                  value={newProduct.barcode}
-                  onChangeText={(text) =>
-                    setNewProduct((prev) => ({ ...prev, barcode: text }))
-                  }
-                />
-              </View>
-
-              <View style={styles.formGroupFull}>
-                <Text style={styles.formLabel}>SKU</Text>
-                <TextInput
-                  style={styles.formInput}
-                  placeholder="Stok kodu"
-                  placeholderTextColor="#9CA3AF"
-                  value={newProduct.sku}
-                  onChangeText={(text) =>
-                    setNewProduct((prev) => ({ ...prev, sku: text }))
-                  }
-                />
-              </View>
-
-              <View style={styles.formGroupFull}>
-                <Text style={styles.formLabel}>Tedarikçi</Text>
-                <TextInput
-                  style={styles.formInput}
-                  placeholder="Tedarikçi adı"
-                  placeholderTextColor="#9CA3AF"
-                  value={newProduct.supplier}
-                  onChangeText={(text) =>
-                    setNewProduct((prev) => ({ ...prev, supplier: text }))
-                  }
-                />
-              </View>
-            </View>
-
-            {/* Bilgilendirme */}
-            <View style={styles.infoCard}>
-              <Ionicons name="information-circle-outline" size={20} color="#6B7280" />
-              <View style={styles.infoCardContent}>
-                <Text style={styles.infoCardText}>• Ürün adı, stok ve fiyat zorunludur</Text>
-                <Text style={styles.infoCardText}>• Min. stok seviyesi uyarı için kullanılır</Text>
-                <Text style={styles.infoCardText}>• Barkod ile hızlı ürün arama yapılabilir</Text>
               </View>
             </View>
           </ScrollView>
@@ -1285,8 +843,8 @@ export default function StockScreen() {
                 <ActivityIndicator color="#fff" />
               ) : (
                 <>
-                  <Ionicons name="add" size={20} color="#fff" />
-                  <Text style={styles.submitBtnText}>Ürün Ekle</Text>
+                  <Ionicons name="checkmark" size={20} color="#fff" />
+                  <Text style={styles.submitBtnText}>Kaydet</Text>
                 </>
               )}
             </TouchableOpacity>
@@ -1331,7 +889,7 @@ export default function StockScreen() {
               <View style={styles.stockModalProductInfo}>
                 <Text style={styles.stockModalProductName}>{selectedProduct.name}</Text>
                 <Text style={styles.stockModalCurrentStock}>
-                  Mevcut Stok: <Text style={styles.stockModalCurrentStockValue}>{selectedProduct.stock}</Text>
+                  Mevcut Stok: <Text style={styles.stockModalCurrentStockValue}>{selectedProduct.quantity}</Text>
                 </Text>
               </View>
             )}
@@ -1389,9 +947,9 @@ export default function StockScreen() {
                 <Text style={styles.stockPreviewLabel}>Sonuç:</Text>
                 <Text style={styles.stockPreviewValue}>
                   {stockAction === 'add'
-                    ? selectedProduct.stock + parseInt(stockQuantity || '0')
+                    ? selectedProduct.quantity + parseInt(stockQuantity || '0')
                     : stockAction === 'remove'
-                    ? Math.max(0, selectedProduct.stock - parseInt(stockQuantity || '0'))
+                    ? Math.max(0, selectedProduct.quantity - parseInt(stockQuantity || '0'))
                     : parseInt(stockQuantity || '0')}
                 </Text>
               </View>
@@ -1435,7 +993,7 @@ export default function StockScreen() {
         onSearchPress={() => setShowSearch(!showSearch)}
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
-        searchPlaceholder="Ürün adı, barkod veya SKU ara..."
+        searchPlaceholder="Ürün adı ara..."
         gradientColors={['#163974', '#1e4a8f']}
         stats={[
           { icon: 'cube', iconColor: '#6366F1', iconBg: '#EEF2FF', value: statusCounts.all, label: 'Toplam' },
@@ -1697,16 +1255,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#1F2937',
   },
-  categoryRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 3,
-    gap: 4,
-  },
-  categoryText: {
-    fontSize: 12,
-    color: '#9CA3AF',
-  },
   statusBadge: {
     width: 28,
     height: 28,
@@ -1753,37 +1301,14 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#1F2937',
   },
-  minStockInfo: {
-    alignItems: 'center',
-  },
-  minStockLabel: {
-    fontSize: 11,
-    color: '#9CA3AF',
-  },
-  minStockValue: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#6B7280',
-  },
   cardBottomRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    justifyContent: 'flex-end',
     marginTop: 8,
     paddingTop: 8,
     borderTopWidth: 1,
     borderTopColor: '#F3F4F6',
-  },
-  barcodeRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    flex: 1,
-  },
-  barcodeText: {
-    fontSize: 11,
-    color: '#9CA3AF',
-    flex: 1,
   },
   quickActions: {
     flexDirection: 'row',

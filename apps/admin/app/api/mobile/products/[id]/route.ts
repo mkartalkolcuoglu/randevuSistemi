@@ -75,6 +75,7 @@ export async function GET(
         price: product.price,
         cost: product.cost,
         stock: product.stock,
+        quantity: product.stock, // Include both for backwards compatibility
         minStock: product.minStock,
         barcode: product.barcode,
         sku: product.sku,
@@ -141,6 +142,7 @@ export async function PUT(
       price,
       cost,
       stock,
+      quantity, // Accept both stock and quantity for backwards compatibility
       minStock,
       barcode,
       sku,
@@ -148,8 +150,11 @@ export async function PUT(
       status,
     } = body;
 
+    // Support both 'stock' and 'quantity' field names
+    const stockValue = quantity !== undefined ? quantity : stock;
+
     // Validation
-    if (!name || stock === undefined || price === undefined) {
+    if (!name || stockValue === undefined || price === undefined) {
       return NextResponse.json(
         { success: false, message: 'Ürün adı, stok ve fiyat zorunludur' },
         { status: 400 }
@@ -165,7 +170,7 @@ export async function PUT(
         category: category !== undefined ? (category?.trim() || null) : existingProduct.category,
         price: parseFloat(price) || 0,
         cost: cost !== undefined ? (parseFloat(cost) || 0) : existingProduct.cost,
-        stock: parseInt(stock) || 0,
+        stock: parseInt(stockValue) || 0,
         minStock: minStock !== undefined ? (parseInt(minStock) || 0) : existingProduct.minStock,
         barcode: barcode !== undefined ? (barcode?.trim() || null) : existingProduct.barcode,
         sku: sku !== undefined ? (sku?.trim() || null) : existingProduct.sku,
@@ -187,6 +192,7 @@ export async function PUT(
       message: 'Ürün güncellendi',
       data: {
         ...updatedProduct,
+        quantity: updatedProduct.stock, // Include both for backwards compatibility
         stockStatus,
         createdAt: updatedProduct.createdAt.toISOString(),
         updatedAt: updatedProduct.updatedAt.toISOString(),
@@ -295,6 +301,7 @@ export async function PATCH(
         id: updatedProduct.id,
         name: updatedProduct.name,
         stock: updatedProduct.stock,
+        quantity: updatedProduct.stock, // Include both for backwards compatibility
         status: updatedProduct.status,
         stockStatus,
       },

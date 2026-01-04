@@ -95,6 +95,7 @@ export async function GET(request: NextRequest) {
         price: product.price,
         cost: product.cost,
         stock: product.stock,
+        quantity: product.stock, // Include both for backwards compatibility
         minStock: product.minStock,
         barcode: product.barcode,
         sku: product.sku,
@@ -162,6 +163,7 @@ export async function POST(request: NextRequest) {
       price,
       cost,
       stock,
+      quantity, // Accept both stock and quantity for backwards compatibility
       minStock,
       barcode,
       sku,
@@ -169,8 +171,11 @@ export async function POST(request: NextRequest) {
       status,
     } = body;
 
+    // Support both 'stock' and 'quantity' field names
+    const stockValue = quantity !== undefined ? quantity : stock;
+
     // Validation
-    if (!name || stock === undefined || price === undefined) {
+    if (!name || stockValue === undefined || price === undefined) {
       return NextResponse.json(
         { success: false, message: 'Ürün adı, stok ve fiyat zorunludur' },
         { status: 400 }
@@ -186,7 +191,7 @@ export async function POST(request: NextRequest) {
         category: category?.trim() || null,
         price: parseFloat(price) || 0,
         cost: parseFloat(cost) || 0,
-        stock: parseInt(stock) || 0,
+        stock: parseInt(stockValue) || 0,
         minStock: parseInt(minStock) || 0,
         barcode: barcode?.trim() || null,
         sku: sku?.trim() || null,
@@ -208,6 +213,7 @@ export async function POST(request: NextRequest) {
       message: 'Ürün eklendi',
       data: {
         ...product,
+        quantity: product.stock, // Include both for backwards compatibility
         stockStatus,
         createdAt: product.createdAt.toISOString(),
         updatedAt: product.updatedAt.toISOString(),
