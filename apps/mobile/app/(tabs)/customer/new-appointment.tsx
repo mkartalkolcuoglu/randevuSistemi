@@ -43,6 +43,7 @@ interface WorkingHours {
 interface TenantSettings {
   workingHours: WorkingHours;
   appointmentTimeInterval: number;
+  cardPaymentEnabled?: boolean;
 }
 
 interface PackageInfo {
@@ -847,22 +848,24 @@ export default function NewAppointmentScreen() {
               </TouchableOpacity>
             )}
 
-            <TouchableOpacity
-              style={[styles.paymentOption, paymentOption === 'pay' && styles.paymentOptionSelectedBlue]}
-              onPress={() => setPaymentOption('pay')}
-              activeOpacity={0.7}
-            >
-              <View style={[styles.paymentOptionRadio, paymentOption === 'pay' && styles.paymentOptionRadioSelectedBlue]}>
-                {paymentOption === 'pay' && <View style={styles.paymentOptionRadioDotBlue} />}
-              </View>
-              <View style={styles.paymentOptionContent}>
-                <Text style={[styles.paymentOptionTitle, paymentOption === 'pay' && styles.paymentOptionTitleBlue]}>
-                  Şimdi Öde
-                </Text>
-                <Text style={styles.paymentOptionDesc}>Kredi kartı ile güvenli ödeme</Text>
-              </View>
-              <Ionicons name="card" size={20} color={paymentOption === 'pay' ? '#3B82F6' : '#9CA3AF'} />
-            </TouchableOpacity>
+            {tenantSettings?.cardPaymentEnabled !== false && (
+              <TouchableOpacity
+                style={[styles.paymentOption, paymentOption === 'pay' && styles.paymentOptionSelectedBlue]}
+                onPress={() => setPaymentOption('pay')}
+                activeOpacity={0.7}
+              >
+                <View style={[styles.paymentOptionRadio, paymentOption === 'pay' && styles.paymentOptionRadioSelectedBlue]}>
+                  {paymentOption === 'pay' && <View style={styles.paymentOptionRadioDotBlue} />}
+                </View>
+                <View style={styles.paymentOptionContent}>
+                  <Text style={[styles.paymentOptionTitle, paymentOption === 'pay' && styles.paymentOptionTitleBlue]}>
+                    Şimdi Öde
+                  </Text>
+                  <Text style={styles.paymentOptionDesc}>Kredi kartı ile güvenli ödeme</Text>
+                </View>
+                <Ionicons name="card" size={20} color={paymentOption === 'pay' ? '#3B82F6' : '#9CA3AF'} />
+              </TouchableOpacity>
+            )}
 
             <TouchableOpacity
               style={[styles.paymentOption, paymentOption === 'later' && styles.paymentOptionSelectedGray]}

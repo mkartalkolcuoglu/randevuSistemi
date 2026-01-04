@@ -48,6 +48,7 @@ export async function GET(
         id: true,
         businessName: true,
         workingHours: true,
+        cardPaymentEnabled: true,
       },
     });
 
@@ -101,6 +102,7 @@ export async function GET(
         businessName: tenant.businessName,
         workingHours,
         appointmentTimeInterval: settings?.appointmentTimeInterval || 30,
+        cardPaymentEnabled: tenant.cardPaymentEnabled !== false, // Default: true
       },
     });
   } catch (error: any) {
