@@ -148,6 +148,9 @@ export default function StaffSettingsScreen() {
   const router = useRouter();
   const { user, selectedTenant, logout, availableTenants } = useAuthStore();
 
+  // Check if user is owner (only owners can access settings)
+  const isOwner = user?.userType === 'owner';
+
   // Settings state
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -181,8 +184,12 @@ export default function StaffSettingsScreen() {
   };
 
   useEffect(() => {
-    fetchSettings();
-  }, []);
+    if (isOwner) {
+      fetchSettings();
+    } else {
+      setLoading(false);
+    }
+  }, [isOwner]);
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
@@ -298,6 +305,37 @@ export default function StaffSettingsScreen() {
           <ActivityIndicator size="large" color={THEME_COLOR} />
           <Text style={styles.loadingText}>Ayarlar yükleniyor...</Text>
         </View>
+      </SafeAreaView>
+    );
+  }
+
+  // Show access denied message for non-owners
+  if (!isOwner) {
+    return (
+      <SafeAreaView style={styles.container} edges={['top']}>
+        <Header
+          title="Ayarlar"
+          subtitle="İşletme Ayarları"
+          onMenuPress={() => setDrawerOpen(true)}
+          gradientColors={['#163974', '#1e4a8f']}
+        />
+        <View style={styles.accessDeniedContainer}>
+          <View style={styles.accessDeniedIcon}>
+            <Ionicons name="lock-closed" size={48} color="#9CA3AF" />
+          </View>
+          <Text style={styles.accessDeniedTitle}>Erişim Yetkisi Yok</Text>
+          <Text style={styles.accessDeniedText}>
+            Bu sayfayı sadece işletme sahipleri görüntüleyebilir.
+          </Text>
+          <TouchableOpacity
+            style={styles.accessDeniedButton}
+            onPress={() => router.back()}
+          >
+            <Ionicons name="arrow-back" size={20} color="#fff" />
+            <Text style={styles.accessDeniedButtonText}>Geri Dön</Text>
+          </TouchableOpacity>
+        </View>
+        <DrawerMenu isOpen={drawerOpen} onClose={() => setDrawerOpen(false)} />
       </SafeAreaView>
     );
   }
@@ -1131,6 +1169,48 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#6B7280',
     marginTop: 8,
+  },
+  accessDeniedContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 40,
+  },
+  accessDeniedIcon: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: '#F3F4F6',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  accessDeniedTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#1F2937',
+    marginBottom: 8,
+  },
+  accessDeniedText: {
+    fontSize: 14,
+    color: '#6B7280',
+    textAlign: 'center',
+    lineHeight: 20,
+    marginBottom: 24,
+  },
+  accessDeniedButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: THEME_COLOR,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 12,
+    gap: 8,
+  },
+  accessDeniedButtonText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#fff',
   },
 
   // Header - HIG/Material Design Compliant

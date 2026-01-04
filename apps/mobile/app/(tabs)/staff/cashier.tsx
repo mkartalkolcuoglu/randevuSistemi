@@ -22,6 +22,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import api from '../../../src/services/api';
 import DrawerMenu from '../../../src/components/DrawerMenu';
 import Header from '../../../src/components/Header';
+import PermissionGuard from '../../../src/components/PermissionGuard';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -1043,6 +1044,7 @@ export default function CashierScreen() {
   };
 
   return (
+    <PermissionGuard permissionKey="kasa" pageName="Kasa">
     <SafeAreaView style={styles.container} edges={['top']}>
       {/* Header */}
       <Header
@@ -1100,6 +1102,7 @@ export default function CashierScreen() {
       {/* Drawer Menu */}
       <DrawerMenu isOpen={drawerOpen} onClose={() => setDrawerOpen(false)} />
     </SafeAreaView>
+    </PermissionGuard>
   );
 }
 

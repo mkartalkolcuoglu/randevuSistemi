@@ -16,6 +16,7 @@ import Svg, { Rect, Text as SvgText, G } from 'react-native-svg';
 import api from '../../../src/services/api';
 import DrawerMenu from '../../../src/components/DrawerMenu';
 import Header from '../../../src/components/Header';
+import PermissionGuard from '../../../src/components/PermissionGuard';
 
 const THEME_COLOR = '#163974';
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -184,6 +185,7 @@ export default function PerformanceScreen() {
   const { stats, staffRatings, serviceRatings, recentFeedbacks } = data;
 
   return (
+    <PermissionGuard permissionKey="reports" pageName="Performans">
     <SafeAreaView style={styles.container} edges={['top']}>
       {/* Header */}
       <Header
@@ -477,6 +479,7 @@ export default function PerformanceScreen() {
       {/* Drawer Menu */}
       <DrawerMenu isOpen={drawerOpen} onClose={() => setDrawerOpen(false)} />
     </SafeAreaView>
+    </PermissionGuard>
   );
 }
 

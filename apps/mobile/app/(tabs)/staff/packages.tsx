@@ -22,6 +22,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import api from '../../../src/services/api';
 import DrawerMenu from '../../../src/components/DrawerMenu';
 import Header from '../../../src/components/Header';
+import PermissionGuard from '../../../src/components/PermissionGuard';
 
 // Interfaces
 interface PackageItem {
@@ -883,6 +884,7 @@ export default function PackagesScreen() {
   );
 
   return (
+    <PermissionGuard permissionKey="packages" pageName="Paketler">
     <SafeAreaView style={styles.container} edges={['top']}>
       {/* Header */}
       <Header
@@ -1500,6 +1502,7 @@ export default function PackagesScreen() {
         </SafeAreaView>
       </Modal>
     </SafeAreaView>
+    </PermissionGuard>
   );
 }
 

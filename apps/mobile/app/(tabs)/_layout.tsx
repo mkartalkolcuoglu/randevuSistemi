@@ -19,10 +19,10 @@ export default function TabLayout() {
   const isOwner = user?.userType === 'owner';
   const permissions = user?.permissions as StaffPermissions | null | undefined;
   
-  // Check permissions for tab bar items
-  const canSeeDashboard = isOwner || canAccessPage(permissions, 'dashboard');
-  const canSeeAppointments = isOwner || canAccessPage(permissions, 'appointments');
-  const canSeeCustomers = isOwner || canAccessPage(permissions, 'customers');
+  // Check permissions for tab bar items (allow all if permissions not set)
+  const canSeeDashboard = isOwner || !permissions || canAccessPage(permissions, 'dashboard');
+  const canSeeAppointments = isOwner || !permissions || canAccessPage(permissions, 'appointments');
+  const canSeeCustomers = isOwner || !permissions || canAccessPage(permissions, 'customers');
 
   // Calculate tab bar height with safe area - both platforms need bottom inset
   const bottomInset = insets.bottom > 0 ? insets.bottom : (Platform.OS === 'android' ? 16 : 0);

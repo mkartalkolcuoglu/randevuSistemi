@@ -18,6 +18,7 @@ import Svg, { Rect, Circle, Text as SvgText, G, Line, Path } from 'react-native-
 import api from '../../../src/services/api';
 import DrawerMenu from '../../../src/components/DrawerMenu';
 import Header from '../../../src/components/Header';
+import PermissionGuard from '../../../src/components/PermissionGuard';
 
 const THEME_COLOR = '#163974';
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -341,6 +342,7 @@ export default function ReportsScreen() {
   const { kpiSummary, revenueTrend, appointmentStatusDistribution, topServices, staffPerformance } = data;
 
   return (
+    <PermissionGuard permissionKey="reports" pageName="Raporlar">
     <SafeAreaView style={styles.container} edges={['top']}>
       {/* Header */}
       <Header
@@ -557,6 +559,7 @@ export default function ReportsScreen() {
       {/* Drawer Menu */}
       <DrawerMenu isOpen={drawerOpen} onClose={() => setDrawerOpen(false)} />
     </SafeAreaView>
+    </PermissionGuard>
   );
 }
 

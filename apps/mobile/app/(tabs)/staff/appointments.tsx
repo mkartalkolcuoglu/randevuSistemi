@@ -23,6 +23,7 @@ import { appointmentService } from '../../../src/services/appointment.service';
 import { Appointment, AppointmentStatus } from '../../../src/types';
 import DrawerMenu from '../../../src/components/DrawerMenu';
 import Header from '../../../src/components/Header';
+import PermissionGuard from '../../../src/components/PermissionGuard';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -730,6 +731,7 @@ export default function StaffAppointmentsScreen() {
   );
 
   return (
+    <PermissionGuard permissionKey="appointments" pageName="Randevular">
     <SafeAreaView style={styles.container} edges={['top']}>
       {renderHeader()}
 
@@ -782,6 +784,7 @@ export default function StaffAppointmentsScreen() {
 
       <DrawerMenu isOpen={drawerOpen} onClose={() => setDrawerOpen(false)} />
     </SafeAreaView>
+    </PermissionGuard>
   );
 }
 

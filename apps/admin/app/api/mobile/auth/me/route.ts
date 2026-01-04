@@ -66,7 +66,7 @@ export async function GET(request: NextRequest) {
           firstName: staff.firstName,
           lastName: staff.lastName,
           email: staff.email,
-          permissions: staff.pagePermissions || null,
+          permissions: staff.permissions ? JSON.parse(staff.permissions as string) : null,
         },
       });
     } else if (decoded.ownerId) {

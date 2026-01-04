@@ -25,6 +25,7 @@ import api from '../../../src/services/api';
 import { Customer } from '../../../src/types';
 import DrawerMenu from '../../../src/components/DrawerMenu';
 import Header from '../../../src/components/Header';
+import PermissionGuard from '../../../src/components/PermissionGuard';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -1400,6 +1401,7 @@ export default function StaffCustomersScreen() {
   );
 
   return (
+    <PermissionGuard permissionKey="customers" pageName="Müşteriler">
     <SafeAreaView style={styles.container} edges={['top']}>
       {/* Header */}
       <Header
@@ -1494,6 +1496,7 @@ export default function StaffCustomersScreen() {
       {/* Drawer Menu */}
       <DrawerMenu isOpen={drawerOpen} onClose={() => setDrawerOpen(false)} />
     </SafeAreaView>
+    </PermissionGuard>
   );
 }
 

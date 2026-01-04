@@ -20,6 +20,7 @@ import { appointmentService } from '../../../src/services/appointment.service';
 import { Appointment } from '../../../src/types';
 import DrawerMenu from '../../../src/components/DrawerMenu';
 import Header from '../../../src/components/Header';
+import PermissionGuard from '../../../src/components/PermissionGuard';
 import api from '../../../src/services/api';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -180,6 +181,7 @@ export default function StaffHomeScreen() {
   }
 
   return (
+    <PermissionGuard permissionKey="dashboard" pageName="Ana Sayfa">
     <SafeAreaView style={styles.container} edges={['top']}>
       <ScrollView
         showsVerticalScrollIndicator={false}
@@ -425,6 +427,7 @@ export default function StaffHomeScreen() {
       {/* Drawer Menu */}
       <DrawerMenu isOpen={drawerOpen} onClose={() => setDrawerOpen(false)} />
     </SafeAreaView>
+    </PermissionGuard>
   );
 }
 

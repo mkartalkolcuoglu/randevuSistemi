@@ -126,6 +126,11 @@ export default function DrawerMenu({ isOpen, onClose }: DrawerMenuProps) {
       return menuSections;
     }
 
+    // If permissions is null/undefined, staff can see all items (no restrictions set)
+    if (!permissions) {
+      return menuSections;
+    }
+
     // Filter items based on staff permissions
     return menuSections
       .map(section => ({
@@ -140,8 +145,8 @@ export default function DrawerMenu({ isOpen, onClose }: DrawerMenuProps) {
       .filter(section => section.items.length > 0); // Remove empty sections
   }, [isOwner, permissions]);
 
-  // Check if user can access settings
-  const canAccessSettings = isOwner || canAccessPage(permissions, 'settings');
+  // Check if user can access settings (allow if permissions not set)
+  const canAccessSettings = isOwner || !permissions || canAccessPage(permissions, 'settings');
 
   const handleNavigate = (route: string) => {
     onClose();
