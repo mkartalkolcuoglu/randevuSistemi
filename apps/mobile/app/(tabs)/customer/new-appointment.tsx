@@ -9,6 +9,7 @@ import {
   Alert,
   TextInput,
   Platform,
+  Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
@@ -886,14 +887,60 @@ export default function NewAppointmentScreen() {
           </View>
         </View>
 
-        <TouchableOpacity style={styles.agreementRow} onPress={() => setAgreementAccepted(!agreementAccepted)}>
-          <View style={[styles.checkbox, agreementAccepted && styles.checkboxChecked]}>
-            {agreementAccepted && <Ionicons name="checkmark" size={14} color="#fff" />}
+        {/* Sözleşme ve Onaylar */}
+        <View style={styles.agreementCard}>
+          <View style={styles.agreementHeader}>
+            <Ionicons name="document-text" size={20} color="#3B82F6" />
+            <Text style={styles.agreementTitle}>Sözleşme ve Onaylar</Text>
           </View>
-          <Text style={styles.agreementText}>
-            Randevu koşullarını ve iptal politikasını okudum, kabul ediyorum.
-          </Text>
-        </TouchableOpacity>
+
+          <TouchableOpacity style={styles.agreementRow} onPress={() => setAgreementAccepted(!agreementAccepted)}>
+            <View style={[styles.checkbox, agreementAccepted && styles.checkboxChecked]}>
+              {agreementAccepted && <Ionicons name="checkmark" size={14} color="#fff" />}
+            </View>
+            <View style={styles.agreementTextContainer}>
+              <Text style={styles.agreementText}>
+                <Text
+                  style={styles.agreementLink}
+                  onPress={() => Linking.openURL('https://netrandevu.com/musteri-kullanici-sozlesmesi')}
+                >
+                  Müşteri Kullanıcı Sözleşmesi
+                </Text>
+                ,{' '}
+                <Text
+                  style={styles.agreementLink}
+                  onPress={() => Linking.openURL('https://netrandevu.com/gizlilik-politikasi')}
+                >
+                  Gizlilik Politikası
+                </Text>
+                ,{' '}
+                <Text
+                  style={styles.agreementLink}
+                  onPress={() => Linking.openURL('https://netrandevu.com/cerez-cookie-politikasi')}
+                >
+                  Çerez (Cookie) Politikası
+                </Text>
+                {' '}ve{' '}
+                <Text
+                  style={styles.agreementLink}
+                  onPress={() => Linking.openURL('https://netrandevu.com/kvkk-aydinlatma-metni')}
+                >
+                  KVKK Aydınlatma Metni
+                </Text>
+                'ni okudum ve kabul ediyorum.
+              </Text>
+            </View>
+          </TouchableOpacity>
+
+          {!agreementAccepted && (
+            <View style={styles.agreementWarning}>
+              <Ionicons name="warning" size={16} color="#D97706" />
+              <Text style={styles.agreementWarningText}>
+                Randevunuzu oluşturmak için sözleşmeleri kabul etmeniz gerekmektedir.
+              </Text>
+            </View>
+          )}
+        </View>
       </View>
     );
   };
@@ -1609,10 +1656,31 @@ const styles = StyleSheet.create({
     padding: 6,
     borderRadius: 10,
   },
+  agreementCard: {
+    backgroundColor: '#EFF6FF',
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 2,
+    borderColor: '#BFDBFE',
+  },
+  agreementHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 14,
+    gap: 8,
+  },
+  agreementTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1F2937',
+  },
   agreementRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: 12,
+  },
+  agreementTextContainer: {
+    flex: 1,
   },
   checkbox: {
     width: 24,
@@ -1622,16 +1690,38 @@ const styles = StyleSheet.create({
     borderColor: '#D1D5DB',
     justifyContent: 'center',
     alignItems: 'center',
+    marginTop: 2,
   },
   checkboxChecked: {
     backgroundColor: '#059669',
     borderColor: '#059669',
   },
   agreementText: {
-    flex: 1,
     fontSize: 14,
     color: '#374151',
-    lineHeight: 20,
+    lineHeight: 22,
+  },
+  agreementLink: {
+    color: '#3B82F6',
+    fontWeight: '600',
+    textDecorationLine: 'underline',
+  },
+  agreementWarning: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    backgroundColor: '#FEF3C7',
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+    borderRadius: 10,
+    padding: 12,
+    marginTop: 14,
+    gap: 8,
+  },
+  agreementWarningText: {
+    flex: 1,
+    fontSize: 13,
+    color: '#92400E',
+    lineHeight: 18,
   },
   footer: {
     padding: 20,
