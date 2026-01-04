@@ -34,6 +34,7 @@ export async function GET(
         slug: true,
         businessDescription: true,
         workingHours: true, // ⭐ Critical: workingHours from Admin DB
+        cardPaymentEnabled: true, // ⭐ Critical: cardPaymentEnabled from Admin DB
         theme: true,
         createdAt: true
         // Note: Tenant model doesn't have updatedAt field in Admin DB
@@ -53,7 +54,8 @@ export async function GET(
     
     console.log('✅ PUBLIC API: Found tenant:', tenant.businessName);
     console.log('🕒 PUBLIC API: workingHours:', tenant.workingHours ? 'HAS DATA' : 'EMPTY');
-    
+    console.log('💳 PUBLIC API: cardPaymentEnabled:', tenant.cardPaymentEnabled);
+
     // Return tenant data
     const tenantData = {
       id: tenant.id,
@@ -61,6 +63,7 @@ export async function GET(
       slug: tenant.slug,
       businessDescription: tenant.businessDescription || '',
       workingHours: tenant.workingHours || null, // ⭐ This is the critical field
+      cardPaymentEnabled: tenant.cardPaymentEnabled, // ⭐ Card payment toggle (undefined = true default)
       theme: tenant.theme || null,
       createdAt: tenant.createdAt?.toISOString() || new Date().toISOString()
     };

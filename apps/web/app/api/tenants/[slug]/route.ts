@@ -44,27 +44,37 @@ export async function GET(
     console.log('🔍 Found tenant:', tenant);
     console.log('🕒 CRITICAL: tenant.workingHours from DB (Web DB):', tenant?.workingHours, typeof tenant?.workingHours);
     
-    // ✅ CRITICAL FIX: If workingHours is empty in Web DB, fetch from Admin API
+    // ✅ CRITICAL FIX: Fetch settings from Admin API for accurate data
     let finalWorkingHours = tenant?.workingHours;
-    
-    if (!finalWorkingHours && tenant) {
-      console.log('⚠️ workingHours empty in Web DB, fetching from Admin API...');
+    let finalCardPaymentEnabled = tenant?.cardPaymentEnabled;
+
+    // Always fetch from Admin API to get the latest settings (especially cardPaymentEnabled)
+    if (tenant) {
+      console.log('📡 Fetching latest settings from Admin API...');
       try {
         const adminApiUrl = `https://admin.netrandevu.com/api/public/tenant/${slug}`;
         console.log('📡 Fetching from Admin API:', adminApiUrl);
-        
+
         const adminResponse = await fetch(adminApiUrl, {
           headers: {
             'Content-Type': 'application/json',
           },
           cache: 'no-store'
         });
-        
+
         if (adminResponse.ok) {
           const adminData = await adminResponse.json();
-          if (adminData.success && adminData.data?.workingHours) {
-            finalWorkingHours = adminData.data.workingHours;
-            console.log('✅ Got workingHours from Admin API:', typeof finalWorkingHours);
+          if (adminData.success && adminData.data) {
+            // Get workingHours from Admin API if not in Web DB
+            if (adminData.data.workingHours) {
+              finalWorkingHours = adminData.data.workingHours;
+              console.log('✅ Got workingHours from Admin API:', typeof finalWorkingHours);
+            }
+            // ✅ CRITICAL: Always use cardPaymentEnabled from Admin API (source of truth)
+            if (adminData.data.cardPaymentEnabled !== undefined) {
+              finalCardPaymentEnabled = adminData.data.cardPaymentEnabled;
+              console.log('✅ Got cardPaymentEnabled from Admin API:', finalCardPaymentEnabled);
+            }
           }
         } else {
           console.warn('⚠️ Admin API returned:', adminResponse.status);
@@ -95,7 +105,7 @@ export async function GET(
       contactPhone: tenant.phone || '',
       address: tenant.address || '',
       workingHours: finalWorkingHours || null, // ✅ Include working hours (from Web DB or Admin API fallback)
-      cardPaymentEnabled: tenant.cardPaymentEnabled !== false, // ✅ Card payment toggle (default: true)
+      cardPaymentEnabled: finalCardPaymentEnabled !== false, // ✅ Card payment toggle from Admin API (default: true)
       isActive: tenant.status === 'active',
       createdAt: tenant.createdAt?.toISOString() || new Date().toISOString(),
       updatedAt: tenant.updatedAt?.toISOString() || new Date().toISOString()
