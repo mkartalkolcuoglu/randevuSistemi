@@ -476,9 +476,9 @@ export default function NewAppointmentPage() {
                   type="number"
                   value={formData.duration}
                   onChange={handleInputChange}
-                  min="15"
+                  min="1"
                   max="300"
-                  step="15"
+                  step="1"
                 />
               </div>
 
