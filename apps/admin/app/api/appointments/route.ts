@@ -152,16 +152,16 @@ export async function POST(request: NextRequest) {
         );
       }
       
-      // Check for time conflicts
+      // Check for time conflicts (exclude cancelled and completed appointments)
       const conflictCheck = await prisma.appointment.findFirst({
         where: {
           staffId: data.staffId,
           date: data.date,
           time: data.time,
-          status: { not: 'cancelled' }
+          status: { notIn: ['cancelled', 'completed'] }
         }
       });
-      
+
       if (conflictCheck) {
         console.error('⚠️ Time conflict detected');
         return NextResponse.json(
@@ -466,16 +466,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check for conflicts
+    // Check for conflicts (exclude cancelled and completed appointments)
     const conflictCheck = await prisma.appointment.findFirst({
       where: {
         staffId: data.staffId,
         date: data.date,
         time: data.time,
-        status: { not: 'cancelled' }
+        status: { notIn: ['cancelled', 'completed'] }
       }
     });
-    
+
     if (conflictCheck) {
       console.error('⚠️ Time conflict detected');
       return NextResponse.json(
