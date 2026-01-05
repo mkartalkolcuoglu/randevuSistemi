@@ -1,12 +1,14 @@
 import { useState, useCallback } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert, ScrollView, ActivityIndicator } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { View, Text, StyleSheet, TouchableOpacity, Alert, ScrollView, ActivityIndicator, Platform } from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useAuthStore } from '../../../src/store/auth.store';
 import { appointmentService } from '../../../src/services/appointment.service';
 import api from '../../../src/services/api';
+
+const IS_IOS = Platform.OS === 'ios';
 
 interface ProfileStats {
   totalAppointments: number;
@@ -17,6 +19,7 @@ interface ProfileStats {
 export default function CustomerProfileScreen() {
   const router = useRouter();
   const { user, logout } = useAuthStore();
+  const insets = useSafeAreaInsets();
   const [stats, setStats] = useState<ProfileStats>({
     totalAppointments: 0,
     totalPackages: 0,
@@ -116,14 +119,14 @@ export default function CustomerProfileScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView style={styles.container} edges={[]}>
       <ScrollView showsVerticalScrollIndicator={false}>
         {/* Header with Gradient */}
         <LinearGradient
           colors={['#059669', '#10B981']}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
-          style={styles.header}
+          style={[styles.header, { paddingTop: insets.top + (IS_IOS ? 16 : 12) }]}
         >
           <View style={styles.headerContent}>
             <Text style={styles.headerTitle}>Profil</Text>
@@ -254,14 +257,13 @@ const styles = StyleSheet.create({
     backgroundColor: '#F9FAFB',
   },
   header: {
-    paddingTop: 16,
-    paddingBottom: 80,
+    paddingBottom: 140,
     borderBottomLeftRadius: 24,
     borderBottomRightRadius: 24,
   },
   headerContent: {
     paddingHorizontal: 20,
-    marginBottom: 20,
+    marginBottom: 14,
   },
   headerTitle: {
     fontSize: 28,
@@ -276,7 +278,7 @@ const styles = StyleSheet.create({
     padding: 20,
     borderRadius: 20,
     position: 'absolute',
-    bottom: -50,
+    bottom: 20,
     left: 0,
     right: 0,
     shadowColor: '#000',
@@ -284,6 +286,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.12,
     shadowRadius: 16,
     elevation: 8,
+    minHeight: 104,
   },
   avatarContainer: {
     position: 'relative',
@@ -346,7 +349,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#fff',
     marginHorizontal: 20,
-    marginTop: 70,
+    marginTop: 20,
     padding: 20,
     borderRadius: 20,
     shadowColor: '#000',

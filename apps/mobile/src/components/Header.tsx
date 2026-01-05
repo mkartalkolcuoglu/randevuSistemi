@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const THEME_COLOR = '#163974';
 
@@ -65,12 +66,14 @@ export default function Header({
   stats,
   gradientColors = ['#1E3A8A', '#3B82F6'],
 }: HeaderProps) {
+  const insets = useSafeAreaInsets();
+
   return (
     <LinearGradient
       colors={gradientColors}
       start={{ x: 0, y: 0 }}
       end={{ x: 1, y: 1 }}
-      style={styles.headerGradient}
+      style={[styles.headerGradient, { paddingTop: insets.top + (IS_IOS ? 16 : 12) }]}
     >
       {/* Top Row: Menu, Title, Actions */}
       <View style={styles.headerTop}>
@@ -174,7 +177,6 @@ export default function Header({
 const styles = StyleSheet.create({
   headerGradient: {
     paddingHorizontal: IS_IOS ? 20 : 16,
-    paddingTop: IS_IOS ? 16 : 12,
     paddingBottom: IS_IOS ? 20 : 16,
   },
   headerTop: {

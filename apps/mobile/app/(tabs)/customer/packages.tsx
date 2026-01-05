@@ -6,12 +6,15 @@ import {
   FlatList,
   RefreshControl,
   ActivityIndicator,
+  Platform,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import api from '../../../src/services/api';
+
+const IS_IOS = Platform.OS === 'ios';
 
 interface PackageItem {
   id: string;
@@ -40,6 +43,7 @@ interface CustomerPackage {
 }
 
 export default function CustomerPackagesScreen() {
+  const insets = useSafeAreaInsets();
   const [packages, setPackages] = useState<CustomerPackage[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -211,13 +215,13 @@ export default function CustomerPackagesScreen() {
   );
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView style={styles.container} edges={[]}>
       {/* Header with Gradient */}
       <LinearGradient
         colors={['#059669', '#10B981']}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
-        style={styles.header}
+        style={[styles.header, { paddingTop: insets.top + (IS_IOS ? 16 : 12) }]}
       >
         <View style={styles.headerContent}>
           <View>

@@ -171,7 +171,7 @@ export default function StaffHomeScreen() {
 
   if (isLoading) {
     return (
-      <SafeAreaView style={styles.container} edges={['top']}>
+      <SafeAreaView style={styles.container} edges={[]}>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={THEME_COLOR} />
           <Text style={styles.loadingText}>Yükleniyor...</Text>
@@ -182,7 +182,7 @@ export default function StaffHomeScreen() {
 
   return (
     <PermissionGuard permissionKey="dashboard" pageName="Ana Sayfa">
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView style={styles.container} edges={[]}>
       <ScrollView
         showsVerticalScrollIndicator={false}
         refreshControl={

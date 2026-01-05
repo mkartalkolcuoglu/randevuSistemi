@@ -1402,7 +1402,7 @@ export default function StaffCustomersScreen() {
 
   return (
     <PermissionGuard permissionKey="customers" pageName="Müşteriler">
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView style={styles.container} edges={[]}>
       {/* Header */}
       <Header
         title="Müşteriler"

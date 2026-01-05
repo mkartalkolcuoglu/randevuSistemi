@@ -20,6 +20,7 @@ import { useAuthStore } from '../../../src/store/auth.store';
 import { appointmentService } from '../../../src/services/appointment.service';
 import { Appointment } from '../../../src/types';
 import DrawerMenu from '../../../src/components/DrawerMenu';
+import Header from '../../../src/components/Header';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const DAY_WIDTH = (SCREEN_WIDTH - 48) / 7;
@@ -610,46 +611,34 @@ export default function CalendarScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
-      {/* Premium Header */}
-      <LinearGradient
-        colors={['#1E3A8A', '#3B82F6']}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.header}
-      >
-        <View style={styles.headerTop}>
-          <TouchableOpacity style={styles.menuButton} onPress={() => setDrawerOpen(true)}>
-            <Ionicons name="menu" size={24} color="#fff" />
-          </TouchableOpacity>
-          <View style={styles.headerTitleContainer}>
-            <Text style={styles.title}>Takvim</Text>
-            <Text style={styles.subtitle}>{selectedTenant?.businessName}</Text>
-          </View>
-          <TouchableOpacity
-            style={styles.headerButton}
-            onPress={() => router.push('/(tabs)/staff/appointments')}
-          >
-            <Ionicons name="list" size={22} color="#fff" />
-          </TouchableOpacity>
-        </View>
+    <SafeAreaView style={styles.container} edges={[]}>
+      {/* Header - Using shared Header component */}
+      <Header
+        title="Takvim"
+        subtitle={selectedTenant?.businessName}
+        onMenuPress={() => setDrawerOpen(true)}
+        showCalendar
+        onCalendarPress={() => router.push('/(tabs)/staff/appointments')}
+        gradientColors={['#163974', '#1e4a8f']}
+      />
 
-        {/* Date navigation */}
+      {/* Date Navigation Bar */}
+      <View style={styles.dateNavContainer}>
         <View style={styles.dateNav}>
           <TouchableOpacity style={styles.navBtn} onPress={() => navigateDate(-1)}>
-            <Ionicons name="chevron-back" size={22} color="#fff" />
+            <Ionicons name="chevron-back" size={20} color="#1E3A8A" />
           </TouchableOpacity>
           <TouchableOpacity style={styles.dateTitle} onPress={goToToday}>
             <Text style={styles.dateTitleText}>{getHeaderTitle()}</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.navBtn} onPress={() => navigateDate(1)}>
-            <Ionicons name="chevron-forward" size={22} color="#fff" />
+            <Ionicons name="chevron-forward" size={20} color="#1E3A8A" />
           </TouchableOpacity>
           <TouchableOpacity style={styles.todayBtn} onPress={goToToday}>
             <Text style={styles.todayBtnText}>Bugün</Text>
           </TouchableOpacity>
         </View>
-      </LinearGradient>
+      </View>
 
       {/* View tabs */}
       {renderViewTabs()}
@@ -696,56 +685,24 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#F8FAFC',
   },
-  header: {
+  // Date Navigation Bar
+  dateNavContainer: {
+    backgroundColor: '#fff',
     paddingHorizontal: 16,
-    paddingTop: 12,
-    paddingBottom: 16,
-  },
-  headerTop: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  menuButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  headerTitleContainer: {
-    flex: 1,
-    marginLeft: 12,
-  },
-  title: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: '#fff',
-  },
-  subtitle: {
-    fontSize: 12,
-    color: 'rgba(255,255,255,0.8)',
-    marginTop: 2,
-  },
-  headerButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    alignItems: 'center',
-    justifyContent: 'center',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
   },
   dateNav: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 16,
     gap: 8,
   },
   navBtn: {
     width: 36,
     height: 36,
     borderRadius: 10,
-    backgroundColor: 'rgba(255,255,255,0.2)',
+    backgroundColor: '#F3F4F6',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -756,12 +713,12 @@ const styles = StyleSheet.create({
   dateTitleText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#fff',
+    color: '#1F2937',
   },
   todayBtn: {
     paddingHorizontal: 14,
     paddingVertical: 8,
-    backgroundColor: 'rgba(255,255,255,0.25)',
+    backgroundColor: '#1E3A8A',
     borderRadius: 8,
   },
   todayBtnText: {

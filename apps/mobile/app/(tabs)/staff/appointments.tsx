@@ -732,7 +732,7 @@ export default function StaffAppointmentsScreen() {
 
   return (
     <PermissionGuard permissionKey="appointments" pageName="Randevular">
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView style={styles.container} edges={[]}>
       {renderHeader()}
 
       <View style={styles.content}>
