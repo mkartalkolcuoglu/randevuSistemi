@@ -22,16 +22,6 @@ export async function GET(request: NextRequest) {
         phone: {
           contains: formattedPhone
         }
-      },
-      include: {
-        tenant: {
-          select: {
-            id: true,
-            businessName: true,
-            phone: true,
-            address: true
-          }
-        }
       }
     });
 
@@ -53,50 +43,46 @@ export async function GET(request: NextRequest) {
           in: customerIds
         }
       },
-      include: {
-        service: {
-          select: {
-            name: true
-          }
-        },
-        staff: {
-          select: {
-            firstName: true,
-            lastName: true
-          }
-        },
-        customer: {
-          include: {
-            tenant: {
-              select: {
-                businessName: true,
-                phone: true,
-                address: true
-              }
-            }
-          }
-        }
-      },
       orderBy: {
         date: 'desc'
       }
     });
 
+    // Get tenant info for each appointment
+    const tenantIds = [...new Set(appointments.map(apt => apt.tenantId))];
+    const tenants = await prisma.tenant.findMany({
+      where: {
+        id: {
+          in: tenantIds
+        }
+      },
+      select: {
+        id: true,
+        businessName: true,
+        phone: true,
+        address: true
+      }
+    });
+    const tenantMap = new Map(tenants.map(t => [t.id, t]));
+
     // Format appointments for response
-    const formattedAppointments = appointments.map(apt => ({
-      id: apt.id,
-      date: apt.date.toISOString().split('T')[0],
-      time: apt.time,
-      status: apt.status,
-      serviceName: apt.service?.name || 'Hizmet',
-      staffName: apt.staff ? `${apt.staff.firstName} ${apt.staff.lastName}` : 'Personel',
-      price: apt.price || 0,
-      duration: apt.duration || 30,
-      notes: apt.notes,
-      businessName: apt.customer?.tenant?.businessName,
-      businessPhone: apt.customer?.tenant?.phone,
-      businessAddress: apt.customer?.tenant?.address
-    }));
+    const formattedAppointments = appointments.map(apt => {
+      const tenant = tenantMap.get(apt.tenantId);
+      return {
+        id: apt.id,
+        date: apt.date, // Already a string in schema
+        time: apt.time,
+        status: apt.status,
+        serviceName: apt.serviceName || 'Hizmet',
+        staffName: apt.staffName || 'Personel',
+        price: apt.price || 0,
+        duration: apt.duration || 30,
+        notes: apt.notes,
+        businessName: tenant?.businessName,
+        businessPhone: tenant?.phone,
+        businessAddress: tenant?.address
+      };
+    });
 
     // Get primary customer info
     const primaryCustomer = customers[0];
@@ -116,7 +102,11 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error('Customer appointments error:', error);
     return NextResponse.json(
-      { success: false, error: 'Randevular yüklenirken hata oluştu' },
+      {
+        success: false,
+        error: 'Randevular yüklenirken hata oluştu',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      },
       { status: 500 }
     );
   }
