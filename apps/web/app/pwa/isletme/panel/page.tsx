@@ -201,6 +201,31 @@ export default function PWAIsletmePanel() {
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [showAppointmentModal, setShowAppointmentModal] = useState(false);
   const [showCustomerModal, setShowCustomerModal] = useState(false);
+  const [showNewAppointmentModal, setShowNewAppointmentModal] = useState(false);
+  const [showNewCustomerModal, setShowNewCustomerModal] = useState(false);
+  const [showEditCustomerModal, setShowEditCustomerModal] = useState(false);
+
+  // New Appointment Form
+  const [newAppointment, setNewAppointment] = useState({
+    customerId: '',
+    serviceId: '',
+    staffId: '',
+    date: getTodayDate(),
+    time: '10:00',
+    notes: ''
+  });
+
+  // New Customer Form
+  const [newCustomer, setNewCustomer] = useState({
+    firstName: '',
+    lastName: '',
+    phone: '',
+    email: ''
+  });
+
+  // Form states
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formError, setFormError] = useState('');
 
   // ==================== API CALLS ====================
 
@@ -300,6 +325,135 @@ export default function PWAIsletmePanel() {
       }
     } catch (error) {
       console.error('Durum güncelleme hatası:', error);
+    }
+  };
+
+  const createAppointment = async () => {
+    if (!newAppointment.customerId || !newAppointment.serviceId || !newAppointment.staffId) {
+      setFormError('Lütfen tüm alanları doldurun');
+      return;
+    }
+
+    setIsSubmitting(true);
+    setFormError('');
+
+    try {
+      const selectedService = services.find(s => s.id === newAppointment.serviceId);
+      const res = await apiCall('/appointments', {
+        method: 'POST',
+        body: JSON.stringify({
+          ...newAppointment,
+          duration: selectedService?.duration || 30,
+          price: selectedService?.price || 0
+        }),
+      });
+
+      if (res.success) {
+        await fetchAllData();
+        setShowNewAppointmentModal(false);
+        setNewAppointment({
+          customerId: '',
+          serviceId: '',
+          staffId: '',
+          date: getTodayDate(),
+          time: '10:00',
+          notes: ''
+        });
+      } else {
+        setFormError(res.error || 'Randevu oluşturulamadı');
+      }
+    } catch (error) {
+      console.error('Randevu oluşturma hatası:', error);
+      setFormError('Bir hata oluştu');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const createCustomer = async () => {
+    if (!newCustomer.firstName || !newCustomer.lastName || !newCustomer.phone) {
+      setFormError('Lütfen zorunlu alanları doldurun');
+      return;
+    }
+
+    setIsSubmitting(true);
+    setFormError('');
+
+    try {
+      const res = await apiCall('/customers', {
+        method: 'POST',
+        body: JSON.stringify(newCustomer),
+      });
+
+      if (res.success) {
+        await fetchAllData();
+        setShowNewCustomerModal(false);
+        setNewCustomer({ firstName: '', lastName: '', phone: '', email: '' });
+      } else {
+        setFormError(res.error || 'Müşteri oluşturulamadı');
+      }
+    } catch (error) {
+      console.error('Müşteri oluşturma hatası:', error);
+      setFormError('Bir hata oluştu');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const updateCustomer = async () => {
+    if (!selectedCustomer) return;
+
+    setIsSubmitting(true);
+    setFormError('');
+
+    try {
+      const res = await apiCall(`/customers/${selectedCustomer.id}`, {
+        method: 'PUT',
+        body: JSON.stringify({
+          firstName: newCustomer.firstName || selectedCustomer.firstName,
+          lastName: newCustomer.lastName || selectedCustomer.lastName,
+          phone: newCustomer.phone || selectedCustomer.phone,
+          email: newCustomer.email || selectedCustomer.email
+        }),
+      });
+
+      if (res.success) {
+        await fetchAllData();
+        setShowEditCustomerModal(false);
+        setShowCustomerModal(false);
+        setNewCustomer({ firstName: '', lastName: '', phone: '', email: '' });
+      } else {
+        setFormError(res.error || 'Müşteri güncellenemedi');
+      }
+    } catch (error) {
+      console.error('Müşteri güncelleme hatası:', error);
+      setFormError('Bir hata oluştu');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const openEditCustomerModal = () => {
+    if (selectedCustomer) {
+      setNewCustomer({
+        firstName: selectedCustomer.firstName,
+        lastName: selectedCustomer.lastName,
+        phone: selectedCustomer.phone,
+        email: selectedCustomer.email || ''
+      });
+      setShowCustomerModal(false);
+      setShowEditCustomerModal(true);
+    }
+  };
+
+  const openNewAppointmentFromCustomer = () => {
+    if (selectedCustomer) {
+      setNewAppointment(prev => ({
+        ...prev,
+        customerId: selectedCustomer.id
+      }));
+      setShowCustomerModal(false);
+      setShowNewAppointmentModal(true);
     }
   };
 
@@ -405,7 +559,10 @@ export default function PWAIsletmePanel() {
       <div>
         <h2 className="text-gray-800 font-semibold mb-3 px-1">Hızlı İşlemler</h2>
         <div className="grid grid-cols-2 gap-3">
-          <button className="bg-white border border-gray-200 rounded-2xl p-4 text-left active:scale-[0.98] transition-all shadow-sm">
+          <button
+            onClick={() => setShowNewAppointmentModal(true)}
+            className="bg-white border border-gray-200 rounded-2xl p-4 text-left active:scale-[0.98] transition-all shadow-sm"
+          >
             <div className="w-11 h-11 bg-blue-100 rounded-xl flex items-center justify-center mb-3">
               <Plus className="w-5 h-5 text-blue-600" />
             </div>
@@ -413,7 +570,10 @@ export default function PWAIsletmePanel() {
             <p className="text-gray-400 text-xs mt-0.5">Hızlı randevu oluştur</p>
           </button>
 
-          <button className="bg-white border border-gray-200 rounded-2xl p-4 text-left active:scale-[0.98] transition-all shadow-sm">
+          <button
+            onClick={() => setShowNewCustomerModal(true)}
+            className="bg-white border border-gray-200 rounded-2xl p-4 text-left active:scale-[0.98] transition-all shadow-sm"
+          >
             <div className="w-11 h-11 bg-purple-100 rounded-xl flex items-center justify-center mb-3">
               <UserPlus className="w-5 h-5 text-purple-600" />
             </div>
@@ -645,14 +805,20 @@ export default function PWAIsletmePanel() {
             <Calendar className="w-8 h-8 text-gray-400" />
           </div>
           <p className="text-gray-600 font-medium">Bu tarihte randevu bulunmuyor</p>
-          <button className="mt-4 px-5 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-semibold shadow-lg shadow-blue-600/30 active:scale-95 transition-transform">
+          <button
+            onClick={() => setShowNewAppointmentModal(true)}
+            className="mt-4 px-5 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-semibold shadow-lg shadow-blue-600/30 active:scale-95 transition-transform"
+          >
             Randevu Ekle
           </button>
         </div>
       )}
 
       {/* FAB */}
-      <button className="fixed bottom-24 right-5 w-14 h-14 bg-blue-600 rounded-full flex items-center justify-center shadow-xl shadow-blue-600/40 active:scale-95 transition-transform z-30">
+      <button
+        onClick={() => setShowNewAppointmentModal(true)}
+        className="fixed bottom-24 right-5 w-14 h-14 bg-blue-600 rounded-full flex items-center justify-center shadow-xl shadow-blue-600/40 active:scale-95 transition-transform z-30"
+      >
         <Plus className="w-6 h-6 text-white" />
       </button>
     </div>
@@ -735,7 +901,10 @@ export default function PWAIsletmePanel() {
       )}
 
       {/* FAB */}
-      <button className="fixed bottom-24 right-5 w-14 h-14 bg-purple-600 rounded-full flex items-center justify-center shadow-xl shadow-purple-600/40 active:scale-95 transition-transform z-30">
+      <button
+        onClick={() => setShowNewCustomerModal(true)}
+        className="fixed bottom-24 right-5 w-14 h-14 bg-purple-600 rounded-full flex items-center justify-center shadow-xl shadow-purple-600/40 active:scale-95 transition-transform z-30"
+      >
         <UserPlus className="w-6 h-6 text-white" />
       </button>
     </div>
@@ -1056,13 +1225,296 @@ export default function PWAIsletmePanel() {
             </div>
 
             <div className="pt-4 space-y-2">
-              <button className="w-full py-3 bg-blue-600 text-white rounded-xl font-medium active:scale-95 transition-transform">
+              <button
+                onClick={openNewAppointmentFromCustomer}
+                className="w-full py-3 bg-blue-600 text-white rounded-xl font-medium active:scale-95 transition-transform"
+              >
                 Randevu Oluştur
               </button>
-              <button className="w-full py-3 bg-gray-100 text-gray-700 rounded-xl font-medium active:scale-95 transition-transform">
+              <button
+                onClick={openEditCustomerModal}
+                className="w-full py-3 bg-gray-100 text-gray-700 rounded-xl font-medium active:scale-95 transition-transform"
+              >
                 Düzenle
               </button>
             </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // ==================== NEW APPOINTMENT MODAL ====================
+
+  const NewAppointmentModal = () => {
+    if (!showNewAppointmentModal) return null;
+
+    return (
+      <div className="fixed inset-0 bg-black/50 z-50 flex items-end justify-center">
+        <div className="bg-white rounded-t-3xl w-full max-w-lg max-h-[90vh] overflow-y-auto animate-in slide-in-from-bottom duration-300">
+          <div className="sticky top-0 bg-white border-b border-gray-100 p-4 flex items-center justify-between">
+            <h3 className="text-lg font-semibold text-gray-900">Yeni Randevu</h3>
+            <button
+              onClick={() => { setShowNewAppointmentModal(false); setFormError(''); }}
+              className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center"
+            >
+              <X className="w-5 h-5 text-gray-600" />
+            </button>
+          </div>
+
+          <div className="p-4 space-y-4">
+            {formError && (
+              <div className="bg-red-50 text-red-600 px-4 py-3 rounded-xl text-sm">
+                {formError}
+              </div>
+            )}
+
+            {/* Müşteri Seçimi */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Müşteri *</label>
+              <select
+                value={newAppointment.customerId}
+                onChange={(e) => setNewAppointment(prev => ({ ...prev, customerId: e.target.value }))}
+                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                <option value="">Müşteri seçin</option>
+                {customers.map(c => (
+                  <option key={c.id} value={c.id}>{c.firstName} {c.lastName}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Hizmet Seçimi */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Hizmet *</label>
+              <select
+                value={newAppointment.serviceId}
+                onChange={(e) => setNewAppointment(prev => ({ ...prev, serviceId: e.target.value }))}
+                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                <option value="">Hizmet seçin</option>
+                {services.filter(s => s.isActive).map(s => (
+                  <option key={s.id} value={s.id}>{s.name} - {formatCurrency(s.price)}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Personel Seçimi */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Personel *</label>
+              <select
+                value={newAppointment.staffId}
+                onChange={(e) => setNewAppointment(prev => ({ ...prev, staffId: e.target.value }))}
+                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                <option value="">Personel seçin</option>
+                {staffList.map(s => (
+                  <option key={s.id} value={s.id}>{s.firstName} {s.lastName}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Tarih */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Tarih *</label>
+              <input
+                type="date"
+                value={newAppointment.date}
+                onChange={(e) => setNewAppointment(prev => ({ ...prev, date: e.target.value }))}
+                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+
+            {/* Saat */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Saat *</label>
+              <input
+                type="time"
+                value={newAppointment.time}
+                onChange={(e) => setNewAppointment(prev => ({ ...prev, time: e.target.value }))}
+                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+
+            {/* Not */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Not (İsteğe bağlı)</label>
+              <textarea
+                value={newAppointment.notes}
+                onChange={(e) => setNewAppointment(prev => ({ ...prev, notes: e.target.value }))}
+                placeholder="Eklemek istediğiniz notlar..."
+                rows={3}
+                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+              />
+            </div>
+
+            <button
+              onClick={createAppointment}
+              disabled={isSubmitting}
+              className="w-full py-3.5 bg-blue-600 text-white rounded-xl font-semibold active:scale-95 transition-transform disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isSubmitting ? 'Oluşturuluyor...' : 'Randevu Oluştur'}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // ==================== NEW CUSTOMER MODAL ====================
+
+  const NewCustomerModal = () => {
+    if (!showNewCustomerModal) return null;
+
+    return (
+      <div className="fixed inset-0 bg-black/50 z-50 flex items-end justify-center">
+        <div className="bg-white rounded-t-3xl w-full max-w-lg max-h-[90vh] overflow-y-auto animate-in slide-in-from-bottom duration-300">
+          <div className="sticky top-0 bg-white border-b border-gray-100 p-4 flex items-center justify-between">
+            <h3 className="text-lg font-semibold text-gray-900">Yeni Müşteri</h3>
+            <button
+              onClick={() => { setShowNewCustomerModal(false); setFormError(''); }}
+              className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center"
+            >
+              <X className="w-5 h-5 text-gray-600" />
+            </button>
+          </div>
+
+          <div className="p-4 space-y-4">
+            {formError && (
+              <div className="bg-red-50 text-red-600 px-4 py-3 rounded-xl text-sm">
+                {formError}
+              </div>
+            )}
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Ad *</label>
+              <input
+                type="text"
+                value={newCustomer.firstName}
+                onChange={(e) => setNewCustomer(prev => ({ ...prev, firstName: e.target.value }))}
+                placeholder="Müşteri adı"
+                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Soyad *</label>
+              <input
+                type="text"
+                value={newCustomer.lastName}
+                onChange={(e) => setNewCustomer(prev => ({ ...prev, lastName: e.target.value }))}
+                placeholder="Müşteri soyadı"
+                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Telefon *</label>
+              <input
+                type="tel"
+                value={newCustomer.phone}
+                onChange={(e) => setNewCustomer(prev => ({ ...prev, phone: e.target.value }))}
+                placeholder="5xx xxx xx xx"
+                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">E-posta (İsteğe bağlı)</label>
+              <input
+                type="email"
+                value={newCustomer.email}
+                onChange={(e) => setNewCustomer(prev => ({ ...prev, email: e.target.value }))}
+                placeholder="ornek@email.com"
+                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+
+            <button
+              onClick={createCustomer}
+              disabled={isSubmitting}
+              className="w-full py-3.5 bg-purple-600 text-white rounded-xl font-semibold active:scale-95 transition-transform disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isSubmitting ? 'Oluşturuluyor...' : 'Müşteri Oluştur'}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // ==================== EDIT CUSTOMER MODAL ====================
+
+  const EditCustomerModal = () => {
+    if (!showEditCustomerModal || !selectedCustomer) return null;
+
+    return (
+      <div className="fixed inset-0 bg-black/50 z-50 flex items-end justify-center">
+        <div className="bg-white rounded-t-3xl w-full max-w-lg max-h-[90vh] overflow-y-auto animate-in slide-in-from-bottom duration-300">
+          <div className="sticky top-0 bg-white border-b border-gray-100 p-4 flex items-center justify-between">
+            <h3 className="text-lg font-semibold text-gray-900">Müşteri Düzenle</h3>
+            <button
+              onClick={() => { setShowEditCustomerModal(false); setFormError(''); }}
+              className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center"
+            >
+              <X className="w-5 h-5 text-gray-600" />
+            </button>
+          </div>
+
+          <div className="p-4 space-y-4">
+            {formError && (
+              <div className="bg-red-50 text-red-600 px-4 py-3 rounded-xl text-sm">
+                {formError}
+              </div>
+            )}
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Ad *</label>
+              <input
+                type="text"
+                value={newCustomer.firstName}
+                onChange={(e) => setNewCustomer(prev => ({ ...prev, firstName: e.target.value }))}
+                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Soyad *</label>
+              <input
+                type="text"
+                value={newCustomer.lastName}
+                onChange={(e) => setNewCustomer(prev => ({ ...prev, lastName: e.target.value }))}
+                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Telefon *</label>
+              <input
+                type="tel"
+                value={newCustomer.phone}
+                onChange={(e) => setNewCustomer(prev => ({ ...prev, phone: e.target.value }))}
+                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">E-posta</label>
+              <input
+                type="email"
+                value={newCustomer.email}
+                onChange={(e) => setNewCustomer(prev => ({ ...prev, email: e.target.value }))}
+                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+
+            <button
+              onClick={updateCustomer}
+              disabled={isSubmitting}
+              className="w-full py-3.5 bg-blue-600 text-white rounded-xl font-semibold active:scale-95 transition-transform disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isSubmitting ? 'Güncelleniyor...' : 'Güncelle'}
+            </button>
           </div>
         </div>
       </div>
@@ -1208,6 +1660,9 @@ export default function PWAIsletmePanel() {
 
       <AppointmentModal />
       <CustomerModal />
+      <NewAppointmentModal />
+      <NewCustomerModal />
+      <EditCustomerModal />
     </div>
   );
 }
