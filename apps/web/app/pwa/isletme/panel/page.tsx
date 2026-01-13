@@ -129,7 +129,7 @@ export default function PWAIsletmePanel() {
 
   const fetchDashboardData = async (token: string, tenantId: string) => {
     try {
-      const response = await fetch("https://admin.netrandevu.com/api/mobile/staff/appointments", {
+      const response = await fetch("/api/pwa/appointments", {
         headers: {
           "Authorization": `Bearer ${token}`,
           "X-Tenant-ID": tenantId,

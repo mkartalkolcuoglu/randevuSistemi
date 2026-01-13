@@ -44,8 +44,8 @@ export default function PWABusinessLogin() {
     setIsLoading(true);
 
     try {
-      // API'ye login isteği at
-      const response = await fetch("https://admin.netrandevu.com/api/mobile/auth/login", {
+      // API'ye login isteği at (proxy üzerinden CORS sorununu aşmak için)
+      const response = await fetch("/api/pwa/auth/login", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

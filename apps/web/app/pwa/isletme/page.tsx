@@ -41,7 +41,7 @@ export default function PWAIsletmeGiris() {
     setIsLoading(true);
 
     try {
-      const response = await fetch("https://admin.netrandevu.com/api/mobile/auth/login", {
+      const response = await fetch("/api/pwa/auth/login", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
