@@ -35,7 +35,9 @@ import {
   CreditCard,
   Briefcase,
   LayoutGrid,
-  List
+  List,
+  Edit3,
+  Trash2
 } from "lucide-react";
 
 // ==================== HELPERS ====================
@@ -244,6 +246,19 @@ export default function PWAIsletmePanel() {
   const [showNewAppointmentModal, setShowNewAppointmentModal] = useState(false);
   const [showNewCustomerModal, setShowNewCustomerModal] = useState(false);
   const [showEditCustomerModal, setShowEditCustomerModal] = useState(false);
+
+  // Service Management
+  const [showNewServiceModal, setShowNewServiceModal] = useState(false);
+  const [showEditServiceModal, setShowEditServiceModal] = useState(false);
+  const [selectedService, setSelectedService] = useState<Service | null>(null);
+  const [newService, setNewService] = useState({
+    name: '',
+    description: '',
+    price: 0,
+    duration: 30,
+    category: '',
+    isActive: true
+  });
 
   // New Appointment Form
   const [newAppointment, setNewAppointment] = useState({
@@ -537,6 +552,120 @@ export default function PWAIsletmePanel() {
       setShowCustomerModal(false);
       setShowEditCustomerModal(true);
     }
+  };
+
+  // ==================== SERVICE CRUD ====================
+
+  const createService = async () => {
+    if (!newService.name || newService.price < 0 || newService.duration < 5) {
+      setFormError('Hizmet adı, fiyat ve süre zorunludur (süre min 5 dakika)');
+      return;
+    }
+
+    setIsSubmitting(true);
+    setFormError('');
+
+    try {
+      const res = await apiCall('/services', {
+        method: 'POST',
+        body: JSON.stringify(newService),
+      });
+
+      if (res.success) {
+        await fetchAllData();
+        setShowNewServiceModal(false);
+        setNewService({ name: '', description: '', price: 0, duration: 30, category: '', isActive: true });
+      } else {
+        setFormError(res.message || res.error || 'Hizmet oluşturulamadı');
+      }
+    } catch (error) {
+      console.error('Hizmet oluşturma hatası:', error);
+      setFormError('Bir hata oluştu');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const updateService = async () => {
+    if (!selectedService) return;
+
+    if (!newService.name || newService.price < 0 || newService.duration < 5) {
+      setFormError('Hizmet adı, fiyat ve süre zorunludur (süre min 5 dakika)');
+      return;
+    }
+
+    setIsSubmitting(true);
+    setFormError('');
+
+    try {
+      const res = await apiCall(`/services/${selectedService.id}`, {
+        method: 'PUT',
+        body: JSON.stringify(newService),
+      });
+
+      if (res.success) {
+        await fetchAllData();
+        setShowEditServiceModal(false);
+        setSelectedService(null);
+        setNewService({ name: '', description: '', price: 0, duration: 30, category: '', isActive: true });
+      } else {
+        setFormError(res.message || res.error || 'Hizmet güncellenemedi');
+      }
+    } catch (error) {
+      console.error('Hizmet güncelleme hatası:', error);
+      setFormError('Bir hata oluştu');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const toggleServiceStatus = async (service: Service) => {
+    try {
+      const res = await apiCall(`/services/${service.id}`, {
+        method: 'PATCH',
+      });
+
+      if (res.success) {
+        await fetchAllData();
+      } else {
+        alert(res.message || 'Durum değiştirilemedi');
+      }
+    } catch (error) {
+      console.error('Hizmet durumu değiştirme hatası:', error);
+    }
+  };
+
+  const deleteService = async (service: Service) => {
+    if (!confirm(`"${service.name}" hizmetini silmek istediğinize emin misiniz?`)) {
+      return;
+    }
+
+    try {
+      const res = await apiCall(`/services/${service.id}`, {
+        method: 'DELETE',
+      });
+
+      if (res.success) {
+        await fetchAllData();
+      } else {
+        alert(res.message || 'Hizmet silinemedi');
+      }
+    } catch (error) {
+      console.error('Hizmet silme hatası:', error);
+    }
+  };
+
+  const openEditServiceModal = (service: Service) => {
+    setSelectedService(service);
+    setNewService({
+      name: service.name,
+      description: service.description || '',
+      price: service.price,
+      duration: service.duration,
+      category: service.category || '',
+      isActive: service.isActive
+    });
+    setShowEditServiceModal(true);
   };
 
   const openNewAppointmentFromCustomer = () => {
@@ -1363,7 +1492,16 @@ export default function PWAIsletmePanel() {
     <div className="space-y-4">
       <div className="flex items-center justify-between px-1">
         <h2 className="text-gray-800 font-semibold">Hizmetler</h2>
-        <span className="text-gray-400 text-sm">{services.length} hizmet</span>
+        <button
+          onClick={() => {
+            setNewService({ name: '', description: '', price: 0, duration: 30, category: '', isActive: true });
+            setShowNewServiceModal(true);
+          }}
+          className="flex items-center gap-1 px-3 py-1.5 bg-blue-600 text-white rounded-lg text-sm font-medium active:scale-95 transition-transform"
+        >
+          <Plus className="w-4 h-4" />
+          Yeni Hizmet
+        </button>
       </div>
 
       {services.length > 0 ? (
@@ -1399,6 +1537,43 @@ export default function PWAIsletmePanel() {
                   </span>
                 </div>
               </div>
+
+              {/* Action Buttons */}
+              <div className="flex items-center gap-2 mt-3 pt-3 border-t border-gray-100">
+                <button
+                  onClick={() => openEditServiceModal(service)}
+                  className="flex-1 flex items-center justify-center gap-1 py-2 bg-blue-50 text-blue-600 rounded-lg text-sm font-medium active:scale-95 transition-transform"
+                >
+                  <Edit3 className="w-4 h-4" />
+                  Düzenle
+                </button>
+                <button
+                  onClick={() => toggleServiceStatus(service)}
+                  className={`flex-1 flex items-center justify-center gap-1 py-2 rounded-lg text-sm font-medium active:scale-95 transition-transform ${
+                    service.isActive
+                      ? 'bg-orange-50 text-orange-600'
+                      : 'bg-green-50 text-green-600'
+                  }`}
+                >
+                  {service.isActive ? (
+                    <>
+                      <XCircle className="w-4 h-4" />
+                      Pasif Yap
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle className="w-4 h-4" />
+                      Aktif Yap
+                    </>
+                  )}
+                </button>
+                <button
+                  onClick={() => deleteService(service)}
+                  className="flex items-center justify-center gap-1 py-2 px-3 bg-red-50 text-red-600 rounded-lg text-sm font-medium active:scale-95 transition-transform"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
             </div>
           ))}
         </div>
@@ -1407,7 +1582,13 @@ export default function PWAIsletmePanel() {
           <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <Scissors className="w-8 h-8 text-gray-400" />
           </div>
-          <p className="text-gray-600 font-medium">Henüz hizmet eklenmemiş</p>
+          <p className="text-gray-600 font-medium mb-4">Henüz hizmet eklenmemiş</p>
+          <button
+            onClick={() => setShowNewServiceModal(true)}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium active:scale-95 transition-transform"
+          >
+            İlk Hizmeti Ekle
+          </button>
         </div>
       )}
     </div>
@@ -2233,6 +2414,229 @@ export default function PWAIsletmePanel() {
     );
   };
 
+  // ==================== NEW SERVICE MODAL ====================
+
+  const NewServiceModal = () => {
+    if (!showNewServiceModal) return null;
+
+    return (
+      <div className="fixed inset-0 bg-black/50 z-50 flex items-end justify-center">
+        <div className="bg-white rounded-t-3xl w-full max-w-lg max-h-[90vh] overflow-y-auto animate-in slide-in-from-bottom duration-300">
+          <div className="sticky top-0 bg-white border-b border-gray-100 p-4 flex items-center justify-between">
+            <h3 className="text-lg font-semibold text-gray-900">Yeni Hizmet</h3>
+            <button
+              onClick={() => { setShowNewServiceModal(false); setFormError(''); }}
+              className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center"
+            >
+              <X className="w-5 h-5 text-gray-600" />
+            </button>
+          </div>
+
+          <div className="p-4 space-y-4">
+            {formError && (
+              <div className="bg-red-50 text-red-600 px-4 py-3 rounded-xl text-sm">
+                {formError}
+              </div>
+            )}
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Hizmet Adı *</label>
+              <input
+                type="text"
+                value={newService.name}
+                onChange={(e) => setNewService(prev => ({ ...prev, name: e.target.value }))}
+                placeholder="Örn: Saç Kesimi"
+                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Açıklama</label>
+              <textarea
+                value={newService.description}
+                onChange={(e) => setNewService(prev => ({ ...prev, description: e.target.value }))}
+                placeholder="Hizmet açıklaması..."
+                rows={2}
+                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Fiyat (₺) *</label>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={newService.price}
+                  onChange={(e) => setNewService(prev => ({ ...prev, price: parseFloat(e.target.value) || 0 }))}
+                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Süre (dk) *</label>
+                <input
+                  type="number"
+                  min="5"
+                  step="5"
+                  value={newService.duration}
+                  onChange={(e) => setNewService(prev => ({ ...prev, duration: parseInt(e.target.value) || 30 }))}
+                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Kategori</label>
+              <input
+                type="text"
+                value={newService.category}
+                onChange={(e) => setNewService(prev => ({ ...prev, category: e.target.value }))}
+                placeholder="Örn: Saç, Makyaj, Bakım"
+                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+
+            <div className="flex items-center gap-3 py-2">
+              <button
+                type="button"
+                onClick={() => setNewService(prev => ({ ...prev, isActive: !prev.isActive }))}
+                className={`relative w-12 h-6 rounded-full transition-colors ${
+                  newService.isActive ? 'bg-blue-600' : 'bg-gray-300'
+                }`}
+              >
+                <span className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-transform ${
+                  newService.isActive ? 'translate-x-7' : 'translate-x-1'
+                }`} />
+              </button>
+              <span className="text-sm text-gray-700">
+                {newService.isActive ? 'Aktif (müşteriler görebilir)' : 'Pasif (gizli)'}
+              </span>
+            </div>
+
+            <button
+              onClick={createService}
+              disabled={isSubmitting}
+              className="w-full py-3.5 bg-blue-600 text-white rounded-xl font-semibold active:scale-95 transition-transform disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isSubmitting ? 'Oluşturuluyor...' : 'Hizmet Oluştur'}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // ==================== EDIT SERVICE MODAL ====================
+
+  const EditServiceModal = () => {
+    if (!showEditServiceModal || !selectedService) return null;
+
+    return (
+      <div className="fixed inset-0 bg-black/50 z-50 flex items-end justify-center">
+        <div className="bg-white rounded-t-3xl w-full max-w-lg max-h-[90vh] overflow-y-auto animate-in slide-in-from-bottom duration-300">
+          <div className="sticky top-0 bg-white border-b border-gray-100 p-4 flex items-center justify-between">
+            <h3 className="text-lg font-semibold text-gray-900">Hizmet Düzenle</h3>
+            <button
+              onClick={() => { setShowEditServiceModal(false); setSelectedService(null); setFormError(''); }}
+              className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center"
+            >
+              <X className="w-5 h-5 text-gray-600" />
+            </button>
+          </div>
+
+          <div className="p-4 space-y-4">
+            {formError && (
+              <div className="bg-red-50 text-red-600 px-4 py-3 rounded-xl text-sm">
+                {formError}
+              </div>
+            )}
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Hizmet Adı *</label>
+              <input
+                type="text"
+                value={newService.name}
+                onChange={(e) => setNewService(prev => ({ ...prev, name: e.target.value }))}
+                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Açıklama</label>
+              <textarea
+                value={newService.description}
+                onChange={(e) => setNewService(prev => ({ ...prev, description: e.target.value }))}
+                rows={2}
+                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Fiyat (₺) *</label>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={newService.price}
+                  onChange={(e) => setNewService(prev => ({ ...prev, price: parseFloat(e.target.value) || 0 }))}
+                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Süre (dk) *</label>
+                <input
+                  type="number"
+                  min="5"
+                  step="5"
+                  value={newService.duration}
+                  onChange={(e) => setNewService(prev => ({ ...prev, duration: parseInt(e.target.value) || 30 }))}
+                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Kategori</label>
+              <input
+                type="text"
+                value={newService.category}
+                onChange={(e) => setNewService(prev => ({ ...prev, category: e.target.value }))}
+                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+
+            <div className="flex items-center gap-3 py-2">
+              <button
+                type="button"
+                onClick={() => setNewService(prev => ({ ...prev, isActive: !prev.isActive }))}
+                className={`relative w-12 h-6 rounded-full transition-colors ${
+                  newService.isActive ? 'bg-blue-600' : 'bg-gray-300'
+                }`}
+              >
+                <span className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-transform ${
+                  newService.isActive ? 'translate-x-7' : 'translate-x-1'
+                }`} />
+              </button>
+              <span className="text-sm text-gray-700">
+                {newService.isActive ? 'Aktif' : 'Pasif'}
+              </span>
+            </div>
+
+            <button
+              onClick={updateService}
+              disabled={isSubmitting}
+              className="w-full py-3.5 bg-blue-600 text-white rounded-xl font-semibold active:scale-95 transition-transform disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isSubmitting ? 'Güncelleniyor...' : 'Güncelle'}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   // ==================== MAIN RETURN ====================
 
   return (
@@ -2385,6 +2789,8 @@ export default function PWAIsletmePanel() {
       <NewAppointmentModal />
       <NewCustomerModal />
       <EditCustomerModal />
+      <NewServiceModal />
+      <EditServiceModal />
     </div>
   );
 }
