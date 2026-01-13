@@ -205,14 +205,6 @@ export default function MusteriGirisPage() {
         <div className="bg-white rounded-3xl shadow-xl p-6 max-w-md mx-auto">
           {step === "phone" ? (
             <>
-              <div className="text-center mb-6">
-                <div className="w-14 h-14 bg-blue-100 rounded-2xl flex items-center justify-center mx-auto mb-3">
-                  <Phone className="w-7 h-7 text-blue-600" />
-                </div>
-                <h2 className="text-xl font-bold text-gray-900">Giriş Yap</h2>
-                <p className="text-gray-500 text-sm mt-1">Telefon numaranızı girin</p>
-              </div>
-
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
