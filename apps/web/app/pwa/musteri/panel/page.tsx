@@ -100,6 +100,47 @@ export default function MusteriPanelPage() {
     router.push("/pwa/musteri");
   };
 
+  // Randevunun iptal edilebilir olup olmadığını kontrol et (en az 2 saat önce)
+  const canCancelAppointment = (apt: Appointment) => {
+    if (apt.status === "cancelled" || apt.status === "completed") return false;
+
+    const appointmentDateTime = new Date(`${apt.date}T${apt.time}`);
+    const now = new Date();
+    const hoursUntilAppointment = (appointmentDateTime.getTime() - now.getTime()) / (1000 * 60 * 60);
+
+    return hoursUntilAppointment >= 2; // En az 2 saat kala iptal edilebilir
+  };
+
+  const handleCancelAppointment = async (apt: Appointment) => {
+    if (!confirm(`"${apt.serviceName}" randevunuzu iptal etmek istediğinize emin misiniz?`)) {
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/pwa/musteri/randevular/iptal`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          appointmentId: apt.id,
+          phone: phone
+        })
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        alert("Randevunuz başarıyla iptal edildi.");
+        fetchData(phone); // Listeyi yenile
+      } else {
+        alert(data.error || "Randevu iptal edilemedi.");
+      }
+    } catch (error) {
+      console.error("Cancel error:", error);
+      alert("Randevu iptal edilirken bir hata oluştu.");
+    }
+  };
+
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
     return date.toLocaleDateString("tr-TR", {
@@ -189,7 +230,9 @@ export default function MusteriPanelPage() {
         <div className="flex items-center justify-between mb-4">
           <div>
             <h1 className="text-white font-bold text-xl">Merhaba!</h1>
-            <p className="text-blue-100 text-sm">+90 {phone.replace(/(\d{3})(\d{3})(\d{2})(\d{2})/, "$1 $2 $3 $4")}</p>
+            <p className="text-blue-100 text-sm">
+              {customerInfo ? `${customerInfo.firstName} ${customerInfo.lastName}` : "Yükleniyor..."}
+            </p>
           </div>
           <button
             onClick={handleLogout}
@@ -308,15 +351,26 @@ export default function MusteriPanelPage() {
 
                       <div className="flex items-center justify-between pt-3 border-t border-gray-100">
                         <span className="text-lg font-bold text-green-600">{formatCurrency(apt.price)}</span>
-                        {apt.businessPhone && (
-                          <a
-                            href={`tel:${apt.businessPhone}`}
-                            className="flex items-center gap-2 px-3 py-2 bg-blue-50 text-blue-600 rounded-xl text-sm font-medium"
-                          >
-                            <Phone className="w-4 h-4" />
-                            Ara
-                          </a>
-                        )}
+                        <div className="flex items-center gap-2">
+                          {canCancelAppointment(apt) && (
+                            <button
+                              onClick={() => handleCancelAppointment(apt)}
+                              className="flex items-center gap-2 px-3 py-2 bg-red-50 text-red-600 rounded-xl text-sm font-medium"
+                            >
+                              <XCircle className="w-4 h-4" />
+                              İptal Et
+                            </button>
+                          )}
+                          {apt.businessPhone && (
+                            <a
+                              href={`tel:${apt.businessPhone}`}
+                              className="flex items-center gap-2 px-3 py-2 bg-blue-50 text-blue-600 rounded-xl text-sm font-medium"
+                            >
+                              <Phone className="w-4 h-4" />
+                              Ara
+                            </a>
+                          )}
+                        </div>
                       </div>
                     </div>
                   ))
