@@ -21,7 +21,8 @@ export default function MusteriGirisPage() {
     // Check if already logged in
     const session = localStorage.getItem("musteri_session");
     if (session) {
-      router.push("/pwa/musteri/panel");
+      router.replace("/pwa/musteri/panel");
+      return;
     }
   }, [router]);
 
@@ -185,7 +186,7 @@ export default function MusteriGirisPage() {
       <div className="bg-gradient-to-r from-blue-600 to-indigo-600 px-6 pt-12 pb-16">
         {/* Geri Butonu */}
         <button
-          onClick={() => window.location.href = "/pwa"}
+          onClick={() => router.replace("/pwa")}
           className="w-10 h-10 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center active:scale-95 transition-transform mb-4"
         >
           <ArrowLeft className="w-5 h-5 text-white" />
