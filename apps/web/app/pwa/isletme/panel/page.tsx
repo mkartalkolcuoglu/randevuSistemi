@@ -797,10 +797,16 @@ export default function PWAIsletmePanel() {
           >
             <ChevronLeft className="w-5 h-5 text-gray-600" />
           </button>
-          <div className="text-center">
-            <p className="text-gray-900 font-semibold">{formatDate(selectedDate)}</p>
-            <p className="text-gray-400 text-xs">
-              {selectedDate === getTodayDate() ? 'Bugün' : ''}
+          <div className="text-center relative">
+            <input
+              type="date"
+              value={selectedDate}
+              onChange={(e) => setSelectedDate(e.target.value)}
+              className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+            />
+            <p className="text-gray-900 font-semibold pointer-events-none">{formatDate(selectedDate)}</p>
+            <p className="text-gray-400 text-xs pointer-events-none">
+              {selectedDate === getTodayDate() ? 'Bugün' : 'Tarih seçmek için tıkla'}
             </p>
           </div>
           <button
@@ -813,6 +819,54 @@ export default function PWAIsletmePanel() {
           >
             <ChevronRight className="w-5 h-5 text-gray-600" />
           </button>
+        </div>
+
+        {/* Quick Date Buttons */}
+        <div className="flex gap-2 mt-3 pt-3 border-t border-gray-100 overflow-x-auto">
+          <button
+            onClick={() => setSelectedDate(getTodayDate())}
+            className={`px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all ${
+              selectedDate === getTodayDate()
+                ? 'bg-blue-600 text-white'
+                : 'bg-gray-100 text-gray-600'
+            }`}
+          >
+            Bugün
+          </button>
+          <button
+            onClick={() => {
+              const d = new Date();
+              d.setDate(d.getDate() + 1);
+              setSelectedDate(d.toISOString().split('T')[0]);
+            }}
+            className={`px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all ${
+              selectedDate === new Date(Date.now() + 86400000).toISOString().split('T')[0]
+                ? 'bg-blue-600 text-white'
+                : 'bg-gray-100 text-gray-600'
+            }`}
+          >
+            Yarın
+          </button>
+          {[...Array(5)].map((_, i) => {
+            const d = new Date();
+            d.setDate(d.getDate() + i + 2);
+            const dateStr = d.toISOString().split('T')[0];
+            const dayName = d.toLocaleDateString('tr-TR', { weekday: 'short' });
+            const dayNum = d.getDate();
+            return (
+              <button
+                key={i}
+                onClick={() => setSelectedDate(dateStr)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all ${
+                  selectedDate === dateStr
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-100 text-gray-600'
+                }`}
+              >
+                {dayName} {dayNum}
+              </button>
+            );
+          })}
         </div>
 
         {/* View Toggle */}
