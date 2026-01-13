@@ -8,6 +8,7 @@ const SYSTEM_ROUTES = [
   'favicon.ico',
   'pwa-welcome',
   'pwa-business-login',
+  'pwa-staff',
   'randevularim',
   'payment',
 ];

@@ -45,8 +45,8 @@ export default function PWABusinessLogin() {
 
     try {
       // TODO: Gerçek API çağrısı yapılacak
-      // Şimdilik admin panele yönlendir
-      window.location.href = "https://admin.netrandevu.com";
+      // Başarılı giriş - dashboard'a yönlendir
+      router.push("/pwa-staff");
     } catch (err) {
       setError("Giriş başarısız. Lütfen bilgilerinizi kontrol edin.");
       setIsLoading(false);
