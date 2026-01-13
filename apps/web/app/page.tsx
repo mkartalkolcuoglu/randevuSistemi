@@ -290,8 +290,22 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-white">
+      {/* PWA Install Top Bar - Sadece mobilde */}
+      {showInstallButton && (
+        <div className="bg-gradient-to-r from-green-500 to-emerald-600 text-white py-2.5 px-4 flex items-center justify-center gap-3 sticky top-0 z-[60]">
+          <Download className="w-4 h-4 animate-bounce" />
+          <span className="text-sm font-medium">Uygulamamızı indirin, daha hızlı erişin!</span>
+          <button
+            onClick={handleInstallPWA}
+            className="bg-white text-green-600 px-4 py-1 rounded-full text-sm font-bold hover:bg-green-50 transition"
+          >
+            İndir
+          </button>
+        </div>
+      )}
+
       {/* Header */}
-      <header className="sticky top-0 bg-white/80 backdrop-blur-md shadow-sm z-50">
+      <header className={`sticky ${showInstallButton ? 'top-[44px]' : 'top-0'} bg-white/80 backdrop-blur-md shadow-sm z-50`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-4">
             <div className="flex items-center">
@@ -307,19 +321,6 @@ export default function Home() {
               <a href="#faq" className="text-gray-600 hover:text-gray-900 transition">SSS</a>
             </nav>
             <div className="flex items-center gap-2 sm:gap-4">
-              {/* PWA Install Button - Sadece mobilde gösterilir */}
-              {showInstallButton && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="border-green-500 text-green-600 hover:bg-green-500 hover:text-white transition text-xs sm:text-sm px-2 sm:px-4 animate-pulse"
-                  onClick={handleInstallPWA}
-                >
-                  <Download className="w-3 h-3 sm:w-4 sm:h-4 sm:mr-2" />
-                  <span className="hidden sm:inline">Uygulamayı İndir</span>
-                  <span className="sm:hidden">İndir</span>
-                </Button>
-              )}
               <Button
                 variant="outline"
                 size="sm"
