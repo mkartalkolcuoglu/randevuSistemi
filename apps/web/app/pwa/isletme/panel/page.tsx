@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   Menu,
   X,
@@ -15,6 +15,7 @@ import {
   Settings,
   LogOut,
   ChevronRight,
+  ChevronLeft,
   Plus,
   BarChart3,
   Wallet,
@@ -23,16 +24,21 @@ import {
   Scissors,
   RefreshCw,
   XCircle,
-  AlertCircle
+  AlertCircle,
+  Search,
+  UserPlus,
+  Activity,
+  DollarSign,
+  Mail
 } from "lucide-react";
 
-// Bugünün tarihini al
+// ==================== HELPERS ====================
+
 const getTodayDate = () => {
   const today = new Date();
   return today.toISOString().split('T')[0];
 };
 
-// Selamlama mesajı
 const getGreeting = () => {
   const hour = new Date().getHours();
   if (hour < 12) return "Günaydın";
@@ -40,49 +46,119 @@ const getGreeting = () => {
   return "İyi akşamlar";
 };
 
-// Tarih formatlama
 const formatDate = (dateStr: string) => {
   const date = new Date(dateStr);
   return date.toLocaleDateString('tr-TR', { day: 'numeric', month: 'long' });
 };
 
-// Saat formatlama
+const formatDateShort = (dateStr: string) => {
+  const date = new Date(dateStr);
+  return date.toLocaleDateString('tr-TR', { day: '2-digit', month: '2-digit' });
+};
+
 const formatTime = (timeStr: string) => {
+  if (!timeStr) return '';
   return timeStr.substring(0, 5);
 };
 
-// Durum renkleri (beyaz tema için)
+const formatCurrency = (amount: number) => {
+  return new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(amount);
+};
+
 const getStatusColor = (status: string) => {
   switch (status) {
     case 'completed': return 'bg-green-100 text-green-700 border-green-200';
-    case 'pending': return 'bg-amber-100 text-amber-700 border-amber-200';
+    case 'pending': case 'scheduled': return 'bg-amber-100 text-amber-700 border-amber-200';
     case 'cancelled': return 'bg-red-100 text-red-700 border-red-200';
     case 'no_show': return 'bg-gray-100 text-gray-600 border-gray-200';
+    case 'confirmed': return 'bg-blue-100 text-blue-700 border-blue-200';
     default: return 'bg-blue-100 text-blue-700 border-blue-200';
   }
 };
 
-// Durum ikonu
+const getStatusText = (status: string) => {
+  switch (status) {
+    case 'completed': return 'Tamamlandı';
+    case 'pending': case 'scheduled': return 'Bekliyor';
+    case 'cancelled': return 'İptal';
+    case 'no_show': return 'Gelmedi';
+    case 'confirmed': return 'Onaylandı';
+    default: return status;
+  }
+};
+
 const getStatusIcon = (status: string) => {
   switch (status) {
     case 'completed': return <CheckCircle className="w-4 h-4" />;
-    case 'pending': return <Clock className="w-4 h-4" />;
+    case 'pending': case 'scheduled': return <Clock className="w-4 h-4" />;
     case 'cancelled': return <XCircle className="w-4 h-4" />;
     case 'no_show': return <AlertCircle className="w-4 h-4" />;
     default: return <Clock className="w-4 h-4" />;
   }
 };
 
-// Durum metni
-const getStatusText = (status: string) => {
-  switch (status) {
-    case 'completed': return 'Tamamlandı';
-    case 'pending': return 'Bekliyor';
-    case 'cancelled': return 'İptal';
-    case 'no_show': return 'Gelmedi';
-    default: return status;
-  }
-};
+// ==================== TYPES ====================
+
+interface UserData {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone?: string;
+  tenantId: string;
+  tenantName: string;
+  userType: string;
+}
+
+interface Appointment {
+  id: string;
+  customerId: string;
+  customerName: string;
+  customerPhone?: string;
+  serviceId: string;
+  serviceName: string;
+  staffId: string;
+  staffName: string;
+  date: string;
+  time: string;
+  duration: number;
+  status: string;
+  price: number;
+  notes?: string;
+}
+
+interface Customer {
+  id: string;
+  firstName: string;
+  lastName: string;
+  phone: string;
+  email?: string;
+  totalAppointments?: number;
+  totalSpent?: number;
+  lastVisit?: string;
+  isBlacklisted?: boolean;
+}
+
+interface Service {
+  id: string;
+  name: string;
+  price: number;
+  duration: number;
+  category?: string;
+  isActive: boolean;
+}
+
+interface Staff {
+  id: string;
+  firstName: string;
+  lastName: string;
+  phone?: string;
+  email?: string;
+  monthlyAppointments?: number;
+  monthlyRevenue?: number;
+}
+
+// ==================== MAIN COMPONENT ====================
 
 export default function PWAIsletmePanel() {
   const router = useRouter();
@@ -92,12 +168,18 @@ export default function PWAIsletmePanel() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("home");
 
-  // Kullanıcı ve işletme bilgileri
-  const [user, setUser] = useState<any>(null);
-  const [tenant, setTenant] = useState<any>(null);
+  // Auth
+  const [user, setUser] = useState<UserData | null>(null);
+  const [tenant, setTenant] = useState<{ businessName: string; id: string } | null>(null);
   const [authToken, setAuthToken] = useState<string>("");
 
-  // İstatistikler
+  // Data
+  const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [services, setServices] = useState<Service[]>([]);
+  const [staffList, setStaffList] = useState<Staff[]>([]);
+
+  // Stats
   const [stats, setStats] = useState({
     todayTotal: 0,
     todayCompleted: 0,
@@ -105,17 +187,127 @@ export default function PWAIsletmePanel() {
     todayRevenue: 0,
     weekTotal: 0,
     monthTotal: 0,
+    totalCustomers: 0,
+    monthlyRevenue: 0,
   });
 
-  // Randevular
-  const [allAppointments, setAllAppointments] = useState<any[]>([]);
-  const [todayAppointments, setTodayAppointments] = useState<any[]>([]);
-  const [upcomingAppointments, setUpcomingAppointments] = useState<any[]>([]);
+  // Filters
+  const [selectedDate, setSelectedDate] = useState(getTodayDate());
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+
+  // Modals
+  const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
+  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+  const [showAppointmentModal, setShowAppointmentModal] = useState(false);
+  const [showCustomerModal, setShowCustomerModal] = useState(false);
+
+  // ==================== API CALLS ====================
+
+  const apiCall = useCallback(async (endpoint: string, options: RequestInit = {}) => {
+    const headers: HeadersInit = {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${authToken}`,
+      'X-Tenant-ID': tenant?.id || '',
+    };
+
+    const response = await fetch(`/api/pwa${endpoint}`, {
+      ...options,
+      headers: { ...headers, ...options.headers },
+    });
+
+    return response.json();
+  }, [authToken, tenant?.id]);
+
+  const fetchAllData = useCallback(async () => {
+    if (!authToken || !tenant?.id) return;
+
+    try {
+      const [appointmentsRes, customersRes, servicesRes, staffRes] = await Promise.all([
+        apiCall('/appointments'),
+        apiCall('/customers'),
+        apiCall('/services'),
+        apiCall('/staff'),
+      ]);
+
+      if (appointmentsRes.success) {
+        setAppointments(appointmentsRes.data || []);
+      }
+      if (customersRes.success) {
+        setCustomers(customersRes.data || []);
+      }
+      if (servicesRes.success) {
+        setServices(servicesRes.data || []);
+      }
+      if (staffRes.success) {
+        setStaffList(staffRes.data || []);
+      }
+    } catch (error) {
+      console.error('Veri çekme hatası:', error);
+    } finally {
+      setIsLoading(false);
+      setIsRefreshing(false);
+    }
+  }, [apiCall, authToken, tenant?.id]);
+
+  const calculateStats = useCallback((appts: Appointment[], custs: Customer[]) => {
+    const today = getTodayDate();
+    const todayAppts = appts.filter(apt => apt.date === today);
+    const pendingCount = todayAppts.filter(apt => ['pending', 'scheduled', 'confirmed'].includes(apt.status)).length;
+    const completedToday = todayAppts.filter(apt => apt.status === 'completed').length;
+    const todayRevenue = todayAppts
+      .filter(apt => apt.status === 'completed')
+      .reduce((sum, apt) => sum + (apt.price || 0), 0);
+
+    const now = new Date();
+    const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+    const weekTotal = appts.filter(apt => new Date(apt.date) >= weekAgo).length;
+    const monthTotal = appts.filter(apt => new Date(apt.date) >= monthAgo).length;
+    const monthlyRevenue = appts
+      .filter(apt => new Date(apt.date) >= monthAgo && apt.status === 'completed')
+      .reduce((sum, apt) => sum + (apt.price || 0), 0);
+
+    setStats({
+      todayTotal: todayAppts.length,
+      todayCompleted: completedToday,
+      todayPending: pendingCount,
+      todayRevenue,
+      weekTotal,
+      monthTotal,
+      totalCustomers: custs.length,
+      monthlyRevenue,
+    });
+  }, []);
+
+  useEffect(() => {
+    calculateStats(appointments, customers);
+  }, [appointments, customers, calculateStats]);
+
+  const updateAppointmentStatus = async (id: string, status: string) => {
+    try {
+      const res = await apiCall(`/appointments/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify({ status }),
+      });
+
+      if (res.success) {
+        setAppointments(prev => prev.map(apt =>
+          apt.id === id ? { ...apt, status } : apt
+        ));
+        setShowAppointmentModal(false);
+      }
+    } catch (error) {
+      console.error('Durum güncelleme hatası:', error);
+    }
+  };
+
+  // ==================== EFFECTS ====================
 
   useEffect(() => {
     setTimeout(() => setMounted(true), 100);
 
-    // Giriş kontrolü
     const token = localStorage.getItem("pwa-auth-token");
     const savedUser = localStorage.getItem("pwa-user");
 
@@ -132,89 +324,21 @@ export default function PWAIsletmePanel() {
         businessName: userData.tenantName || "İşletme",
         id: userData.tenantId
       });
-
-      // Dashboard verilerini çek
-      fetchDashboardData(token, userData.tenantId);
     } catch (e) {
       router.replace("/pwa/isletme");
     }
   }, [router]);
 
-  const fetchDashboardData = async (token: string, tenantId: string) => {
-    try {
-      const response = await fetch("/api/pwa/appointments", {
-        headers: {
-          "Authorization": `Bearer ${token}`,
-          "X-Tenant-ID": tenantId,
-        },
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        if (data.success && data.data) {
-          const today = getTodayDate();
-          const appointments = data.data || [];
-
-          setAllAppointments(appointments);
-
-          // Bugünün randevuları
-          const todayAppts = appointments.filter((apt: any) => apt.date === today);
-          setTodayAppointments(todayAppts);
-
-          // İstatistikler
-          const pendingCount = todayAppts.filter((apt: any) => apt.status === "pending").length;
-          const completedToday = todayAppts.filter((apt: any) => apt.status === "completed").length;
-          const todayRevenue = todayAppts
-            .filter((apt: any) => apt.status === "completed")
-            .reduce((sum: number, apt: any) => sum + (apt.price || 0), 0);
-
-          // Haftalık ve aylık toplam
-          const now = new Date();
-          const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-          const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-
-          const weekTotal = appointments.filter((apt: any) => new Date(apt.date) >= weekAgo).length;
-          const monthTotal = appointments.filter((apt: any) => new Date(apt.date) >= monthAgo).length;
-
-          setStats({
-            todayTotal: todayAppts.length,
-            todayCompleted: completedToday,
-            todayPending: pendingCount,
-            todayRevenue: todayRevenue,
-            weekTotal,
-            monthTotal,
-          });
-
-          // Yaklaşan randevular (bugün ve sonrası, pending olanlar)
-          const currentTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
-          const upcoming = appointments
-            .filter((apt: any) => {
-              if (apt.status === "completed" || apt.status === "cancelled" || apt.status === "no_show") return false;
-              if (apt.date > today) return true;
-              if (apt.date === today && apt.time >= currentTime) return true;
-              return false;
-            })
-            .sort((a: any, b: any) => {
-              if (a.date !== b.date) return a.date.localeCompare(b.date);
-              return a.time.localeCompare(b.time);
-            })
-            .slice(0, 5);
-
-          setUpcomingAppointments(upcoming);
-        }
-      }
-    } catch (error) {
-      console.error("Veri çekme hatası:", error);
-    } finally {
-      setIsLoading(false);
-      setIsRefreshing(false);
+  useEffect(() => {
+    if (authToken && tenant?.id) {
+      fetchAllData();
     }
-  };
+  }, [authToken, tenant?.id, fetchAllData]);
 
   const handleRefresh = () => {
-    if (isRefreshing || !authToken || !tenant?.id) return;
+    if (isRefreshing) return;
     setIsRefreshing(true);
-    fetchDashboardData(authToken, tenant.id);
+    fetchAllData();
   };
 
   const handleLogout = () => {
@@ -224,7 +348,44 @@ export default function PWAIsletmePanel() {
     router.replace("/pwa");
   };
 
-  // Yükleniyor
+  // ==================== FILTERED DATA ====================
+
+  const filteredAppointments = appointments.filter(apt => {
+    const matchesDate = apt.date === selectedDate;
+    const matchesStatus = statusFilter === 'all' || apt.status === statusFilter;
+    const matchesSearch = !searchQuery ||
+      apt.customerName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      apt.serviceName?.toLowerCase().includes(searchQuery.toLowerCase());
+    return matchesDate && matchesStatus && matchesSearch;
+  }).sort((a, b) => a.time.localeCompare(b.time));
+
+  const filteredCustomers = customers.filter(c => {
+    if (!searchQuery) return true;
+    const fullName = `${c.firstName} ${c.lastName}`.toLowerCase();
+    return fullName.includes(searchQuery.toLowerCase()) ||
+           c.phone?.includes(searchQuery) ||
+           c.email?.toLowerCase().includes(searchQuery.toLowerCase());
+  });
+
+  const upcomingAppointments = appointments
+    .filter(apt => {
+      const today = getTodayDate();
+      const now = new Date();
+      const currentTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+
+      if (['completed', 'cancelled', 'no_show'].includes(apt.status)) return false;
+      if (apt.date > today) return true;
+      if (apt.date === today && apt.time >= currentTime) return true;
+      return false;
+    })
+    .sort((a, b) => {
+      if (a.date !== b.date) return a.date.localeCompare(b.date);
+      return a.time.localeCompare(b.time);
+    })
+    .slice(0, 5);
+
+  // ==================== LOADING ====================
+
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -236,14 +397,15 @@ export default function PWAIsletmePanel() {
     );
   }
 
-  // Ana Sayfa İçeriği
-  const renderHomeContent = () => (
+  // ==================== RENDER SECTIONS ====================
+
+  const renderHome = () => (
     <div className="space-y-6">
       {/* Hızlı İşlemler */}
       <div>
         <h2 className="text-gray-800 font-semibold mb-3 px-1">Hızlı İşlemler</h2>
         <div className="grid grid-cols-2 gap-3">
-          <button className="bg-white border border-gray-200 rounded-2xl p-4 text-left active:scale-[0.98] transition-all shadow-sm hover:shadow-md">
+          <button className="bg-white border border-gray-200 rounded-2xl p-4 text-left active:scale-[0.98] transition-all shadow-sm">
             <div className="w-11 h-11 bg-blue-100 rounded-xl flex items-center justify-center mb-3">
               <Plus className="w-5 h-5 text-blue-600" />
             </div>
@@ -251,9 +413,9 @@ export default function PWAIsletmePanel() {
             <p className="text-gray-400 text-xs mt-0.5">Hızlı randevu oluştur</p>
           </button>
 
-          <button className="bg-white border border-gray-200 rounded-2xl p-4 text-left active:scale-[0.98] transition-all shadow-sm hover:shadow-md">
+          <button className="bg-white border border-gray-200 rounded-2xl p-4 text-left active:scale-[0.98] transition-all shadow-sm">
             <div className="w-11 h-11 bg-purple-100 rounded-xl flex items-center justify-center mb-3">
-              <Users className="w-5 h-5 text-purple-600" />
+              <UserPlus className="w-5 h-5 text-purple-600" />
             </div>
             <p className="text-gray-800 font-semibold text-sm">Müşteri Ekle</p>
             <p className="text-gray-400 text-xs mt-0.5">Yeni müşteri kaydı</p>
@@ -266,7 +428,7 @@ export default function PWAIsletmePanel() {
         <div className="flex items-center justify-between mb-3 px-1">
           <h2 className="text-gray-800 font-semibold">Yaklaşan Randevular</h2>
           <button
-            onClick={() => setActiveTab("calendar")}
+            onClick={() => setActiveTab("appointments")}
             className="text-blue-600 text-sm font-medium flex items-center gap-1"
           >
             Tümü <ChevronRight className="w-4 h-4" />
@@ -275,10 +437,11 @@ export default function PWAIsletmePanel() {
 
         {upcomingAppointments.length > 0 ? (
           <div className="space-y-3">
-            {upcomingAppointments.map((apt, index) => (
+            {upcomingAppointments.map((apt) => (
               <div
-                key={apt.id || index}
-                className="bg-white border border-gray-200 rounded-2xl p-4 active:scale-[0.99] transition-all shadow-sm"
+                key={apt.id}
+                onClick={() => { setSelectedAppointment(apt); setShowAppointmentModal(true); }}
+                className="bg-white border border-gray-200 rounded-2xl p-4 active:scale-[0.99] transition-all shadow-sm cursor-pointer"
               >
                 <div className="flex items-start gap-3">
                   <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center flex-shrink-0 shadow-lg shadow-blue-500/20">
@@ -287,20 +450,20 @@ export default function PWAIsletmePanel() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0">
-                        <p className="text-gray-900 font-semibold truncate">{apt.customerName || "Müşteri"}</p>
-                        <p className="text-gray-500 text-sm truncate">{apt.serviceName || "Hizmet"}</p>
+                        <p className="text-gray-900 font-semibold truncate">{apt.customerName}</p>
+                        <p className="text-gray-500 text-sm truncate">{apt.serviceName}</p>
                       </div>
                       <div className="text-right flex-shrink-0">
                         <p className="text-gray-900 font-bold text-lg">{formatTime(apt.time)}</p>
                         <p className="text-gray-400 text-xs">
-                          {apt.date === getTodayDate() ? "Bugün" : formatDate(apt.date)}
+                          {apt.date === getTodayDate() ? "Bugün" : formatDateShort(apt.date)}
                         </p>
                       </div>
                     </div>
                     <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-100">
                       <div className="flex items-center gap-2">
                         <Scissors className="w-3.5 h-3.5 text-gray-400" />
-                        <span className="text-gray-500 text-xs">{apt.staffName || "Personel"}</span>
+                        <span className="text-gray-500 text-xs">{apt.staffName}</span>
                       </div>
                       <span className={`px-2.5 py-1 rounded-full text-xs font-medium border flex items-center gap-1 ${getStatusColor(apt.status)}`}>
                         {getStatusIcon(apt.status)}
@@ -330,7 +493,7 @@ export default function PWAIsletmePanel() {
           </div>
           <div className="flex-1">
             <p className="text-white/80 text-sm font-medium">Bugünkü Gelir</p>
-            <p className="text-3xl font-bold text-white">₺{stats.todayRevenue.toLocaleString('tr-TR')}</p>
+            <p className="text-3xl font-bold text-white">{formatCurrency(stats.todayRevenue)}</p>
           </div>
           <div className="w-12 h-12 bg-white/20 backdrop-blur rounded-full flex items-center justify-center">
             <TrendingUp className="w-6 h-6 text-white" />
@@ -353,33 +516,76 @@ export default function PWAIsletmePanel() {
         <div className="bg-white border border-gray-200 rounded-2xl p-4 shadow-sm">
           <div className="flex items-center gap-2 mb-2">
             <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center">
-              <BarChart3 className="w-4 h-4 text-purple-600" />
+              <Users className="w-4 h-4 text-purple-600" />
             </div>
-            <span className="text-gray-500 text-xs font-medium">Bu Ay</span>
+            <span className="text-gray-500 text-xs font-medium">Müşteriler</span>
           </div>
-          <p className="text-3xl font-bold text-gray-900">{stats.monthTotal}</p>
-          <p className="text-gray-400 text-xs">randevu</p>
+          <p className="text-3xl font-bold text-gray-900">{customers.length}</p>
+          <p className="text-gray-400 text-xs">toplam</p>
         </div>
       </div>
     </div>
   );
 
-  // Randevular İçeriği
-  const renderCalendarContent = () => (
+  const renderAppointments = () => (
     <div className="space-y-4">
-      <div className="flex items-center justify-between px-1">
-        <h2 className="text-gray-800 font-semibold">Bugünün Randevuları</h2>
-        <span className="text-sm text-gray-500">{formatDate(getTodayDate())}</span>
+      {/* Date Navigator */}
+      <div className="bg-white border border-gray-200 rounded-2xl p-4 shadow-sm">
+        <div className="flex items-center justify-between">
+          <button
+            onClick={() => {
+              const d = new Date(selectedDate);
+              d.setDate(d.getDate() - 1);
+              setSelectedDate(d.toISOString().split('T')[0]);
+            }}
+            className="w-10 h-10 bg-gray-100 rounded-xl flex items-center justify-center active:scale-95"
+          >
+            <ChevronLeft className="w-5 h-5 text-gray-600" />
+          </button>
+          <div className="text-center">
+            <p className="text-gray-900 font-semibold">{formatDate(selectedDate)}</p>
+            <p className="text-gray-400 text-xs">
+              {selectedDate === getTodayDate() ? 'Bugün' : ''}
+            </p>
+          </div>
+          <button
+            onClick={() => {
+              const d = new Date(selectedDate);
+              d.setDate(d.getDate() + 1);
+              setSelectedDate(d.toISOString().split('T')[0]);
+            }}
+            className="w-10 h-10 bg-gray-100 rounded-xl flex items-center justify-center active:scale-95"
+          >
+            <ChevronRight className="w-5 h-5 text-gray-600" />
+          </button>
+        </div>
       </div>
 
-      {todayAppointments.length > 0 ? (
+      {/* Filter Pills */}
+      <div className="flex gap-2 overflow-x-auto pb-2 -mx-1 px-1">
+        {['all', 'pending', 'confirmed', 'completed', 'cancelled'].map(status => (
+          <button
+            key={status}
+            onClick={() => setStatusFilter(status)}
+            className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all ${
+              statusFilter === status
+                ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30'
+                : 'bg-white border border-gray-200 text-gray-600'
+            }`}
+          >
+            {status === 'all' ? 'Tümü' : getStatusText(status)}
+          </button>
+        ))}
+      </div>
+
+      {/* Appointments List */}
+      {filteredAppointments.length > 0 ? (
         <div className="space-y-3">
-          {todayAppointments
-            .sort((a, b) => a.time.localeCompare(b.time))
-            .map((apt, index) => (
+          {filteredAppointments.map((apt) => (
             <div
-              key={apt.id || index}
-              className="bg-white border border-gray-200 rounded-2xl p-4 shadow-sm"
+              key={apt.id}
+              onClick={() => { setSelectedAppointment(apt); setShowAppointmentModal(true); }}
+              className="bg-white border border-gray-200 rounded-2xl p-4 shadow-sm cursor-pointer active:scale-[0.99] transition-all"
             >
               <div className="flex items-start gap-3">
                 <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${
@@ -409,9 +615,12 @@ export default function PWAIsletmePanel() {
                         <span className="text-gray-500 text-xs">{apt.staffName}</span>
                       </div>
                       {apt.customerPhone && (
-                        <a href={`tel:${apt.customerPhone}`} className="flex items-center gap-1.5 text-blue-600">
+                        <a
+                          href={`tel:${apt.customerPhone}`}
+                          onClick={(e) => e.stopPropagation()}
+                          className="flex items-center gap-1.5 text-blue-600"
+                        >
                           <Phone className="w-3.5 h-3.5" />
-                          <span className="text-xs">{apt.customerPhone}</span>
                         </a>
                       )}
                     </div>
@@ -422,7 +631,7 @@ export default function PWAIsletmePanel() {
                   </div>
                   {apt.price > 0 && (
                     <div className="mt-2 text-right">
-                      <span className="text-green-600 font-bold">₺{apt.price.toLocaleString('tr-TR')}</span>
+                      <span className="text-green-600 font-bold">{formatCurrency(apt.price)}</span>
                     </div>
                   )}
                 </div>
@@ -435,32 +644,190 @@ export default function PWAIsletmePanel() {
           <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <Calendar className="w-8 h-8 text-gray-400" />
           </div>
-          <p className="text-gray-600 font-medium">Bugün için randevu bulunmuyor</p>
-          <p className="text-gray-400 text-sm mt-1">Yeni randevu eklemek için butona dokunun</p>
+          <p className="text-gray-600 font-medium">Bu tarihte randevu bulunmuyor</p>
           <button className="mt-4 px-5 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-semibold shadow-lg shadow-blue-600/30 active:scale-95 transition-transform">
             Randevu Ekle
           </button>
         </div>
       )}
+
+      {/* FAB */}
+      <button className="fixed bottom-24 right-5 w-14 h-14 bg-blue-600 rounded-full flex items-center justify-center shadow-xl shadow-blue-600/40 active:scale-95 transition-transform z-30">
+        <Plus className="w-6 h-6 text-white" />
+      </button>
     </div>
   );
 
-  // Müşteriler İçeriği
-  const renderCustomersContent = () => (
+  const renderCustomers = () => (
     <div className="space-y-4">
-      <h2 className="text-gray-800 font-semibold px-1">Müşteriler</h2>
-      <div className="bg-white border border-gray-200 rounded-2xl p-10 text-center shadow-sm">
-        <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
-          <Users className="w-8 h-8 text-purple-600" />
+      {/* Search */}
+      <div className="bg-white border border-gray-200 rounded-2xl p-3 shadow-sm">
+        <div className="flex items-center gap-3">
+          <Search className="w-5 h-5 text-gray-400" />
+          <input
+            type="text"
+            placeholder="Müşteri ara..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="flex-1 outline-none text-gray-800 placeholder-gray-400"
+          />
         </div>
-        <p className="text-gray-600 font-medium">Müşteri listesi yakında eklenecek</p>
-        <p className="text-gray-400 text-sm mt-1">Bu özellik geliştirme aşamasında</p>
+      </div>
+
+      {/* Customers List */}
+      {filteredCustomers.length > 0 ? (
+        <div className="space-y-3">
+          {filteredCustomers.map((customer) => (
+            <div
+              key={customer.id}
+              onClick={() => { setSelectedCustomer(customer); setShowCustomerModal(true); }}
+              className="bg-white border border-gray-200 rounded-2xl p-4 shadow-sm cursor-pointer active:scale-[0.99] transition-all"
+            >
+              <div className="flex items-center gap-3">
+                <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
+                  customer.isBlacklisted ? 'bg-red-100' : 'bg-blue-100'
+                }`}>
+                  <span className={`text-lg font-bold ${
+                    customer.isBlacklisted ? 'text-red-600' : 'text-blue-600'
+                  }`}>
+                    {customer.firstName?.charAt(0)}{customer.lastName?.charAt(0)}
+                  </span>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-gray-900 font-semibold truncate">
+                    {customer.firstName} {customer.lastName}
+                    {customer.isBlacklisted && (
+                      <span className="ml-2 text-xs text-red-600 bg-red-100 px-2 py-0.5 rounded-full">Kara Liste</span>
+                    )}
+                  </p>
+                  <p className="text-gray-500 text-sm">{customer.phone}</p>
+                </div>
+                <ChevronRight className="w-5 h-5 text-gray-400" />
+              </div>
+              {(customer.totalAppointments !== undefined || customer.totalSpent !== undefined) && (
+                <div className="flex gap-4 mt-3 pt-3 border-t border-gray-100">
+                  {customer.totalAppointments !== undefined && (
+                    <div className="flex items-center gap-1.5 text-gray-500 text-xs">
+                      <Calendar className="w-3.5 h-3.5" />
+                      {customer.totalAppointments} randevu
+                    </div>
+                  )}
+                  {customer.totalSpent !== undefined && (
+                    <div className="flex items-center gap-1.5 text-gray-500 text-xs">
+                      <Wallet className="w-3.5 h-3.5" />
+                      {formatCurrency(customer.totalSpent)}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="bg-white border border-gray-200 rounded-2xl p-10 text-center shadow-sm">
+          <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <Users className="w-8 h-8 text-gray-400" />
+          </div>
+          <p className="text-gray-600 font-medium">
+            {searchQuery ? 'Müşteri bulunamadı' : 'Henüz müşteri eklenmemiş'}
+          </p>
+        </div>
+      )}
+
+      {/* FAB */}
+      <button className="fixed bottom-24 right-5 w-14 h-14 bg-purple-600 rounded-full flex items-center justify-center shadow-xl shadow-purple-600/40 active:scale-95 transition-transform z-30">
+        <UserPlus className="w-6 h-6 text-white" />
+      </button>
+    </div>
+  );
+
+  const renderReports = () => (
+    <div className="space-y-4">
+      <h2 className="text-gray-800 font-semibold px-1">Raporlar ve İstatistikler</h2>
+
+      {/* KPI Cards */}
+      <div className="grid grid-cols-2 gap-3">
+        <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl p-4 text-white shadow-lg">
+          <div className="flex items-center gap-2 mb-2 opacity-80">
+            <DollarSign className="w-4 h-4" />
+            <span className="text-xs">Aylık Gelir</span>
+          </div>
+          <p className="text-2xl font-bold">{formatCurrency(stats.monthlyRevenue)}</p>
+        </div>
+
+        <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-2xl p-4 text-white shadow-lg">
+          <div className="flex items-center gap-2 mb-2 opacity-80">
+            <Calendar className="w-4 h-4" />
+            <span className="text-xs">Aylık Randevu</span>
+          </div>
+          <p className="text-2xl font-bold">{stats.monthTotal}</p>
+        </div>
+
+        <div className="bg-gradient-to-br from-green-500 to-emerald-600 rounded-2xl p-4 text-white shadow-lg">
+          <div className="flex items-center gap-2 mb-2 opacity-80">
+            <Users className="w-4 h-4" />
+            <span className="text-xs">Toplam Müşteri</span>
+          </div>
+          <p className="text-2xl font-bold">{customers.length}</p>
+        </div>
+
+        <div className="bg-gradient-to-br from-amber-500 to-orange-600 rounded-2xl p-4 text-white shadow-lg">
+          <div className="flex items-center gap-2 mb-2 opacity-80">
+            <Activity className="w-4 h-4" />
+            <span className="text-xs">Bugün</span>
+          </div>
+          <p className="text-2xl font-bold">{stats.todayTotal}</p>
+        </div>
+      </div>
+
+      {/* Services Performance */}
+      <div className="bg-white border border-gray-200 rounded-2xl p-4 shadow-sm">
+        <h3 className="text-gray-800 font-semibold mb-4">Popüler Hizmetler</h3>
+        {services.slice(0, 5).map((service, index) => (
+          <div key={service.id} className="flex items-center justify-between py-3 border-b border-gray-100 last:border-0">
+            <div className="flex items-center gap-3">
+              <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+                index === 0 ? 'bg-amber-100 text-amber-600' :
+                index === 1 ? 'bg-gray-100 text-gray-600' :
+                index === 2 ? 'bg-orange-100 text-orange-600' :
+                'bg-blue-100 text-blue-600'
+              }`}>
+                <span className="text-sm font-bold">{index + 1}</span>
+              </div>
+              <div>
+                <p className="text-gray-800 font-medium text-sm">{service.name}</p>
+                <p className="text-gray-400 text-xs">{service.duration} dk</p>
+              </div>
+            </div>
+            <p className="text-gray-800 font-semibold">{formatCurrency(service.price)}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* Staff Performance */}
+      <div className="bg-white border border-gray-200 rounded-2xl p-4 shadow-sm">
+        <h3 className="text-gray-800 font-semibold mb-4">Personel Performansı</h3>
+        {staffList.slice(0, 5).map((staff) => (
+          <div key={staff.id} className="flex items-center justify-between py-3 border-b border-gray-100 last:border-0">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                <span className="text-blue-600 font-bold">
+                  {staff.firstName?.charAt(0)}{staff.lastName?.charAt(0)}
+                </span>
+              </div>
+              <div>
+                <p className="text-gray-800 font-medium text-sm">{staff.firstName} {staff.lastName}</p>
+                <p className="text-gray-400 text-xs">{staff.monthlyAppointments || 0} randevu</p>
+              </div>
+            </div>
+            <p className="text-green-600 font-semibold">{formatCurrency(staff.monthlyRevenue || 0)}</p>
+          </div>
+        ))}
       </div>
     </div>
   );
 
-  // Ayarlar İçeriği
-  const renderSettingsContent = () => (
+  const renderSettings = () => (
     <div className="space-y-4">
       <h2 className="text-gray-800 font-semibold px-1">Ayarlar</h2>
 
@@ -469,7 +836,7 @@ export default function PWAIsletmePanel() {
           <div className="flex items-center gap-3">
             <div className="w-14 h-14 bg-white rounded-full flex items-center justify-center shadow-lg">
               <span className="text-blue-600 text-xl font-bold">
-                {user?.firstName?.charAt(0) || "U"}
+                {user?.firstName?.charAt(0)}
               </span>
             </div>
             <div>
@@ -499,6 +866,16 @@ export default function PWAIsletmePanel() {
           <ChevronRight className="w-5 h-5 text-gray-400" />
         </button>
 
+        <button className="w-full p-4 flex items-center justify-between hover:bg-gray-50 transition-colors border-t border-gray-100 active:bg-gray-100">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-gray-100 rounded-xl flex items-center justify-center">
+              <Settings className="w-5 h-5 text-gray-600" />
+            </div>
+            <span className="text-gray-700 font-medium">İşletme Ayarları</span>
+          </div>
+          <ChevronRight className="w-5 h-5 text-gray-400" />
+        </button>
+
         <button
           onClick={handleLogout}
           className="w-full p-4 flex items-center justify-between hover:bg-red-50 transition-colors border-t border-gray-100 active:bg-red-100"
@@ -513,14 +890,189 @@ export default function PWAIsletmePanel() {
       </div>
 
       <p className="text-center text-gray-400 text-xs mt-8">
-        Net Randevu v1.0.0
+        Net Randevu PWA v1.0.0
       </p>
     </div>
   );
 
+  // ==================== MODALS ====================
+
+  const AppointmentModal = () => {
+    if (!selectedAppointment || !showAppointmentModal) return null;
+
+    return (
+      <div className="fixed inset-0 bg-black/50 z-50 flex items-end justify-center">
+        <div className="bg-white rounded-t-3xl w-full max-w-lg max-h-[90vh] overflow-y-auto animate-in slide-in-from-bottom duration-300">
+          <div className="sticky top-0 bg-white border-b border-gray-100 p-4 flex items-center justify-between">
+            <h3 className="text-lg font-semibold text-gray-900">Randevu Detayı</h3>
+            <button
+              onClick={() => setShowAppointmentModal(false)}
+              className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center"
+            >
+              <X className="w-5 h-5 text-gray-600" />
+            </button>
+          </div>
+
+          <div className="p-4 space-y-4">
+            <div className="bg-gray-50 rounded-2xl p-4">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
+                  <User className="w-6 h-6 text-blue-600" />
+                </div>
+                <div>
+                  <p className="text-gray-900 font-semibold">{selectedAppointment.customerName}</p>
+                  {selectedAppointment.customerPhone && (
+                    <a href={`tel:${selectedAppointment.customerPhone}`} className="text-blue-600 text-sm">
+                      {selectedAppointment.customerPhone}
+                    </a>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <div className="flex justify-between py-2 border-b border-gray-100">
+                <span className="text-gray-500">Hizmet</span>
+                <span className="text-gray-900 font-medium">{selectedAppointment.serviceName}</span>
+              </div>
+              <div className="flex justify-between py-2 border-b border-gray-100">
+                <span className="text-gray-500">Personel</span>
+                <span className="text-gray-900 font-medium">{selectedAppointment.staffName}</span>
+              </div>
+              <div className="flex justify-between py-2 border-b border-gray-100">
+                <span className="text-gray-500">Tarih</span>
+                <span className="text-gray-900 font-medium">{formatDate(selectedAppointment.date)}</span>
+              </div>
+              <div className="flex justify-between py-2 border-b border-gray-100">
+                <span className="text-gray-500">Saat</span>
+                <span className="text-gray-900 font-medium">{formatTime(selectedAppointment.time)}</span>
+              </div>
+              <div className="flex justify-between py-2 border-b border-gray-100">
+                <span className="text-gray-500">Süre</span>
+                <span className="text-gray-900 font-medium">{selectedAppointment.duration} dakika</span>
+              </div>
+              <div className="flex justify-between py-2 border-b border-gray-100">
+                <span className="text-gray-500">Ücret</span>
+                <span className="text-green-600 font-bold">{formatCurrency(selectedAppointment.price)}</span>
+              </div>
+              <div className="flex justify-between py-2">
+                <span className="text-gray-500">Durum</span>
+                <span className={`px-3 py-1 rounded-full text-sm font-medium border ${getStatusColor(selectedAppointment.status)}`}>
+                  {getStatusText(selectedAppointment.status)}
+                </span>
+              </div>
+            </div>
+
+            {!['completed', 'cancelled'].includes(selectedAppointment.status) && (
+              <div className="pt-4 space-y-2">
+                <p className="text-gray-500 text-sm mb-2">Durumu Değiştir:</p>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    onClick={() => updateAppointmentStatus(selectedAppointment.id, 'completed')}
+                    className="py-3 bg-green-600 text-white rounded-xl font-medium active:scale-95 transition-transform"
+                  >
+                    Tamamlandı
+                  </button>
+                  <button
+                    onClick={() => updateAppointmentStatus(selectedAppointment.id, 'no_show')}
+                    className="py-3 bg-gray-600 text-white rounded-xl font-medium active:scale-95 transition-transform"
+                  >
+                    Gelmedi
+                  </button>
+                  <button
+                    onClick={() => updateAppointmentStatus(selectedAppointment.id, 'cancelled')}
+                    className="py-3 bg-red-600 text-white rounded-xl font-medium active:scale-95 transition-transform col-span-2"
+                  >
+                    İptal Et
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const CustomerModal = () => {
+    if (!selectedCustomer || !showCustomerModal) return null;
+
+    return (
+      <div className="fixed inset-0 bg-black/50 z-50 flex items-end justify-center">
+        <div className="bg-white rounded-t-3xl w-full max-w-lg max-h-[90vh] overflow-y-auto animate-in slide-in-from-bottom duration-300">
+          <div className="sticky top-0 bg-white border-b border-gray-100 p-4 flex items-center justify-between">
+            <h3 className="text-lg font-semibold text-gray-900">Müşteri Detayı</h3>
+            <button
+              onClick={() => setShowCustomerModal(false)}
+              className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center"
+            >
+              <X className="w-5 h-5 text-gray-600" />
+            </button>
+          </div>
+
+          <div className="p-4 space-y-4">
+            <div className="text-center">
+              <div className={`w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-3 ${
+                selectedCustomer.isBlacklisted ? 'bg-red-100' : 'bg-blue-100'
+              }`}>
+                <span className={`text-2xl font-bold ${
+                  selectedCustomer.isBlacklisted ? 'text-red-600' : 'text-blue-600'
+                }`}>
+                  {selectedCustomer.firstName?.charAt(0)}{selectedCustomer.lastName?.charAt(0)}
+                </span>
+              </div>
+              <h4 className="text-xl font-semibold text-gray-900">
+                {selectedCustomer.firstName} {selectedCustomer.lastName}
+              </h4>
+              {selectedCustomer.isBlacklisted && (
+                <span className="inline-block mt-2 text-xs text-red-600 bg-red-100 px-3 py-1 rounded-full">
+                  Kara Listede
+                </span>
+              )}
+            </div>
+
+            <div className="bg-gray-50 rounded-2xl p-4 space-y-3">
+              <a href={`tel:${selectedCustomer.phone}`} className="flex items-center gap-3 text-blue-600">
+                <Phone className="w-5 h-5" />
+                <span>{selectedCustomer.phone}</span>
+              </a>
+              {selectedCustomer.email && (
+                <a href={`mailto:${selectedCustomer.email}`} className="flex items-center gap-3 text-blue-600">
+                  <Mail className="w-5 h-5" />
+                  <span>{selectedCustomer.email}</span>
+                </a>
+              )}
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="bg-blue-50 rounded-xl p-4 text-center">
+                <p className="text-2xl font-bold text-blue-600">{selectedCustomer.totalAppointments || 0}</p>
+                <p className="text-gray-500 text-sm">Toplam Randevu</p>
+              </div>
+              <div className="bg-green-50 rounded-xl p-4 text-center">
+                <p className="text-2xl font-bold text-green-600">{formatCurrency(selectedCustomer.totalSpent || 0)}</p>
+                <p className="text-gray-500 text-sm">Toplam Harcama</p>
+              </div>
+            </div>
+
+            <div className="pt-4 space-y-2">
+              <button className="w-full py-3 bg-blue-600 text-white rounded-xl font-medium active:scale-95 transition-transform">
+                Randevu Oluştur
+              </button>
+              <button className="w-full py-3 bg-gray-100 text-gray-700 rounded-xl font-medium active:scale-95 transition-transform">
+                Düzenle
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // ==================== MAIN RETURN ====================
+
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
-      {/* Drawer Overlay */}
       {drawerOpen && (
         <div
           className="fixed inset-0 bg-black/40 z-40 backdrop-blur-sm"
@@ -528,7 +1080,6 @@ export default function PWAIsletmePanel() {
         />
       )}
 
-      {/* Drawer Menu */}
       <div className={`fixed top-0 left-0 h-full w-72 bg-white z-50 transform transition-transform duration-300 shadow-2xl ${
         drawerOpen ? 'translate-x-0' : '-translate-x-full'
       }`}>
@@ -536,47 +1087,37 @@ export default function PWAIsletmePanel() {
           <div className="flex items-center justify-between mb-4">
             <div className="w-14 h-14 bg-white rounded-full flex items-center justify-center shadow-lg">
               <span className="text-blue-600 text-xl font-bold">
-                {user?.firstName?.charAt(0) || "U"}
+                {user?.firstName?.charAt(0)}
               </span>
             </div>
             <button onClick={() => setDrawerOpen(false)} className="text-white/80 p-2 hover:bg-white/10 rounded-lg transition-colors">
               <X className="w-6 h-6" />
             </button>
           </div>
-          <h3 className="text-white font-semibold text-lg">{user?.firstName || "Kullanıcı"} {user?.lastName || ""}</h3>
-          <p className="text-white/70 text-sm">{tenant?.businessName || "İşletme"}</p>
+          <h3 className="text-white font-semibold text-lg">{user?.firstName} {user?.lastName}</h3>
+          <p className="text-white/70 text-sm">{tenant?.businessName}</p>
         </div>
 
         <div className="p-4">
           <div className="space-y-1">
-            <button
-              onClick={() => { setActiveTab("home"); setDrawerOpen(false); }}
-              className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-xl transition-all ${activeTab === "home" ? "bg-blue-50 text-blue-600" : "text-gray-700 hover:bg-gray-100"}`}
-            >
-              <Home className="w-5 h-5" />
-              <span className="font-medium">Ana Sayfa</span>
-            </button>
-            <button
-              onClick={() => { setActiveTab("calendar"); setDrawerOpen(false); }}
-              className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-xl transition-all ${activeTab === "calendar" ? "bg-blue-50 text-blue-600" : "text-gray-700 hover:bg-gray-100"}`}
-            >
-              <Calendar className="w-5 h-5" />
-              <span className="font-medium">Randevular</span>
-            </button>
-            <button
-              onClick={() => { setActiveTab("customers"); setDrawerOpen(false); }}
-              className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-xl transition-all ${activeTab === "customers" ? "bg-blue-50 text-blue-600" : "text-gray-700 hover:bg-gray-100"}`}
-            >
-              <Users className="w-5 h-5" />
-              <span className="font-medium">Müşteriler</span>
-            </button>
-            <button
-              onClick={() => { setActiveTab("settings"); setDrawerOpen(false); }}
-              className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-xl transition-all ${activeTab === "settings" ? "bg-blue-50 text-blue-600" : "text-gray-700 hover:bg-gray-100"}`}
-            >
-              <Settings className="w-5 h-5" />
-              <span className="font-medium">Ayarlar</span>
-            </button>
+            {[
+              { id: 'home', icon: Home, label: 'Ana Sayfa' },
+              { id: 'appointments', icon: Calendar, label: 'Randevular' },
+              { id: 'customers', icon: Users, label: 'Müşteriler' },
+              { id: 'reports', icon: BarChart3, label: 'Raporlar' },
+              { id: 'settings', icon: Settings, label: 'Ayarlar' },
+            ].map((item) => (
+              <button
+                key={item.id}
+                onClick={() => { setActiveTab(item.id); setDrawerOpen(false); }}
+                className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-xl transition-all ${
+                  activeTab === item.id ? "bg-blue-50 text-blue-600" : "text-gray-700 hover:bg-gray-100"
+                }`}
+              >
+                <item.icon className="w-5 h-5" />
+                <span className="font-medium">{item.label}</span>
+              </button>
+            ))}
           </div>
 
           <div className="mt-6 pt-6 border-t border-gray-200">
@@ -591,7 +1132,6 @@ export default function PWAIsletmePanel() {
         </div>
       </div>
 
-      {/* Header */}
       <div className={`bg-gradient-to-br from-blue-600 to-blue-700 px-5 pt-12 pb-6 transition-all duration-500 ${mounted ? 'opacity-100' : 'opacity-0'}`}>
         <div className="flex items-center justify-between mb-5">
           <button
@@ -601,8 +1141,8 @@ export default function PWAIsletmePanel() {
             <Menu className="w-6 h-6 text-white" />
           </button>
           <div className="flex-1 mx-4">
-            <h1 className="text-white text-lg font-bold">{getGreeting()}, {user?.firstName || "Kullanıcı"}</h1>
-            <p className="text-white/70 text-sm">{tenant?.businessName || "İşletme"}</p>
+            <h1 className="text-white text-lg font-bold">{getGreeting()}, {user?.firstName}</h1>
+            <p className="text-white/70 text-sm">{tenant?.businessName}</p>
           </div>
           <button
             onClick={handleRefresh}
@@ -613,7 +1153,6 @@ export default function PWAIsletmePanel() {
           </button>
         </div>
 
-        {/* Bugünün Özeti */}
         <div className="bg-white rounded-2xl p-4 shadow-lg">
           <div className="flex items-center justify-between mb-3">
             <span className="text-gray-600 text-sm font-medium">Bugünün Özeti</span>
@@ -636,47 +1175,39 @@ export default function PWAIsletmePanel() {
         </div>
       </div>
 
-      {/* Ana İçerik */}
       <div className={`flex-1 px-5 py-6 overflow-y-auto transition-all duration-700 delay-200 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
-        {activeTab === "home" && renderHomeContent()}
-        {activeTab === "calendar" && renderCalendarContent()}
-        {activeTab === "customers" && renderCustomersContent()}
-        {activeTab === "settings" && renderSettingsContent()}
+        {activeTab === "home" && renderHome()}
+        {activeTab === "appointments" && renderAppointments()}
+        {activeTab === "customers" && renderCustomers()}
+        {activeTab === "reports" && renderReports()}
+        {activeTab === "settings" && renderSettings()}
       </div>
 
-      {/* Bottom Navigation */}
       <div className="bg-white border-t border-gray-200 px-4 py-2 pb-safe shadow-[0_-4px_20px_rgba(0,0,0,0.08)]">
         <div className="flex items-center justify-around">
-          <button
-            onClick={() => setActiveTab("home")}
-            className={`flex flex-col items-center gap-1 py-2 px-4 rounded-xl transition-all ${activeTab === "home" ? "text-blue-600" : "text-gray-400"}`}
-          >
-            <Home className={`w-6 h-6 ${activeTab === "home" ? "scale-110" : ""} transition-transform`} />
-            <span className="text-[10px] font-medium">Ana Sayfa</span>
-          </button>
-          <button
-            onClick={() => setActiveTab("calendar")}
-            className={`flex flex-col items-center gap-1 py-2 px-4 rounded-xl transition-all ${activeTab === "calendar" ? "text-blue-600" : "text-gray-400"}`}
-          >
-            <Calendar className={`w-6 h-6 ${activeTab === "calendar" ? "scale-110" : ""} transition-transform`} />
-            <span className="text-[10px] font-medium">Randevular</span>
-          </button>
-          <button
-            onClick={() => setActiveTab("customers")}
-            className={`flex flex-col items-center gap-1 py-2 px-4 rounded-xl transition-all ${activeTab === "customers" ? "text-blue-600" : "text-gray-400"}`}
-          >
-            <Users className={`w-6 h-6 ${activeTab === "customers" ? "scale-110" : ""} transition-transform`} />
-            <span className="text-[10px] font-medium">Müşteriler</span>
-          </button>
-          <button
-            onClick={() => setActiveTab("settings")}
-            className={`flex flex-col items-center gap-1 py-2 px-4 rounded-xl transition-all ${activeTab === "settings" ? "text-blue-600" : "text-gray-400"}`}
-          >
-            <Settings className={`w-6 h-6 ${activeTab === "settings" ? "scale-110" : ""} transition-transform`} />
-            <span className="text-[10px] font-medium">Ayarlar</span>
-          </button>
+          {[
+            { id: 'home', icon: Home, label: 'Ana Sayfa' },
+            { id: 'appointments', icon: Calendar, label: 'Randevular' },
+            { id: 'customers', icon: Users, label: 'Müşteriler' },
+            { id: 'reports', icon: BarChart3, label: 'Raporlar' },
+            { id: 'settings', icon: Settings, label: 'Ayarlar' },
+          ].map((item) => (
+            <button
+              key={item.id}
+              onClick={() => setActiveTab(item.id)}
+              className={`flex flex-col items-center gap-1 py-2 px-3 rounded-xl transition-all ${
+                activeTab === item.id ? "text-blue-600" : "text-gray-400"
+              }`}
+            >
+              <item.icon className={`w-6 h-6 ${activeTab === item.id ? "scale-110" : ""} transition-transform`} />
+              <span className="text-[10px] font-medium">{item.label}</span>
+            </button>
+          ))}
         </div>
       </div>
+
+      <AppointmentModal />
+      <CustomerModal />
     </div>
   );
 }
