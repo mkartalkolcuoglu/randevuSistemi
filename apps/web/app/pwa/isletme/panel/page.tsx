@@ -1649,7 +1649,10 @@ export default function PWAIsletmePanel() {
           <ChevronRight className="w-5 h-5 text-gray-400" />
         </button>
 
-        <button className="w-full p-4 flex items-center justify-between hover:bg-gray-50 transition-colors border-t border-gray-100 active:bg-gray-100">
+        <button
+          onClick={() => router.push("/pwa/isletme/ayarlar")}
+          className="w-full p-4 flex items-center justify-between hover:bg-gray-50 transition-colors border-t border-gray-100 active:bg-gray-100"
+        >
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-gray-100 rounded-xl flex items-center justify-center">
               <Settings className="w-5 h-5 text-gray-600" />
