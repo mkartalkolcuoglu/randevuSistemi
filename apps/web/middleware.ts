@@ -6,6 +6,7 @@ const SYSTEM_ROUTES = [
   'test',
   '_next',
   'favicon.ico',
+  'pwa',
   'pwa-welcome',
   'pwa-business-login',
   'pwa-staff',
@@ -20,7 +21,7 @@ const CACHE_TTL = 60000; // 60 seconds
 
 async function fetchPageSlugs(): Promise<Set<string>> {
   const now = Date.now();
-  
+
   // Return cached data if fresh
   if (now - lastCacheUpdate < CACHE_TTL && pageSlugsCache.size > 0) {
     return pageSlugsCache;
@@ -84,7 +85,7 @@ export async function middleware(request: NextRequest) {
   const slugMatch = url.pathname.match(/^\/([^\/]+)/);
   if (slugMatch) {
     const slug = slugMatch[1];
-    
+
     // Geçerli slug kontrolü
     if (slug && slug.length > 0 && !slug.startsWith('_') && !slug.startsWith('.')) {
       // Slug'ı header olarak ekle - tenant route
