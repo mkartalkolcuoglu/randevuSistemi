@@ -6,6 +6,9 @@ const SYSTEM_ROUTES = [
   'test',
   '_next',
   'favicon.ico',
+  'pwa-welcome',
+  'randevularim',
+  'payment',
 ];
 
 // Cache for page slugs (refreshes every 60 seconds)
