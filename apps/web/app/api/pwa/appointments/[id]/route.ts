@@ -17,7 +17,7 @@ export async function GET(
       );
     }
 
-    const response = await fetch(`${ADMIN_API}/appointments/${params.id}`, {
+    const response = await fetch(`${ADMIN_API}/staff/appointments/${params.id}`, {
       method: 'GET',
       headers: {
         'Authorization': authHeader,
@@ -54,7 +54,7 @@ export async function PUT(
 
     const body = await request.json();
 
-    const response = await fetch(`${ADMIN_API}/appointments/${params.id}`, {
+    const response = await fetch(`${ADMIN_API}/staff/appointments/${params.id}`, {
       method: 'PUT',
       headers: {
         'Authorization': authHeader,
@@ -90,7 +90,7 @@ export async function DELETE(
       );
     }
 
-    const response = await fetch(`${ADMIN_API}/appointments/${params.id}`, {
+    const response = await fetch(`${ADMIN_API}/staff/appointments/${params.id}`, {
       method: 'DELETE',
       headers: {
         'Authorization': authHeader,
