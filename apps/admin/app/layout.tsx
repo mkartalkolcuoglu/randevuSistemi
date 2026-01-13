@@ -13,6 +13,18 @@ export const metadata: Metadata = {
   title: "Admin Panel - Net Randevu",
   description: "İşletme yönetim paneli - randevu, müşteri ve hizmet yönetimi",
   keywords: "admin, panel, randevu, yönetim, işletme",
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "NR Admin",
+  },
+};
+
+export const viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  themeColor: '#1E3A5F',
 };
 
 export default function RootLayout({
@@ -22,6 +34,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="tr" className="h-full">
+      <head>
+        <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
+      </head>
       <body className={`${inter.className} antialiased h-full bg-gray-50`} suppressHydrationWarning={true}>
         <Providers>
           {children}
