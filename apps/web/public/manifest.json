@@ -2,7 +2,7 @@
   "name": "Net Randevu - Modern Randevu Yönetimi",
   "short_name": "Net Randevu",
   "description": "Profesyonel randevu sistemi ile işletmenizi dijitalleştirin",
-  "start_url": "/",
+  "start_url": "/pwa-welcome",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#3B82F6",
