@@ -17,7 +17,11 @@ import {
   MapPin,
   Scissors,
   CreditCard,
-  History
+  History,
+  Plus,
+  Search,
+  X,
+  Building2
 } from "lucide-react";
 
 interface Appointment {
@@ -33,6 +37,14 @@ interface Appointment {
   businessName?: string;
   businessPhone?: string;
   businessAddress?: string;
+  businessSlug?: string;
+}
+
+interface Business {
+  slug: string;
+  name: string;
+  phone?: string;
+  address?: string;
 }
 
 interface CustomerInfo {
@@ -52,6 +64,10 @@ export default function MusteriPanelPage() {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [customerInfo, setCustomerInfo] = useState<CustomerInfo | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [showBusinessModal, setShowBusinessModal] = useState(false);
+  const [businessSearch, setBusinessSearch] = useState("");
+  const [searchResults, setSearchResults] = useState<Business[]>([]);
+  const [searching, setSearching] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -93,6 +109,26 @@ export default function MusteriPanelPage() {
     setRefreshing(true);
     await fetchData(phone);
     setRefreshing(false);
+  };
+
+  const searchBusinesses = async (query: string) => {
+    if (query.length < 2) {
+      setSearchResults([]);
+      return;
+    }
+
+    try {
+      setSearching(true);
+      const res = await fetch(`/api/pwa/musteri/isletmeler?q=${encodeURIComponent(query)}`);
+      const data = await res.json();
+      if (data.success) {
+        setSearchResults(data.businesses || []);
+      }
+    } catch (error) {
+      console.error("Search error:", error);
+    } finally {
+      setSearching(false);
+    }
   };
 
   const handleLogout = () => {
@@ -498,6 +534,110 @@ export default function MusteriPanelPage() {
           </>
         )}
       </div>
+
+      {/* Yeni Randevu Butonu - Floating */}
+      <button
+        onClick={() => setShowBusinessModal(true)}
+        className="fixed bottom-6 right-6 w-14 h-14 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-full shadow-lg flex items-center justify-center active:scale-95 transition-transform z-40"
+      >
+        <Plus className="w-6 h-6" />
+      </button>
+
+      {/* İşletme Seçim Modalı */}
+      {showBusinessModal && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-end justify-center">
+          <div className="bg-white rounded-t-3xl w-full max-w-lg max-h-[85vh] flex flex-col animate-in slide-in-from-bottom duration-300">
+            {/* Modal Header */}
+            <div className="sticky top-0 bg-white border-b border-gray-100 p-4 flex items-center justify-between rounded-t-3xl">
+              <h3 className="text-lg font-semibold text-gray-900">Yeni Randevu Al</h3>
+              <button
+                onClick={() => {
+                  setShowBusinessModal(false);
+                  setBusinessSearch("");
+                  setSearchResults([]);
+                }}
+                className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center"
+              >
+                <X className="w-5 h-5 text-gray-600" />
+              </button>
+            </div>
+
+            {/* Arama */}
+            <div className="p-4 border-b border-gray-100">
+              <div className="relative">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <input
+                  type="text"
+                  value={businessSearch}
+                  onChange={(e) => {
+                    setBusinessSearch(e.target.value);
+                    searchBusinesses(e.target.value);
+                  }}
+                  placeholder="İşletme adı yazın..."
+                  className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  autoFocus
+                />
+              </div>
+              {businessSearch.length > 0 && businessSearch.length < 2 && (
+                <p className="text-gray-400 text-xs mt-2">En az 2 karakter yazın</p>
+              )}
+            </div>
+
+            {/* Sonuçlar */}
+            <div className="flex-1 overflow-y-auto p-4">
+              {searching ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="w-6 h-6 animate-spin text-blue-600" />
+                </div>
+              ) : searchResults.length > 0 ? (
+                <div className="space-y-3">
+                  {searchResults.map((business) => (
+                    <button
+                      key={business.slug}
+                      onClick={() => {
+                        window.location.href = `/${business.slug}/randevu`;
+                      }}
+                      className="w-full bg-white border border-gray-200 rounded-2xl p-4 text-left hover:border-blue-300 hover:bg-blue-50/50 transition-colors"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center flex-shrink-0">
+                          <Building2 className="w-6 h-6 text-white" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-semibold text-gray-900 truncate">{business.name}</p>
+                          {business.address && (
+                            <p className="text-gray-500 text-sm truncate flex items-center gap-1 mt-0.5">
+                              <MapPin className="w-3 h-3" />
+                              {business.address}
+                            </p>
+                          )}
+                        </div>
+                        <ChevronRight className="w-5 h-5 text-gray-400 flex-shrink-0" />
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              ) : businessSearch.length >= 2 ? (
+                <div className="text-center py-8">
+                  <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <Search className="w-8 h-8 text-gray-400" />
+                  </div>
+                  <p className="text-gray-600 font-medium">İşletme bulunamadı</p>
+                  <p className="text-gray-400 text-sm mt-1">Farklı bir arama deneyin</p>
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <Building2 className="w-8 h-8 text-blue-600" />
+                  </div>
+                  <p className="text-gray-600 font-medium">İşletme Arayın</p>
+                  <p className="text-gray-400 text-sm mt-1">Randevu almak istediğiniz işletmeyi arayın</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
