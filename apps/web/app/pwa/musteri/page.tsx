@@ -182,21 +182,21 @@ export default function MusteriGirisPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50">
       {/* Header */}
-      <div className="bg-gradient-to-r from-blue-600 to-indigo-600 px-6 pt-12 pb-16 relative">
+      <div className="bg-gradient-to-r from-blue-600 to-indigo-600 px-6 pt-12 pb-16">
         {/* Geri Butonu */}
         <button
           onClick={() => router.push("/pwa")}
-          className="absolute top-12 left-5 w-10 h-10 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center active:scale-95 transition-transform"
+          className="w-10 h-10 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center active:scale-95 transition-transform mb-4"
         >
           <ArrowLeft className="w-5 h-5 text-white" />
         </button>
 
         <div className="text-center">
-        <div className="w-16 h-16 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center mx-auto mb-4">
-          <Calendar className="w-8 h-8 text-white" />
-        </div>
-        <h1 className="text-2xl font-bold text-white mb-2">Randevularım</h1>
-        <p className="text-blue-100 text-sm">Randevularınızı görüntüleyin ve yönetin</p>
+          <div className="w-16 h-16 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center mx-auto mb-4">
+            <Calendar className="w-8 h-8 text-white" />
+          </div>
+          <h1 className="text-2xl font-bold text-white mb-2">Randevularım</h1>
+          <p className="text-blue-100 text-sm">Randevularınızı görüntüleyin ve yönetin</p>
         </div>
       </div>
 
