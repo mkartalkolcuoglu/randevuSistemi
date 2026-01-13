@@ -44,9 +44,31 @@ export default function PWABusinessLogin() {
     setIsLoading(true);
 
     try {
-      // TODO: Gerçek API çağrısı yapılacak
-      // Başarılı giriş - dashboard'a yönlendir
-      router.push("/pwa-staff");
+      // API'ye login isteği at
+      const response = await fetch("https://admin.netrandevu.com/api/mobile/auth/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          username: username.trim(),
+          password: password,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.success && data.token) {
+        // Token ve kullanıcı bilgilerini localStorage'a kaydet
+        localStorage.setItem("pwa-auth-token", data.token);
+        localStorage.setItem("pwa-user", JSON.stringify(data.user));
+
+        // Dashboard'a yönlendir
+        router.push("/pwa-staff");
+      } else {
+        setError(data.error || data.message || "Geçersiz kullanıcı adı veya şifre");
+        setIsLoading(false);
+      }
     } catch (err) {
       setError("Giriş başarısız. Lütfen bilgilerinizi kontrol edin.");
       setIsLoading(false);

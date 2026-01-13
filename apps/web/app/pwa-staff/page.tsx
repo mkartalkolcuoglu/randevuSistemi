@@ -33,15 +33,9 @@ export default function PWAStaffDashboard() {
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("home");
 
-  // Kullanıcı ve işletme bilgileri (şimdilik mock)
-  const [user, setUser] = useState({
-    firstName: "Kullanıcı",
-    lastName: "",
-    userType: "staff"
-  });
-  const [tenant, setTenant] = useState({
-    businessName: "İşletme Adı"
-  });
+  // Kullanıcı ve işletme bilgileri
+  const [user, setUser] = useState<any>(null);
+  const [tenant, setTenant] = useState<any>(null);
 
   // İstatistikler (şimdilik mock)
   const [stats, setStats] = useState({
@@ -70,12 +64,85 @@ export default function PWAStaffDashboard() {
       window.location.href = "https://admin.netrandevu.com";
     } else {
       setIsPWA(true);
-      setIsLoading(false);
 
-      // TODO: Gerçek API'den veri çek
-      // fetchDashboardData();
+      // localStorage'dan kullanıcı bilgilerini oku
+      const savedUser = localStorage.getItem("pwa-user");
+      const authToken = localStorage.getItem("pwa-auth-token");
+
+      if (savedUser && authToken) {
+        try {
+          const userData = JSON.parse(savedUser);
+          setUser(userData);
+          setTenant({
+            businessName: userData.tenantName || "İşletme"
+          });
+
+          // Dashboard verilerini çek
+          fetchDashboardData(authToken, userData.tenantId);
+        } catch (e) {
+          // Parse hatası - login'e yönlendir
+          router.replace("/pwa-business-login");
+        }
+      } else {
+        // Giriş yapılmamış - login'e yönlendir
+        router.replace("/pwa-business-login");
+      }
+
+      setIsLoading(false);
     }
-  }, []);
+  }, [router]);
+
+  const fetchDashboardData = async (token: string, tenantId: string) => {
+    try {
+      const response = await fetch("https://admin.netrandevu.com/api/mobile/staff/appointments", {
+        headers: {
+          "Authorization": `Bearer ${token}`,
+          "X-Tenant-ID": tenantId,
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success && data.data) {
+          // İstatistikleri hesapla
+          const today = getTodayDate();
+          const appointments = data.data || [];
+
+          const todayAppointments = appointments.filter((apt: any) => apt.date === today);
+          const pendingCount = appointments.filter((apt: any) => apt.status === "pending").length;
+          const completedToday = todayAppointments.filter((apt: any) => apt.status === "completed").length;
+          const todayRevenue = todayAppointments
+            .filter((apt: any) => apt.status === "completed")
+            .reduce((sum: number, apt: any) => sum + (apt.price || 0), 0);
+
+          setStats({
+            todayTotal: todayAppointments.length,
+            todayCompleted: completedToday,
+            todayPending: pendingCount,
+            todayRevenue: todayRevenue,
+            weekRevenue: 0,
+            completedCount: completedToday
+          });
+
+          // Yaklaşan randevuları ayarla
+          const now = new Date();
+          const currentTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+          const upcoming = todayAppointments
+            .filter((apt: any) =>
+              apt.time >= currentTime &&
+              apt.status !== "completed" &&
+              apt.status !== "cancelled" &&
+              apt.status !== "no_show"
+            )
+            .slice(0, 3);
+
+          setUpcomingAppointments(upcoming);
+        }
+      }
+    } catch (error) {
+      console.error("Dashboard veri çekme hatası:", error);
+    }
+  };
 
   const handleLogout = () => {
     localStorage.removeItem("pwa-user-role");
@@ -131,15 +198,15 @@ export default function PWAStaffDashboard() {
           <div className="flex items-center justify-between mb-4">
             <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center">
               <span className="text-white text-xl font-bold">
-                {user.firstName?.charAt(0) || "U"}
+                {user?.firstName?.charAt(0) || "U"}
               </span>
             </div>
             <button onClick={() => setDrawerOpen(false)} className="text-white/80">
               <X className="w-6 h-6" />
             </button>
           </div>
-          <h3 className="text-white font-semibold">{user.firstName} {user.lastName}</h3>
-          <p className="text-white/70 text-sm">{tenant.businessName}</p>
+          <h3 className="text-white font-semibold">{user?.firstName || "Kullanıcı"} {user?.lastName || ""}</h3>
+          <p className="text-white/70 text-sm">{tenant?.businessName || "İşletme"}</p>
         </div>
 
         {/* Drawer Menu Items */}
@@ -193,8 +260,8 @@ export default function PWAStaffDashboard() {
               <Menu className="w-6 h-6 text-white" />
             </button>
             <div className="flex-1 mx-4">
-              <h1 className="text-white text-xl font-bold">{getGreeting()}, {user.firstName}</h1>
-              <p className="text-white/70 text-sm">{tenant.businessName}</p>
+              <h1 className="text-white text-xl font-bold">{getGreeting()}, {user?.firstName || "Kullanıcı"}</h1>
+              <p className="text-white/70 text-sm">{tenant?.businessName || "İşletme"}</p>
             </div>
             <button className="w-11 h-11 bg-white/10 rounded-xl flex items-center justify-center relative">
               <Bell className="w-6 h-6 text-white" />
