@@ -29,7 +29,13 @@ import {
   UserPlus,
   Activity,
   DollarSign,
-  Mail
+  Mail,
+  Package,
+  Star,
+  CreditCard,
+  Briefcase,
+  LayoutGrid,
+  List
 } from "lucide-react";
 
 // ==================== HELPERS ====================
@@ -154,8 +160,38 @@ interface Staff {
   lastName: string;
   phone?: string;
   email?: string;
+  position?: string;
   monthlyAppointments?: number;
   monthlyRevenue?: number;
+}
+
+interface PackageItem {
+  id: string;
+  itemType: string;
+  itemId: string;
+  itemName: string;
+  quantity: number;
+}
+
+interface Package {
+  id: string;
+  name: string;
+  description?: string;
+  price: number;
+  isActive: boolean;
+  items: PackageItem[];
+  customerCount?: number;
+}
+
+interface Transaction {
+  id: string;
+  type: string;
+  amount: number;
+  description: string;
+  paymentType: string;
+  customerName?: string;
+  date: string;
+  createdAt: string;
 }
 
 // ==================== MAIN COMPONENT ====================
@@ -178,6 +214,9 @@ export default function PWAIsletmePanel() {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [services, setServices] = useState<Service[]>([]);
   const [staffList, setStaffList] = useState<Staff[]>([]);
+  const [packages, setPackages] = useState<Package[]>([]);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [transactionSummary, setTransactionSummary] = useState({ income: 0, expense: 0, profit: 0 });
 
   // Stats
   const [stats, setStats] = useState({
@@ -195,6 +234,7 @@ export default function PWAIsletmePanel() {
   const [selectedDate, setSelectedDate] = useState(getTodayDate());
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [viewMode, setViewMode] = useState<"list" | "calendar">("calendar");
 
   // Modals
   const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
@@ -248,11 +288,13 @@ export default function PWAIsletmePanel() {
     if (!authToken || !tenant?.id) return;
 
     try {
-      const [appointmentsRes, customersRes, servicesRes, staffRes] = await Promise.all([
+      const [appointmentsRes, customersRes, servicesRes, staffRes, packagesRes, transactionsRes] = await Promise.all([
         apiCall('/appointments'),
         apiCall('/customers'),
         apiCall('/services'),
         apiCall('/staff'),
+        apiCall('/packages'),
+        apiCall('/transactions'),
       ]);
 
       if (appointmentsRes.success) {
@@ -266,6 +308,15 @@ export default function PWAIsletmePanel() {
       }
       if (staffRes.success) {
         setStaffList(staffRes.data || []);
+      }
+      if (packagesRes.success) {
+        setPackages(packagesRes.data || []);
+      }
+      if (transactionsRes.success) {
+        setTransactions(transactionsRes.data || []);
+        if (transactionsRes.summary) {
+          setTransactionSummary(transactionsRes.summary);
+        }
       }
     } catch (error) {
       console.error('Veri çekme hatası:', error);
@@ -687,9 +738,53 @@ export default function PWAIsletmePanel() {
     </div>
   );
 
+  // Calendar view helper: generate time slots
+  const generateTimeSlots = () => {
+    const slots = [];
+    for (let hour = 9; hour <= 20; hour++) {
+      slots.push(`${hour.toString().padStart(2, '0')}:00`);
+      slots.push(`${hour.toString().padStart(2, '0')}:30`);
+    }
+    return slots;
+  };
+
+  const timeSlots = generateTimeSlots();
+
+  // Get appointments for a specific staff and time
+  const getAppointmentForSlot = (staffId: string, time: string) => {
+    return filteredAppointments.find(apt => {
+      if (apt.staffId !== staffId) return false;
+      const aptTime = apt.time.substring(0, 5);
+      const aptHour = parseInt(aptTime.split(':')[0]);
+      const aptMinute = parseInt(aptTime.split(':')[1]);
+      const slotHour = parseInt(time.split(':')[0]);
+      const slotMinute = parseInt(time.split(':')[1]);
+
+      const aptStartMinutes = aptHour * 60 + aptMinute;
+      const slotStartMinutes = slotHour * 60 + slotMinute;
+      const aptEndMinutes = aptStartMinutes + (apt.duration || 30);
+
+      return slotStartMinutes >= aptStartMinutes && slotStartMinutes < aptEndMinutes;
+    });
+  };
+
+  // Check if this is the start time of an appointment
+  const isAppointmentStart = (staffId: string, time: string) => {
+    return filteredAppointments.find(apt => {
+      if (apt.staffId !== staffId) return false;
+      const aptTime = apt.time.substring(0, 5);
+      return aptTime === time;
+    });
+  };
+
+  // Get row span based on duration
+  const getRowSpan = (duration: number) => {
+    return Math.ceil(duration / 30);
+  };
+
   const renderAppointments = () => (
     <div className="space-y-4">
-      {/* Date Navigator */}
+      {/* Date Navigator with View Toggle */}
       <div className="bg-white border border-gray-200 rounded-2xl p-4 shadow-sm">
         <div className="flex items-center justify-between">
           <button
@@ -719,6 +814,34 @@ export default function PWAIsletmePanel() {
             <ChevronRight className="w-5 h-5 text-gray-600" />
           </button>
         </div>
+
+        {/* View Toggle */}
+        <div className="flex justify-center mt-3 pt-3 border-t border-gray-100">
+          <div className="flex bg-gray-100 rounded-xl p-1">
+            <button
+              onClick={() => setViewMode("calendar")}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                viewMode === "calendar"
+                  ? "bg-white text-blue-600 shadow-sm"
+                  : "text-gray-500"
+              }`}
+            >
+              <LayoutGrid className="w-4 h-4" />
+              Takvim
+            </button>
+            <button
+              onClick={() => setViewMode("list")}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                viewMode === "list"
+                  ? "bg-white text-blue-600 shadow-sm"
+                  : "text-gray-500"
+              }`}
+            >
+              <List className="w-4 h-4" />
+              Liste
+            </button>
+          </div>
+        </div>
       </div>
 
       {/* Filter Pills */}
@@ -738,80 +861,224 @@ export default function PWAIsletmePanel() {
         ))}
       </div>
 
-      {/* Appointments List */}
-      {filteredAppointments.length > 0 ? (
-        <div className="space-y-3">
-          {filteredAppointments.map((apt) => (
-            <div
-              key={apt.id}
-              onClick={() => { setSelectedAppointment(apt); setShowAppointmentModal(true); }}
-              className="bg-white border border-gray-200 rounded-2xl p-4 shadow-sm cursor-pointer active:scale-[0.99] transition-all"
-            >
-              <div className="flex items-start gap-3">
-                <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${
-                  apt.status === 'completed' ? 'bg-green-100' :
-                  apt.status === 'cancelled' ? 'bg-red-100' : 'bg-blue-100'
-                }`}>
-                  <Clock className={`w-6 h-6 ${
-                    apt.status === 'completed' ? 'text-green-600' :
-                    apt.status === 'cancelled' ? 'text-red-600' : 'text-blue-600'
-                  }`} />
+      {/* Calendar View */}
+      {viewMode === "calendar" ? (
+        <div className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
+          {/* Staff Header */}
+          <div className="overflow-x-auto">
+            <div className="min-w-[600px]">
+              <div className="flex border-b border-gray-200 bg-gray-50 sticky top-0 z-10">
+                <div className="w-16 flex-shrink-0 p-2 border-r border-gray-200 bg-gray-100">
+                  <span className="text-xs text-gray-500 font-medium">Saat</span>
                 </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0">
-                      <p className="text-gray-900 font-semibold truncate">{apt.customerName}</p>
-                      <p className="text-gray-500 text-sm">{apt.serviceName}</p>
+                {staffList.map((staff) => (
+                  <div
+                    key={staff.id}
+                    className="flex-1 min-w-[120px] p-2 border-r border-gray-200 last:border-r-0 text-center"
+                  >
+                    <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center mx-auto mb-1">
+                      <span className="text-white text-xs font-bold">
+                        {staff.firstName?.charAt(0)}
+                      </span>
                     </div>
-                    <div className="text-right flex-shrink-0">
-                      <p className="text-gray-900 font-bold text-lg">{formatTime(apt.time)}</p>
-                      <p className="text-gray-400 text-xs">{apt.duration} dk</p>
-                    </div>
+                    <p className="text-xs font-medium text-gray-800 truncate">{staff.firstName}</p>
                   </div>
-                  <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-100">
-                    <div className="flex items-center gap-4">
-                      <div className="flex items-center gap-1.5">
-                        <User className="w-3.5 h-3.5 text-gray-400" />
-                        <span className="text-gray-500 text-xs">{apt.staffName}</span>
+                ))}
+              </div>
+
+              {/* Time Slots Grid */}
+              <div className="max-h-[60vh] overflow-y-auto">
+                {timeSlots.map((time, timeIndex) => {
+                  const isHour = time.endsWith(':00');
+                  return (
+                    <div
+                      key={time}
+                      className={`flex border-b border-gray-100 ${isHour ? 'bg-gray-50/50' : ''}`}
+                    >
+                      <div className={`w-16 flex-shrink-0 p-2 border-r border-gray-200 ${isHour ? 'bg-gray-100/50' : ''}`}>
+                        <span className={`text-xs ${isHour ? 'text-gray-700 font-medium' : 'text-gray-400'}`}>
+                          {time}
+                        </span>
                       </div>
-                      {apt.customerPhone && (
-                        <a
-                          href={`tel:${apt.customerPhone}`}
-                          onClick={(e) => e.stopPropagation()}
-                          className="flex items-center gap-1.5 text-blue-600"
-                        >
-                          <Phone className="w-3.5 h-3.5" />
-                        </a>
-                      )}
+                      {staffList.map((staff) => {
+                        const appointment = isAppointmentStart(staff.id, time);
+                        const hasAppointment = getAppointmentForSlot(staff.id, time);
+
+                        if (appointment) {
+                          const rowSpan = getRowSpan(appointment.duration || 30);
+                          return (
+                            <div
+                              key={staff.id}
+                              className="flex-1 min-w-[120px] p-1 border-r border-gray-100 last:border-r-0 relative"
+                              style={{ minHeight: '40px' }}
+                            >
+                              <div
+                                onClick={() => { setSelectedAppointment(appointment); setShowAppointmentModal(true); }}
+                                className={`absolute left-1 right-1 rounded-lg p-2 cursor-pointer transition-all active:scale-[0.98] overflow-hidden ${
+                                  appointment.status === 'completed' ? 'bg-green-100 border-l-4 border-green-500' :
+                                  appointment.status === 'cancelled' ? 'bg-red-100 border-l-4 border-red-500' :
+                                  appointment.status === 'confirmed' ? 'bg-blue-100 border-l-4 border-blue-500' :
+                                  'bg-amber-100 border-l-4 border-amber-500'
+                                }`}
+                                style={{
+                                  height: `${rowSpan * 40 - 8}px`,
+                                  zIndex: 5
+                                }}
+                              >
+                                <p className="text-xs font-semibold text-gray-800 truncate">
+                                  {appointment.customerName}
+                                </p>
+                                <p className="text-[10px] text-gray-600 truncate">
+                                  {appointment.serviceName}
+                                </p>
+                                <div className="flex items-center gap-1 mt-1">
+                                  <Clock className="w-3 h-3 text-gray-400" />
+                                  <span className="text-[10px] text-gray-500">
+                                    {formatTime(appointment.time)} - {appointment.duration}dk
+                                  </span>
+                                </div>
+                                {appointment.price > 0 && (
+                                  <p className="text-[10px] font-semibold text-green-600 mt-1">
+                                    {formatCurrency(appointment.price)}
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        } else if (hasAppointment) {
+                          // This slot is occupied by an ongoing appointment
+                          return (
+                            <div
+                              key={staff.id}
+                              className="flex-1 min-w-[120px] p-1 border-r border-gray-100 last:border-r-0"
+                              style={{ minHeight: '40px' }}
+                            />
+                          );
+                        } else {
+                          // Empty slot
+                          return (
+                            <div
+                              key={staff.id}
+                              className="flex-1 min-w-[120px] p-1 border-r border-gray-100 last:border-r-0 hover:bg-blue-50 transition-colors cursor-pointer"
+                              style={{ minHeight: '40px' }}
+                              onClick={() => {
+                                setNewAppointment(prev => ({
+                                  ...prev,
+                                  staffId: staff.id,
+                                  date: selectedDate,
+                                  time: time
+                                }));
+                                setShowNewAppointmentModal(true);
+                              }}
+                            />
+                          );
+                        }
+                      })}
                     </div>
-                    <span className={`px-2.5 py-1 rounded-full text-xs font-medium border flex items-center gap-1 ${getStatusColor(apt.status)}`}>
-                      {getStatusIcon(apt.status)}
-                      {getStatusText(apt.status)}
-                    </span>
-                  </div>
-                  {apt.price > 0 && (
-                    <div className="mt-2 text-right">
-                      <span className="text-green-600 font-bold">{formatCurrency(apt.price)}</span>
-                    </div>
-                  )}
-                </div>
+                  );
+                })}
               </div>
             </div>
-          ))}
+          </div>
+
+          {/* Legend */}
+          <div className="p-3 bg-gray-50 border-t border-gray-200">
+            <div className="flex flex-wrap gap-3 justify-center text-xs">
+              <div className="flex items-center gap-1.5">
+                <div className="w-3 h-3 bg-amber-100 border-l-2 border-amber-500 rounded-sm"></div>
+                <span className="text-gray-600">Bekliyor</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <div className="w-3 h-3 bg-blue-100 border-l-2 border-blue-500 rounded-sm"></div>
+                <span className="text-gray-600">Onaylandı</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <div className="w-3 h-3 bg-green-100 border-l-2 border-green-500 rounded-sm"></div>
+                <span className="text-gray-600">Tamamlandı</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <div className="w-3 h-3 bg-red-100 border-l-2 border-red-500 rounded-sm"></div>
+                <span className="text-gray-600">İptal</span>
+              </div>
+            </div>
+          </div>
         </div>
       ) : (
-        <div className="bg-white border border-gray-200 rounded-2xl p-10 text-center shadow-sm">
-          <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <Calendar className="w-8 h-8 text-gray-400" />
+        /* List View */
+        filteredAppointments.length > 0 ? (
+          <div className="space-y-3">
+            {filteredAppointments.map((apt) => (
+              <div
+                key={apt.id}
+                onClick={() => { setSelectedAppointment(apt); setShowAppointmentModal(true); }}
+                className="bg-white border border-gray-200 rounded-2xl p-4 shadow-sm cursor-pointer active:scale-[0.99] transition-all"
+              >
+                <div className="flex items-start gap-3">
+                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${
+                    apt.status === 'completed' ? 'bg-green-100' :
+                    apt.status === 'cancelled' ? 'bg-red-100' : 'bg-blue-100'
+                  }`}>
+                    <Clock className={`w-6 h-6 ${
+                      apt.status === 'completed' ? 'text-green-600' :
+                      apt.status === 'cancelled' ? 'text-red-600' : 'text-blue-600'
+                    }`} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <p className="text-gray-900 font-semibold truncate">{apt.customerName}</p>
+                        <p className="text-gray-500 text-sm">{apt.serviceName}</p>
+                      </div>
+                      <div className="text-right flex-shrink-0">
+                        <p className="text-gray-900 font-bold text-lg">{formatTime(apt.time)}</p>
+                        <p className="text-gray-400 text-xs">{apt.duration} dk</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-100">
+                      <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-1.5">
+                          <User className="w-3.5 h-3.5 text-gray-400" />
+                          <span className="text-gray-500 text-xs">{apt.staffName}</span>
+                        </div>
+                        {apt.customerPhone && (
+                          <a
+                            href={`tel:${apt.customerPhone}`}
+                            onClick={(e) => e.stopPropagation()}
+                            className="flex items-center gap-1.5 text-blue-600"
+                          >
+                            <Phone className="w-3.5 h-3.5" />
+                          </a>
+                        )}
+                      </div>
+                      <span className={`px-2.5 py-1 rounded-full text-xs font-medium border flex items-center gap-1 ${getStatusColor(apt.status)}`}>
+                        {getStatusIcon(apt.status)}
+                        {getStatusText(apt.status)}
+                      </span>
+                    </div>
+                    {apt.price > 0 && (
+                      <div className="mt-2 text-right">
+                        <span className="text-green-600 font-bold">{formatCurrency(apt.price)}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
-          <p className="text-gray-600 font-medium">Bu tarihte randevu bulunmuyor</p>
-          <button
-            onClick={() => setShowNewAppointmentModal(true)}
-            className="mt-4 px-5 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-semibold shadow-lg shadow-blue-600/30 active:scale-95 transition-transform"
-          >
-            Randevu Ekle
-          </button>
-        </div>
+        ) : (
+          <div className="bg-white border border-gray-200 rounded-2xl p-10 text-center shadow-sm">
+            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Calendar className="w-8 h-8 text-gray-400" />
+            </div>
+            <p className="text-gray-600 font-medium">Bu tarihte randevu bulunmuyor</p>
+            <button
+              onClick={() => setShowNewAppointmentModal(true)}
+              className="mt-4 px-5 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-semibold shadow-lg shadow-blue-600/30 active:scale-95 transition-transform"
+            >
+              Randevu Ekle
+            </button>
+          </div>
+        )
       )}
 
       {/* FAB */}
@@ -993,6 +1260,299 @@ export default function PWAIsletmePanel() {
           </div>
         ))}
       </div>
+    </div>
+  );
+
+  const renderServices = () => (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between px-1">
+        <h2 className="text-gray-800 font-semibold">Hizmetler</h2>
+        <span className="text-gray-400 text-sm">{services.length} hizmet</span>
+      </div>
+
+      {services.length > 0 ? (
+        <div className="space-y-3">
+          {services.map((service) => (
+            <div
+              key={service.id}
+              className="bg-white border border-gray-200 rounded-2xl p-4 shadow-sm"
+            >
+              <div className="flex items-start justify-between">
+                <div className="flex items-start gap-3">
+                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
+                    service.isActive ? 'bg-blue-100' : 'bg-gray-100'
+                  }`}>
+                    <Scissors className={`w-6 h-6 ${service.isActive ? 'text-blue-600' : 'text-gray-400'}`} />
+                  </div>
+                  <div>
+                    <p className="text-gray-900 font-semibold">{service.name}</p>
+                    <p className="text-gray-500 text-sm">{service.duration} dakika</p>
+                    {service.category && (
+                      <span className="inline-block mt-1 text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">
+                        {service.category}
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <div className="text-right">
+                  <p className="text-green-600 font-bold text-lg">{formatCurrency(service.price)}</p>
+                  <span className={`text-xs px-2 py-0.5 rounded-full ${
+                    service.isActive ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-500'
+                  }`}>
+                    {service.isActive ? 'Aktif' : 'Pasif'}
+                  </span>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="bg-white border border-gray-200 rounded-2xl p-10 text-center shadow-sm">
+          <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <Scissors className="w-8 h-8 text-gray-400" />
+          </div>
+          <p className="text-gray-600 font-medium">Henüz hizmet eklenmemiş</p>
+        </div>
+      )}
+    </div>
+  );
+
+  const renderStaff = () => (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between px-1">
+        <h2 className="text-gray-800 font-semibold">Personel</h2>
+        <span className="text-gray-400 text-sm">{staffList.length} personel</span>
+      </div>
+
+      {staffList.length > 0 ? (
+        <div className="space-y-3">
+          {staffList.map((staff) => (
+            <div
+              key={staff.id}
+              className="bg-white border border-gray-200 rounded-2xl p-4 shadow-sm"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-14 h-14 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center shadow-lg">
+                  <span className="text-white text-lg font-bold">
+                    {staff.firstName?.charAt(0)}{staff.lastName?.charAt(0)}
+                  </span>
+                </div>
+                <div className="flex-1">
+                  <p className="text-gray-900 font-semibold">{staff.firstName} {staff.lastName}</p>
+                  {staff.position && (
+                    <p className="text-gray-500 text-sm">{staff.position}</p>
+                  )}
+                  <div className="flex gap-3 mt-1">
+                    {staff.phone && (
+                      <a href={`tel:${staff.phone}`} className="text-blue-600 text-xs flex items-center gap-1">
+                        <Phone className="w-3 h-3" /> {staff.phone}
+                      </a>
+                    )}
+                  </div>
+                </div>
+                <ChevronRight className="w-5 h-5 text-gray-400" />
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="bg-white border border-gray-200 rounded-2xl p-10 text-center shadow-sm">
+          <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <Users className="w-8 h-8 text-gray-400" />
+          </div>
+          <p className="text-gray-600 font-medium">Henüz personel eklenmemiş</p>
+        </div>
+      )}
+    </div>
+  );
+
+  const renderPackages = () => (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between px-1">
+        <h2 className="text-gray-800 font-semibold">Paketler</h2>
+        <span className="text-gray-400 text-sm">{packages.length} paket</span>
+      </div>
+
+      {packages.length > 0 ? (
+        <div className="space-y-3">
+          {packages.map((pkg) => (
+            <div
+              key={pkg.id}
+              className="bg-white border border-gray-200 rounded-2xl p-4 shadow-sm"
+            >
+              <div className="flex items-start justify-between mb-3">
+                <div className="flex items-start gap-3">
+                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
+                    pkg.isActive ? 'bg-purple-100' : 'bg-gray-100'
+                  }`}>
+                    <Package className={`w-6 h-6 ${pkg.isActive ? 'text-purple-600' : 'text-gray-400'}`} />
+                  </div>
+                  <div>
+                    <p className="text-gray-900 font-semibold">{pkg.name}</p>
+                    {pkg.description && (
+                      <p className="text-gray-500 text-sm mt-0.5 line-clamp-2">{pkg.description}</p>
+                    )}
+                  </div>
+                </div>
+                <div className="text-right">
+                  <p className="text-green-600 font-bold text-lg">{formatCurrency(pkg.price)}</p>
+                </div>
+              </div>
+
+              {pkg.items && pkg.items.length > 0 && (
+                <div className="border-t border-gray-100 pt-3 mt-3">
+                  <p className="text-gray-500 text-xs mb-2">Paket İçeriği:</p>
+                  <div className="flex flex-wrap gap-2">
+                    {pkg.items.map((item) => (
+                      <span key={item.id} className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded-full">
+                        {item.itemName} x{item.quantity}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-100">
+                <span className={`text-xs px-2 py-0.5 rounded-full ${
+                  pkg.isActive ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-500'
+                }`}>
+                  {pkg.isActive ? 'Aktif' : 'Pasif'}
+                </span>
+                {pkg.customerCount !== undefined && (
+                  <span className="text-gray-400 text-xs">{pkg.customerCount} müşteri</span>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="bg-white border border-gray-200 rounded-2xl p-10 text-center shadow-sm">
+          <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <Package className="w-8 h-8 text-gray-400" />
+          </div>
+          <p className="text-gray-600 font-medium">Henüz paket eklenmemiş</p>
+        </div>
+      )}
+    </div>
+  );
+
+  const renderKasa = () => (
+    <div className="space-y-4">
+      <h2 className="text-gray-800 font-semibold px-1">Kasa</h2>
+
+      {/* Summary Cards */}
+      <div className="grid grid-cols-3 gap-3">
+        <div className="bg-gradient-to-br from-green-500 to-emerald-600 rounded-2xl p-3 text-white shadow-lg">
+          <p className="text-white/80 text-xs">Gelir</p>
+          <p className="text-lg font-bold">{formatCurrency(transactionSummary.income)}</p>
+        </div>
+        <div className="bg-gradient-to-br from-red-500 to-rose-600 rounded-2xl p-3 text-white shadow-lg">
+          <p className="text-white/80 text-xs">Gider</p>
+          <p className="text-lg font-bold">{formatCurrency(transactionSummary.expense)}</p>
+        </div>
+        <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl p-3 text-white shadow-lg">
+          <p className="text-white/80 text-xs">Kar</p>
+          <p className="text-lg font-bold">{formatCurrency(transactionSummary.profit)}</p>
+        </div>
+      </div>
+
+      {/* Transactions List */}
+      <div className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
+        <div className="p-4 border-b border-gray-100">
+          <h3 className="text-gray-800 font-semibold">Son İşlemler</h3>
+        </div>
+
+        {transactions.length > 0 ? (
+          <div className="divide-y divide-gray-100">
+            {transactions.slice(0, 10).map((tx) => (
+              <div key={tx.id} className="p-4 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                    tx.type === 'expense' ? 'bg-red-100' : 'bg-green-100'
+                  }`}>
+                    {tx.type === 'expense' ? (
+                      <TrendingUp className="w-5 h-5 text-red-600 rotate-180" />
+                    ) : (
+                      <TrendingUp className="w-5 h-5 text-green-600" />
+                    )}
+                  </div>
+                  <div>
+                    <p className="text-gray-900 font-medium text-sm">{tx.description}</p>
+                    <div className="flex items-center gap-2 text-xs text-gray-400">
+                      <span>{tx.date}</span>
+                      {tx.customerName && <span>• {tx.customerName}</span>}
+                    </div>
+                  </div>
+                </div>
+                <p className={`font-bold ${tx.type === 'expense' ? 'text-red-600' : 'text-green-600'}`}>
+                  {tx.type === 'expense' ? '-' : '+'}{formatCurrency(tx.amount)}
+                </p>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="p-10 text-center">
+            <div className="w-14 h-14 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
+              <CreditCard className="w-7 h-7 text-gray-400" />
+            </div>
+            <p className="text-gray-500">Henüz işlem bulunmuyor</p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+
+  const renderPerformance = () => (
+    <div className="space-y-4">
+      <h2 className="text-gray-800 font-semibold px-1">Performans</h2>
+
+      {/* Staff Performance Cards */}
+      <div className="space-y-3">
+        {staffList.map((staff) => (
+          <div
+            key={staff.id}
+            className="bg-white border border-gray-200 rounded-2xl p-4 shadow-sm"
+          >
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-12 h-12 bg-gradient-to-br from-amber-400 to-orange-500 rounded-full flex items-center justify-center shadow-lg">
+                <span className="text-white font-bold">
+                  {staff.firstName?.charAt(0)}{staff.lastName?.charAt(0)}
+                </span>
+              </div>
+              <div>
+                <p className="text-gray-900 font-semibold">{staff.firstName} {staff.lastName}</p>
+                {staff.position && <p className="text-gray-500 text-sm">{staff.position}</p>}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="bg-blue-50 rounded-xl p-3 text-center">
+                <p className="text-2xl font-bold text-blue-600">{staff.monthlyAppointments || 0}</p>
+                <p className="text-gray-500 text-xs">Randevu</p>
+              </div>
+              <div className="bg-green-50 rounded-xl p-3 text-center">
+                <p className="text-2xl font-bold text-green-600">{formatCurrency(staff.monthlyRevenue || 0)}</p>
+                <p className="text-gray-500 text-xs">Gelir</p>
+              </div>
+            </div>
+
+            <div className="mt-3 flex items-center justify-center gap-1">
+              {[1, 2, 3, 4, 5].map((star) => (
+                <Star key={star} className="w-4 h-4 text-amber-400 fill-amber-400" />
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {staffList.length === 0 && (
+        <div className="bg-white border border-gray-200 rounded-2xl p-10 text-center shadow-sm">
+          <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <Star className="w-8 h-8 text-gray-400" />
+          </div>
+          <p className="text-gray-600 font-medium">Performans verisi bulunmuyor</p>
+        </div>
+      )}
     </div>
   );
 
@@ -1550,13 +2110,18 @@ export default function PWAIsletmePanel() {
           <p className="text-white/70 text-sm">{tenant?.businessName}</p>
         </div>
 
-        <div className="p-4">
+        <div className="p-4 overflow-y-auto max-h-[calc(100vh-180px)]">
           <div className="space-y-1">
             {[
               { id: 'home', icon: Home, label: 'Ana Sayfa' },
               { id: 'appointments', icon: Calendar, label: 'Randevular' },
               { id: 'customers', icon: Users, label: 'Müşteriler' },
+              { id: 'services', icon: Scissors, label: 'Hizmetler' },
+              { id: 'staff', icon: Briefcase, label: 'Personel' },
+              { id: 'packages', icon: Package, label: 'Paketler' },
+              { id: 'kasa', icon: CreditCard, label: 'Kasa' },
               { id: 'reports', icon: BarChart3, label: 'Raporlar' },
+              { id: 'performance', icon: Star, label: 'Performans' },
               { id: 'settings', icon: Settings, label: 'Ayarlar' },
             ].map((item) => (
               <button
@@ -1631,7 +2196,12 @@ export default function PWAIsletmePanel() {
         {activeTab === "home" && renderHome()}
         {activeTab === "appointments" && renderAppointments()}
         {activeTab === "customers" && renderCustomers()}
+        {activeTab === "services" && renderServices()}
+        {activeTab === "staff" && renderStaff()}
+        {activeTab === "packages" && renderPackages()}
+        {activeTab === "kasa" && renderKasa()}
         {activeTab === "reports" && renderReports()}
+        {activeTab === "performance" && renderPerformance()}
         {activeTab === "settings" && renderSettings()}
       </div>
 
