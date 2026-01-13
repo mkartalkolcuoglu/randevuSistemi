@@ -248,12 +248,15 @@ export default function PWAIsletmePanel() {
   // New Appointment Form
   const [newAppointment, setNewAppointment] = useState({
     customerId: '',
+    customerName: '',
+    customerPhone: '',
     serviceId: '',
     staffId: '',
     date: getTodayDate(),
     time: '10:00',
     notes: ''
   });
+  const [customerInputMode, setCustomerInputMode] = useState<'select' | 'new'>('select');
 
   // New Customer Form
   const [newCustomer, setNewCustomer] = useState({
@@ -380,8 +383,25 @@ export default function PWAIsletmePanel() {
   };
 
   const createAppointment = async () => {
-    if (!newAppointment.customerId || !newAppointment.serviceId || !newAppointment.staffId) {
-      setFormError('Lütfen tüm alanları doldurun');
+    // Validasyon - mevcut müşteri veya yeni müşteri bilgisi gerekli
+    if (customerInputMode === 'select' && !newAppointment.customerId) {
+      setFormError('Lütfen bir müşteri seçin');
+      return;
+    }
+
+    if (customerInputMode === 'new') {
+      if (!newAppointment.customerPhone) {
+        setFormError('Müşteri telefon numarası zorunludur');
+        return;
+      }
+      if (!newAppointment.customerName) {
+        setFormError('Müşteri adı zorunludur');
+        return;
+      }
+    }
+
+    if (!newAppointment.serviceId || !newAppointment.staffId) {
+      setFormError('Lütfen hizmet ve personel seçin');
       return;
     }
 
@@ -390,13 +410,32 @@ export default function PWAIsletmePanel() {
 
     try {
       const selectedService = services.find(s => s.id === newAppointment.serviceId);
+
+      // API'ye gönderilecek data
+      const appointmentData: any = {
+        serviceId: newAppointment.serviceId,
+        staffId: newAppointment.staffId,
+        date: newAppointment.date,
+        time: newAppointment.time,
+        notes: newAppointment.notes,
+        duration: selectedService?.duration || 30,
+        price: selectedService?.price || 0
+      };
+
+      // Mevcut müşteri seçildiyse customerId gönder
+      if (customerInputMode === 'select' && newAppointment.customerId) {
+        appointmentData.customerId = newAppointment.customerId;
+      }
+
+      // Yeni müşteri bilgisi girildiyse customerName ve customerPhone gönder
+      if (customerInputMode === 'new') {
+        appointmentData.customerName = newAppointment.customerName;
+        appointmentData.customerPhone = newAppointment.customerPhone;
+      }
+
       const res = await apiCall('/appointments', {
         method: 'POST',
-        body: JSON.stringify({
-          ...newAppointment,
-          duration: selectedService?.duration || 30,
-          price: selectedService?.price || 0
-        }),
+        body: JSON.stringify(appointmentData),
       });
 
       if (res.success) {
@@ -404,14 +443,17 @@ export default function PWAIsletmePanel() {
         setShowNewAppointmentModal(false);
         setNewAppointment({
           customerId: '',
+          customerName: '',
+          customerPhone: '',
           serviceId: '',
           staffId: '',
           date: getTodayDate(),
           time: '10:00',
           notes: ''
         });
+        setCustomerInputMode('select');
       } else {
-        setFormError(res.error || 'Randevu oluşturulamadı');
+        setFormError(res.message || res.error || 'Randevu oluşturulamadı');
       }
     } catch (error) {
       console.error('Randevu oluşturma hatası:', error);
@@ -1886,19 +1928,72 @@ export default function PWAIsletmePanel() {
               </div>
             )}
 
-            {/* Müşteri Seçimi */}
+            {/* Müşteri Seçim Modu */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Müşteri *</label>
-              <select
-                value={newAppointment.customerId}
-                onChange={(e) => setNewAppointment(prev => ({ ...prev, customerId: e.target.value }))}
-                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              >
-                <option value="">Müşteri seçin</option>
-                {customers.map(c => (
-                  <option key={c.id} value={c.id}>{c.firstName} {c.lastName}</option>
-                ))}
-              </select>
+              <div className="flex gap-2 mb-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCustomerInputMode('select');
+                    setNewAppointment(prev => ({ ...prev, customerName: '', customerPhone: '' }));
+                  }}
+                  className={`flex-1 py-2 px-3 rounded-xl text-sm font-medium transition-colors ${
+                    customerInputMode === 'select'
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-100 text-gray-700'
+                  }`}
+                >
+                  Mevcut Müşteri
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCustomerInputMode('new');
+                    setNewAppointment(prev => ({ ...prev, customerId: '' }));
+                  }}
+                  className={`flex-1 py-2 px-3 rounded-xl text-sm font-medium transition-colors ${
+                    customerInputMode === 'new'
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-100 text-gray-700'
+                  }`}
+                >
+                  Yeni Müşteri
+                </button>
+              </div>
+
+              {customerInputMode === 'select' ? (
+                <select
+                  value={newAppointment.customerId}
+                  onChange={(e) => setNewAppointment(prev => ({ ...prev, customerId: e.target.value }))}
+                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  <option value="">Müşteri seçin</option>
+                  {customers.map(c => (
+                    <option key={c.id} value={c.id}>{c.firstName} {c.lastName} - {c.phone}</option>
+                  ))}
+                </select>
+              ) : (
+                <div className="space-y-3">
+                  <input
+                    type="text"
+                    placeholder="Müşteri Adı Soyadı *"
+                    value={newAppointment.customerName}
+                    onChange={(e) => setNewAppointment(prev => ({ ...prev, customerName: e.target.value }))}
+                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                  <input
+                    type="tel"
+                    placeholder="Telefon Numarası * (5XX XXX XX XX)"
+                    value={newAppointment.customerPhone}
+                    onChange={(e) => setNewAppointment(prev => ({ ...prev, customerPhone: e.target.value }))}
+                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                  <p className="text-xs text-gray-500">
+                    Telefon numarası sistemde kayıtlıysa mevcut müşteriye bağlanır, değilse yeni müşteri oluşturulur.
+                  </p>
+                </div>
+              )}
             </div>
 
             {/* Hizmet Seçimi */}
