@@ -190,6 +190,22 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Müşteri bilgisi zorunlu - telefon veya mevcut müşteri ID gerekli
+    if (!customerId && !customerPhone) {
+      return NextResponse.json(
+        { success: false, message: 'Müşteri telefon numarası zorunludur' },
+        { status: 400 }
+      );
+    }
+
+    // Telefon varsa isim de zorunlu
+    if (customerPhone && !customerName) {
+      return NextResponse.json(
+        { success: false, message: 'Müşteri adı zorunludur' },
+        { status: 400 }
+      );
+    }
+
     // Get service for duration and price
     const service = await prisma.service.findUnique({
       where: { id: serviceId },
@@ -222,7 +238,7 @@ export async function POST(request: NextRequest) {
     }
 
     let finalCustomerId = customerId;
-    let finalCustomerName = customerName || 'Misafir';
+    let finalCustomerName = customerName;
     let finalCustomerPhone = customerPhone;
     let finalCustomerEmail = customerEmail;
 
@@ -251,7 +267,7 @@ export async function POST(request: NextRequest) {
         customer = await prisma.customer.create({
           data: {
             tenantId: auth.tenantId,
-            firstName: nameParts[0] || 'Misafir',
+            firstName: nameParts[0],
             lastName: nameParts.slice(1).join(' ') || '',
             phone: customerPhone,
             email: customerEmail,
