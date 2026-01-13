@@ -7,6 +7,7 @@ const SYSTEM_ROUTES = [
   '_next',
   'favicon.ico',
   'pwa-welcome',
+  'pwa-business-login',
   'randevularim',
   'payment',
 ];

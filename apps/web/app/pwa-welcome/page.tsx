@@ -23,7 +23,12 @@ export default function PWAWelcome() {
       if (savedRole === "customer") {
         router.replace("/randevularim");
       } else if (savedRole === "business") {
-        window.location.href = "https://admin.netrandevu.com";
+        // PWA modunda işletme giriş sayfasına, değilse admin panele
+        if (checkPWA) {
+          router.replace("/pwa-business-login");
+        } else {
+          window.location.href = "https://admin.netrandevu.com";
+        }
       }
     } else {
       setIsLoading(false);
@@ -36,7 +41,12 @@ export default function PWAWelcome() {
     if (role === "customer") {
       router.push("/randevularim");
     } else {
-      window.location.href = "https://admin.netrandevu.com";
+      // PWA modunda işletme giriş sayfasına, değilse admin panele
+      if (isPWA) {
+        router.push("/pwa-business-login");
+      } else {
+        window.location.href = "https://admin.netrandevu.com";
+      }
     }
   };
 
