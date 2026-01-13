@@ -1,10 +1,49 @@
 "use client";
 
-import { useState } from "react";
-import { Calendar, Users, BarChart3, Clock, Bell, CreditCard, Check, Star, Shield } from "lucide-react";
+import { useState, useRef } from "react";
+import { Calendar, Users, BarChart3, Clock, Bell, CreditCard, Check, Star, Shield, Download } from "lucide-react";
+import html2canvas from "html2canvas";
 
 export default function AppStoreScreenshots() {
   const [currentScreen, setCurrentScreen] = useState(0);
+  const [isDownloading, setIsDownloading] = useState(false);
+  const screenRef = useRef<HTMLDivElement>(null);
+
+  const downloadScreenshot = async () => {
+    if (!screenRef.current) return;
+
+    setIsDownloading(true);
+    try {
+      const canvas = await html2canvas(screenRef.current, {
+        scale: 2, // Higher quality
+        useCORS: true,
+        backgroundColor: null,
+        width: 621,
+        height: 1344,
+      });
+
+      // Create a new canvas with exact App Store dimensions
+      const finalCanvas = document.createElement('canvas');
+      finalCanvas.width = 1242;
+      finalCanvas.height = 2688;
+      const ctx = finalCanvas.getContext('2d');
+
+      if (ctx) {
+        // Draw the captured content scaled to fit
+        ctx.drawImage(canvas, 0, 0, 1242, 2688);
+
+        // Download
+        const link = document.createElement('a');
+        link.download = `screenshot-${currentScreen + 1}-${screens[currentScreen].title.replace(/\s+/g, '-')}.png`;
+        link.href = finalCanvas.toDataURL('image/png');
+        link.click();
+      }
+    } catch (error) {
+      console.error('Screenshot failed:', error);
+      alert('Ekran görüntüsü alınamadı');
+    }
+    setIsDownloading(false);
+  };
 
   const screens = [
     // Screen 1: Hero / Ana Özellik
@@ -251,7 +290,7 @@ export default function AppStoreScreenshots() {
 
       {/* iPhone Frame */}
       <div className="max-w-md mx-auto">
-        <div className="relative">
+        <div className="relative" ref={screenRef}>
           {/* iPhone Frame */}
           <div className="bg-black rounded-[3rem] p-3 shadow-2xl">
             {/* Notch */}
@@ -288,10 +327,31 @@ export default function AppStoreScreenshots() {
         </div>
       </div>
 
+      {/* İndir Butonu */}
+      <div className="max-w-md mx-auto mt-6">
+        <button
+          onClick={downloadScreenshot}
+          disabled={isDownloading}
+          className="w-full bg-gradient-to-r from-green-500 to-emerald-600 text-white py-4 rounded-xl font-semibold flex items-center justify-center gap-3 hover:from-green-600 hover:to-emerald-700 transition disabled:opacity-50"
+        >
+          {isDownloading ? (
+            <>
+              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+              İndiriliyor...
+            </>
+          ) : (
+            <>
+              <Download className="w-5 h-5" />
+              Ekran Görüntüsü İndir (1242 × 2688px)
+            </>
+          )}
+        </button>
+      </div>
+
       {/* Bilgi */}
-      <div className="max-w-md mx-auto mt-6 text-center text-gray-400 text-sm">
-        <p>iPhone 15 Pro Max boyutu: 1290 x 2796 px</p>
-        <p className="mt-1">Her ekranı tam ekran yapıp screenshot alın</p>
+      <div className="max-w-md mx-auto mt-4 text-center text-gray-400 text-sm">
+        <p>iPhone 6.5" Display boyutu: 1242 × 2688 px</p>
+        <p className="mt-1">Her ekranı seçip "İndir" butonuna tıklayın</p>
       </div>
     </div>
   );
