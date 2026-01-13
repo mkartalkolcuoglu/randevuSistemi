@@ -100,7 +100,7 @@ export default function MusteriPanelPage() {
     router.push("/pwa/musteri");
   };
 
-  // Randevunun iptal edilebilir olup olmadığını kontrol et (en az 2 saat önce)
+  // Randevunun iptal edilebilir olup olmadığını kontrol et (en az 6 saat önce)
   const canCancelAppointment = (apt: Appointment) => {
     if (apt.status === "cancelled" || apt.status === "completed") return false;
 
@@ -108,7 +108,7 @@ export default function MusteriPanelPage() {
     const now = new Date();
     const hoursUntilAppointment = (appointmentDateTime.getTime() - now.getTime()) / (1000 * 60 * 60);
 
-    return hoursUntilAppointment >= 2; // En az 2 saat kala iptal edilebilir
+    return hoursUntilAppointment >= 6; // En az 6 saat kala iptal edilebilir
   };
 
   const handleCancelAppointment = async (apt: Appointment) => {

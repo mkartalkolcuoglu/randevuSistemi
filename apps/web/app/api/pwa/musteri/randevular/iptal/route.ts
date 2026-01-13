@@ -40,14 +40,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check if appointment can be cancelled (at least 2 hours before)
+    // Check if appointment can be cancelled (at least 6 hours before)
     const appointmentDateTime = new Date(`${appointment.date}T${appointment.time}`);
     const now = new Date();
     const hoursUntilAppointment = (appointmentDateTime.getTime() - now.getTime()) / (1000 * 60 * 60);
 
-    if (hoursUntilAppointment < 2) {
+    if (hoursUntilAppointment < 6) {
       return NextResponse.json(
-        { success: false, error: 'Randevu saatine 2 saatten az kaldığı için iptal edilemez' },
+        { success: false, error: 'Randevuya 6 saatten az kaldığı için iptal edilemez' },
         { status: 400 }
       );
     }
