@@ -19,7 +19,8 @@ import {
   ChevronDown,
   User,
   CreditCard,
-  Zap
+  Zap,
+  Download
 } from "lucide-react";
 import { useState, useEffect } from "react";
 
@@ -46,8 +47,36 @@ export default function Home() {
   const [timeLeft, setTimeLeft] = useState(120);
   const [canResend, setCanResend] = useState(false);
 
+  // PWA Install
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [showInstallButton, setShowInstallButton] = useState(false);
+
   useEffect(() => {
     fetchData();
+
+    // PWA install prompt yakalama
+    const handleBeforeInstallPrompt = (e: Event) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+
+      // Sadece mobilde göster
+      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+      if (isMobile) {
+        setShowInstallButton(true);
+      }
+    };
+
+    // PWA zaten kuruluysa butonu gizle
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone === true;
+    if (isStandalone) {
+      setShowInstallButton(false);
+    }
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    };
   }, []);
 
   // OTP Timer
@@ -175,6 +204,18 @@ export default function Home() {
     setCanResend(false);
   };
 
+  const handleInstallPWA = async () => {
+    if (!deferredPrompt) return;
+
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+
+    if (outcome === 'accepted') {
+      setShowInstallButton(false);
+    }
+    setDeferredPrompt(null);
+  };
+
   const fetchData = async () => {
     try {
       // Fetch real stats, packages, and pages from our own API
@@ -266,6 +307,19 @@ export default function Home() {
               <a href="#faq" className="text-gray-600 hover:text-gray-900 transition">SSS</a>
             </nav>
             <div className="flex items-center gap-2 sm:gap-4">
+              {/* PWA Install Button - Sadece mobilde gösterilir */}
+              {showInstallButton && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="border-green-500 text-green-600 hover:bg-green-500 hover:text-white transition text-xs sm:text-sm px-2 sm:px-4 animate-pulse"
+                  onClick={handleInstallPWA}
+                >
+                  <Download className="w-3 h-3 sm:w-4 sm:h-4 sm:mr-2" />
+                  <span className="hidden sm:inline">Uygulamayı İndir</span>
+                  <span className="sm:hidden">İndir</span>
+                </Button>
+              )}
               <Button
                 variant="outline"
                 size="sm"
