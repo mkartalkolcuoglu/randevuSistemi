@@ -200,7 +200,7 @@ export default function PaymentScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView style={styles.container} edges={[]}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => {
           Alert.alert(

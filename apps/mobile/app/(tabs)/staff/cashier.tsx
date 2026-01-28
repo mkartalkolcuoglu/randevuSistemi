@@ -1045,7 +1045,7 @@ export default function CashierScreen() {
 
   return (
     <PermissionGuard permissionKey="kasa" pageName="Kasa">
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView style={styles.container} edges={[]}>
       {/* Header */}
       <Header
         title="Kasa"

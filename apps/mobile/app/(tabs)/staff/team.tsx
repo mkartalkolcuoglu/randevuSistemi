@@ -1745,7 +1745,7 @@ export default function StaffTeamScreen() {
 
   return (
     <PermissionGuard permissionKey="staff" pageName="Personel">
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView style={styles.container} edges={[]}>
       {/* Header */}
       <Header
         title="Personel"

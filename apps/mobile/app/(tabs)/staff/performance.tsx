@@ -159,7 +159,7 @@ export default function PerformanceScreen() {
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.container} edges={['top']}>
+      <SafeAreaView style={styles.container} edges={[]}>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={THEME_COLOR} />
           <Text style={styles.loadingText}>Performans verileri yükleniyor...</Text>
@@ -170,7 +170,7 @@ export default function PerformanceScreen() {
 
   if (!data) {
     return (
-      <SafeAreaView style={styles.container} edges={['top']}>
+      <SafeAreaView style={styles.container} edges={[]}>
         <View style={styles.loadingContainer}>
           <Ionicons name="alert-circle-outline" size={48} color="#9CA3AF" />
           <Text style={styles.loadingText}>Veri yüklenemedi</Text>
@@ -186,7 +186,7 @@ export default function PerformanceScreen() {
 
   return (
     <PermissionGuard permissionKey="reports" pageName="Performans">
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView style={styles.container} edges={[]}>
       {/* Header */}
       <Header
         title="Performans"

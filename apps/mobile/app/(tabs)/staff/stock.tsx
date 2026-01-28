@@ -982,7 +982,7 @@ export default function StockScreen() {
 
   return (
     <PermissionGuard permissionKey="stock" pageName="Stok">
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView style={styles.container} edges={[]}>
       {/* Header */}
       <Header
         title="Stok"

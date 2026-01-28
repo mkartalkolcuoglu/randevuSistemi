@@ -264,7 +264,7 @@ export default function BusinessSettingsScreen() {
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.container} edges={['top']}>
+      <SafeAreaView style={styles.container} edges={[]}>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={THEME_COLOR} />
           <Text style={styles.loadingText}>Ayarlar yükleniyor...</Text>
@@ -275,7 +275,7 @@ export default function BusinessSettingsScreen() {
 
   if (!data) {
     return (
-      <SafeAreaView style={styles.container} edges={['top']}>
+      <SafeAreaView style={styles.container} edges={[]}>
         <View style={styles.loadingContainer}>
           <Ionicons name="alert-circle-outline" size={48} color="#9CA3AF" />
           <Text style={styles.loadingText}>Ayarlar yüklenemedi</Text>
@@ -288,7 +288,7 @@ export default function BusinessSettingsScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView style={styles.container} edges={[]}>
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}

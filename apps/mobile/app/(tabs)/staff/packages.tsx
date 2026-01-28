@@ -885,7 +885,7 @@ export default function PackagesScreen() {
 
   return (
     <PermissionGuard permissionKey="packages" pageName="Paketler">
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView style={styles.container} edges={[]}>
       {/* Header */}
       <Header
         title="Paketler"

@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -74,6 +74,7 @@ const IS_IOS = Platform.OS === 'ios';
 
 export default function NewAppointmentScreen() {
   const router = useRouter();
+  const { preselectedBusinessId } = useLocalSearchParams<{ preselectedBusinessId?: string }>();
   const { user } = useAuthStore();
   const insets = useSafeAreaInsets();
   const [step, setStep] = useState<Step>('tenant');
@@ -127,8 +128,30 @@ export default function NewAppointmentScreen() {
   useFocusEffect(
     useCallback(() => {
       resetAllStates();
-    }, [resetAllStates])
+      // If coming from guest mode with a preselected business, fetch and set it
+      if (preselectedBusinessId) {
+        fetchPreselectedBusiness(preselectedBusinessId);
+      }
+    }, [resetAllStates, preselectedBusinessId])
   );
+
+  const fetchPreselectedBusiness = async (businessId: string) => {
+    try {
+      const response = await api.get(`/api/mobile/tenants/${businessId}/settings`);
+      if (response.data.success) {
+        const settings = response.data.data;
+        setSelectedTenantState({
+          id: businessId,
+          businessName: settings.businessName,
+          slug: '',
+        });
+        setTenantSettings(settings);
+        setStep('service');
+      }
+    } catch (error) {
+      console.error('Error fetching preselected business:', error);
+    }
+  };
 
   const getAvailableDates = () => {
     const dates: { date: Date; isOpen: boolean; dayName: string }[] = [];

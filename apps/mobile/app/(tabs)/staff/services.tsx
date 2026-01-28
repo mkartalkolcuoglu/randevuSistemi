@@ -991,7 +991,7 @@ export default function StaffServicesScreen() {
 
   return (
     <PermissionGuard permissionKey="services" pageName="Hizmetler">
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView style={styles.container} edges={[]}>
       {/* Header */}
       <Header
         title="Hizmetler"

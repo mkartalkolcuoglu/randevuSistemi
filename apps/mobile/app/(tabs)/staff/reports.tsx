@@ -316,7 +316,7 @@ export default function ReportsScreen() {
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.container} edges={['top']}>
+      <SafeAreaView style={styles.container} edges={[]}>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={THEME_COLOR} />
           <Text style={styles.loadingText}>Raporlar yükleniyor...</Text>
@@ -327,7 +327,7 @@ export default function ReportsScreen() {
 
   if (!data) {
     return (
-      <SafeAreaView style={styles.container} edges={['top']}>
+      <SafeAreaView style={styles.container} edges={[]}>
         <View style={styles.loadingContainer}>
           <Ionicons name="alert-circle-outline" size={48} color="#9CA3AF" />
           <Text style={styles.loadingText}>Veri yüklenemedi</Text>
@@ -343,7 +343,7 @@ export default function ReportsScreen() {
 
   return (
     <PermissionGuard permissionKey="reports" pageName="Raporlar">
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView style={styles.container} edges={[]}>
       {/* Header */}
       <Header
         title="Raporlar"

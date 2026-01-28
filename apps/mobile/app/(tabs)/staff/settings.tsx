@@ -300,7 +300,7 @@ export default function StaffSettingsScreen() {
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.container} edges={['top']}>
+      <SafeAreaView style={styles.container} edges={[]}>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={THEME_COLOR} />
           <Text style={styles.loadingText}>Ayarlar yükleniyor...</Text>
@@ -312,7 +312,7 @@ export default function StaffSettingsScreen() {
   // Show access denied message for non-owners
   if (!isOwner) {
     return (
-      <SafeAreaView style={styles.container} edges={['top']}>
+      <SafeAreaView style={styles.container} edges={[]}>
         <Header
           title="Ayarlar"
           subtitle="İşletme Ayarları"
@@ -341,7 +341,7 @@ export default function StaffSettingsScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView style={styles.container} edges={[]}>
       {/* Header */}
       <Header
         title="Ayarlar"
