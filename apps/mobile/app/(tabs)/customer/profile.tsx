@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert, ScrollView, ActivityIndicator, Platform } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Alert, ScrollView, ActivityIndicator, Platform, Linking } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -7,6 +7,11 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useAuthStore } from '../../../src/store/auth.store';
 import { appointmentService } from '../../../src/services/appointment.service';
 import api from '../../../src/services/api';
+
+// Web URLs for privacy and support pages
+const PRIVACY_URL = 'https://netrandevu.com/gizlilik';
+const SUPPORT_URL = 'https://netrandevu.com/destek';
+const SUPPORT_EMAIL = 'destek@netrandevu.com';
 
 const IS_IOS = Platform.OS === 'ios';
 
@@ -75,6 +80,55 @@ export default function CustomerProfileScreen() {
     ]);
   };
 
+  const handleOpenPrivacy = async () => {
+    try {
+      const canOpen = await Linking.canOpenURL(PRIVACY_URL);
+      if (canOpen) {
+        await Linking.openURL(PRIVACY_URL);
+      } else {
+        Alert.alert('Hata', 'Gizlilik sayfası açılamadı');
+      }
+    } catch (error) {
+      Alert.alert('Hata', 'Gizlilik sayfası açılamadı');
+    }
+  };
+
+  const handleOpenSupport = () => {
+    Alert.alert(
+      'Yardım & Destek',
+      'Size nasıl yardımcı olabiliriz?',
+      [
+        {
+          text: 'E-posta Gönder',
+          onPress: async () => {
+            const mailUrl = `mailto:${SUPPORT_EMAIL}?subject=Net Randevu Destek Talebi`;
+            try {
+              await Linking.openURL(mailUrl);
+            } catch (error) {
+              Alert.alert('Hata', 'E-posta uygulaması açılamadı');
+            }
+          },
+        },
+        {
+          text: 'Destek Sayfası',
+          onPress: async () => {
+            try {
+              const canOpen = await Linking.canOpenURL(SUPPORT_URL);
+              if (canOpen) {
+                await Linking.openURL(SUPPORT_URL);
+              } else {
+                Alert.alert('Hata', 'Destek sayfası açılamadı');
+              }
+            } catch (error) {
+              Alert.alert('Hata', 'Destek sayfası açılamadı');
+            }
+          },
+        },
+        { text: 'İptal', style: 'cancel' },
+      ]
+    );
+  };
+
   const menuItems = [
     {
       icon: 'person-outline' as const,
@@ -87,21 +141,21 @@ export default function CustomerProfileScreen() {
       icon: 'notifications-outline' as const,
       label: 'Bildirimler',
       description: 'Bildirim tercihlerinizi yönetin',
-      onPress: () => {},
+      onPress: () => Alert.alert('Bildirimler', 'Bildirim ayarları yakında eklenecek'),
       color: '#F59E0B',
     },
     {
       icon: 'shield-checkmark-outline' as const,
       label: 'Gizlilik',
-      description: 'Gizlilik ayarları ve veri yönetimi',
-      onPress: () => {},
+      description: 'Gizlilik politikası ve KVKK',
+      onPress: handleOpenPrivacy,
       color: '#3B82F6',
     },
     {
       icon: 'help-circle-outline' as const,
       label: 'Yardım & Destek',
       description: 'SSS ve iletişim',
-      onPress: () => {},
+      onPress: handleOpenSupport,
       color: '#8B5CF6',
     },
   ];
