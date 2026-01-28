@@ -33,25 +33,21 @@ async function verifyAuth(request: NextRequest) {
 }
 
 // GET - Get staff list
+// Supports ?public=true for guest mode (no auth required, active staff only)
 export async function GET(request: NextRequest) {
   try {
-    const auth = await verifyAuth(request);
-    if (!auth) {
-      return NextResponse.json(
-        { success: false, message: 'Yetkilendirme gerekli' },
-        { status: 401 }
-      );
-    }
-
     const { searchParams } = new URL(request.url);
+    const isPublic = searchParams.get('public') === 'true';
     const serviceId = searchParams.get('serviceId');
     const includeAll = searchParams.get('includeAll') === 'true';
     const search = searchParams.get('search') || '';
     const status = searchParams.get('status') || 'all';
 
-    // For customers, get tenantId from header (they don't have tenantId in token)
-    let tenantId = auth.tenantId;
-    if (auth.userType === 'customer') {
+    let tenantId: string | null = null;
+    let isGuestOrCustomer = false;
+
+    // If public request, get tenantId from header only
+    if (isPublic) {
       const headerTenantId = request.headers.get('X-Tenant-ID');
       if (!headerTenantId) {
         return NextResponse.json(
@@ -60,6 +56,31 @@ export async function GET(request: NextRequest) {
         );
       }
       tenantId = headerTenantId;
+      isGuestOrCustomer = true;
+    } else {
+      // Authenticated request
+      const auth = await verifyAuth(request);
+      if (!auth) {
+        return NextResponse.json(
+          { success: false, message: 'Yetkilendirme gerekli' },
+          { status: 401 }
+        );
+      }
+
+      // For customers, get tenantId from header (they don't have tenantId in token)
+      if (auth.userType === 'customer') {
+        const headerTenantId = request.headers.get('X-Tenant-ID');
+        if (!headerTenantId) {
+          return NextResponse.json(
+            { success: false, message: 'Tenant ID gerekli' },
+            { status: 400 }
+          );
+        }
+        tenantId = headerTenantId;
+        isGuestOrCustomer = true;
+      } else {
+        tenantId = auth.tenantId;
+      }
     }
 
     // Build where clause
@@ -67,8 +88,10 @@ export async function GET(request: NextRequest) {
       tenantId: tenantId,
     };
 
-    // Status filter
-    if (!includeAll && status === 'all') {
+    // Status filter - guests and customers always see active only
+    if (isGuestOrCustomer) {
+      whereClause.status = 'active';
+    } else if (!includeAll && status === 'all') {
       whereClause.status = 'active';
     } else if (status !== 'all') {
       whereClause.status = status;

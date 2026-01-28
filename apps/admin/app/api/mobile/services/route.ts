@@ -28,25 +28,21 @@ async function verifyAuth(request: NextRequest) {
 }
 
 // GET - Get services (staff/owner only with all statuses, customers get only active)
+// Supports ?public=true for guest mode (no auth required, active services only)
 export async function GET(request: NextRequest) {
   try {
-    const auth = await verifyAuth(request);
-    if (!auth) {
-      return NextResponse.json(
-        { success: false, message: 'Yetkilendirme gerekli' },
-        { status: 401 }
-      );
-    }
-
     const { searchParams } = new URL(request.url);
+    const isPublic = searchParams.get('public') === 'true';
     const includeInactive = searchParams.get('includeInactive') === 'true';
     const search = searchParams.get('search');
     const category = searchParams.get('category');
     const status = searchParams.get('status');
 
-    // For customers, get tenantId from header (they don't have tenantId in token)
-    let tenantId = auth.tenantId;
-    if (auth.userType === 'customer') {
+    let tenantId: string | null = null;
+    let userType: string | null = null;
+
+    // If public request, get tenantId from header only
+    if (isPublic) {
       const headerTenantId = request.headers.get('X-Tenant-ID');
       if (!headerTenantId) {
         return NextResponse.json(
@@ -55,13 +51,39 @@ export async function GET(request: NextRequest) {
         );
       }
       tenantId = headerTenantId;
+      userType = 'guest';
+    } else {
+      // Authenticated request
+      const auth = await verifyAuth(request);
+      if (!auth) {
+        return NextResponse.json(
+          { success: false, message: 'Yetkilendirme gerekli' },
+          { status: 401 }
+        );
+      }
+
+      userType = auth.userType;
+
+      // For customers, get tenantId from header (they don't have tenantId in token)
+      if (auth.userType === 'customer') {
+        const headerTenantId = request.headers.get('X-Tenant-ID');
+        if (!headerTenantId) {
+          return NextResponse.json(
+            { success: false, message: 'Tenant ID gerekli' },
+            { status: 400 }
+          );
+        }
+        tenantId = headerTenantId;
+      } else {
+        tenantId = auth.tenantId;
+      }
     }
 
     // Build where clause
     let whereClause: any = { tenantId: tenantId };
 
-    // If customer or not requesting inactive, only show active
-    if (auth.userType === 'customer' || !includeInactive) {
+    // If guest, customer or not requesting inactive, only show active
+    if (userType === 'guest' || userType === 'customer' || !includeInactive) {
       whereClause.status = 'active';
     } else if (status && status !== 'all') {
       whereClause.status = status;

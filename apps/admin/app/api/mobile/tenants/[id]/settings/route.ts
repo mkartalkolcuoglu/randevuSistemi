@@ -26,17 +26,24 @@ async function verifyAuth(request: NextRequest) {
 }
 
 // GET - Get tenant settings for booking (public for customers)
+// Supports ?public=true for guest mode (no auth required)
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const auth = await verifyAuth(request);
-    if (!auth) {
-      return NextResponse.json(
-        { success: false, message: 'Yetkilendirme gerekli' },
-        { status: 401 }
-      );
+    const { searchParams } = new URL(request.url);
+    const isPublic = searchParams.get('public') === 'true';
+
+    // If not public request, require authentication
+    if (!isPublic) {
+      const auth = await verifyAuth(request);
+      if (!auth) {
+        return NextResponse.json(
+          { success: false, message: 'Yetkilendirme gerekli' },
+          { status: 401 }
+        );
+      }
     }
 
     const { id: tenantId } = await params;
