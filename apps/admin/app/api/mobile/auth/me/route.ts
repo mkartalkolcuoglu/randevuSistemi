@@ -136,6 +136,45 @@ export async function GET(request: NextRequest) {
           isNewCustomer: true,
         },
       });
+    } else if (decoded.userType === 'customer' && decoded.isDemo) {
+      // Demo customer token (for App Store review)
+      // Try to find demo customer if customerId exists
+      if (decoded.customerId) {
+        const customer = await prisma.customer.findUnique({
+          where: { id: decoded.customerId },
+        });
+
+        if (customer) {
+          return NextResponse.json({
+            success: true,
+            user: {
+              id: customer.id,
+              phone: customer.phone || decoded.phone || '',
+              userType: 'customer',
+              tenantId: null,
+              firstName: customer.firstName,
+              lastName: customer.lastName,
+              email: customer.email,
+              isDemo: true,
+            },
+          });
+        }
+      }
+
+      // Demo customer without database record
+      return NextResponse.json({
+        success: true,
+        user: {
+          id: null,
+          phone: decoded.phone || '',
+          userType: 'customer',
+          tenantId: null,
+          firstName: 'Demo',
+          lastName: 'Müşteri',
+          email: 'demo@netrandevu.com',
+          isDemo: true,
+        },
+      });
     }
 
     return NextResponse.json(

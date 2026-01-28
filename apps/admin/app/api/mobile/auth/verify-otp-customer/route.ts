@@ -4,6 +4,11 @@ import jwt from 'jsonwebtoken';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 
+// Demo account for App Store review
+const DEMO_PHONE = '5551234567';
+const DEMO_PHONE_FORMATTED = '905551234567';
+const DEMO_OTP = '123456';
+
 /**
  * Müşteri girişi için OTP doğrulama
  * Müşteri tenant'a bağlı değildir - tüm işletmelerdeki randevularını görebilir
@@ -25,8 +30,87 @@ export async function POST(request: NextRequest) {
       formattedPhone = '90' + formattedPhone;
     }
 
-    console.log('📱 [CUSTOMER] Verify OTP - Phone:', formattedPhone);
+    console.log('📱 [CUSTOMER] Verify OTP - Phone:', formattedPhone, 'Code:', code);
+    console.log('📱 [CUSTOMER] Demo check - Expected phone:', DEMO_PHONE_FORMATTED, 'Got:', formattedPhone);
+    console.log('📱 [CUSTOMER] Demo check - Expected code:', DEMO_OTP, 'Got:', code);
 
+    // Demo account verification for App Store review
+    const isDemoPhone = formattedPhone === DEMO_PHONE_FORMATTED;
+    const isDemoCode = code === DEMO_OTP;
+
+    console.log('📱 [CUSTOMER] isDemoPhone:', isDemoPhone, 'isDemoCode:', isDemoCode);
+
+    if (isDemoPhone && isDemoCode) {
+      console.log('📱 [CUSTOMER] Demo account login');
+
+      // Delete demo OTP if exists
+      await prisma.otpVerification.deleteMany({
+        where: { phone: DEMO_PHONE_FORMATTED },
+      });
+
+      // Check if demo customer exists, if not create one
+      let demoCustomer = await prisma.customer.findFirst({
+        where: {
+          phone: {
+            contains: DEMO_PHONE,
+          },
+        },
+      });
+
+      if (!demoCustomer) {
+        // Get any tenant to create demo customer (or return as new customer)
+        const anyTenant = await prisma.tenant.findFirst({
+          where: {},
+          select: { id: true },
+        });
+
+        if (anyTenant) {
+          demoCustomer = await prisma.customer.create({
+            data: {
+              tenantId: anyTenant.id,
+              firstName: 'Demo',
+              lastName: 'Müşteri',
+              phone: DEMO_PHONE_FORMATTED,
+              email: 'demo@netrandevu.com',
+            },
+          });
+        }
+      }
+
+      // Create demo user token
+      const token = jwt.sign(
+        {
+          phone: DEMO_PHONE_FORMATTED,
+          userType: 'customer',
+          customerId: demoCustomer?.id || null,
+          isDemo: true,
+        },
+        JWT_SECRET,
+        { expiresIn: '30d' }
+      );
+
+      const user = {
+        id: demoCustomer?.id || null,
+        phone: DEMO_PHONE_FORMATTED,
+        userType: 'customer' as const,
+        firstName: demoCustomer?.firstName || 'Demo',
+        lastName: demoCustomer?.lastName || 'Müşteri',
+        email: demoCustomer?.email || 'demo@netrandevu.com',
+        tenantId: null,
+        tenantName: null,
+        isDemo: true,
+      };
+
+      return NextResponse.json({
+        success: true,
+        message: 'Demo giriş başarılı',
+        user,
+        token,
+        isDemo: true,
+      });
+    }
+
+    // Regular OTP verification flow
     // Find OTP record
     const otpRecord = await prisma.otpVerification.findFirst({
       where: {
