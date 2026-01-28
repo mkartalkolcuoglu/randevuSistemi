@@ -27,25 +27,30 @@ async function verifyAuth(request: NextRequest) {
 }
 
 // GET - Search all tenants (for customers to find businesses)
+// Supports ?public=true for guest mode (no auth required)
 export async function GET(request: NextRequest) {
   try {
-    const auth = await verifyAuth(request);
-    if (!auth) {
-      return NextResponse.json(
-        { success: false, message: 'Yetkilendirme gerekli' },
-        { status: 401 }
-      );
-    }
-
-    // Only customers can search tenants
-    if (auth.userType !== 'customer') {
-      return NextResponse.json(
-        { success: false, message: 'Bu işlem sadece müşteriler için' },
-        { status: 403 }
-      );
-    }
-
     const { searchParams } = new URL(request.url);
+    const isPublic = searchParams.get('public') === 'true';
+
+    // If not public request, require authentication
+    if (!isPublic) {
+      const auth = await verifyAuth(request);
+      if (!auth) {
+        return NextResponse.json(
+          { success: false, message: 'Yetkilendirme gerekli' },
+          { status: 401 }
+        );
+      }
+
+      // Only customers can search tenants (when authenticated)
+      if (auth.userType !== 'customer') {
+        return NextResponse.json(
+          { success: false, message: 'Bu işlem sadece müşteriler için' },
+          { status: 403 }
+        );
+      }
+    }
     const search = (searchParams.get('search') || '').trim();
 
     console.log('🔍 Tenant search API called - search query:', `"${search}"`, 'length:', search.length);
