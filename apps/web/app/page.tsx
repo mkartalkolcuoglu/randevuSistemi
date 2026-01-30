@@ -20,10 +20,7 @@ import {
   User,
   CreditCard,
   Zap,
-  Download,
-  Share,
-  PlusSquare,
-  X
+  Download
 } from "lucide-react";
 import { useState, useEffect } from "react";
 
@@ -53,7 +50,6 @@ export default function Home() {
   // PWA Install
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [showInstallButton, setShowInstallButton] = useState(false);
-  const [showIOSInstallGuide, setShowIOSInstallGuide] = useState(false);
   const [isIOS, setIsIOS] = useState(false);
 
   useEffect(() => {
@@ -225,9 +221,11 @@ export default function Home() {
   };
 
   const handleInstallPWA = async () => {
-    // iOS için rehber modalını göster
+    // iOS için App Store'a yönlendir
     if (isIOS) {
-      setShowIOSInstallGuide(true);
+      window.open('https://apps.apple.com/app/net-randevu/id6757393308', '_blank');
+      localStorage.setItem('ios-install-dismissed', 'true');
+      setShowInstallButton(false);
       return;
     }
 
@@ -241,12 +239,6 @@ export default function Home() {
       setShowInstallButton(false);
     }
     setDeferredPrompt(null);
-  };
-
-  const dismissIOSGuide = () => {
-    setShowIOSInstallGuide(false);
-    localStorage.setItem('ios-install-dismissed', 'true');
-    setShowInstallButton(false);
   };
 
   const fetchData = async () => {
@@ -323,16 +315,16 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-white">
-      {/* PWA Install Top Bar - Sadece mobilde */}
+      {/* App Install Top Bar - Sadece mobilde */}
       {showInstallButton && (
         <div className="bg-gradient-to-r from-green-500 to-emerald-600 text-white py-2.5 px-4 flex items-center justify-center gap-3 sticky top-0 z-[60]">
           <Download className="w-4 h-4 animate-bounce" />
-          <span className="text-sm font-medium">Uygulamamızı indirin, daha hızlı erişin!</span>
+          <span className="text-sm font-medium">{isIOS ? 'App Store\'dan uygulamamızı indirin!' : 'Uygulamamızı indirin, daha hızlı erişin!'}</span>
           <button
             onClick={handleInstallPWA}
             className="bg-white text-green-600 px-4 py-1 rounded-full text-sm font-bold hover:bg-green-50 transition"
           >
-            İndir
+            {isIOS ? 'App Store' : 'İndir'}
           </button>
         </div>
       )}
@@ -1158,74 +1150,6 @@ export default function Home() {
         </DialogContent>
       </Dialog>
 
-      {/* iOS Install Guide Modal */}
-      {showIOSInstallGuide && (
-        <div className="fixed inset-0 bg-black/50 z-[100] flex items-end sm:items-center justify-center p-4">
-          <div className="bg-white rounded-t-3xl sm:rounded-2xl w-full max-w-sm overflow-hidden animate-in slide-in-from-bottom duration-300">
-            {/* Header */}
-            <div className="bg-gradient-to-r from-[#163974] to-[#0F2A52] text-white p-6 text-center relative">
-              <button
-                onClick={dismissIOSGuide}
-                className="absolute top-4 right-4 text-white/80 hover:text-white"
-              >
-                <X className="w-6 h-6" />
-              </button>
-              <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center mx-auto mb-4">
-                <img
-                  src="https://i.hizliresim.com/4a00l8g.png"
-                  alt="Logo"
-                  className="w-12 h-12 object-contain"
-                />
-              </div>
-              <h3 className="text-xl font-bold">iPhone'a Ekle</h3>
-              <p className="text-white/80 text-sm mt-1">3 kolay adımda uygulamayı ekleyin</p>
-            </div>
-
-            {/* Steps */}
-            <div className="p-6 space-y-5">
-              <div className="flex items-start gap-4">
-                <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center flex-shrink-0">
-                  <Share className="w-5 h-5 text-blue-600" />
-                </div>
-                <div>
-                  <p className="font-semibold text-gray-900">1. Paylaş butonuna tıklayın</p>
-                  <p className="text-sm text-gray-600">Ekranın altındaki paylaş ikonuna dokunun</p>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-4">
-                <div className="w-10 h-10 bg-green-100 rounded-xl flex items-center justify-center flex-shrink-0">
-                  <PlusSquare className="w-5 h-5 text-green-600" />
-                </div>
-                <div>
-                  <p className="font-semibold text-gray-900">2. "Ana Ekrana Ekle" seçin</p>
-                  <p className="text-sm text-gray-600">Menüde aşağı kaydırıp bu seçeneği bulun</p>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-4">
-                <div className="w-10 h-10 bg-purple-100 rounded-xl flex items-center justify-center flex-shrink-0">
-                  <Check className="w-5 h-5 text-purple-600" />
-                </div>
-                <div>
-                  <p className="font-semibold text-gray-900">3. "Ekle" butonuna dokunun</p>
-                  <p className="text-sm text-gray-600">Uygulama ana ekranınıza eklenecek!</p>
-                </div>
-              </div>
-            </div>
-
-            {/* Footer */}
-            <div className="p-4 bg-gray-50 border-t">
-              <button
-                onClick={dismissIOSGuide}
-                className="w-full bg-[#163974] text-white py-3 rounded-xl font-semibold hover:bg-[#0F2A52] transition"
-              >
-                Anladım
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Footer */}
       <footer className="bg-gray-900 text-white py-12">
