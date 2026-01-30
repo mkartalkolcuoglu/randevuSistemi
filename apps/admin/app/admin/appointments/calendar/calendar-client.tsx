@@ -18,7 +18,7 @@ export default function CalendarClient({ initialAppointments, tenantId, user }: 
   const router = useRouter();
   // Ensure appointments is always an array
   const [appointments, setAppointments] = useState(Array.isArray(initialAppointments) ? initialAppointments : []);
-  const [calendarView, setCalendarView] = useState<'day' | 'week' | 'month'>('week');
+  const [calendarView, setCalendarView] = useState<'day' | 'week' | 'month' | 'staff'>('week');
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedAppointment, setSelectedAppointment] = useState<any>(null);
   const [selectedStaffId, setSelectedStaffId] = useState<string>('all');
@@ -133,23 +133,35 @@ export default function CalendarClient({ initialAppointments, tenantId, user }: 
                 >
                   Aylık
                 </button>
+                <button
+                  onClick={() => setCalendarView('staff')}
+                  className={`flex-1 sm:flex-none px-4 py-2 rounded-md text-sm font-medium transition ${
+                    calendarView === 'staff'
+                      ? 'bg-blue-600 text-white shadow-sm'
+                      : 'text-gray-700 hover:bg-white'
+                  }`}
+                >
+                  Personel
+                </button>
               </div>
 
-              {/* Staff Filter */}
-              <div className="w-full sm:w-auto sm:min-w-[200px]">
-                <select
-                  value={selectedStaffId}
-                  onChange={(e) => setSelectedStaffId(e.target.value)}
-                  className="w-full px-4 py-2 text-sm border border-gray-300 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="all">Tüm Personeller</option>
-                  {staffList.map(staff => (
-                    <option key={staff.id} value={staff.id}>
-                      {staff.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              {/* Staff Filter - Hide in staff view since all staff are shown */}
+              {calendarView !== 'staff' && (
+                <div className="w-full sm:w-auto sm:min-w-[200px]">
+                  <select
+                    value={selectedStaffId}
+                    onChange={(e) => setSelectedStaffId(e.target.value)}
+                    className="w-full px-4 py-2 text-sm border border-gray-300 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="all">Tüm Personeller</option>
+                    {staffList.map(staff => (
+                      <option key={staff.id} value={staff.id}>
+                        {staff.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
             </div>
 
             {/* Bottom Row: Date Navigation */}
@@ -157,7 +169,7 @@ export default function CalendarClient({ initialAppointments, tenantId, user }: 
                 <button
                   onClick={() => {
                     const newDate = new Date(currentDate);
-                    if (calendarView === 'day') newDate.setDate(newDate.getDate() - 1);
+                    if (calendarView === 'day' || calendarView === 'staff') newDate.setDate(newDate.getDate() - 1);
                     else if (calendarView === 'week') newDate.setDate(newDate.getDate() - 7);
                     else newDate.setMonth(newDate.getMonth() - 1);
                     setCurrentDate(newDate);
@@ -173,14 +185,14 @@ export default function CalendarClient({ initialAppointments, tenantId, user }: 
                   ) : calendarView === 'week' ? (
                     `${new Date(currentDate).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' })}`
                   ) : (
-                    new Date(currentDate).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' })
+                    new Date(currentDate).toLocaleDateString('tr-TR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
                   )}
                 </div>
 
                 <button
                   onClick={() => {
                     const newDate = new Date(currentDate);
-                    if (calendarView === 'day') newDate.setDate(newDate.getDate() + 1);
+                    if (calendarView === 'day' || calendarView === 'staff') newDate.setDate(newDate.getDate() + 1);
                     else if (calendarView === 'week') newDate.setDate(newDate.getDate() + 7);
                     else newDate.setMonth(newDate.getMonth() + 1);
                     setCurrentDate(newDate);
@@ -214,6 +226,9 @@ export default function CalendarClient({ initialAppointments, tenantId, user }: 
             )}
             {calendarView === 'month' && (
               <MonthView appointments={filteredAppointments} date={currentDate} onAppointmentClick={setSelectedAppointment} />
+            )}
+            {calendarView === 'staff' && (
+              <StaffView appointments={appointments} date={currentDate} onAppointmentClick={setSelectedAppointment} />
             )}
           </CardContent>
         </Card>
@@ -561,6 +576,112 @@ function MonthView({ appointments, date, onAppointmentClick }: { appointments: a
             </div>
           );
         })}
+      </div>
+    </div>
+  );
+}
+
+// Staff View Component - Horizontal scrollable staff columns
+function StaffView({ appointments, date, onAppointmentClick }: { appointments: any[]; date: Date; onAppointmentClick: (apt: any) => void }) {
+  const safeAppointments = Array.isArray(appointments) ? appointments : [];
+
+  // Get appointments for the selected date
+  const dayAppointments = safeAppointments.filter(apt => {
+    const aptDate = new Date(apt.date);
+    return aptDate.toDateString() === date.toDateString();
+  });
+
+  // Group by staff
+  const staffMap = new Map<string, { id: string; name: string; appointments: any[] }>();
+
+  // First, collect all unique staff from ALL appointments (not just today)
+  safeAppointments.forEach(apt => {
+    if (apt.staffId && apt.staffName && !staffMap.has(apt.staffId)) {
+      staffMap.set(apt.staffId, { id: apt.staffId, name: apt.staffName, appointments: [] });
+    }
+  });
+
+  // Then assign today's appointments to their staff
+  dayAppointments.forEach(apt => {
+    if (apt.staffId && staffMap.has(apt.staffId)) {
+      staffMap.get(apt.staffId)!.appointments.push(apt);
+    }
+  });
+
+  // Sort each staff's appointments by time
+  staffMap.forEach(staff => {
+    staff.appointments.sort((a, b) => a.time.localeCompare(b.time));
+  });
+
+  const staffList = Array.from(staffMap.values());
+
+  if (staffList.length === 0) {
+    return (
+      <div className="text-center py-12 text-gray-500">
+        <User className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+        <p className="text-lg font-medium">Personel bulunamadı</p>
+        <p className="text-sm">Randevularda kayıtlı personel yok</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="overflow-x-auto -mx-4 sm:-mx-6 pb-4">
+      <div className="flex gap-4 px-4 sm:px-6" style={{ minWidth: `${staffList.length * 280}px` }}>
+        {staffList.map(staff => (
+          <div key={staff.id} className="flex-shrink-0 w-[260px] sm:w-[280px]">
+            {/* Staff Header */}
+            <div className="bg-gradient-to-r from-blue-600 to-blue-700 rounded-t-xl p-4 text-white">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center text-white font-bold text-sm">
+                  {staff.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="font-semibold truncate">{staff.name}</div>
+                  <div className="text-blue-200 text-xs">
+                    {staff.appointments.length} randevu
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Appointments List */}
+            <div className="border border-t-0 border-gray-200 rounded-b-xl bg-white min-h-[300px]">
+              {staff.appointments.length > 0 ? (
+                <div className="divide-y divide-gray-100">
+                  {staff.appointments.map(apt => (
+                    <div
+                      key={apt.id}
+                      onClick={() => onAppointmentClick(apt)}
+                      className="p-3 hover:bg-blue-50 transition cursor-pointer"
+                    >
+                      <div className="flex items-center justify-between mb-1.5">
+                        <div className="flex items-center gap-1.5">
+                          <Clock className="w-3.5 h-3.5 text-blue-600" />
+                          <span className="font-bold text-sm text-gray-900">{apt.time}</span>
+                        </div>
+                        <Badge className={`${getStatusColorForBadge(apt.status)} text-[10px] px-1.5 py-0.5`}>
+                          {getStatusTextForBadge(apt.status)}
+                        </Badge>
+                      </div>
+                      <div className="font-medium text-sm text-gray-900 truncate">
+                        {apt.customerName}
+                      </div>
+                      <div className="text-xs text-gray-500 truncate mt-0.5">
+                        {apt.serviceName}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center py-10 text-gray-400">
+                  <Calendar className="w-8 h-8 mb-2 text-gray-300" />
+                  <span className="text-sm">Randevu yok</span>
+                </div>
+              )}
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );
