@@ -41,7 +41,7 @@ const MONTHS = [
   'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'
 ];
 
-type ViewType = 'month' | 'week' | 'day';
+type ViewType = 'month' | 'week' | 'day' | 'staff';
 
 export default function CalendarScreen() {
   const router = useRouter();
@@ -184,9 +184,10 @@ export default function CalendarScreen() {
   const renderViewTabs = () => (
     <View style={styles.viewTabsContainer}>
       <View style={styles.viewTabs}>
-        {(['month', 'week', 'day'] as ViewType[]).map((type) => {
+        {(['month', 'week', 'day', 'staff'] as ViewType[]).map((type) => {
           const isActive = viewType === type;
-          const icons = { month: 'calendar', week: 'calendar-outline', day: 'today' };
+          const icons: Record<ViewType, string> = { month: 'calendar', week: 'calendar-outline', day: 'today', staff: 'people' };
+          const labels: Record<ViewType, string> = { month: 'Ay', week: 'Hafta', day: 'Gün', staff: 'Personel' };
           return (
             <TouchableOpacity
               key={type}
@@ -200,7 +201,7 @@ export default function CalendarScreen() {
                 color={isActive ? '#fff' : '#6B7280'}
               />
               <Text style={[styles.viewTabText, isActive && styles.viewTabTextActive]}>
-                {type === 'month' ? 'Ay' : type === 'week' ? 'Hafta' : 'Gün'}
+                {labels[type]}
               </Text>
             </TouchableOpacity>
           );
@@ -610,6 +611,116 @@ export default function CalendarScreen() {
     }
   };
 
+  // Get unique staff from appointments and group today's appointments by staff
+  const getStaffWithAppointments = () => {
+    const dateStr = formatDateString(currentDate);
+    const dayAppointments = getAppointmentsForDate(dateStr);
+
+    const staffMap = new Map<string, { id: string; name: string; appointments: Appointment[] }>();
+
+    // Collect all unique staff from ALL appointments
+    appointments.forEach(apt => {
+      if (apt.staffId && apt.staffName && !staffMap.has(apt.staffId)) {
+        staffMap.set(apt.staffId, { id: apt.staffId, name: apt.staffName, appointments: [] });
+      }
+    });
+
+    // Assign today's appointments to their staff
+    dayAppointments.forEach(apt => {
+      if (apt.staffId && staffMap.has(apt.staffId)) {
+        staffMap.get(apt.staffId)!.appointments.push(apt);
+      }
+    });
+
+    // Sort each staff's appointments by time
+    staffMap.forEach(staff => {
+      staff.appointments.sort((a, b) => a.time.localeCompare(b.time));
+    });
+
+    return Array.from(staffMap.values());
+  };
+
+  // Render staff view
+  const renderStaffView = () => {
+    const staffList = getStaffWithAppointments();
+
+    if (staffList.length === 0) {
+      return (
+        <View style={styles.staffEmptyContainer}>
+          <Ionicons name="people-outline" size={48} color="#D1D5DB" />
+          <Text style={styles.staffEmptyTitle}>Personel bulunamadı</Text>
+          <Text style={styles.staffEmptySubtitle}>Randevularda kayıtlı personel yok</Text>
+        </View>
+      );
+    }
+
+    return (
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={styles.staffScrollView}
+        contentContainerStyle={styles.staffScrollContent}
+      >
+        {staffList.map(staff => (
+          <View key={staff.id} style={styles.staffColumn}>
+            {/* Staff Header */}
+            <LinearGradient
+              colors={['#3B82F6', '#1D4ED8']}
+              style={styles.staffHeader}
+            >
+              <View style={styles.staffAvatar}>
+                <Text style={styles.staffAvatarText}>
+                  {staff.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
+                </Text>
+              </View>
+              <Text style={styles.staffName} numberOfLines={1}>{staff.name}</Text>
+              <Text style={styles.staffCount}>{staff.appointments.length} randevu</Text>
+            </LinearGradient>
+
+            {/* Appointments */}
+            <ScrollView style={styles.staffAppointmentsList} showsVerticalScrollIndicator={false}>
+              {staff.appointments.length > 0 ? (
+                staff.appointments.map(apt => {
+                  const status = STATUS_CONFIG[apt.status] || STATUS_CONFIG.pending;
+                  return (
+                    <TouchableOpacity
+                      key={apt.id}
+                      style={styles.staffAppointmentCard}
+                      onPress={() => {
+                        setSelectedAppointment(apt);
+                        setShowDetailModal(true);
+                      }}
+                      activeOpacity={0.7}
+                    >
+                      <View style={styles.staffAptHeader}>
+                        <View style={styles.staffAptTimeRow}>
+                          <Ionicons name="time-outline" size={14} color="#3B82F6" />
+                          <Text style={styles.staffAptTime}>{apt.time.substring(0, 5)}</Text>
+                        </View>
+                        <View style={[styles.staffAptBadge, { backgroundColor: status.bg }]}>
+                          <Text style={[styles.staffAptBadgeText, { color: status.text }]}>
+                            {status.label}
+                          </Text>
+                        </View>
+                      </View>
+                      <Text style={styles.staffAptCustomer} numberOfLines={1}>{apt.customerName}</Text>
+                      <Text style={styles.staffAptService} numberOfLines={1}>{apt.serviceName}</Text>
+                    </TouchableOpacity>
+                  );
+                })
+              ) : (
+                <View style={styles.staffNoAppointments}>
+                  <Ionicons name="calendar-outline" size={32} color="#D1D5DB" />
+                  <Text style={styles.staffNoAppointmentsText}>Randevu yok</Text>
+                </View>
+              )}
+            </ScrollView>
+          </View>
+        ))}
+      </ScrollView>
+    );
+  };
+
   return (
     <SafeAreaView style={styles.container} edges={[]}>
       {/* Header - Using shared Header component */}
@@ -654,6 +765,7 @@ export default function CalendarScreen() {
           {viewType === 'month' && renderMonthView()}
           {viewType === 'week' && renderWeekView()}
           {viewType === 'day' && renderDayView()}
+          {viewType === 'staff' && renderStaffView()}
         </View>
       )}
 
@@ -1068,6 +1180,125 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '700',
     color: '#059669',
+  },
+
+  // Staff view
+  staffScrollView: {
+    flex: 1,
+  },
+  staffScrollContent: {
+    paddingHorizontal: 12,
+    paddingTop: 16,
+    paddingBottom: 100,
+    gap: 12,
+  },
+  staffColumn: {
+    width: 260,
+    borderRadius: 16,
+    backgroundColor: '#fff',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 3,
+    overflow: 'hidden',
+  },
+  staffHeader: {
+    paddingVertical: 16,
+    paddingHorizontal: 16,
+    alignItems: 'center',
+    gap: 8,
+  },
+  staffAvatar: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  staffAvatarText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#fff',
+  },
+  staffName: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#fff',
+  },
+  staffCount: {
+    fontSize: 12,
+    color: 'rgba(255,255,255,0.7)',
+  },
+  staffAppointmentsList: {
+    maxHeight: 400,
+  },
+  staffAppointmentCard: {
+    padding: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+  },
+  staffAptHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  staffAptTimeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  staffAptTime: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#1F2937',
+  },
+  staffAptBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+  },
+  staffAptBadgeText: {
+    fontSize: 10,
+    fontWeight: '600',
+  },
+  staffAptCustomer: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1F2937',
+    marginBottom: 2,
+  },
+  staffAptService: {
+    fontSize: 12,
+    color: '#6B7280',
+  },
+  staffNoAppointments: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 40,
+    gap: 8,
+  },
+  staffNoAppointmentsText: {
+    fontSize: 13,
+    color: '#9CA3AF',
+  },
+  staffEmptyContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 60,
+  },
+  staffEmptyTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#6B7280',
+  },
+  staffEmptySubtitle: {
+    fontSize: 13,
+    color: '#9CA3AF',
   },
 
   // FAB
