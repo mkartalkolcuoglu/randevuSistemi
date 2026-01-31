@@ -7,11 +7,13 @@ import { useAuthStore } from '../src/store/auth.store';
 // Onboarding key is device-specific (not phone-specific)
 // This ensures onboarding is shown on first app install on any device
 const ONBOARDING_SHOWN_KEY = 'onboarding_shown_v1';
+const PENDING_BOOKING_KEY = 'pendingBookingBusinessId';
 
 export default function Index() {
-  const { isAuthenticated, user } = useAuthStore();
+  const { isAuthenticated, isGuestMode, user } = useAuthStore();
   const [isCheckingOnboarding, setIsCheckingOnboarding] = useState(true);
   const [needsOnboarding, setNeedsOnboarding] = useState(false);
+  const [pendingBookingBusinessId, setPendingBookingBusinessId] = useState<string | null>(null);
 
   useEffect(() => {
     checkOnboardingStatus();
@@ -24,6 +26,13 @@ export default function Index() {
     }
 
     try {
+      // Check if there's a pending booking from guest mode
+      const pendingBusinessId = await AsyncStorage.getItem(PENDING_BOOKING_KEY);
+      if (pendingBusinessId) {
+        setPendingBookingBusinessId(pendingBusinessId);
+        await AsyncStorage.removeItem(PENDING_BOOKING_KEY);
+      }
+
       // Check if onboarding was shown on this device
       const onboardingShown = await AsyncStorage.getItem(ONBOARDING_SHOWN_KEY);
 
@@ -50,6 +59,11 @@ export default function Index() {
     );
   }
 
+  // Guest mode - go to explore
+  if (isGuestMode && !isAuthenticated) {
+    return <Redirect href="/(guest)/explore" />;
+  }
+
   // Not authenticated - go to login
   if (!isAuthenticated) {
     return <Redirect href="/(auth)/login" />;
@@ -62,6 +76,10 @@ export default function Index() {
 
   // Customer authenticated with complete profile
   if (user?.userType === 'customer') {
+    // If there's a pending booking from guest mode, redirect to new appointment
+    if (pendingBookingBusinessId) {
+      return <Redirect href={`/(tabs)/customer/new-appointment?preselectedBusinessId=${pendingBookingBusinessId}`} />;
+    }
     return <Redirect href="/(tabs)/customer" />;
   }
 

@@ -7,6 +7,10 @@ const NETGSM_USERCODE = process.env.NETGSM_USERCODE;
 const NETGSM_PASSWORD = process.env.NETGSM_PASSWORD;
 const NETGSM_MSGHEADER = process.env.NETGSM_MSGHEADER;
 
+// Demo account phone number for App Store review
+const DEMO_PHONE = '5551234567';
+const DEMO_PHONE_FORMATTED = '905551234567';
+
 export async function POST(request: NextRequest) {
   try {
     const { phone, userType } = await request.json();
@@ -22,6 +26,32 @@ export async function POST(request: NextRequest) {
     let formattedPhone = phone.replace(/\s/g, '').replace(/^0/, '');
     if (!formattedPhone.startsWith('90')) {
       formattedPhone = '90' + formattedPhone;
+    }
+
+    // Demo account bypass for App Store review
+    // Demo phone: 5551234567, OTP: 123456
+    if (formattedPhone === DEMO_PHONE_FORMATTED || phone === DEMO_PHONE || phone === '0' + DEMO_PHONE) {
+      console.log('📱 Demo account OTP request - skipping SMS, use code: 123456');
+
+      // Store demo OTP in database
+      const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
+      await prisma.otpVerification.deleteMany({
+        where: { phone: DEMO_PHONE_FORMATTED },
+      });
+      const otpRecord = await prisma.otpVerification.create({
+        data: {
+          phone: DEMO_PHONE_FORMATTED,
+          code: '123456',
+          purpose: 'mobile_login',
+          expiresAt,
+        },
+      });
+
+      return NextResponse.json({
+        success: true,
+        message: 'Doğrulama kodu gönderildi',
+        otpId: otpRecord.id,
+      });
     }
 
     // For customer login, skip user existence check (allow new customers to register)

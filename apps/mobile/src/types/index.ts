@@ -50,6 +50,7 @@ export interface Tenant {
 // Authentication
 export interface AuthState {
   isAuthenticated: boolean;
+  isGuestMode: boolean;
   isLoading: boolean;
   user: User | null;
   selectedTenant: Tenant | null;

@@ -24,11 +24,15 @@ interface AuthStore extends AuthState {
   logout: () => Promise<void>;
   setUser: (user: User | null) => void;
   setLoading: (loading: boolean) => void;
+  // Guest mode actions
+  enterGuestMode: () => void;
+  exitGuestMode: () => void;
 }
 
 export const useAuthStore = create<AuthStore>((set, get) => ({
   // Initial state
   isAuthenticated: false,
+  isGuestMode: false,
   isLoading: true,
   user: null,
   selectedTenant: null,
@@ -271,4 +275,19 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
 
   // Set loading
   setLoading: (isLoading: boolean) => set({ isLoading }),
+
+  // Enter guest mode - browse without login
+  enterGuestMode: () => {
+    set({
+      isGuestMode: true,
+      isAuthenticated: false,
+      user: null,
+      selectedTenant: null,
+    });
+  },
+
+  // Exit guest mode - return to login
+  exitGuestMode: () => {
+    set({ isGuestMode: false });
+  },
 }));

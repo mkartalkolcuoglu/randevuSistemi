@@ -3,11 +3,18 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useAuthStore } from '../../src/store/auth.store';
 
 const { width, height } = Dimensions.get('window');
 
 export default function LoginScreen() {
   const router = useRouter();
+  const { enterGuestMode } = useAuthStore();
+
+  const handleGuestMode = () => {
+    enterGuestMode();
+    router.replace('/(guest)/explore');
+  };
 
   return (
     <View style={styles.container}>
@@ -86,6 +93,28 @@ export default function LoginScreen() {
                 </View>
                 <View style={styles.cardArrow}>
                   <Ionicons name="arrow-forward" size={24} color="#667eea" />
+                </View>
+              </View>
+            </TouchableOpacity>
+
+            {/* Guest Mode Card */}
+            <TouchableOpacity
+              style={styles.card}
+              onPress={handleGuestMode}
+              activeOpacity={0.9}
+            >
+              <View style={styles.cardLight}>
+                <View style={[styles.cardIconContainer, styles.cardIconGreen]}>
+                  <Ionicons name="eye-outline" size={32} color="#059669" />
+                </View>
+                <View style={styles.cardContent}>
+                  <Text style={[styles.cardTitle, styles.cardTitleDark]}>Misafir Olarak Gözat</Text>
+                  <Text style={[styles.cardDescription, styles.cardDescriptionDark]}>
+                    Giriş yapmadan salonları keşfedin
+                  </Text>
+                </View>
+                <View style={[styles.cardArrow, styles.cardArrowGreen]}>
+                  <Ionicons name="arrow-forward" size={24} color="#059669" />
                 </View>
               </View>
             </TouchableOpacity>
@@ -224,6 +253,9 @@ const styles = StyleSheet.create({
   cardIconLight: {
     backgroundColor: 'rgba(102, 126, 234, 0.1)',
   },
+  cardIconGreen: {
+    backgroundColor: 'rgba(5, 150, 105, 0.1)',
+  },
   cardContent: {
     flex: 1,
     marginLeft: 16,
@@ -252,6 +284,9 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.15)',
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  cardArrowGreen: {
+    backgroundColor: 'rgba(5, 150, 105, 0.1)',
   },
   footer: {
     flexDirection: 'row',
