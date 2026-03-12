@@ -52,6 +52,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const date = searchParams.get('date');
     const status = searchParams.get('status');
+    const queryStaffId = searchParams.get('staffId');
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '100');
     const skip = (page - 1) * limit;
@@ -61,8 +62,11 @@ export async function GET(request: NextRequest) {
       tenantId: auth.tenantId,
     };
 
-    // If staff (not owner), only show their appointments
-    if (auth.userType === 'staff' && auth.staffId) {
+    // If a specific staffId is requested (e.g. for conflict checking), use it
+    if (queryStaffId) {
+      where.staffId = queryStaffId;
+    } else if (auth.userType === 'staff' && auth.staffId) {
+      // If staff (not owner), only show their appointments
       where.staffId = auth.staffId;
     }
 

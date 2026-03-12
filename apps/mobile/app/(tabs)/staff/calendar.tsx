@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -16,6 +16,13 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { GestureDetector, Gesture } from 'react-native-gesture-handler';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  runOnJS,
+  withSpring,
+} from 'react-native-reanimated';
 import { useAuthStore } from '../../../src/store/auth.store';
 import { appointmentService } from '../../../src/services/appointment.service';
 import { Appointment } from '../../../src/types';
@@ -25,14 +32,32 @@ import Header from '../../../src/components/Header';
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const DAY_WIDTH = (SCREEN_WIDTH - 48) / 7;
 
+// Time-grid constants
+const TIME_LABEL_WIDTH = 50;
+const HOUR_HEIGHT = 120; // pixels per hour (fixed)
+const STAFF_HEADER_HEIGHT = 40;
+const DEFAULT_INTERVAL = 30; // default appointment interval in minutes
+const DEFAULT_START_HOUR = 8;
+const DEFAULT_END_HOUR = 21;
+
+// Staff header colors (matching reference design)
+const STAFF_COLORS: [string, string][] = [
+  ['#DC2626', '#B91C1C'],  // Red
+  ['#78716C', '#57534E'],  // Gray/Brown
+  ['#06B6D4', '#0891B2'],  // Cyan
+  ['#1F2937', '#111827'],  // Dark
+  ['#8B5CF6', '#7C3AED'],  // Purple
+  ['#059669', '#047857'],  // Green
+];
+
 // Status configurations with gradients
 const STATUS_CONFIG: Record<string, { bg: string; text: string; label: string; gradient: [string, string] }> = {
   pending: { bg: '#FEF3C7', text: '#D97706', label: 'Beklemede', gradient: ['#FCD34D', '#F59E0B'] },
   scheduled: { bg: '#DBEAFE', text: '#2563EB', label: 'Planlandı', gradient: ['#60A5FA', '#3B82F6'] },
   confirmed: { bg: '#D1FAE5', text: '#059669', label: 'Onaylandı', gradient: ['#34D399', '#10B981'] },
   completed: { bg: '#DBEAFE', text: '#2563EB', label: 'Tamamlandı', gradient: ['#60A5FA', '#3B82F6'] },
-  cancelled: { bg: '#FEE2E2', text: '#DC2626', label: 'İptal', gradient: ['#F87171', '#EF4444'] },
-  no_show: { bg: '#FFEDD5', text: '#EA580C', label: 'Gelmedi', gradient: ['#FB923C', '#F97316'] },
+  cancelled: { bg: '#FEE2E2', text: '#DC2626', label: 'İptal Edildi', gradient: ['#F87171', '#EF4444'] },
+  no_show: { bg: '#FFEDD5', text: '#EA580C', label: 'Gelmedi ve Bilgi Vermedi', gradient: ['#FB923C', '#F97316'] },
 };
 
 const WEEKDAYS = ['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'];
@@ -41,7 +66,124 @@ const MONTHS = [
   'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'
 ];
 
-type ViewType = 'month' | 'week' | 'day' | 'staff';
+type ViewType = 'month' | 'week' | 'day';
+
+// Draggable appointment block — long press (600ms) to drag, short tap to open detail
+function DraggableAppointmentBlock({
+  apt,
+  staffIndex,
+  columnWidth,
+  top,
+  height,
+  status,
+  isShort,
+  onTap,
+  onDragStart,
+  onDragMove,
+  onDragComplete,
+}: {
+  apt: Appointment;
+  staffIndex: number;
+  columnWidth: number;
+  top: number;
+  height: number;
+  status: { bg: string; text: string; label: string; gradient: [string, string] };
+  isShort: boolean;
+  totalGridHeight: number;
+  timeInterval: number;
+  gridStartHour: number;
+  gridEndHour: number;
+  onTap: (apt: Appointment) => void;
+  onDragStart: (apt: Appointment) => void;
+  onDragMove: (translationX: number, translationY: number, absoluteX: number, absoluteY: number) => void;
+  onDragComplete: (apt: Appointment, absoluteX: number, absoluteY: number) => void;
+}) {
+  const translateX = useSharedValue(0);
+  const translateY = useSharedValue(0);
+  const scale = useSharedValue(1);
+  const opacity = useSharedValue(1);
+  const isDraggingShared = useSharedValue(false);
+
+  const tap = Gesture.Tap().onEnd(() => {
+    runOnJS(onTap)(apt);
+  });
+
+  const pan = Gesture.Pan()
+    .activateAfterLongPress(600)
+    .onStart(() => {
+      isDraggingShared.value = true;
+      scale.value = withSpring(1.06);
+      opacity.value = withSpring(0.75);
+      runOnJS(onDragStart)(apt);
+    })
+    .onUpdate((e) => {
+      translateX.value = e.translationX;
+      translateY.value = e.translationY;
+      runOnJS(onDragMove)(e.translationX, e.translationY, e.absoluteX, e.absoluteY);
+    })
+    .onEnd((e) => {
+      runOnJS(onDragComplete)(apt, e.absoluteX, e.absoluteY);
+    })
+    .onFinalize(() => {
+      isDraggingShared.value = false;
+      translateX.value = withSpring(0);
+      translateY.value = withSpring(0);
+      scale.value = withSpring(1);
+      opacity.value = withSpring(1);
+    });
+
+  const gesture = Gesture.Race(tap, pan);
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [
+      { translateX: translateX.value },
+      { translateY: translateY.value },
+      { scale: scale.value },
+    ],
+    opacity: opacity.value,
+    zIndex: isDraggingShared.value ? 999 : 10,
+    elevation: isDraggingShared.value ? 8 : 0,
+    shadowOpacity: isDraggingShared.value ? 0.3 : 0,
+    shadowRadius: isDraggingShared.value ? 8 : 0,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+  }));
+
+  return (
+    <GestureDetector gesture={gesture}>
+      <Animated.View
+        style={[
+          {
+            position: 'absolute',
+            top,
+            left: staffIndex * columnWidth + 2,
+            width: columnWidth - 4,
+            height,
+            borderRadius: 6,
+            backgroundColor: status.bg,
+            borderLeftWidth: 3,
+            borderLeftColor: status.text,
+            paddingHorizontal: 4,
+            paddingVertical: 2,
+          },
+          animatedStyle,
+        ]}
+      >
+        <Text
+          numberOfLines={1}
+          style={{ fontSize: isShort ? 9 : 11, fontWeight: '700', color: status.text }}
+        >
+          {apt.customerName}
+        </Text>
+        {!isShort && (
+          <Text numberOfLines={1} style={{ fontSize: 9, color: status.text, opacity: 0.8 }}>
+            {apt.time} · {apt.serviceName}
+          </Text>
+        )}
+      </Animated.View>
+    </GestureDetector>
+  );
+}
 
 export default function CalendarScreen() {
   const router = useRouter();
@@ -51,17 +193,108 @@ export default function CalendarScreen() {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [viewType, setViewType] = useState<ViewType>('month');
+  const [viewType, setViewType] = useState<ViewType>('day');
   const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [currentTime, setCurrentTime] = useState(new Date());
+  const [timeInterval, setTimeInterval] = useState(DEFAULT_INTERVAL);
+  const [gridStartHour, setGridStartHour] = useState(DEFAULT_START_HOUR);
+  const [gridEndHour, setGridEndHour] = useState(DEFAULT_END_HOUR);
 
-  // Fetch appointments
+  const verticalScrollRef = useRef<ScrollView>(null);
+  const gridBodyRef = useRef<View>(null);
+  const gridBodyTopRef = useRef(0);
+  const gridBodyLeftRef = useRef(0);
+  const scrollOffsetRef = useRef(0);
+
+  // Drag state
+  const [isDragging, setIsDragging] = useState(false);
+  const [draggingApt, setDraggingApt] = useState<Appointment | null>(null);
+  const [dragTargetTime, setDragTargetTime] = useState<string | null>(null);
+  const [dragTargetStaffId, setDragTargetStaffId] = useState<string | null>(null);
+  const dragTargetTimeRef = useRef<string | null>(null);
+  const dragTargetStaffIdRef = useRef<string | null>(null);
+
+  // Derived grid values
+  const slotHeight = (timeInterval / 60) * HOUR_HEIGHT;
+  const totalHours = gridEndHour - gridStartHour;
+  const totalGridHeight = totalHours * HOUR_HEIGHT;
+
+  // Update current time every minute (for red line indicator)
+  useEffect(() => {
+    const interval = setInterval(() => setCurrentTime(new Date()), 60000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Auto-scroll to current time when viewing today in day view
+  useEffect(() => {
+    if (viewType === 'day' && isToday(currentDate)) {
+      const pos = getCurrentTimePosition();
+      if (pos !== null) {
+        setTimeout(() => {
+          verticalScrollRef.current?.scrollTo({
+            y: Math.max(0, pos - 200),
+            animated: true,
+          });
+        }, 400);
+      }
+    }
+  }, [currentDate, viewType]);
+
+  // Fetch appointments and tenant settings
   const fetchAppointments = async () => {
     setIsLoading(true);
     try {
-      const response = await appointmentService.getStaffAppointments();
-      setAppointments(response.data || []);
+      const [appointmentsRes, settingsRes] = await Promise.all([
+        appointmentService.getStaffAppointments({ limit: 1000 }),
+        appointmentService.getTenantSettings(),
+      ]);
+      const appts = appointmentsRes.data || [];
+      setAppointments(appts);
+
+      if (settingsRes.success && settingsRes.data) {
+        const interval = settingsRes.data.appointmentTimeInterval || DEFAULT_INTERVAL;
+        setTimeInterval(interval);
+
+        // Extract working hours to set grid start/end
+        const wh = settingsRes.data.workingHours;
+        let minStart = DEFAULT_START_HOUR;
+        let maxEnd = DEFAULT_END_HOUR;
+        if (wh) {
+          let whStart = 24;
+          let whEnd = 0;
+          Object.values(wh).forEach((day: any) => {
+            if (!day.closed && day.start && day.end) {
+              const startH = parseInt(day.start.split(':')[0], 10);
+              const endH = parseInt(day.end.split(':')[0], 10);
+              const endM = parseInt(day.end.split(':')[1], 10);
+              if (startH < whStart) whStart = startH;
+              const endCeil = endM > 0 ? endH + 1 : endH;
+              if (endCeil > whEnd) whEnd = endCeil;
+            }
+          });
+          if (whStart < whEnd) {
+            minStart = whStart;
+            maxEnd = whEnd;
+          }
+        }
+
+        // Also expand grid to cover any appointment outside working hours
+        appts.forEach((apt) => {
+          if (apt.time) {
+            const h = parseInt(apt.time.split(':')[0], 10);
+            const duration = apt.duration || 30;
+            const endMin = h * 60 + parseInt(apt.time.split(':')[1], 10) + duration;
+            const endCeil = Math.ceil(endMin / 60);
+            if (h < minStart) minStart = h;
+            if (endCeil > maxEnd) maxEnd = endCeil;
+          }
+        });
+
+        setGridStartHour(minStart);
+        setGridEndHour(maxEnd);
+      }
     } catch (error) {
       console.error('Error fetching appointments:', error);
       setAppointments([]);
@@ -75,6 +308,29 @@ export default function CalendarScreen() {
       fetchAppointments();
     }, [])
   );
+
+  // Get unique staff members from appointments
+  const staffMembers = useMemo(() => {
+    const staffMap = new Map<string, string>();
+    appointments.forEach(apt => {
+      if (apt.staffId && apt.staffName) {
+        staffMap.set(apt.staffId, apt.staffName);
+      }
+    });
+    return Array.from(staffMap.entries()).map(([id, name]) => ({ id, name }));
+  }, [appointments]);
+
+  // Display staff list (used both in render and drag handlers)
+  const displayStaff = useMemo(() =>
+    staffMembers.length > 0 ? staffMembers : [{ id: 'all', name: 'Tüm Randevular' }],
+    [staffMembers]
+  );
+
+  // Column width for day view (used in drag handlers)
+  const staffColumnWidth = useMemo(() => {
+    const count = displayStaff.length || 1;
+    return (SCREEN_WIDTH - TIME_LABEL_WIDTH) / count;
+  }, [displayStaff]);
 
   // Get appointments for a specific date
   const getAppointmentsForDate = (date: string) => {
@@ -137,18 +393,12 @@ export default function CalendarScreen() {
     return days;
   };
 
-  // Get time slots for day view
-  const getTimeSlots = () => {
-    const slots = [];
-    for (let hour = 8; hour <= 21; hour++) {
-      slots.push(`${hour.toString().padStart(2, '0')}:00`);
-    }
-    return slots;
-  };
-
-  // Format date for comparison
+  // Format date for comparison (local timezone, not UTC)
   const formatDateString = (date: Date) => {
-    return date.toISOString().split('T')[0];
+    const y = date.getFullYear();
+    const m = (date.getMonth() + 1).toString().padStart(2, '0');
+    const d = date.getDate().toString().padStart(2, '0');
+    return `${y}-${m}-${d}`;
   };
 
   // Check if date is today
@@ -156,6 +406,23 @@ export default function CalendarScreen() {
     if (!date) return false;
     const today = new Date();
     return formatDateString(date) === formatDateString(today);
+  };
+
+  // Time-grid helpers
+  const getAppointmentPosition = (timeStr: string, duration: number) => {
+    const [hours, minutes] = timeStr.split(':').map(Number);
+    const minutesFromStart = (hours - gridStartHour) * 60 + minutes;
+    const top = (minutesFromStart / 60) * HOUR_HEIGHT;
+    const height = Math.max((duration / 60) * HOUR_HEIGHT, 28);
+    return { top, height };
+  };
+
+  const getCurrentTimePosition = (): number | null => {
+    const hours = currentTime.getHours();
+    const minutes = currentTime.getMinutes();
+    if (hours < gridStartHour || hours >= gridEndHour) return null;
+    const minutesFromStart = (hours - gridStartHour) * 60 + minutes;
+    return (minutesFromStart / 60) * HOUR_HEIGHT;
   };
 
   // Handle WhatsApp
@@ -180,14 +447,103 @@ export default function CalendarScreen() {
     Linking.openURL(`tel:${phone}`);
   };
 
+  // Appointment block handlers
+  const handleDragTap = (apt: Appointment) => {
+    setSelectedAppointment(apt);
+    setShowDetailModal(true);
+  };
+
+  const handleDragStart = (apt: Appointment) => {
+    setIsDragging(true);
+    setDraggingApt(apt);
+    setDragTargetTime(apt.time);
+    setDragTargetStaffId(apt.staffId);
+    dragTargetTimeRef.current = apt.time;
+    dragTargetStaffIdRef.current = apt.staffId;
+  };
+
+  const handleDragMove = (_translationX: number, _translationY: number, absoluteX: number, absoluteY: number) => {
+    // --- Hedef saat (Y ekseninden) ---
+    const relY = absoluteY - gridBodyTopRef.current + scrollOffsetRef.current;
+    const totalMin = (relY / HOUR_HEIGHT) * 60 + gridStartHour * 60;
+    const snapped = Math.round(totalMin / timeInterval) * timeInterval;
+    const clamped = Math.max(
+      gridStartHour * 60,
+      Math.min((gridEndHour - 1) * 60, snapped)
+    );
+    const h = Math.floor(clamped / 60);
+    const m = clamped % 60;
+    const newTime = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+    setDragTargetTime(newTime);
+    dragTargetTimeRef.current = newTime;
+
+    // --- Hedef personel (X ekseninden) ---
+    const relX = absoluteX - gridBodyLeftRef.current;
+    const staffIndex = Math.max(
+      0,
+      Math.min(displayStaff.length - 1, Math.floor(relX / staffColumnWidth))
+    );
+    const targetStaff = displayStaff[staffIndex];
+    if (targetStaff && targetStaff.id !== 'all') {
+      setDragTargetStaffId(targetStaff.id);
+      dragTargetStaffIdRef.current = targetStaff.id;
+    }
+  };
+
+  const handleDragComplete = async (apt: Appointment, _absoluteX: number, _absoluteY: number) => {
+    const newTime = dragTargetTimeRef.current;
+    const newStaffId = dragTargetStaffIdRef.current;
+    setIsDragging(false);
+    setDraggingApt(null);
+    setDragTargetTime(null);
+    setDragTargetStaffId(null);
+    dragTargetTimeRef.current = null;
+    dragTargetStaffIdRef.current = null;
+
+    const timeChanged = newTime && newTime !== apt.time;
+    const staffChanged = newStaffId && newStaffId !== apt.staffId && newStaffId !== 'all';
+
+    if (!timeChanged && !staffChanged) return;
+
+    // Optimistic update
+    setAppointments(prev =>
+      prev.map(a =>
+        a.id === apt.id
+          ? {
+              ...a,
+              time: newTime || a.time,
+              staffId: staffChanged ? newStaffId! : a.staffId,
+              staffName: staffChanged
+                ? (displayStaff.find(s => s.id === newStaffId)?.name || a.staffName)
+                : a.staffName,
+            }
+          : a
+      )
+    );
+
+    try {
+      await appointmentService.updateAppointment(apt.id, {
+        date: apt.date,
+        time: newTime || apt.time,
+        ...(staffChanged ? { staffId: newStaffId! } : {}),
+      });
+    } catch {
+      // Rollback on error
+      setAppointments(prev =>
+        prev.map(a => (a.id === apt.id ? apt : a))
+      );
+      Alert.alert('Hata', 'Randevu güncellenemedi');
+    }
+  };
+
   // Render view type tabs
   const renderViewTabs = () => (
     <View style={styles.viewTabsContainer}>
       <View style={styles.viewTabs}>
-        {(['month', 'week', 'day', 'staff'] as ViewType[]).map((type) => {
+        {(['day', 'week', 'month'] as ViewType[]).map((type) => {
           const isActive = viewType === type;
-          const icons: Record<ViewType, string> = { month: 'calendar', week: 'calendar-outline', day: 'today', staff: 'people' };
-          const labels: Record<ViewType, string> = { month: 'Ay', week: 'Hafta', day: 'Gün', staff: 'Personel' };
+          const icons: Record<ViewType, string> = { day: 'today', week: 'calendar-outline', month: 'calendar' };
+          const labels: Record<ViewType, string> = { day: 'Gün', week: 'Hafta', month: 'Ay' };
           return (
             <TouchableOpacity
               key={type}
@@ -214,83 +570,237 @@ export default function CalendarScreen() {
   const renderMonthView = () => {
     const days = getMonthDays();
 
+    // Calculate staff appointment counts for the month
+    const getMonthStaffCounts = () => {
+      const validDays = days.filter(Boolean) as Date[];
+      return staffMembers.map(staff => {
+        const count = validDays.reduce((sum, day) => {
+          const dateStr = formatDateString(day);
+          return sum + getAppointmentsForDate(dateStr).filter(apt => apt.staffId === staff.id).length;
+        }, 0);
+        return { ...staff, count };
+      });
+    };
+
     return (
-      <View style={styles.monthContainer}>
-        {/* Weekday headers */}
-        <View style={styles.weekdayHeader}>
-          {WEEKDAYS.map((day, index) => (
-            <View key={day} style={styles.weekdayCell}>
-              <Text style={[
-                styles.weekdayText,
-                (index === 5 || index === 6) && styles.weekdayTextWeekend
-              ]}>{day}</Text>
-            </View>
-          ))}
-        </View>
+      <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
+        <View style={styles.monthContainer}>
+          {/* Weekday headers */}
+          <View style={styles.weekdayHeader}>
+            {WEEKDAYS.map((day, index) => (
+              <View key={day} style={styles.weekdayCell}>
+                <Text style={[
+                  styles.weekdayText,
+                  (index === 5 || index === 6) && styles.weekdayTextWeekend
+                ]}>{day}</Text>
+              </View>
+            ))}
+          </View>
 
-        {/* Calendar grid */}
-        <View style={styles.monthGrid}>
-          {days.map((day, index) => {
-            if (!day) {
-              return <View key={`empty-${index}`} style={styles.dayCell} />;
-            }
+          {/* Calendar grid */}
+          <View style={styles.monthGrid}>
+            {days.map((day, index) => {
+              if (!day) {
+                return <View key={`empty-${index}`} style={styles.dayCell} />;
+              }
 
-            const dateStr = formatDateString(day);
-            const dayAppointments = getAppointmentsForDate(dateStr);
-            const todayCheck = isToday(day);
-            const isWeekend = day.getDay() === 0 || day.getDay() === 6;
+              const dateStr = formatDateString(day);
+              const dayAppointments = getAppointmentsForDate(dateStr);
+              const todayCheck = isToday(day);
+              const isWeekend = day.getDay() === 0 || day.getDay() === 6;
 
-            return (
-              <TouchableOpacity
-                key={dateStr}
-                style={[
-                  styles.dayCell,
-                  todayCheck && styles.dayCellToday,
-                  isWeekend && styles.dayCellWeekend,
-                ]}
-                onPress={() => {
-                  setCurrentDate(day);
-                  setViewType('day');
-                }}
-                activeOpacity={0.7}
-              >
-                <View style={[styles.dayNumberContainer, todayCheck && styles.dayNumberContainerToday]}>
-                  <Text style={[
-                    styles.dayNumber,
-                    todayCheck && styles.dayNumberToday,
-                    isWeekend && !todayCheck && styles.dayNumberWeekend,
-                  ]}>
-                    {day.getDate()}
-                  </Text>
-                </View>
-                {dayAppointments.length > 0 && (
-                  <View style={styles.appointmentDots}>
-                    {dayAppointments.slice(0, 3).map((apt, i) => (
-                      <View
-                        key={apt.id}
-                        style={[
-                          styles.appointmentDot,
-                          { backgroundColor: STATUS_CONFIG[apt.status]?.text || '#6B7280' },
-                        ]}
-                      />
-                    ))}
-                    {dayAppointments.length > 3 && (
-                      <Text style={styles.moreDotsText}>+{dayAppointments.length - 3}</Text>
-                    )}
+              return (
+                <TouchableOpacity
+                  key={dateStr}
+                  style={[
+                    styles.dayCell,
+                    todayCheck && styles.dayCellToday,
+                    isWeekend && styles.dayCellWeekend,
+                  ]}
+                  onPress={() => {
+                    setCurrentDate(day);
+                    setViewType('day');
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <View style={[styles.dayNumberContainer, todayCheck && styles.dayNumberContainerToday]}>
+                    <Text style={[
+                      styles.dayNumber,
+                      todayCheck && styles.dayNumberToday,
+                      isWeekend && !todayCheck && styles.dayNumberWeekend,
+                    ]}>
+                      {day.getDate()}
+                    </Text>
                   </View>
-                )}
-              </TouchableOpacity>
-            );
-          })}
+                  {dayAppointments.length > 0 && (
+                    <View style={styles.appointmentDots}>
+                      {dayAppointments.slice(0, 3).map((apt, i) => (
+                        <View
+                          key={apt.id}
+                          style={[
+                            styles.appointmentDot,
+                            { backgroundColor: STATUS_CONFIG[apt.status]?.text || '#6B7280' },
+                          ]}
+                        />
+                      ))}
+                      {dayAppointments.length > 3 && (
+                        <Text style={styles.moreDotsText}>+{dayAppointments.length - 3}</Text>
+                      )}
+                    </View>
+                  )}
+                </TouchableOpacity>
+              );
+            })}
+          </View>
         </View>
-      </View>
+
+        {/* Staff breakdown for the month */}
+        {staffMembers.length > 1 && (
+          <View style={styles.monthStaffBreakdown}>
+            <Text style={styles.monthStaffTitle}>Personel Dağılımı</Text>
+            {getMonthStaffCounts().map(staff => (
+              <View key={staff.id} style={styles.monthStaffRow}>
+                <LinearGradient
+                  colors={['#3B82F6', '#1D4ED8']}
+                  style={styles.monthStaffAvatar}
+                >
+                  <Text style={styles.monthStaffAvatarText}>
+                    {staff.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
+                  </Text>
+                </LinearGradient>
+                <Text style={styles.monthStaffName}>{staff.name}</Text>
+                <View style={styles.monthStaffBadge}>
+                  <Text style={styles.monthStaffBadgeText}>{staff.count} randevu</Text>
+                </View>
+              </View>
+            ))}
+          </View>
+        )}
+
+        <View style={{ height: 100 }} />
+      </ScrollView>
     );
   };
+
+  // Render week columns for a specific staff or all
+  const renderWeekColumns = (days: Date[], filterStaffId?: string) => (
+    <View style={styles.weekGrid}>
+      {days.map((day, index) => {
+        const dateStr = formatDateString(day);
+        let dayAppts = getAppointmentsForDate(dateStr);
+        if (filterStaffId) {
+          dayAppts = dayAppts.filter(apt => apt.staffId === filterStaffId);
+        }
+        const todayCheck = isToday(day);
+
+        return (
+          <View
+            key={index}
+            style={[styles.weekDayColumn, todayCheck && styles.weekDayColumnToday]}
+          >
+            {dayAppts.length === 0 ? (
+              <View style={styles.emptyDayColumn}>
+                <Ionicons name="remove-outline" size={16} color="#D1D5DB" />
+              </View>
+            ) : (
+              dayAppts.slice(0, 6).map((apt) => {
+                const status = STATUS_CONFIG[apt.status] || STATUS_CONFIG.pending;
+                return (
+                  <TouchableOpacity
+                    key={apt.id}
+                    style={styles.weekAppointment}
+                    onPress={() => {
+                      setSelectedAppointment(apt);
+                      setShowDetailModal(true);
+                    }}
+                    activeOpacity={0.7}
+                  >
+                    <View style={[styles.weekAptAccent, { backgroundColor: status.text }]} />
+                    <View style={styles.weekAptContent}>
+                      <Text style={styles.weekAppointmentTime}>{apt.time.substring(0, 5)}</Text>
+                      <Text style={styles.weekAppointmentName} numberOfLines={1}>
+                        {apt.customerName.split(' ')[0]}
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
+                );
+              })
+            )}
+            {dayAppts.length > 6 && (
+              <Text style={styles.moreText}>+{dayAppts.length - 6}</Text>
+            )}
+          </View>
+        );
+      })}
+    </View>
+  );
 
   // Render week view
   const renderWeekView = () => {
     const days = getWeekDays();
 
+    // Multiple staff: horizontal columns, each with their own week grid
+    if (staffMembers.length > 1) {
+      const WEEK_COLUMN_MIN_WIDTH = 280;
+      const availableWidth = SCREEN_WIDTH - 32;
+      const columnWidth = Math.max(availableWidth / staffMembers.length, WEEK_COLUMN_MIN_WIDTH);
+
+      return (
+        <View style={styles.weekContainer}>
+          <ScrollView style={styles.weekScrollView} showsVerticalScrollIndicator={false}>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              scrollEnabled={columnWidth * staffMembers.length > availableWidth}
+              contentContainerStyle={styles.staffColumnsRow}
+            >
+              {staffMembers.map(staff => {
+                const weekCount = days.reduce((sum, day) => {
+                  const dateStr = formatDateString(day);
+                  return sum + getAppointmentsForDate(dateStr).filter(apt => apt.staffId === staff.id).length;
+                }, 0);
+                return (
+                  <View key={staff.id} style={[styles.staffColumn, { width: columnWidth }]}>
+                    <LinearGradient colors={['#3B82F6', '#1D4ED8']} style={styles.staffColumnHeader}>
+                      <Text style={styles.staffColumnInitials}>
+                        {staff.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
+                      </Text>
+                      <Text style={styles.staffColumnName} numberOfLines={1}>{staff.name}</Text>
+                      <Text style={styles.staffColumnCount}>{weekCount} randevu</Text>
+                    </LinearGradient>
+                    {/* Mini weekday headers inside each staff column */}
+                    <View style={styles.weekStaffDayHeaders}>
+                      {days.map((day, idx) => {
+                        const todayCheck = isToday(day);
+                        return (
+                          <TouchableOpacity
+                            key={idx}
+                            style={[styles.weekStaffDayHeader, todayCheck && styles.weekStaffDayHeaderToday]}
+                            onPress={() => { setCurrentDate(day); setViewType('day'); }}
+                            activeOpacity={0.7}
+                          >
+                            <Text style={[styles.weekStaffDayName, todayCheck && styles.weekStaffDayNameToday]}>
+                              {WEEKDAYS[idx]}
+                            </Text>
+                            <Text style={[styles.weekStaffDayNum, todayCheck && styles.weekStaffDayNumToday]}>
+                              {day.getDate()}
+                            </Text>
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </View>
+                    {renderWeekColumns(days, staff.id)}
+                  </View>
+                );
+              })}
+            </ScrollView>
+            <View style={{ height: 100 }} />
+          </ScrollView>
+        </View>
+      );
+    }
+
+    // Single staff or no staff: original layout
     return (
       <View style={styles.weekContainer}>
         {/* Weekday headers */}
@@ -318,144 +828,275 @@ export default function CalendarScreen() {
           })}
         </View>
 
-        {/* Week grid */}
         <ScrollView style={styles.weekScrollView} showsVerticalScrollIndicator={false}>
-          <View style={styles.weekGrid}>
-            {days.map((day, index) => {
-              const dateStr = formatDateString(day);
-              const dayAppointments = getAppointmentsForDate(dateStr);
-              const todayCheck = isToday(day);
-
-              return (
-                <View
-                  key={index}
-                  style={[styles.weekDayColumn, todayCheck && styles.weekDayColumnToday]}
-                >
-                  {dayAppointments.length === 0 ? (
-                    <View style={styles.emptyDayColumn}>
-                      <Ionicons name="remove-outline" size={16} color="#D1D5DB" />
-                    </View>
-                  ) : (
-                    dayAppointments.slice(0, 6).map((apt) => {
-                      const status = STATUS_CONFIG[apt.status] || STATUS_CONFIG.pending;
-                      return (
-                        <TouchableOpacity
-                          key={apt.id}
-                          style={styles.weekAppointment}
-                          onPress={() => {
-                            setSelectedAppointment(apt);
-                            setShowDetailModal(true);
-                          }}
-                          activeOpacity={0.7}
-                        >
-                          <View style={[styles.weekAptAccent, { backgroundColor: status.text }]} />
-                          <View style={styles.weekAptContent}>
-                            <Text style={styles.weekAppointmentTime}>{apt.time.substring(0, 5)}</Text>
-                            <Text style={styles.weekAppointmentName} numberOfLines={1}>
-                              {apt.customerName.split(' ')[0]}
-                            </Text>
-                          </View>
-                        </TouchableOpacity>
-                      );
-                    })
-                  )}
-                  {dayAppointments.length > 6 && (
-                    <Text style={styles.moreText}>+{dayAppointments.length - 6}</Text>
-                  )}
-                </View>
-              );
-            })}
-          </View>
+          {renderWeekColumns(days)}
         </ScrollView>
       </View>
     );
   };
 
-  // Render day view
+  // Render day view - Time Grid Layout
   const renderDayView = () => {
-    const timeSlots = getTimeSlots();
     const dateStr = formatDateString(currentDate);
     const dayAppointments = getAppointmentsForDate(dateStr);
 
+    // columnWidth is staffColumnWidth from scope (matches drag handler calculations)
+    const columnWidth = staffColumnWidth;
+
+    // Generate time slot labels based on appointment interval
+    const timeSlots: string[] = [];
+    const startMinutes = gridStartHour * 60;
+    const endMinutes = gridEndHour * 60;
+    for (let m = startMinutes; m < endMinutes; m += timeInterval) {
+      const h = Math.floor(m / 60);
+      const min = m % 60;
+      timeSlots.push(`${h.toString().padStart(2, '0')}:${min.toString().padStart(2, '0')}`);
+    }
+
+    // Current time indicator position (only for today)
+    const currentTimeTop = isToday(currentDate) ? getCurrentTimePosition() : null;
+    // displayStaff comes from scope (useMemo)
+
     return (
-      <ScrollView style={styles.dayContainer} showsVerticalScrollIndicator={false}>
-        {/* Day summary */}
-        <View style={styles.daySummary}>
-          <View style={styles.daySummaryItem}>
-            <Text style={styles.daySummaryNumber}>{dayAppointments.length}</Text>
-            <Text style={styles.daySummaryLabel}>Randevu</Text>
+      <View style={{ flex: 1 }}>
+        {/* Sticky Staff Header - no scroll, all fit on screen */}
+        <View style={styles.timeGridHeader}>
+          <View style={{ width: TIME_LABEL_WIDTH, backgroundColor: '#fff', justifyContent: 'center', alignItems: 'center' }}>
+            <Ionicons name="time-outline" size={14} color="#9CA3AF" />
           </View>
-          <View style={styles.daySummaryDivider} />
-          <View style={styles.daySummaryItem}>
-            <Text style={styles.daySummaryNumber}>
-              {dayAppointments.reduce((sum, apt) => sum + (apt.price || 0), 0).toLocaleString('tr-TR')} ₺
-            </Text>
-            <Text style={styles.daySummaryLabel}>Toplam</Text>
-          </View>
+          {displayStaff.map((staff, index) => (
+            <LinearGradient
+              key={staff.id}
+              colors={STAFF_COLORS[index % STAFF_COLORS.length]}
+              style={[styles.staffHeaderCell, { width: columnWidth }]}
+            >
+              <Text style={styles.staffHeaderText} numberOfLines={1}>
+                {staff.name}
+              </Text>
+            </LinearGradient>
+          ))}
         </View>
 
-        {/* Time slots */}
-        {timeSlots.map((time) => {
-          const hour = parseInt(time.split(':')[0]);
-          const slotAppointments = dayAppointments.filter((apt) => {
-            const aptHour = parseInt(apt.time.split(':')[0]);
-            return aptHour === hour;
-          });
-
-          return (
-            <View key={time} style={styles.timeSlot}>
-              <View style={styles.timeLabel}>
-                <Text style={styles.timeLabelText}>{time}</Text>
-              </View>
-              <View style={styles.slotContent}>
-                {slotAppointments.length === 0 ? (
-                  <View style={styles.emptySlot} />
-                ) : (
-                  slotAppointments.map((apt) => {
-                    const status = STATUS_CONFIG[apt.status] || STATUS_CONFIG.pending;
-                    return (
-                      <TouchableOpacity
-                        key={apt.id}
-                        style={styles.dayAppointment}
-                        onPress={() => {
-                          setSelectedAppointment(apt);
-                          setShowDetailModal(true);
-                        }}
-                        activeOpacity={0.7}
-                      >
-                        <LinearGradient
-                          colors={status.gradient}
-                          start={{ x: 0, y: 0 }}
-                          end={{ x: 0, y: 1 }}
-                          style={styles.dayAptAccentBar}
-                        />
-                        <View style={styles.dayAptBody}>
-                          <View style={styles.dayAptHeader}>
-                            <Text style={styles.dayAptTime}>
-                              {apt.time.substring(0, 5)}
-                            </Text>
-                            <View style={[styles.dayAptStatus, { backgroundColor: status.bg }]}>
-                              <Text style={[styles.dayAptStatusText, { color: status.text }]}>
-                                {status.label}
-                              </Text>
-                            </View>
-                          </View>
-                          <Text style={styles.dayAptCustomer}>{apt.customerName}</Text>
-                          <View style={styles.dayAptFooter}>
-                            <Text style={styles.dayAptService}>{apt.serviceName}</Text>
-                            <Text style={styles.dayAptPrice}>{apt.price?.toLocaleString('tr-TR')} ₺</Text>
-                          </View>
-                        </View>
-                      </TouchableOpacity>
-                    );
-                  })
-                )}
-              </View>
+        {/* Time Grid Body */}
+        <ScrollView
+          ref={verticalScrollRef}
+          style={{ flex: 1 }}
+          showsVerticalScrollIndicator={true}
+          scrollEnabled={!isDragging}
+          scrollEventThrottle={16}
+          onScroll={(e) => { scrollOffsetRef.current = e.nativeEvent.contentOffset.y; }}
+        >
+          <View style={{ flexDirection: 'row', height: totalGridHeight }}>
+            {/* Fixed Time Labels Column */}
+            <View style={{ width: TIME_LABEL_WIDTH }}>
+              {timeSlots.map((slot, i) => {
+                // Show label for full hours, hide for sub-intervals
+                const min = parseInt(slot.split(':')[1], 10);
+                const isFullHour = min === 0;
+                return (
+                  <View
+                    key={slot}
+                    style={{
+                      height: slotHeight,
+                      justifyContent: 'flex-start',
+                      alignItems: 'center',
+                      borderTopWidth: 1,
+                      borderTopColor: isFullHour ? '#E5E7EB' : '#F3F4F6',
+                    }}
+                  >
+                    <Text style={styles.gridTimeLabelText}>
+                      {isFullHour ? slot : ''}
+                    </Text>
+                  </View>
+                );
+              })}
             </View>
-          );
-        })}
-        <View style={{ height: 100 }} />
-      </ScrollView>
+
+            {/* Staff Grid Columns - fixed, no horizontal scroll */}
+            <View
+              ref={gridBodyRef}
+              onLayout={() => {
+                gridBodyRef.current?.measure((_x, _y, _w, _h, pageX, pageY) => {
+                  gridBodyTopRef.current = pageY;
+                  gridBodyLeftRef.current = pageX;
+                });
+              }}
+              style={{ flex: 1, height: totalGridHeight, position: 'relative' }}
+            >
+              {/* Horizontal grid lines (every interval) */}
+              {timeSlots.map((slot, i) => {
+                const min = parseInt(slot.split(':')[1], 10);
+                const isFullHour = min === 0;
+                return (
+                  <View
+                    key={`hline-${i}`}
+                    style={{
+                      position: 'absolute',
+                      top: i * slotHeight,
+                      left: 0,
+                      right: 0,
+                      height: 1,
+                      backgroundColor: isFullHour ? '#E5E7EB' : '#F3F4F6',
+                    }}
+                  />
+                );
+              })}
+
+              {/* Vertical staff column dividers */}
+              {displayStaff.map((_, index) => (
+                index > 0 ? (
+                  <View
+                    key={`vline-${index}`}
+                    style={{
+                      position: 'absolute',
+                      top: 0,
+                      bottom: 0,
+                      left: index * columnWidth,
+                      width: 1,
+                      backgroundColor: '#E5E7EB',
+                    }}
+                  />
+                ) : null
+              ))}
+
+              {/* Tappable background areas for each staff column */}
+              {displayStaff.map((staff, staffIndex) => (
+                <TouchableOpacity
+                  key={`tap-${staff.id}`}
+                  activeOpacity={0.7}
+                  style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: staffIndex * columnWidth,
+                    width: columnWidth,
+                    height: totalGridHeight,
+                  }}
+                  onPress={(e) => {
+                    const y = e.nativeEvent.locationY;
+                    const minutesFromStart = (y / HOUR_HEIGHT) * 60;
+                    // Snap to nearest interval
+                    const snapped = Math.floor(minutesFromStart / timeInterval) * timeInterval;
+                    const totalMin = gridStartHour * 60 + snapped;
+                    const h = Math.floor(totalMin / 60);
+                    const m = totalMin % 60;
+                    const tappedTime = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+
+                    // Block past time slots for today
+                    if (isToday(currentDate)) {
+                      const now = new Date();
+                      const nowMinutes = now.getHours() * 60 + now.getMinutes();
+                      if (totalMin <= nowMinutes) return;
+                    }
+
+                    router.push({
+                      pathname: '/appointment/new',
+                      params: {
+                        date: dateStr,
+                        time: tappedTime,
+                        staffId: staff.id !== 'all' ? staff.id : undefined,
+                      },
+                    });
+                  }}
+                />
+              ))}
+
+              {/* Appointment blocks (draggable) */}
+              {displayStaff.map((staff, staffIndex) => {
+                const staffAppts = staff.id === 'all'
+                  ? dayAppointments
+                  : dayAppointments.filter(a => a.staffId === staff.id);
+                return staffAppts.map(apt => {
+                  const { top, height } = getAppointmentPosition(apt.time, apt.duration || 30);
+                  const status = STATUS_CONFIG[apt.status] || STATUS_CONFIG.pending;
+                  const isShort = height < 50;
+                  return (
+                    <DraggableAppointmentBlock
+                      key={apt.id}
+                      apt={apt}
+                      staffIndex={staffIndex}
+                      columnWidth={columnWidth}
+                      top={top}
+                      height={height}
+                      status={status}
+                      isShort={isShort}
+                      totalGridHeight={totalGridHeight}
+                      timeInterval={timeInterval}
+                      gridStartHour={gridStartHour}
+                      gridEndHour={gridEndHour}
+                      onTap={handleDragTap}
+                      onDragStart={handleDragStart}
+                      onDragMove={handleDragMove}
+                      onDragComplete={(a, ax, ay) => handleDragComplete(a, ax, ay)}
+                    />
+                  );
+                });
+              })}
+
+              {/* Drag: hedef personel kolonu mavi highlight */}
+              {isDragging && dragTargetStaffId && displayStaff.map((staff, staffIndex) =>
+                staff.id === dragTargetStaffId ? (
+                  <View
+                    key={`highlight-${staffIndex}`}
+                    pointerEvents="none"
+                    style={{
+                      position: 'absolute',
+                      top: 0,
+                      left: staffIndex * columnWidth,
+                      width: columnWidth,
+                      height: totalGridHeight,
+                      backgroundColor: 'rgba(59,130,246,0.09)',
+                      borderWidth: 1,
+                      borderColor: 'rgba(59,130,246,0.25)',
+                      zIndex: 1,
+                    }}
+                  />
+                ) : null
+              )}
+
+              {/* Drag: hedef saat çizgisi (sadece hedef personel kolonunda) */}
+              {isDragging && dragTargetTime && dragTargetStaffId && (() => {
+                const targetTop = getAppointmentPosition(dragTargetTime, 0).top;
+                const staffIndex = displayStaff.findIndex(s => s.id === dragTargetStaffId);
+                const colLeft = staffIndex >= 0 ? staffIndex * columnWidth : 0;
+                return (
+                  <View
+                    pointerEvents="none"
+                    style={{
+                      position: 'absolute',
+                      top: targetTop,
+                      left: colLeft,
+                      width: columnWidth,
+                      zIndex: 50,
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                    }}
+                  >
+                    <View style={{
+                      backgroundColor: '#EF4444',
+                      borderRadius: 4,
+                      paddingHorizontal: 5,
+                      paddingVertical: 2,
+                      marginLeft: 2,
+                    }}>
+                      <Text style={{ color: '#fff', fontSize: 10, fontWeight: '700' }}>
+                        {dragTargetTime}
+                      </Text>
+                    </View>
+                    <View style={{ flex: 1, height: 2, backgroundColor: '#EF4444', opacity: 0.6 }} />
+                  </View>
+                );
+              })()}
+
+              {/* Current time red line */}
+              {currentTimeTop !== null && (
+                <View style={[styles.currentTimeLine, { top: currentTimeTop }]}>
+                  <View style={styles.currentTimeDot} />
+                </View>
+              )}
+            </View>
+          </View>
+        </ScrollView>
+      </View>
     );
   };
 
@@ -611,116 +1252,6 @@ export default function CalendarScreen() {
     }
   };
 
-  // Get unique staff from appointments and group today's appointments by staff
-  const getStaffWithAppointments = () => {
-    const dateStr = formatDateString(currentDate);
-    const dayAppointments = getAppointmentsForDate(dateStr);
-
-    const staffMap = new Map<string, { id: string; name: string; appointments: Appointment[] }>();
-
-    // Collect all unique staff from ALL appointments
-    appointments.forEach(apt => {
-      if (apt.staffId && apt.staffName && !staffMap.has(apt.staffId)) {
-        staffMap.set(apt.staffId, { id: apt.staffId, name: apt.staffName, appointments: [] });
-      }
-    });
-
-    // Assign today's appointments to their staff
-    dayAppointments.forEach(apt => {
-      if (apt.staffId && staffMap.has(apt.staffId)) {
-        staffMap.get(apt.staffId)!.appointments.push(apt);
-      }
-    });
-
-    // Sort each staff's appointments by time
-    staffMap.forEach(staff => {
-      staff.appointments.sort((a, b) => a.time.localeCompare(b.time));
-    });
-
-    return Array.from(staffMap.values());
-  };
-
-  // Render staff view
-  const renderStaffView = () => {
-    const staffList = getStaffWithAppointments();
-
-    if (staffList.length === 0) {
-      return (
-        <View style={styles.staffEmptyContainer}>
-          <Ionicons name="people-outline" size={48} color="#D1D5DB" />
-          <Text style={styles.staffEmptyTitle}>Personel bulunamadı</Text>
-          <Text style={styles.staffEmptySubtitle}>Randevularda kayıtlı personel yok</Text>
-        </View>
-      );
-    }
-
-    return (
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={styles.staffScrollView}
-        contentContainerStyle={styles.staffScrollContent}
-      >
-        {staffList.map(staff => (
-          <View key={staff.id} style={styles.staffColumn}>
-            {/* Staff Header */}
-            <LinearGradient
-              colors={['#3B82F6', '#1D4ED8']}
-              style={styles.staffHeader}
-            >
-              <View style={styles.staffAvatar}>
-                <Text style={styles.staffAvatarText}>
-                  {staff.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
-                </Text>
-              </View>
-              <Text style={styles.staffName} numberOfLines={1}>{staff.name}</Text>
-              <Text style={styles.staffCount}>{staff.appointments.length} randevu</Text>
-            </LinearGradient>
-
-            {/* Appointments */}
-            <ScrollView style={styles.staffAppointmentsList} showsVerticalScrollIndicator={false}>
-              {staff.appointments.length > 0 ? (
-                staff.appointments.map(apt => {
-                  const status = STATUS_CONFIG[apt.status] || STATUS_CONFIG.pending;
-                  return (
-                    <TouchableOpacity
-                      key={apt.id}
-                      style={styles.staffAppointmentCard}
-                      onPress={() => {
-                        setSelectedAppointment(apt);
-                        setShowDetailModal(true);
-                      }}
-                      activeOpacity={0.7}
-                    >
-                      <View style={styles.staffAptHeader}>
-                        <View style={styles.staffAptTimeRow}>
-                          <Ionicons name="time-outline" size={14} color="#3B82F6" />
-                          <Text style={styles.staffAptTime}>{apt.time.substring(0, 5)}</Text>
-                        </View>
-                        <View style={[styles.staffAptBadge, { backgroundColor: status.bg }]}>
-                          <Text style={[styles.staffAptBadgeText, { color: status.text }]}>
-                            {status.label}
-                          </Text>
-                        </View>
-                      </View>
-                      <Text style={styles.staffAptCustomer} numberOfLines={1}>{apt.customerName}</Text>
-                      <Text style={styles.staffAptService} numberOfLines={1}>{apt.serviceName}</Text>
-                    </TouchableOpacity>
-                  );
-                })
-              ) : (
-                <View style={styles.staffNoAppointments}>
-                  <Ionicons name="calendar-outline" size={32} color="#D1D5DB" />
-                  <Text style={styles.staffNoAppointmentsText}>Randevu yok</Text>
-                </View>
-              )}
-            </ScrollView>
-          </View>
-        ))}
-      </ScrollView>
-    );
-  };
-
   return (
     <SafeAreaView style={styles.container} edges={[]}>
       {/* Header - Using shared Header component */}
@@ -765,7 +1296,6 @@ export default function CalendarScreen() {
           {viewType === 'month' && renderMonthView()}
           {viewType === 'week' && renderWeekView()}
           {viewType === 'day' && renderDayView()}
-          {viewType === 'staff' && renderStaffView()}
         </View>
       )}
 
@@ -871,6 +1401,142 @@ const styles = StyleSheet.create({
   viewTabTextActive: {
     color: '#fff',
   },
+
+  // Staff columns (horizontal layout)
+  staffColumnsRow: {
+    flexDirection: 'row',
+    paddingHorizontal: 0,
+    gap: 8,
+  },
+  staffColumn: {
+    borderRadius: 16,
+    backgroundColor: '#fff',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 3,
+    overflow: 'hidden',
+  },
+  staffColumnHeader: {
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+    alignItems: 'center',
+    gap: 4,
+  },
+  staffColumnInitials: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#fff',
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    textAlign: 'center',
+    lineHeight: 36,
+    overflow: 'hidden',
+  },
+  staffColumnName: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#fff',
+  },
+  staffColumnCount: {
+    fontSize: 11,
+    color: 'rgba(255,255,255,0.7)',
+  },
+  // Week view staff column day headers
+  weekStaffDayHeaders: {
+    flexDirection: 'row',
+    paddingHorizontal: 4,
+    paddingVertical: 6,
+    backgroundColor: '#F9FAFB',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
+  weekStaffDayHeader: {
+    flex: 1,
+    alignItems: 'center',
+    paddingVertical: 4,
+    borderRadius: 8,
+    marginHorizontal: 1,
+  },
+  weekStaffDayHeaderToday: {
+    backgroundColor: '#3B82F6',
+  },
+  weekStaffDayName: {
+    fontSize: 9,
+    fontWeight: '500',
+    color: '#6B7280',
+  },
+  weekStaffDayNameToday: {
+    color: '#BFDBFE',
+  },
+  weekStaffDayNum: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#1F2937',
+    marginTop: 1,
+  },
+  weekStaffDayNumToday: {
+    color: '#fff',
+  },
+
+  // Month staff breakdown
+  monthStaffBreakdown: {
+    paddingHorizontal: 16,
+    paddingTop: 16,
+  },
+  monthStaffTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#1F2937',
+    marginBottom: 12,
+  },
+  monthStaffRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 8,
+    gap: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 4,
+    elevation: 1,
+  },
+  monthStaffAvatar: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  monthStaffAvatarText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#fff',
+  },
+  monthStaffName: {
+    flex: 1,
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1F2937',
+  },
+  monthStaffBadge: {
+    backgroundColor: '#EFF6FF',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  monthStaffBadgeText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#3B82F6',
+  },
+
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -1060,246 +1726,72 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
 
-  // Day view
-  dayContainer: {
-    flex: 1,
-    padding: 16,
-  },
-  daySummary: {
+  // Day view - Time Grid
+  timeGridHeader: {
     flexDirection: 'row',
     backgroundColor: '#fff',
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
+    borderBottomWidth: 1,
+    borderBottomColor: '#D1D5DB',
+    height: STAFF_HEADER_HEIGHT,
   },
-  daySummaryItem: {
-    flex: 1,
+  staffHeaderCell: {
+    height: STAFF_HEADER_HEIGHT,
+    justifyContent: 'center',
     alignItems: 'center',
+    paddingHorizontal: 6,
+    borderRightWidth: 1,
+    borderRightColor: 'rgba(255,255,255,0.2)',
   },
-  daySummaryNumber: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#1F2937',
-  },
-  daySummaryLabel: {
+  staffHeaderText: {
     fontSize: 12,
-    color: '#6B7280',
-    marginTop: 2,
+    fontWeight: '800',
+    color: '#fff',
+    letterSpacing: 0.5,
   },
-  daySummaryDivider: {
-    width: 1,
-    backgroundColor: '#E5E7EB',
-    marginHorizontal: 16,
-  },
-  timeSlot: {
-    flexDirection: 'row',
-    minHeight: 70,
-    marginBottom: 4,
-  },
-  timeLabel: {
-    width: 50,
-    paddingTop: 4,
-  },
-  timeLabelText: {
-    fontSize: 12,
+  gridTimeLabelText: {
+    fontSize: 11,
     fontWeight: '500',
     color: '#9CA3AF',
+    marginTop: -7,
   },
-  slotContent: {
-    flex: 1,
-    borderLeftWidth: 2,
-    borderLeftColor: '#E5E7EB',
-    paddingLeft: 12,
-    minHeight: 60,
-  },
-  emptySlot: {
-    flex: 1,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
-  },
-  dayAppointment: {
-    flexDirection: 'row',
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    marginBottom: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
+  appointmentBlock: {
+    position: 'absolute',
+    borderRadius: 4,
+    padding: 4,
     overflow: 'hidden',
+    borderLeftWidth: 4,
   },
-  dayAptAccentBar: {
-    width: 4,
-  },
-  dayAptBody: {
-    flex: 1,
-    padding: 12,
-  },
-  dayAptHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 6,
-  },
-  dayAptTime: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#1F2937',
-  },
-  dayAptStatus: {
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 8,
-  },
-  dayAptStatusText: {
+  appointmentBlockTime: {
     fontSize: 10,
-    fontWeight: '600',
+    fontWeight: '700',
   },
-  dayAptCustomer: {
-    fontSize: 15,
+  appointmentBlockCustomer: {
+    fontSize: 11,
     fontWeight: '600',
     color: '#1F2937',
-    marginBottom: 4,
   },
-  dayAptFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  dayAptService: {
-    fontSize: 13,
+  appointmentBlockService: {
+    fontSize: 10,
     color: '#6B7280',
   },
-  dayAptPrice: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#059669',
+  currentTimeLine: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    height: 2,
+    backgroundColor: '#EF4444',
+    zIndex: 10,
+  },
+  currentTimeDot: {
+    position: 'absolute',
+    left: -5,
+    top: -4,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: '#EF4444',
   },
 
-  // Staff view
-  staffScrollView: {
-    flex: 1,
-  },
-  staffScrollContent: {
-    paddingHorizontal: 12,
-    paddingTop: 16,
-    paddingBottom: 100,
-    gap: 12,
-  },
-  staffColumn: {
-    width: 260,
-    borderRadius: 16,
-    backgroundColor: '#fff',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 3,
-    overflow: 'hidden',
-  },
-  staffHeader: {
-    paddingVertical: 16,
-    paddingHorizontal: 16,
-    alignItems: 'center',
-    gap: 8,
-  },
-  staffAvatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  staffAvatarText: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#fff',
-  },
-  staffName: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#fff',
-  },
-  staffCount: {
-    fontSize: 12,
-    color: 'rgba(255,255,255,0.7)',
-  },
-  staffAppointmentsList: {
-    maxHeight: 400,
-  },
-  staffAppointmentCard: {
-    padding: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
-  },
-  staffAptHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 6,
-  },
-  staffAptTimeRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  staffAptTime: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#1F2937',
-  },
-  staffAptBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 8,
-  },
-  staffAptBadgeText: {
-    fontSize: 10,
-    fontWeight: '600',
-  },
-  staffAptCustomer: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#1F2937',
-    marginBottom: 2,
-  },
-  staffAptService: {
-    fontSize: 12,
-    color: '#6B7280',
-  },
-  staffNoAppointments: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 40,
-    gap: 8,
-  },
-  staffNoAppointmentsText: {
-    fontSize: 13,
-    color: '#9CA3AF',
-  },
-  staffEmptyContainer: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    paddingVertical: 60,
-  },
-  staffEmptyTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#6B7280',
-  },
-  staffEmptySubtitle: {
-    fontSize: 13,
-    color: '#9CA3AF',
-  },
 
   // FAB
   fab: {

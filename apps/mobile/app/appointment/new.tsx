@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
   View,
   Text,
@@ -49,6 +49,9 @@ export default function NewAppointmentScreen() {
     customerName?: string;
     customerPhone?: string;
     customerEmail?: string;
+    date?: string;
+    time?: string;
+    staffId?: string;
   }>();
   const { selectedTenant } = useAuthStore();
   const [isLoading, setIsLoading] = useState(false);
@@ -81,6 +84,8 @@ export default function NewAppointmentScreen() {
   const [searchTimeout, setSearchTimeout] = useState<ReturnType<typeof setTimeout> | null>(null);
 
   const [step, setStep] = useState(1); // 1: Service, 2: Staff, 3: DateTime, 4: Customer
+  // When coming from calendar with pre-filled staff/date/time, skip steps 2 & 3
+  const fromCalendar = !!(params.date && params.time && params.staffId);
 
   // Handle pre-selected customer from params
   useEffect(() => {
@@ -106,6 +111,22 @@ export default function NewAppointmentScreen() {
   useEffect(() => {
     fetchData();
   }, []);
+
+  // Pre-fill date, time, and staff from calendar params
+  useEffect(() => {
+    if (!staffList.length) return;
+    if (params.staffId) {
+      const staff = staffList.find(s => s.id === params.staffId);
+      if (staff) setSelectedStaff(staff);
+    }
+    if (params.date) {
+      const d = new Date(params.date + 'T00:00:00');
+      if (!isNaN(d.getTime())) setSelectedDate(d);
+    }
+    if (params.time) {
+      setSelectedTime(params.time);
+    }
+  }, [staffList, params.staffId, params.date, params.time]);
 
   // When date or staff changes, recalculate available time slots
   useEffect(() => {
@@ -160,12 +181,19 @@ export default function NewAppointmentScreen() {
   };
 
   // Calculate available time slots based on working hours and existing appointments
+  const pendingTimeRef = useRef<string | null>(params.time || null);
+
   const calculateAvailableSlots = async () => {
     if (!selectedDate || !selectedStaff || !tenantSettings) return;
 
     setIsLoadingSlots(true);
     setDayClosedMessage(null);
-    setSelectedTime(''); // Reset selected time when date/staff changes
+    // Keep pre-filled time from calendar, reset otherwise
+    if (pendingTimeRef.current) {
+      setSelectedTime(pendingTimeRef.current);
+    } else {
+      setSelectedTime('');
+    }
 
     try {
       const dayOfWeek = selectedDate.getDay();
@@ -204,7 +232,7 @@ export default function NewAppointmentScreen() {
       );
 
       // Get existing appointments for this staff and date
-      const dateStr = selectedDate.toISOString().split('T')[0];
+      const dateStr = `${selectedDate.getFullYear()}-${(selectedDate.getMonth()+1).toString().padStart(2,'0')}-${selectedDate.getDate().toString().padStart(2,'0')}`;
       const appointmentsRes = await appointmentService.getStaffAppointmentsForDate(
         selectedStaff.id,
         dateStr
@@ -243,6 +271,8 @@ export default function NewAppointmentScreen() {
       }
 
       setAvailableTimeSlots(filteredSlots);
+      // Clear pending time after first use so manual changes work normally
+      pendingTimeRef.current = null;
     } catch (error) {
       console.error('Error calculating available slots:', error);
       setAvailableTimeSlots([]);
@@ -359,7 +389,7 @@ export default function NewAppointmentScreen() {
         customerId: selectedCustomer?.id,
         serviceId: selectedService.id,
         staffId: selectedStaff.id,
-        date: selectedDate.toISOString().split('T')[0],
+        date: `${selectedDate.getFullYear()}-${(selectedDate.getMonth()+1).toString().padStart(2,'0')}-${selectedDate.getDate().toString().padStart(2,'0')}`,
         time: selectedTime,
         customerName,
         customerPhone,
@@ -729,7 +759,13 @@ export default function NewAppointmentScreen() {
       {/* Bottom Buttons */}
       <View style={styles.bottomButtons}>
         {step > 1 && (
-          <TouchableOpacity style={styles.backBtn} onPress={() => setStep(step - 1)}>
+          <TouchableOpacity style={styles.backBtn} onPress={() => {
+            if (fromCalendar && step === 4) {
+              setStep(1); // Skip back to service selection
+            } else {
+              setStep(step - 1);
+            }
+          }}>
             <Ionicons name="arrow-back" size={20} color="#4B5563" />
             <Text style={styles.backBtnText}>Geri</Text>
           </TouchableOpacity>
@@ -742,7 +778,13 @@ export default function NewAppointmentScreen() {
               step === 2 && !selectedStaff && styles.btnDisabled,
               step === 3 && !selectedTime && styles.btnDisabled,
             ]}
-            onPress={() => setStep(step + 1)}
+            onPress={() => {
+              if (fromCalendar && step === 1) {
+                setStep(4); // Skip staff & datetime, go to customer
+              } else {
+                setStep(step + 1);
+              }
+            }}
             disabled={
               (step === 1 && !selectedService) ||
               (step === 2 && !selectedStaff) ||

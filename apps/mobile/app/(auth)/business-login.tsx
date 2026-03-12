@@ -48,7 +48,7 @@ export default function BusinessLoginScreen() {
     const result = await loginWithCredentials(username.trim(), password);
 
     if (result.success) {
-      router.replace('/(tabs)/staff');
+      router.replace('/(tabs)/staff/calendar');
     } else {
       Alert.alert('Giriş Başarısız', result.message);
     }
