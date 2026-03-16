@@ -68,6 +68,7 @@ export async function GET(
         duration: service.duration,
         category: service.category,
         status: service.status,
+        color: service.color,
         isActive: service.status === 'active',
         createdAt: service.createdAt.toISOString(),
         updatedAt: service.updatedAt.toISOString(),
@@ -122,7 +123,7 @@ export async function PUT(
     }
 
     const body = await request.json();
-    const { name, description, price, duration, category, isActive, status } = body;
+    const { name, description, price, duration, category, isActive, status, color } = body;
 
     if (!name || price === undefined || !duration) {
       return NextResponse.json(
@@ -163,6 +164,7 @@ export async function PUT(
         duration,
         category: category?.trim() || null,
         status: newStatus,
+        color: color !== undefined ? (color || null) : undefined,
       },
     });
 
@@ -176,6 +178,7 @@ export async function PUT(
         duration: updatedService.duration,
         category: updatedService.category,
         status: updatedService.status,
+        color: updatedService.color,
         isActive: updatedService.status === 'active',
       },
     });

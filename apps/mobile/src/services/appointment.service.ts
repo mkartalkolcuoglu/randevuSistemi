@@ -100,10 +100,10 @@ export const appointmentService = {
   /**
    * Get available services for a tenant
    */
-  async getServices(tenantId: string): Promise<ApiResponse<Service[]>> {
+  async getServices(tenantId: string, includeInactive = false): Promise<ApiResponse<Service[]>> {
     try {
       const response = await api.get(`/api/mobile/services`, {
-        params: { tenantId },
+        params: { tenantId, ...(includeInactive ? { includeInactive: 'true' } : {}) },
       });
       return response.data;
     } catch (error: any) {

@@ -95,6 +95,7 @@ export async function GET(request: NextRequest) {
                     customerPhone,
                     serviceId: appointmentData.serviceId,
                     serviceName: service.name,
+                    serviceColor: service.color || null,
                     staffId: appointmentData.staffId,
                     staffName: `${staff.firstName} ${staff.lastName}`.trim(),
                     date: appointmentData.date,

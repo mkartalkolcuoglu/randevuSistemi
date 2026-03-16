@@ -55,7 +55,8 @@ export async function PUT(
         price: parseFloat(data.price),
         duration: parseInt(data.duration),
         category: data.category || '',
-        status: data.status
+        status: data.status,
+        color: data.color || null
       }
     });
 

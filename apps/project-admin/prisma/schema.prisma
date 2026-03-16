@@ -105,6 +105,7 @@ model Appointment {
   customerEmail String?
   serviceId    String
   serviceName  String
+  serviceColor String?
   staffId      String
   staffName    String
   date         String

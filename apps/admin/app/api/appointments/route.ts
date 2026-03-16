@@ -493,6 +493,7 @@ export async function POST(request: NextRequest) {
         customerEmail: customer.email,
         serviceId: data.serviceId,
         serviceName: service.name,
+        serviceColor: service.color || null,
         staffId: data.staffId,
         staffName: `${staff.firstName} ${staff.lastName}`,
         date: data.date,

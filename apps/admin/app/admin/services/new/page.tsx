@@ -3,8 +3,9 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button, Input, Label, Textarea, Card, CardContent, CardHeader, CardTitle } from '@/components/ui';
-import { ArrowLeft, Save } from 'lucide-react';
+import { ArrowLeft, Save, Check, X } from 'lucide-react';
 import Link from 'next/link';
+import { SERVICE_COLORS } from '@/lib/service-colors';
 
 export default function NewServicePage() {
   const router = useRouter();
@@ -15,6 +16,7 @@ export default function NewServicePage() {
     category: '',
     price: '',
     duration: '',
+    color: '',
     isActive: true
   });
 
@@ -150,6 +152,31 @@ export default function NewServicePage() {
                     value={formData.duration}
                     onChange={handleChange}
                   />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Hizmet Rengi</Label>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setFormData(prev => ({ ...prev, color: '' }))}
+                    className={`w-8 h-8 rounded-full border-2 flex items-center justify-center ${!formData.color ? 'border-gray-400 bg-gray-100' : 'border-gray-200 bg-gray-50'}`}
+                  >
+                    <X className="w-4 h-4 text-gray-400" />
+                  </button>
+                  {SERVICE_COLORS.map((c) => (
+                    <button
+                      key={c.key}
+                      type="button"
+                      onClick={() => setFormData(prev => ({ ...prev, color: c.key }))}
+                      className={`w-8 h-8 rounded-full border-2 flex items-center justify-center transition-all ${formData.color === c.key ? 'border-gray-800 scale-110' : 'border-transparent'}`}
+                      style={{ backgroundColor: c.hex }}
+                      title={c.label}
+                    >
+                      {formData.color === c.key && <Check className="w-4 h-4 text-white" />}
+                    </button>
+                  ))}
                 </div>
               </div>
 

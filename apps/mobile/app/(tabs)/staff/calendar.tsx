@@ -25,7 +25,9 @@ import Animated, {
 } from 'react-native-reanimated';
 import { useAuthStore } from '../../../src/store/auth.store';
 import { appointmentService } from '../../../src/services/appointment.service';
+import { notificationService } from '../../../src/services/notification.service';
 import { Appointment } from '../../../src/types';
+import { getServiceColor } from '../../../src/constants/service-colors';
 import DrawerMenu from '../../../src/components/DrawerMenu';
 import Header from '../../../src/components/Header';
 
@@ -126,8 +128,9 @@ function DraggableAppointmentBlock({
     })
     .onFinalize(() => {
       isDraggingShared.value = false;
-      translateX.value = withSpring(0);
-      translateY.value = withSpring(0);
+      // Anında sıfırla — optimistic update yeni konumda re-render eder
+      translateX.value = 0;
+      translateY.value = 0;
       scale.value = withSpring(1);
       opacity.value = withSpring(1);
     });
@@ -149,6 +152,11 @@ function DraggableAppointmentBlock({
     shadowOffset: { width: 0, height: 4 },
   }));
 
+  // Use service color if available, fallback to status color
+  const svcColor = getServiceColor(apt.serviceColor);
+  const blockBg = svcColor ? svcColor.bg : status.bg;
+  const blockText = svcColor ? svcColor.text : status.text;
+
   return (
     <GestureDetector gesture={gesture}>
       <Animated.View
@@ -158,26 +166,41 @@ function DraggableAppointmentBlock({
             top,
             left: staffIndex * columnWidth + 2,
             width: columnWidth - 4,
-            height,
+            minHeight: height,
             borderRadius: 6,
-            backgroundColor: status.bg,
+            backgroundColor: blockBg,
             borderLeftWidth: 3,
-            borderLeftColor: status.text,
+            borderLeftColor: blockText,
             paddingHorizontal: 4,
             paddingVertical: 2,
           },
           animatedStyle,
         ]}
       >
+        {/* Status dot in top-right corner */}
+        {svcColor && (
+          <View style={{ position: 'absolute', top: 3, right: 3, width: 8, height: 8, borderRadius: 4, backgroundColor: status.text }} />
+        )}
         <Text
           numberOfLines={1}
-          style={{ fontSize: isShort ? 9 : 11, fontWeight: '700', color: status.text }}
+          style={{ fontSize: isShort ? 10 : 13, fontWeight: '700', color: blockText }}
         >
           {apt.customerName}
         </Text>
-        {!isShort && (
-          <Text numberOfLines={1} style={{ fontSize: 9, color: status.text, opacity: 0.8 }}>
-            {apt.time} · {apt.serviceName}
+        <Text numberOfLines={1} style={{ fontSize: isShort ? 9 : 11, color: blockText, opacity: 0.8 }}>
+          {apt.serviceName}
+        </Text>
+        <Text numberOfLines={1} style={{ fontSize: isShort ? 9 : 10, color: blockText, opacity: 0.65 }}>
+          {apt.duration}dk · {apt.price > 0 ? `₺${apt.price}` : 'Ücretsiz'}
+        </Text>
+        {apt.customerPhone && (
+          <Text numberOfLines={1} style={{ fontSize: 10, color: blockText, opacity: 0.55 }}>
+            {apt.customerPhone}
+          </Text>
+        )}
+        {apt.notes && (
+          <Text numberOfLines={1} style={{ fontSize: 10, color: blockText, opacity: 0.5, fontStyle: 'italic' }}>
+            {apt.notes}
           </Text>
         )}
       </Animated.View>
@@ -243,14 +266,40 @@ export default function CalendarScreen() {
   }, [currentDate, viewType]);
 
   // Fetch appointments and tenant settings
-  const fetchAppointments = async () => {
-    setIsLoading(true);
+  const lastAppointmentsHashRef = useRef<string>('');
+
+  const fetchAppointments = async (silent = false) => {
+    if (!silent) setIsLoading(true);
     try {
       const [appointmentsRes, settingsRes] = await Promise.all([
         appointmentService.getStaffAppointments({ limit: 1000 }),
         appointmentService.getTenantSettings(),
       ]);
       const appts = appointmentsRes.data || [];
+
+      // Arka plan kontrolü: sadece değişiklik varsa güncelle
+      const newHash = JSON.stringify(appts.map(a => `${a.id}_${a.status}_${a.time}_${a.date}_${a.staffId}`));
+      if (silent && newHash === lastAppointmentsHashRef.current) {
+        return; // Değişiklik yok, UI'ı güncelleme
+      }
+
+      // Yeni randevu kontrolü — bildirim at
+      if (silent && lastAppointmentsHashRef.current) {
+        const oldIds = new Set(
+          lastAppointmentsHashRef.current.match(/([a-z0-9]+)_/g)?.map(s => s.replace('_', '')) || []
+        );
+        const newAppts = appts.filter(a => !oldIds.has(a.id));
+        if (newAppts.length > 0) {
+          const apt = newAppts[0];
+          notificationService.scheduleLocalNotification(
+            'Yeni Randevu',
+            `${apt.customerName} - ${apt.serviceName} (${apt.date} ${apt.time})`,
+            { appointmentId: apt.id },
+          );
+        }
+      }
+
+      lastAppointmentsHashRef.current = newHash;
       setAppointments(appts);
 
       if (settingsRes.success && settingsRes.data) {
@@ -297,19 +346,27 @@ export default function CalendarScreen() {
       }
     } catch (error) {
       console.error('Error fetching appointments:', error);
-      setAppointments([]);
+      if (!silent) setAppointments([]);
     } finally {
-      setIsLoading(false);
+      if (!silent) setIsLoading(false);
     }
   };
 
+  // Ekran odaklandığında veri çek + 30sn arka plan polling
+  const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
   useFocusEffect(
     useCallback(() => {
       fetchAppointments();
+      pollingRef.current = setInterval(() => {
+        fetchAppointments(true); // sessiz arka plan kontrolü
+      }, 30000);
+      return () => {
+        if (pollingRef.current) clearInterval(pollingRef.current);
+      };
     }, [])
   );
 
-  // Get unique staff members from appointments
+  // Get unique staff members from appointments (alphabetically sorted — stable order)
   const staffMembers = useMemo(() => {
     const staffMap = new Map<string, string>();
     appointments.forEach(apt => {
@@ -317,7 +374,9 @@ export default function CalendarScreen() {
         staffMap.set(apt.staffId, apt.staffName);
       }
     });
-    return Array.from(staffMap.entries()).map(([id, name]) => ({ id, name }));
+    return Array.from(staffMap.entries())
+      .map(([id, name]) => ({ id, name }))
+      .sort((a, b) => a.name.localeCompare(b.name, 'tr'));
   }, [appointments]);
 
   // Display staff list (used both in render and drag handlers)
@@ -503,31 +562,41 @@ export default function CalendarScreen() {
     const timeChanged = newTime && newTime !== apt.time;
     const staffChanged = newStaffId && newStaffId !== apt.staffId && newStaffId !== 'all';
 
+    console.log('🎯 Drag complete:', {
+      aptId: apt.id,
+      oldTime: apt.time, newTime,
+      oldStaffId: apt.staffId, newStaffId,
+      timeChanged, staffChanged,
+    });
+
     if (!timeChanged && !staffChanged) return;
+
+    const updatedTime = newTime || apt.time;
+    const updatedStaffId = staffChanged ? newStaffId! : apt.staffId;
+    const updatedStaffName = staffChanged
+      ? (displayStaff.find(s => s.id === newStaffId)?.name || apt.staffName)
+      : apt.staffName;
 
     // Optimistic update
     setAppointments(prev =>
       prev.map(a =>
         a.id === apt.id
-          ? {
-              ...a,
-              time: newTime || a.time,
-              staffId: staffChanged ? newStaffId! : a.staffId,
-              staffName: staffChanged
-                ? (displayStaff.find(s => s.id === newStaffId)?.name || a.staffName)
-                : a.staffName,
-            }
+          ? { ...a, time: updatedTime, staffId: updatedStaffId, staffName: updatedStaffName }
           : a
       )
     );
 
     try {
-      await appointmentService.updateAppointment(apt.id, {
-        date: apt.date,
-        time: newTime || apt.time,
-        ...(staffChanged ? { staffId: newStaffId! } : {}),
-      });
-    } catch {
+      const updatePayload: any = { date: apt.date, time: updatedTime };
+      if (staffChanged) updatePayload.staffId = newStaffId;
+      console.log('📡 Sending update:', updatePayload);
+      const res = await appointmentService.updateAppointment(apt.id, updatePayload);
+      console.log('📡 Update response:', JSON.stringify(res));
+      if (!res.success) {
+        throw new Error(res.error || 'Update failed');
+      }
+    } catch (err: any) {
+      console.error('❌ Drag update error:', err?.message || err);
       // Rollback on error
       setAppointments(prev =>
         prev.map(a => (a.id === apt.id ? apt : a))

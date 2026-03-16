@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle, Button, Badge } from '@/compo
 import { ArrowLeft, ChevronLeft, ChevronRight, X, Calendar, Clock, User, MapPin, DollarSign, Package } from 'lucide-react';
 import AdminHeader from '../../admin-header';
 import type { ClientUser } from '../../../../lib/client-permissions';
+import { getServiceColor } from '../../../../lib/service-colors';
 
 interface CalendarClientProps {
   initialAppointments: any[];
@@ -404,18 +405,24 @@ function DayView({ appointments, date, onAppointmentClick }: { appointments: any
             <div className="flex-1 min-h-[50px] sm:min-h-[60px] py-2">
               {hourAppointments.length > 0 ? (
                 <div className="space-y-2">
-                  {hourAppointments.map(apt => (
-                    <div 
+                  {hourAppointments.map(apt => {
+                    const svcColor = getServiceColor(apt.serviceColor);
+                    return (
+                    <div
                       key={apt.id}
                       onClick={() => onAppointmentClick(apt)}
-                      className="bg-blue-50 border-l-4 border-blue-500 p-2 sm:p-3 rounded-r hover:bg-blue-100 transition cursor-pointer"
+                      className="p-2 sm:p-3 rounded-r hover:opacity-80 transition cursor-pointer"
+                      style={{
+                        backgroundColor: svcColor ? svcColor.bg : '#EFF6FF',
+                        borderLeft: `4px solid ${svcColor ? svcColor.hex : '#3B82F6'}`,
+                      }}
                     >
                       <div className="flex items-start justify-between gap-2">
                         <div className="flex-1 min-w-0">
-                          <div className="font-semibold text-gray-900 text-sm sm:text-base truncate">
+                          <div className="font-semibold text-sm sm:text-base truncate" style={{ color: svcColor ? svcColor.text : '#111827' }}>
                             {apt.time} - {apt.customerName}
                           </div>
-                          <div className="text-xs sm:text-sm text-gray-600 mt-1 truncate">{apt.serviceName}</div>
+                          <div className="text-xs sm:text-sm mt-1 truncate" style={{ color: svcColor ? svcColor.text : '#4B5563' }}>{apt.serviceName}</div>
                           <div className="text-xs text-gray-500 mt-1">👤 {apt.staffName}</div>
                         </div>
                         <Badge className={`${getStatusColorForBadge(apt.status)} text-xs flex-shrink-0`}>
@@ -423,7 +430,8 @@ function DayView({ appointments, date, onAppointmentClick }: { appointments: any
                         </Badge>
                       </div>
                     </div>
-                  ))}
+                    );
+                  })}
                 </div>
               ) : (
                 <div className="h-full flex items-center text-gray-400 text-xs sm:text-sm">-</div>
@@ -476,19 +484,27 @@ function WeekView({ appointments, date, onAppointmentClick }: { appointments: an
               </div>
               <div className="space-y-1 sm:space-y-2">
                 {dayAppointments.length > 0 ? (
-                  dayAppointments.slice(0, 5).map(apt => (
-                    <div 
+                  dayAppointments.slice(0, 5).map(apt => {
+                    const svcColor = getServiceColor(apt.serviceColor);
+                    return (
+                    <div
                       key={apt.id}
                       onClick={() => onAppointmentClick(apt)}
-                      className="bg-white border border-blue-200 p-1.5 sm:p-2 rounded text-xs hover:bg-blue-50 transition cursor-pointer"
+                      className="p-1.5 sm:p-2 rounded text-xs hover:opacity-80 transition cursor-pointer"
+                      style={{
+                        backgroundColor: svcColor ? svcColor.bg : '#FFFFFF',
+                        border: `1px solid ${svcColor ? svcColor.hex + '40' : '#BFDBFE'}`,
+                        borderLeft: `3px solid ${svcColor ? svcColor.hex : '#3B82F6'}`,
+                      }}
                     >
-                      <div className="font-semibold text-gray-900">{apt.time}</div>
-                      <div className="text-gray-600 truncate">{apt.customerName}</div>
+                      <div className="font-semibold" style={{ color: svcColor ? svcColor.text : '#111827' }}>{apt.time}</div>
+                      <div className="truncate" style={{ color: svcColor ? svcColor.text : '#4B5563' }}>{apt.customerName}</div>
                       <Badge className={`${getStatusColorForBadge(apt.status)} text-xs mt-1`}>
                         {getStatusTextForBadge(apt.status)}
                       </Badge>
                     </div>
-                  ))
+                    );
+                  })
                 ) : (
                   <div className="text-gray-400 text-xs text-center py-4">Randevu yok</div>
                 )}
@@ -558,16 +574,23 @@ function MonthView({ appointments, date, onAppointmentClick }: { appointments: a
               </div>
               {dayAppointments.length > 0 && (
                 <div className="space-y-0.5 sm:space-y-1">
-                  {dayAppointments.slice(0, 2).map(apt => (
-                    <div 
+                  {dayAppointments.slice(0, 2).map(apt => {
+                    const svcColor = getServiceColor(apt.serviceColor);
+                    return (
+                    <div
                       key={apt.id}
                       onClick={() => onAppointmentClick(apt)}
-                      className="bg-blue-100 text-xs p-0.5 sm:p-1 rounded truncate cursor-pointer hover:bg-blue-200 transition"
+                      className="text-xs p-0.5 sm:p-1 rounded truncate cursor-pointer hover:opacity-80 transition"
+                      style={{
+                        backgroundColor: svcColor ? svcColor.bg : '#DBEAFE',
+                        color: svcColor ? svcColor.text : undefined,
+                      }}
                       title={`${apt.time} - ${apt.customerName}`}
                     >
                       {apt.time}
                     </div>
-                  ))}
+                    );
+                  })}
                   {dayAppointments.length > 2 && (
                     <div className="text-xs text-gray-500">+{dayAppointments.length - 2}</div>
                   )}
@@ -649,11 +672,17 @@ function StaffView({ appointments, date, onAppointmentClick }: { appointments: a
             <div className="border border-t-0 border-gray-200 rounded-b-xl bg-white min-h-[300px]">
               {staff.appointments.length > 0 ? (
                 <div className="divide-y divide-gray-100">
-                  {staff.appointments.map(apt => (
+                  {staff.appointments.map(apt => {
+                    const svcColor = getServiceColor(apt.serviceColor);
+                    return (
                     <div
                       key={apt.id}
                       onClick={() => onAppointmentClick(apt)}
-                      className="p-3 hover:bg-blue-50 transition cursor-pointer"
+                      className="p-3 hover:opacity-80 transition cursor-pointer"
+                      style={{
+                        borderLeft: svcColor ? `3px solid ${svcColor.hex}` : undefined,
+                        backgroundColor: svcColor ? svcColor.bg + '40' : undefined,
+                      }}
                     >
                       <div className="flex items-center justify-between mb-1.5">
                         <div className="flex items-center gap-1.5">
@@ -664,14 +693,15 @@ function StaffView({ appointments, date, onAppointmentClick }: { appointments: a
                           {getStatusTextForBadge(apt.status)}
                         </Badge>
                       </div>
-                      <div className="font-medium text-sm text-gray-900 truncate">
+                      <div className="font-medium text-sm truncate" style={{ color: svcColor ? svcColor.text : '#111827' }}>
                         {apt.customerName}
                       </div>
-                      <div className="text-xs text-gray-500 truncate mt-0.5">
+                      <div className="text-xs truncate mt-0.5" style={{ color: svcColor ? svcColor.text : '#6B7280' }}>
                         {apt.serviceName}
                       </div>
                     </div>
-                  ))}
+                    );
+                  })}
                 </div>
               ) : (
                 <div className="flex flex-col items-center justify-center py-10 text-gray-400">

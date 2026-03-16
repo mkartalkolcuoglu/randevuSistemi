@@ -61,9 +61,10 @@ model Service {
   duration    Int      // in minutes
   category    String?
   status      String   @default("active")
+  color       String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-  
+
   @@map("services")
 }
 
@@ -76,6 +77,7 @@ model Appointment {
   customerEmail String?
   serviceId    String
   serviceName  String
+  serviceColor String?
   staffId      String
   staffName    String
   date         String

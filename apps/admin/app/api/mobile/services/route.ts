@@ -116,6 +116,7 @@ export async function GET(request: NextRequest) {
       duration: service.duration,
       category: service.category,
       status: service.status,
+      color: service.color,
       isActive: service.status === 'active',
       createdAt: service.createdAt.toISOString(),
       updatedAt: service.updatedAt.toISOString(),
@@ -154,7 +155,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { name, description, price, duration, category, isActive } = body;
+    const { name, description, price, duration, category, isActive, color } = body;
 
     if (!name || price === undefined || !duration) {
       return NextResponse.json(
@@ -187,6 +188,7 @@ export async function POST(request: NextRequest) {
         duration,
         category: category?.trim() || null,
         status: isActive !== false ? 'active' : 'inactive',
+        color: color || null,
       },
     });
 

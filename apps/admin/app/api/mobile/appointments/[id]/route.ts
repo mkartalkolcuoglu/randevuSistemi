@@ -104,6 +104,7 @@ export async function GET(
         customerEmail: appointment.customer.email,
         serviceId: appointment.serviceId,
         serviceName: appointment.service.name,
+        serviceColor: appointment.serviceColor || appointment.service.color || null,
         staffId: appointment.staffId,
         staffName: `${appointment.staff.firstName} ${appointment.staff.lastName}`,
         date: appointment.date,

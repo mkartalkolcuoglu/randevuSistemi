@@ -134,6 +134,7 @@ export async function POST(request: NextRequest) {
         duration: parseInt(data.duration),
         category: data.category || '',
         status: data.status || 'active',
+        color: data.color || null,
         tenantId: tenantId
       }
     });

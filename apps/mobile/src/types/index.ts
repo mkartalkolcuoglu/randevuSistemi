@@ -83,6 +83,7 @@ export interface Appointment {
   customerEmail?: string;
   serviceId: string;
   serviceName: string;
+  serviceColor?: string;
   staffId: string;
   staffName: string;
   date: string;
@@ -115,6 +116,7 @@ export interface Service {
   price: number;
   duration: number;
   category?: string;
+  color?: string;
   isActive: boolean;
 }
 

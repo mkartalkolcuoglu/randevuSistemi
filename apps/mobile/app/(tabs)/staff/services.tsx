@@ -20,6 +20,7 @@ import { useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import api from '../../../src/services/api';
+import { SERVICE_COLORS } from '../../../src/constants/service-colors';
 import DrawerMenu from '../../../src/components/DrawerMenu';
 import Header from '../../../src/components/Header';
 import PermissionGuard from '../../../src/components/PermissionGuard';
@@ -34,6 +35,7 @@ interface Service {
   duration: number;
   category: string | null;
   status: string;
+  color: string | null;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
@@ -70,6 +72,7 @@ export default function StaffServicesScreen() {
     price: '',
     duration: '',
     category: '',
+    color: '',
     isActive: true,
   });
 
@@ -151,6 +154,7 @@ export default function StaffServicesScreen() {
       price: '',
       duration: '',
       category: '',
+      color: '',
       isActive: true,
     });
   };
@@ -164,6 +168,7 @@ export default function StaffServicesScreen() {
       price: selectedService.price?.toString() || '',
       duration: selectedService.duration?.toString() || '',
       category: selectedService.category || '',
+      color: selectedService.color || '',
       isActive: selectedService.status === 'active',
     });
     setIsEditMode(true);
@@ -197,6 +202,7 @@ export default function StaffServicesScreen() {
         price,
         duration,
         category: editService.category?.trim() || null,
+        color: editService.color || null,
         isActive: editService.isActive,
       };
 
@@ -308,6 +314,7 @@ export default function StaffServicesScreen() {
         price,
         duration,
         category: newService.category?.trim() || null,
+        color: newService.color || null,
         isActive: newService.isActive,
       };
 
@@ -595,6 +602,27 @@ export default function StaffServicesScreen() {
                           setEditService((prev) => prev ? { ...prev, category: text } : null)
                         }
                       />
+                    </View>
+
+                    <View style={styles.formGroupFull}>
+                      <Text style={styles.formLabel}>Hizmet Rengi</Text>
+                      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 4 }}>
+                        <TouchableOpacity
+                          style={[styles.colorCircle, !editService.color && styles.colorCircleSelected, { backgroundColor: '#F3F4F6', borderColor: '#D1D5DB' }]}
+                          onPress={() => setEditService(prev => prev ? { ...prev, color: '' } : null)}
+                        >
+                          <Ionicons name="close" size={14} color="#9CA3AF" />
+                        </TouchableOpacity>
+                        {SERVICE_COLORS.map((c) => (
+                          <TouchableOpacity
+                            key={c.key}
+                            style={[styles.colorCircle, { backgroundColor: c.hex }, editService.color === c.key && styles.colorCircleSelected]}
+                            onPress={() => setEditService(prev => prev ? { ...prev, color: c.key } : null)}
+                          >
+                            {editService.color === c.key && <Ionicons name="checkmark" size={14} color="#fff" />}
+                          </TouchableOpacity>
+                        ))}
+                      </ScrollView>
                     </View>
 
                     <View style={styles.formGroupFull}>
@@ -891,6 +919,27 @@ export default function StaffServicesScreen() {
               </View>
 
               <View style={styles.formGroupFull}>
+                <Text style={styles.formLabel}>Hizmet Rengi</Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 4 }}>
+                  <TouchableOpacity
+                    style={[styles.colorCircle, !newService.color && styles.colorCircleSelected, { backgroundColor: '#F3F4F6', borderColor: '#D1D5DB' }]}
+                    onPress={() => setNewService(prev => ({ ...prev, color: '' }))}
+                  >
+                    <Ionicons name="close" size={14} color="#9CA3AF" />
+                  </TouchableOpacity>
+                  {SERVICE_COLORS.map((c) => (
+                    <TouchableOpacity
+                      key={c.key}
+                      style={[styles.colorCircle, { backgroundColor: c.hex }, newService.color === c.key && styles.colorCircleSelected]}
+                      onPress={() => setNewService(prev => ({ ...prev, color: c.key }))}
+                    >
+                      {newService.color === c.key && <Ionicons name="checkmark" size={14} color="#fff" />}
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
+
+              <View style={styles.formGroupFull}>
                 <Text style={styles.formLabel}>Fiyat (₺) *</Text>
                 <TextInput
                   style={styles.formInput}
@@ -1083,6 +1132,20 @@ export default function StaffServicesScreen() {
 }
 
 const styles = StyleSheet.create({
+  colorCircle: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    marginRight: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: 'transparent',
+  },
+  colorCircleSelected: {
+    borderColor: '#1F2937',
+    transform: [{ scale: 1.1 }],
+  },
   container: {
     flex: 1,
     backgroundColor: '#F9FAFB',

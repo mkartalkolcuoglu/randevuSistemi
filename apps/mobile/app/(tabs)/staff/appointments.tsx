@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useRef } from 'react';
 import {
   View,
   Text,
@@ -20,7 +20,10 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useAuthStore } from '../../../src/store/auth.store';
 import { appointmentService } from '../../../src/services/appointment.service';
+import { notificationService } from '../../../src/services/notification.service';
 import { Appointment, AppointmentStatus } from '../../../src/types';
+import { formatLocalDate } from '../../../src/utils/date';
+import { getServiceColor } from '../../../src/constants/service-colors';
 import DrawerMenu from '../../../src/components/DrawerMenu';
 import Header from '../../../src/components/Header';
 import PermissionGuard from '../../../src/components/PermissionGuard';
@@ -37,15 +40,15 @@ const STATUS_CONFIG: Record<string, { bg: string; text: string; label: string; i
   scheduled: { bg: '#DBEAFE', text: '#2563EB', label: 'Planlandı', icon: 'calendar', gradient: ['#3B82F6', '#2563EB'] },
   confirmed: { bg: '#D1FAE5', text: '#059669', label: 'Onaylandı', icon: 'checkmark-circle', gradient: ['#10B981', '#059669'] },
   completed: { bg: '#E0E7FF', text: '#4F46E5', label: 'Tamamlandı', icon: 'checkmark-done', gradient: ['#6366F1', '#4F46E5'] },
-  cancelled: { bg: '#FEE2E2', text: '#DC2626', label: 'İptal', icon: 'close-circle', gradient: ['#EF4444', '#DC2626'] },
-  no_show: { bg: '#FFEDD5', text: '#EA580C', label: 'Gelmedi', icon: 'alert-circle', gradient: ['#F97316', '#EA580C'] },
+  cancelled: { bg: '#FEE2E2', text: '#DC2626', label: 'İptal Edildi', icon: 'close-circle', gradient: ['#EF4444', '#DC2626'] },
+  no_show: { bg: '#FFEDD5', text: '#EA580C', label: 'Gelmedi ve Bilgi Vermedi', icon: 'alert-circle', gradient: ['#F97316', '#EA580C'] },
 };
 
 const STATUS_OPTIONS: { status: AppointmentStatus; label: string; color: string; icon: string }[] = [
   { status: 'confirmed', label: 'Onayla', color: '#059669', icon: 'checkmark-circle' },
   { status: 'completed', label: 'Tamamlandı', color: '#4F46E5', icon: 'checkmark-done' },
   { status: 'cancelled', label: 'İptal Et', color: '#DC2626', icon: 'close-circle' },
-  { status: 'no_show', label: 'Gelmedi', color: '#EA580C', icon: 'alert-circle' },
+  { status: 'no_show', label: 'Gelmedi ve Bilgi Vermedi', color: '#EA580C', icon: 'alert-circle' },
 ];
 
 const FILTER_TABS = ['all', 'pending', 'confirmed', 'completed', 'cancelled'];
@@ -68,26 +71,63 @@ export default function StaffAppointmentsScreen() {
   const [showSearch, setShowSearch] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
 
+  const lastAppointmentsHashRef = useRef<string>('');
+
   // Fetch appointments
-  const fetchAppointments = async (showRefresh = false) => {
+  const fetchAppointments = async (silent = false, showRefresh = false) => {
     if (showRefresh) setIsRefreshing(true);
-    else setIsLoading(true);
+    else if (!silent) setIsLoading(true);
 
     try {
       const response = await appointmentService.getStaffAppointments();
-      setAppointments(response.data || []);
+      const appts = response.data || [];
+
+      // Arka plan kontrolü: sadece değişiklik varsa güncelle
+      const newHash = JSON.stringify(appts.map(a => `${a.id}_${a.status}_${a.time}_${a.date}_${a.staffId}`));
+      if (silent && newHash === lastAppointmentsHashRef.current) {
+        return; // Değişiklik yok
+      }
+
+      // Yeni randevu kontrolü — bildirim at
+      if (silent && lastAppointmentsHashRef.current) {
+        const oldIds = new Set(
+          lastAppointmentsHashRef.current.match(/([a-z0-9]+)_/g)?.map(s => s.replace('_', '')) || []
+        );
+        const newAppts = appts.filter(a => !oldIds.has(a.id));
+        if (newAppts.length > 0) {
+          const apt = newAppts[0];
+          notificationService.scheduleLocalNotification(
+            'Yeni Randevu',
+            `${apt.customerName} - ${apt.serviceName} (${apt.date} ${apt.time})`,
+            { appointmentId: apt.id },
+          );
+        }
+      }
+
+      lastAppointmentsHashRef.current = newHash;
+      setAppointments(appts);
     } catch (error) {
       console.error('Error fetching appointments:', error);
-      setAppointments([]);
+      if (!silent) setAppointments([]);
     } finally {
-      setIsLoading(false);
-      setIsRefreshing(false);
+      if (!silent) {
+        setIsLoading(false);
+        setIsRefreshing(false);
+      }
     }
   };
 
+  // Ekran odaklandığında veri çek + 30sn arka plan polling
+  const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
   useFocusEffect(
     useCallback(() => {
       fetchAppointments();
+      pollingRef.current = setInterval(() => {
+        fetchAppointments(true); // sessiz arka plan kontrolü
+      }, 30000);
+      return () => {
+        if (pollingRef.current) clearInterval(pollingRef.current);
+      };
     }, [])
   );
 
@@ -137,7 +177,7 @@ export default function StaffAppointmentsScreen() {
 
   // Today's stats
   const todayStats = useMemo(() => {
-    const today = new Date().toISOString().split('T')[0];
+    const today = formatLocalDate(new Date());
     const todayApts = appointments.filter((apt) => apt.date === today);
     const revenue = todayApts
       .filter((apt) => apt.status === 'completed')
@@ -212,8 +252,8 @@ export default function StaffAppointmentsScreen() {
     const tomorrow = new Date(today);
     tomorrow.setDate(today.getDate() + 1);
 
-    if (dateString === today.toISOString().split('T')[0]) return 'Bugün';
-    if (dateString === tomorrow.toISOString().split('T')[0]) return 'Yarın';
+    if (dateString === formatLocalDate(today)) return 'Bugün';
+    if (dateString === formatLocalDate(tomorrow)) return 'Yarın';
 
     return date.toLocaleDateString('tr-TR', { weekday: 'short', day: 'numeric', month: 'short' });
   };
@@ -282,7 +322,7 @@ export default function StaffAppointmentsScreen() {
       {!selectedDate ? (
         <TouchableOpacity
           style={styles.todayChip}
-          onPress={() => setSelectedDate(new Date().toISOString().split('T')[0])}
+          onPress={() => setSelectedDate(formatLocalDate(new Date()))}
         >
           <Text style={styles.todayChipText}>Bugün</Text>
         </TouchableOpacity>
@@ -344,7 +384,8 @@ export default function StaffAppointmentsScreen() {
   // Render Appointment Card - Compact Design
   const renderAppointment = ({ item }: { item: Appointment }) => {
     const status = STATUS_CONFIG[item.status] || STATUS_CONFIG.pending;
-    const isToday = item.date === new Date().toISOString().split('T')[0];
+    const isToday = item.date === formatLocalDate(new Date());
+    const svcColor = getServiceColor(item.serviceColor);
 
     return (
       <TouchableOpacity
@@ -355,11 +396,15 @@ export default function StaffAppointmentsScreen() {
         }}
         activeOpacity={0.7}
       >
-        {/* Left accent bar */}
-        <LinearGradient
-          colors={status.gradient}
-          style={styles.cardAccent}
-        />
+        {/* Left accent bar - service color if available, else status gradient */}
+        {svcColor ? (
+          <View style={[styles.cardAccent, { backgroundColor: svcColor.hex }]} />
+        ) : (
+          <LinearGradient
+            colors={status.gradient}
+            style={styles.cardAccent}
+          />
+        )}
 
         <View style={styles.cardContent}>
           {/* Main Row - All info in one line */}
@@ -445,7 +490,7 @@ export default function StaffAppointmentsScreen() {
     for (let i = -14; i <= 30; i++) {
       const date = new Date(today);
       date.setDate(today.getDate() + i);
-      dates.push(date.toISOString().split('T')[0]);
+      dates.push(formatLocalDate(date));
     }
 
     return (
@@ -481,7 +526,7 @@ export default function StaffAppointmentsScreen() {
               keyExtractor={(item) => item}
               renderItem={({ item }) => {
                 const isSelected = item === selectedDate;
-                const isToday = item === today.toISOString().split('T')[0];
+                const isToday = item === formatLocalDate(today);
                 const aptCount = appointments.filter((apt) => apt.date === item).length;
 
                 return (
@@ -754,7 +799,7 @@ export default function StaffAppointmentsScreen() {
             refreshControl={
               <RefreshControl
                 refreshing={isRefreshing}
-                onRefresh={() => fetchAppointments(true)}
+                onRefresh={() => fetchAppointments(false, true)}
                 tintColor="#3B82F6"
                 colors={['#3B82F6']}
               />

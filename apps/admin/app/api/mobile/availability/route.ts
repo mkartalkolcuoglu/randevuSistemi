@@ -109,8 +109,9 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Get day of week
-    const dayOfWeek = new Date(date).toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
+    // Get day of week (parse date parts to avoid UTC issues)
+    const [pYear, pMonth, pDay] = date.split('-').map(Number);
+    const dayOfWeek = new Date(pYear, pMonth - 1, pDay).toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
 
     // Determine working hours
     let startHour = 9;
@@ -184,15 +185,16 @@ export async function GET(request: NextRequest) {
     const startTimeMinutes = startHour * 60 + startMinute;
     const endTimeMinutes = endHour * 60 + endMinute;
 
+    const now = new Date();
+    const [slotYear, slotMonth, slotDay] = date.split('-').map(Number);
+
     for (let minutes = startTimeMinutes; minutes < endTimeMinutes; minutes += slotInterval) {
       const hour = Math.floor(minutes / 60);
       const minute = minutes % 60;
       const timeStr = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
 
       // Check if this slot is in the past
-      const now = new Date();
-      const slotDate = new Date(date);
-      slotDate.setHours(hour, minute, 0, 0);
+      const slotDate = new Date(slotYear, slotMonth - 1, slotDay, hour, minute, 0, 0);
 
       if (slotDate < now) {
         slots.push({ time: timeStr, available: false });
@@ -207,7 +209,7 @@ export async function GET(request: NextRequest) {
       for (const apt of appointments) {
         const [aptHour, aptMinute] = apt.time.split(':').map(Number);
         const aptStart = aptHour * 60 + aptMinute;
-        const aptEnd = aptStart + apt.service.duration;
+        const aptEnd = aptStart + (apt.service?.duration || apt.duration || 30);
 
         // Check overlap
         if (slotStart < aptEnd && slotEnd > aptStart) {
