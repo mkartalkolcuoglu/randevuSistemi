@@ -102,6 +102,13 @@ export async function GET(
       };
     }
 
+    // Fetch blocked dates
+    const blockedDates = await prisma.blockedDate.findMany({
+      where: { tenantId },
+      orderBy: { startDate: 'asc' },
+      select: { id: true, title: true, startDate: true, endDate: true, staffId: true },
+    });
+
     return NextResponse.json({
       success: true,
       data: {
@@ -110,6 +117,7 @@ export async function GET(
         workingHours,
         appointmentTimeInterval: settings?.appointmentTimeInterval || 30,
         cardPaymentEnabled: tenant.cardPaymentEnabled !== false, // Default: true
+        blockedDates,
       },
     });
   } catch (error: any) {

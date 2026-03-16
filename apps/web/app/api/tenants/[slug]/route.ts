@@ -95,6 +95,13 @@ export async function GET(
       });
     }
     
+    // Fetch blocked dates
+    const blockedDates = await prisma.blockedDate.findMany({
+      where: { tenantId: tenant.id },
+      orderBy: { startDate: 'asc' },
+      select: { id: true, title: true, startDate: true, endDate: true, staffId: true },
+    });
+
     // Tenant data'yı frontend format'ına çevir
     const tenantData = {
       id: tenant.id,
@@ -106,6 +113,7 @@ export async function GET(
       address: tenant.address || '',
       workingHours: finalWorkingHours || null, // ✅ Include working hours (from Web DB or Admin API fallback)
       cardPaymentEnabled: finalCardPaymentEnabled !== false, // ✅ Card payment toggle from Admin API (default: true)
+      blockedDates,
       isActive: tenant.status === 'active',
       createdAt: tenant.createdAt?.toISOString() || new Date().toISOString(),
       updatedAt: tenant.updatedAt?.toISOString() || new Date().toISOString()

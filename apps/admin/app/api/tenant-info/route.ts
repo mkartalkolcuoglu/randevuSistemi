@@ -57,12 +57,18 @@ export async function GET() {
     });
 
     // Merge tenant and settings data
+    // Fetch blocked dates
+    const blockedDates = await prisma.blockedDate.findMany({
+      where: { tenantId: session.tenantId },
+      orderBy: { startDate: 'asc' },
+    });
+
     const mergedData = {
       ...tenant,
       appointmentTimeInterval: settings?.appointmentTimeInterval || 30,
       blacklistThreshold: settings?.blacklistThreshold || 3,
       reminderMinutes: settings?.reminderMinutes || 120,
-      // Include settings data for reference (useful for debugging)
+      blockedDates,
       _settings: {
         businessPhone: settings?.businessPhone,
         businessAddress: settings?.businessAddress,
@@ -70,7 +76,6 @@ export async function GET() {
       }
     };
 
-    // Return full tenant info (including theme, workingHours, subscription, etc.)
     return NextResponse.json({
       success: true,
       data: mergedData

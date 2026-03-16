@@ -314,6 +314,7 @@ export const appointmentService = {
     appointmentTimeInterval: number;
     blacklistThreshold: number;
     reminderMinutes: number;
+    blockedDates?: { id: string; title: string; startDate: string; endDate: string; staffId?: string | null }[];
   }>> {
     try {
       console.log('🔧 Fetching tenant settings...');

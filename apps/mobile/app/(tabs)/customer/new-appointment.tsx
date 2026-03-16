@@ -41,10 +41,19 @@ interface WorkingHours {
   };
 }
 
+interface BlockedDateInfo {
+  id: string;
+  title: string;
+  startDate: string;
+  endDate: string;
+  staffId?: string | null;
+}
+
 interface TenantSettings {
   workingHours: WorkingHours;
   appointmentTimeInterval: number;
   cardPaymentEnabled?: boolean;
+  blockedDates?: BlockedDateInfo[];
 }
 
 interface PackageInfo {
@@ -154,7 +163,7 @@ export default function NewAppointmentScreen() {
   };
 
   const getAvailableDates = () => {
-    const dates: { date: Date; isOpen: boolean; dayName: string }[] = [];
+    const dates: { date: Date; isOpen: boolean; dayName: string; blockedTitle?: string }[] = [];
     const today = new Date();
     const dayNames: { [key: number]: string } = {
       0: 'sunday', 1: 'monday', 2: 'tuesday', 3: 'wednesday',
@@ -166,13 +175,26 @@ export default function NewAppointmentScreen() {
       date.setDate(today.getDate() + i);
       const dayName = dayNames[date.getDay()];
       let isOpen = true;
+      let blockedTitle: string | undefined;
 
       if (tenantSettings?.workingHours) {
         const dayHours = tenantSettings.workingHours[dayName];
         isOpen = dayHours ? !dayHours.closed : true;
       }
 
-      dates.push({ date, isOpen, dayName });
+      // Check blocked dates
+      if (isOpen && tenantSettings?.blockedDates?.length) {
+        const dateStr = `${date.getFullYear()}-${(date.getMonth()+1).toString().padStart(2,'0')}-${date.getDate().toString().padStart(2,'0')}`;
+        const blocked = tenantSettings.blockedDates.find(
+          b => b.startDate <= dateStr && b.endDate >= dateStr
+        );
+        if (blocked) {
+          isOpen = false;
+          blockedTitle = blocked.title;
+        }
+      }
+
+      dates.push({ date, isOpen, dayName, blockedTitle });
     }
     return dates;
   };
@@ -288,7 +310,7 @@ export default function NewAppointmentScreen() {
     if (!selectedDate || !selectedStaff || !selectedService || !selectedTenant) return;
     setIsLoading(true);
     try {
-      const dateStr = selectedDate.toISOString().split('T')[0];
+      const dateStr = `${selectedDate.getFullYear()}-${(selectedDate.getMonth()+1).toString().padStart(2,'0')}-${selectedDate.getDate().toString().padStart(2,'0')}`;
       const response = await api.get(
         `/api/mobile/availability?staffId=${selectedStaff.id}&date=${dateStr}&serviceId=${selectedService.id}`,
         { headers: { 'X-Tenant-ID': selectedTenant.id } }
@@ -342,7 +364,7 @@ export default function NewAppointmentScreen() {
         tenantId: selectedTenant.id,
         serviceId: selectedService.id,
         staffId: selectedStaff.id,
-        date: selectedDate.toISOString().split('T')[0],
+        date: `${selectedDate.getFullYear()}-${(selectedDate.getMonth()+1).toString().padStart(2,'0')}-${selectedDate.getDate().toString().padStart(2,'0')}`,
         time: selectedTime,
       };
 
@@ -370,7 +392,7 @@ export default function NewAppointmentScreen() {
         tenantId: selectedTenant.id,
         serviceId: selectedService.id,
         staffId: selectedStaff.id,
-        date: selectedDate.toISOString().split('T')[0],
+        date: `${selectedDate.getFullYear()}-${(selectedDate.getMonth()+1).toString().padStart(2,'0')}-${selectedDate.getDate().toString().padStart(2,'0')}`,
         time: selectedTime,
       };
 
@@ -703,6 +725,7 @@ export default function NewAppointmentScreen() {
                   styles.dateCard,
                   isSelected && styles.dateCardSelected,
                   isClosed && styles.dateCardClosed,
+                  item.blockedTitle && { borderColor: 'rgba(220,38,38,0.3)' },
                 ]}
                 onPress={() => !isClosed && setSelectedDate(item.date)}
                 disabled={isClosed}
@@ -722,7 +745,11 @@ export default function NewAppointmentScreen() {
                 <Text style={[styles.dateMonth, isSelected && styles.dateMonthSelected, isClosed && styles.dateMonthClosed]}>
                   {item.date.toLocaleDateString('tr-TR', { month: 'short' })}
                 </Text>
-                {isClosed && <Text style={styles.closedLabel}>Kapalı</Text>}
+                {item.blockedTitle ? (
+                  <Text style={styles.closedLabel}>Tatil</Text>
+                ) : isClosed ? (
+                  <Text style={styles.closedLabel}>Kapalı</Text>
+                ) : null}
               </TouchableOpacity>
             );
           })}

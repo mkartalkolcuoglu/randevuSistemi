@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 import { generateTimeSlots, parseWorkingHours, getWorkingHoursForDay } from '../../../lib/time-slots';
+import { getBlockingDate } from '../../../lib/blocked-dates';
 
 const prisma = new PrismaClient();
 
@@ -74,6 +75,20 @@ export async function GET(request: NextRequest) {
           message: 'Bu gün işletme kapalı'
         }
       }, { headers: corsHeaders });
+    }
+
+    // Check if date is blocked (holiday/vacation)
+    if (tenantSlug) {
+      const tenant = await prisma.tenant.findUnique({ where: { slug: tenantSlug }, select: { id: true } });
+      if (tenant) {
+        const blocked = await getBlockingDate(tenant.id, date, staffId || undefined);
+        if (blocked) {
+          return NextResponse.json({
+            success: true,
+            data: { date, slots: [], message: `Bu tarih tatil nedeniyle kapalı: ${blocked.title}` }
+          }, { headers: corsHeaders });
+        }
+      }
     }
     
     // Parse start and end hours for the day

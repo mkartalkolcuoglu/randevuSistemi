@@ -31,9 +31,18 @@ const DAY_NAMES: Record<number, string> = {
   6: 'saturday',
 };
 
+interface BlockedDateInfo {
+  id: string;
+  title: string;
+  startDate: string;
+  endDate: string;
+  staffId?: string | null;
+}
+
 interface TenantSettings {
   workingHours: Record<string, { start: string; end: string; closed: boolean }>;
   appointmentTimeInterval: number;
+  blockedDates?: BlockedDateInfo[];
 }
 
 interface WorkingHours {
@@ -147,18 +156,13 @@ export default function NewAppointmentScreen() {
       setServices(servicesRes.data || []);
       setStaffList(staffRes.data || []);
 
-      console.log('🔧 Settings Response:', JSON.stringify(settingsRes, null, 2));
-
       if (settingsRes.success && settingsRes.data) {
-        console.log('📅 Working Hours from API:', JSON.stringify(settingsRes.data.workingHours, null, 2));
-        console.log('⏰ Appointment Interval:', settingsRes.data.appointmentTimeInterval);
-
         setTenantSettings({
           workingHours: settingsRes.data.workingHours,
           appointmentTimeInterval: settingsRes.data.appointmentTimeInterval,
+          blockedDates: settingsRes.data.blockedDates || [],
         });
       } else {
-        console.log('⚠️ Using default settings - API returned:', settingsRes);
         // Default settings
         setTenantSettings({
           workingHours: {
@@ -224,7 +228,7 @@ export default function NewAppointmentScreen() {
         return;
       }
 
-      // Generate time slots based on working hours and interval
+      // Generate time slots based on staff/tenant working hours and interval
       const slots = generateTimeSlots(
         workingHours.start,
         workingHours.end,
@@ -238,35 +242,40 @@ export default function NewAppointmentScreen() {
         dateStr
       );
 
-      // Filter out busy slots (existing appointments)
+      // Filter out busy slots (check overlap with existing appointments using service duration)
       const busySlots: string[] = [];
-      if (appointmentsRes.success && appointmentsRes.data) {
-        appointmentsRes.data.forEach((apt: Appointment) => {
-          if (apt.status !== 'cancelled') {
-            busySlots.push(apt.time.substring(0, 5)); // HH:MM format
+      const existingAppts = (appointmentsRes.success && appointmentsRes.data) ? appointmentsRes.data : [];
+      const newServiceDuration = selectedService?.duration || 30;
+
+      slots.forEach((slotTime) => {
+        const [slotH, slotM] = slotTime.split(':').map(Number);
+        const slotStart = slotH * 60 + slotM;
+        const slotEnd = slotStart + newServiceDuration;
+
+        for (const apt of existingAppts) {
+          if (apt.status === 'cancelled') continue;
+          const [aptH, aptM] = apt.time.substring(0, 5).split(':').map(Number);
+          const aptStart = aptH * 60 + aptM;
+          const aptEnd = aptStart + (apt.duration || 30);
+
+          // Check overlap
+          if (slotStart < aptEnd && slotEnd > aptStart) {
+            busySlots.push(slotTime);
+            break;
           }
-        });
-      }
+        }
+      });
       setBusyTimeSlots(busySlots);
 
-      // Filter past times if the selected date is today
+      // Filter past time slots if the selected date is today
       const today = new Date();
       const isToday = selectedDate.toDateString() === today.toDateString();
-
       let filteredSlots = slots;
       if (isToday) {
-        // Get current time in Turkey timezone (UTC+3)
-        const turkeyOffset = 3 * 60; // minutes
-        const localOffset = today.getTimezoneOffset();
-        const turkeyTime = new Date(today.getTime() + (turkeyOffset + localOffset) * 60000);
-        const currentHour = turkeyTime.getHours();
-        const currentMinute = turkeyTime.getMinutes();
-        const currentTimeInMinutes = currentHour * 60 + currentMinute;
-
+        const currentTimeInMinutes = today.getHours() * 60 + today.getMinutes();
         filteredSlots = slots.filter((slot) => {
-          const [hour, minute] = slot.split(':').map(Number);
-          const slotTimeInMinutes = hour * 60 + minute;
-          return slotTimeInMinutes > currentTimeInMinutes;
+          const [h, m] = slot.split(':').map(Number);
+          return h * 60 + m > currentTimeInMinutes;
         });
       }
 
@@ -313,12 +322,23 @@ export default function NewAppointmentScreen() {
     return dates;
   };
 
-  // Check if a date is closed
+  // Check if a date is closed (working hours or blocked/holiday)
   const isDateClosed = (date: Date): boolean => {
     if (!tenantSettings) return false;
     const dayName = DAY_NAMES[date.getDay()];
     const workingHours = tenantSettings.workingHours[dayName];
-    return !workingHours || workingHours.closed;
+    if (!workingHours || workingHours.closed) return true;
+    return false;
+  };
+
+  // Check if a date is blocked (holiday)
+  const getBlockedDateTitle = (date: Date): string | null => {
+    if (!tenantSettings?.blockedDates?.length) return null;
+    const dateStr = `${date.getFullYear()}-${(date.getMonth()+1).toString().padStart(2,'0')}-${date.getDate().toString().padStart(2,'0')}`;
+    const blocked = tenantSettings.blockedDates.find(
+      b => b.startDate <= dateStr && b.endDate >= dateStr
+    );
+    return blocked ? blocked.title : null;
   };
 
   // Customer search with debounce
@@ -549,6 +569,8 @@ export default function NewAppointmentScreen() {
               {generateDates().map((date) => {
                 const isSelected = selectedDate?.toDateString() === date.toDateString();
                 const isClosed = isDateClosed(date);
+                const blockedTitle = getBlockedDateTitle(date);
+                const isDisabled = isClosed || !!blockedTitle;
                 const isToday = date.toDateString() === new Date().toDateString();
 
                 return (
@@ -557,31 +579,34 @@ export default function NewAppointmentScreen() {
                     style={[
                       styles.dateCard,
                       isSelected && styles.dateCardSelected,
-                      isClosed && styles.dateCardClosed,
+                      isDisabled && styles.dateCardClosed,
+                      blockedTitle && { borderColor: 'rgba(220,38,38,0.3)' },
                     ]}
-                    onPress={() => !isClosed && handleDateSelect(date)}
-                    disabled={isClosed}
+                    onPress={() => !isDisabled && handleDateSelect(date)}
+                    disabled={isDisabled}
                   >
                     <Text style={[
                       styles.dateDay,
                       isSelected && styles.dateDaySelected,
-                      isClosed && styles.dateDayClosed,
+                      isDisabled && styles.dateDayClosed,
                     ]}>
                       {date.toLocaleDateString('tr-TR', { weekday: 'short' })}
                     </Text>
                     <Text style={[
                       styles.dateNum,
                       isSelected && styles.dateNumSelected,
-                      isClosed && styles.dateNumClosed,
+                      isDisabled && styles.dateNumClosed,
                     ]}>
                       {date.getDate()}
                     </Text>
                     {isToday && !isSelected && (
                       <View style={styles.todayDot} />
                     )}
-                    {isClosed && (
+                    {blockedTitle ? (
+                      <Text style={styles.closedText}>Tatil</Text>
+                    ) : isClosed ? (
                       <Text style={styles.closedText}>Kapalı</Text>
-                    )}
+                    ) : null}
                   </TouchableOpacity>
                 );
               })}

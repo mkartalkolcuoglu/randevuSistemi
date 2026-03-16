@@ -85,20 +85,32 @@ export default function RandevuPage({ params }: PageProps) {
   }
   
   // Generate next 14 days for date selection
+  const blockedDates: { startDate: string; endDate: string; title: string }[] = tenant?.blockedDates || [];
   const availableDates = Array.from({ length: 14 }, (_, i) => {
     const date = addDays(new Date(), i);
     const dateStr = format(date, 'yyyy-MM-dd');
-    const isClosed = !isWorkingDay(dateStr, workingHours);
-    
+    let isClosed = !isWorkingDay(dateStr, workingHours);
+    let blockedTitle: string | undefined;
+
+    // Check blocked dates
+    if (!isClosed) {
+      const blocked = blockedDates.find(b => b.startDate <= dateStr && b.endDate >= dateStr);
+      if (blocked) {
+        isClosed = true;
+        blockedTitle = blocked.title;
+      }
+    }
+
     if (i < 7) {
       console.log(`📅 ${dateStr} (${format(date, 'EEEE', { locale: tr })}): isClosed=${isClosed}`);
     }
-    
+
     return {
       date: dateStr,
       display: format(date, 'dd MMM, EEEE', { locale: tr }),
       isToday: i === 0,
-      isClosed: isClosed
+      isClosed,
+      blockedTitle,
     };
   });
 
@@ -874,7 +886,11 @@ export default function RandevuPage({ params }: PageProps) {
               <Calendar className="w-4 h-4 mb-1" />
               <span className="text-sm font-medium">{dateOption.display}</span>
               {dateOption.isToday && !dateOption.isClosed && <span className="text-xs text-blue-600">Bugün</span>}
-              {dateOption.isClosed && <span className="text-xs text-red-600 font-semibold">KAPALI</span>}
+              {dateOption.blockedTitle ? (
+                <span className="text-xs text-red-600 font-semibold">TATİL</span>
+              ) : dateOption.isClosed ? (
+                <span className="text-xs text-red-600 font-semibold">KAPALI</span>
+              ) : null}
             </Button>
           ))}
         </div>

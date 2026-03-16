@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { checkApiPermission } from '../../../lib/api-auth';
 import { prisma } from '../../../lib/prisma';
+import { getBlockingDate } from '../../../lib/blocked-dates';
 
 // CORS headers
 const corsHeaders = {
@@ -152,6 +153,15 @@ export async function POST(request: NextRequest) {
         );
       }
       
+      // Check if date is blocked (holiday/vacation)
+      const blocked = await getBlockingDate(tenant.id, data.date, data.staffId);
+      if (blocked) {
+        return NextResponse.json(
+          { success: false, error: `Bu tarih tatil nedeniyle kapalı: ${blocked.title}` },
+          { status: 400, headers: corsHeaders }
+        );
+      }
+
       // Check for time conflicts (exclude cancelled and completed appointments)
       const conflictCheck = await prisma.appointment.findFirst({
         where: {
@@ -389,6 +399,15 @@ export async function POST(request: NextRequest) {
 
     // Get tenant ID from staff
     const tenantId = staff.tenantId;
+
+    // Check if date is blocked (holiday/vacation)
+    const adminBlocked = await getBlockingDate(tenantId, data.date, data.staffId);
+    if (adminBlocked) {
+      return NextResponse.json(
+        { success: false, error: `Bu tarih tatil nedeniyle kapalı: ${adminBlocked.title}` },
+        { status: 400, headers: corsHeaders }
+      );
+    }
 
     // Handle customer - either find existing or create new
     let customer;

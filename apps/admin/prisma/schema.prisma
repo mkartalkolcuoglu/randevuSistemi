@@ -440,3 +440,17 @@ model pages {
   @@index([isActive], map: "idx_pages_is_active")
   @@index([slug], map: "idx_pages_slug")
 }
+
+model BlockedDate {
+  id        String   @id @default(cuid())
+  tenantId  String
+  staffId   String?
+  title     String
+  startDate String   @map("start_date")
+  endDate   String   @map("end_date")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([tenantId, startDate, endDate])
+  @@map("blocked_dates")
+}

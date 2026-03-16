@@ -108,6 +108,13 @@ export async function GET(request: NextRequest) {
       };
     }
 
+    // Fetch blocked dates
+    const blockedDates = await prisma.blockedDate.findMany({
+      where: { tenantId: auth.tenantId },
+      orderBy: { startDate: 'asc' },
+      select: { id: true, title: true, startDate: true, endDate: true, staffId: true },
+    });
+
     return NextResponse.json({
       success: true,
       data: {
@@ -117,6 +124,7 @@ export async function GET(request: NextRequest) {
         appointmentTimeInterval: settings?.appointmentTimeInterval || 30,
         blacklistThreshold: settings?.blacklistThreshold || 3,
         reminderMinutes: settings?.reminderMinutes || 120,
+        blockedDates,
       },
     });
   } catch (error: any) {

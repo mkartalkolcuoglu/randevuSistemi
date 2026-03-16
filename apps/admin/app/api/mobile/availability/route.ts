@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '../../../../lib/prisma';
+import { getBlockingDate } from '../../../../lib/blocked-dates';
 import jwt from 'jsonwebtoken';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
@@ -61,6 +62,16 @@ export async function GET(request: NextRequest) {
         );
       }
       tenantId = headerTenantId;
+    }
+
+    // Check if date is blocked (holiday/vacation)
+    const blocked = await getBlockingDate(tenantId, date, staffId);
+    if (blocked) {
+      return NextResponse.json({
+        success: true,
+        data: [],
+        message: `Bu tarih tatil nedeniyle kapalı: ${blocked.title}`,
+      });
     }
 
     // Get service duration

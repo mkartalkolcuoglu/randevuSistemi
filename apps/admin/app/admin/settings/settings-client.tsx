@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, Button, Tabs, TabsList, TabsTrigger, TabsContent, formatPhone, normalizePhone, PHONE_PLACEHOLDER, PHONE_MAX_LENGTH } from '@/components/ui';
-import { Save, Palette, Building2, User, Key, Clock, Upload, ArrowLeft, MapPin, Settings, CreditCard, FileText } from 'lucide-react';
+import { Save, Palette, Building2, User, Key, Clock, Upload, ArrowLeft, MapPin, Settings, CreditCard, FileText, CalendarX2, Trash2, Plus } from 'lucide-react';
 import AdminHeader from '../admin-header';
 import type { ClientUser } from '../../../lib/client-permissions';
 
@@ -15,6 +15,11 @@ export default function SettingsClient({ user }: SettingsClientProps) {
   const [saving, setSaving] = useState(false);
   const [logoPreview, setLogoPreview] = useState<string>('');
   const [headerPreview, setHeaderPreview] = useState<string>('');
+
+  // Blocked dates (tatil günleri)
+  const [blockedDates, setBlockedDates] = useState<{ id: string; title: string; startDate: string; endDate: string; staffId?: string }[]>([]);
+  const [newBlockedDate, setNewBlockedDate] = useState({ title: '', startDate: '', endDate: '' });
+  const [blockedDateSaving, setBlockedDateSaving] = useState(false);
   const [settings, setSettings] = useState({
     // Tema ayarları
     themeSettings: {
@@ -181,6 +186,11 @@ export default function SettingsClient({ user }: SettingsClientProps) {
           if (themeData?.headerImage) {
             console.log('🖼️ Setting header preview (size:', themeData.headerImage.length, 'chars)');
             setHeaderPreview(themeData.headerImage);
+          }
+
+          // Load blocked dates
+          if (tenant.blockedDates) {
+            setBlockedDates(tenant.blockedDates);
           }
         } else {
           throw new Error(tenantData.error || 'Tenant bilgisi alınamadı');
@@ -561,6 +571,10 @@ export default function SettingsClient({ user }: SettingsClientProps) {
           <TabsTrigger value="documents" className="flex flex-col md:flex-row items-center gap-1 py-2 px-2 text-xs md:text-sm">
             <FileText className="w-4 h-4" />
             <span>Belgeler</span>
+          </TabsTrigger>
+          <TabsTrigger value="blocked-dates" className="flex flex-col md:flex-row items-center gap-1 py-2 px-2 text-xs md:text-sm">
+            <CalendarX2 className="w-4 h-4" />
+            <span>Tatiller</span>
           </TabsTrigger>
         </TabsList>
 
@@ -1465,6 +1479,136 @@ export default function SettingsClient({ user }: SettingsClientProps) {
                 <p className="text-sm text-yellow-800">
                   <strong>Not:</strong> Yüklediğiniz belgeler yalnızca ödeme işlemleri için kullanılacaktır.
                   Belgeleriniz güvenli sunucularda şifreli olarak saklanmaktadır.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Tatil Günleri */}
+        <TabsContent value="blocked-dates">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <CalendarX2 className="w-5 h-5 mr-2 text-red-600" />
+                Tatil Günleri / Kapalı Tarihler
+              </CardTitle>
+              <p className="text-sm text-gray-500 mt-1">
+                Bayram, tatil veya özel günlerde randevu almayı kapatın. Bu tarihlerde müşteriler randevu oluşturamaz.
+              </p>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* Yeni tatil ekleme formu */}
+              <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg space-y-4">
+                <h3 className="font-medium text-sm text-gray-700">Yeni Tatil Ekle</h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <div>
+                    <label className="block text-xs text-gray-500 mb-1">Başlık</label>
+                    <input
+                      type="text"
+                      placeholder="Ramazan Bayramı"
+                      value={newBlockedDate.title}
+                      onChange={(e) => setNewBlockedDate(prev => ({ ...prev, title: e.target.value }))}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-gray-500 mb-1">Başlangıç Tarihi</label>
+                    <input
+                      type="date"
+                      value={newBlockedDate.startDate}
+                      onChange={(e) => setNewBlockedDate(prev => ({ ...prev, startDate: e.target.value }))}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-gray-500 mb-1">Bitiş Tarihi</label>
+                    <input
+                      type="date"
+                      value={newBlockedDate.endDate}
+                      onChange={(e) => setNewBlockedDate(prev => ({ ...prev, endDate: e.target.value }))}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                  </div>
+                </div>
+                <Button
+                  disabled={blockedDateSaving || !newBlockedDate.title.trim() || !newBlockedDate.startDate || !newBlockedDate.endDate}
+                  onClick={async () => {
+                    setBlockedDateSaving(true);
+                    try {
+                      const res = await fetch('/api/blocked-dates', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(newBlockedDate),
+                      });
+                      const data = await res.json();
+                      if (data.success) {
+                        setBlockedDates(prev => [...prev, data.data].sort((a, b) => a.startDate.localeCompare(b.startDate)));
+                        setNewBlockedDate({ title: '', startDate: '', endDate: '' });
+                      } else {
+                        alert(data.error || 'Eklenemedi');
+                      }
+                    } catch (err) {
+                      alert('Bir hata oluştu');
+                    } finally {
+                      setBlockedDateSaving(false);
+                    }
+                  }}
+                  className="bg-red-600 hover:bg-red-700 text-white"
+                  size="sm"
+                >
+                  <Plus className="w-4 h-4 mr-1" />
+                  {blockedDateSaving ? 'Ekleniyor...' : 'Tatil Ekle'}
+                </Button>
+              </div>
+
+              {/* Mevcut tatil listesi */}
+              {blockedDates.length === 0 ? (
+                <div className="text-center py-8 text-gray-400">
+                  <CalendarX2 className="w-12 h-12 mx-auto mb-2 opacity-30" />
+                  <p className="text-sm">Henüz tatil günü eklenmemiş</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {blockedDates.map((bd) => (
+                    <div key={bd.id} className="flex items-center justify-between p-3 bg-red-50 border border-red-100 rounded-lg">
+                      <div>
+                        <span className="font-medium text-sm text-red-800">{bd.title}</span>
+                        <span className="text-xs text-red-600 ml-3">
+                          {bd.startDate} — {bd.endDate}
+                        </span>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-red-500 hover:text-red-700 hover:bg-red-100"
+                        onClick={async () => {
+                          if (!confirm(`"${bd.title}" tatilini silmek istediğinize emin misiniz?`)) return;
+                          try {
+                            const res = await fetch(`/api/blocked-dates/${bd.id}`, { method: 'DELETE' });
+                            const data = await res.json();
+                            if (data.success) {
+                              setBlockedDates(prev => prev.filter(d => d.id !== bd.id));
+                            } else {
+                              alert(data.error || 'Silinemedi');
+                            }
+                          } catch (err) {
+                            alert('Bir hata oluştu');
+                          }
+                        }}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Bilgi notu */}
+              <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                <p className="text-sm text-yellow-800">
+                  <strong>Not:</strong> Tatil günü eklemek mevcut randevuları otomatik olarak iptal etmez.
+                  Sadece yeni randevu oluşturmayı engeller.
                 </p>
               </div>
             </CardContent>

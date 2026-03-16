@@ -235,6 +235,7 @@ export default function CalendarScreen() {
   const [staffWorkingHoursMap, setStaffWorkingHoursMap] = useState<Record<string, StaffWorkingHours>>({});
   const [tenantWorkingHours, setTenantWorkingHours] = useState<StaffWorkingHours | null>(null);
   const [allStaffList, setAllStaffList] = useState<{ id: string; name: string }[]>([]);
+  const [blockedDates, setBlockedDates] = useState<{ id: string; title: string; startDate: string; endDate: string; staffId?: string | null }[]>([]);
 
   const verticalScrollRef = useRef<ScrollView>(null);
   const gridBodyRef = useRef<View>(null);
@@ -359,6 +360,11 @@ export default function CalendarScreen() {
         // Save tenant working hours for fallback
         if (wh) {
           setTenantWorkingHours(wh);
+        }
+
+        // Save blocked dates
+        if (settingsRes.data.blockedDates) {
+          setBlockedDates(settingsRes.data.blockedDates);
         }
       }
 
@@ -565,6 +571,16 @@ export default function CalendarScreen() {
     return regions;
   };
 
+  // Check if a date string (YYYY-MM-DD) falls within any blocked date range
+  const getBlockedDateForDay = (dateStr: string): { title: string } | null => {
+    for (const bd of blockedDates) {
+      if (dateStr >= bd.startDate && dateStr <= bd.endDate) {
+        return { title: bd.title };
+      }
+    }
+    return null;
+  };
+
   // Handle WhatsApp
   const handleSendWhatsApp = async (appointment: Appointment) => {
     try {
@@ -758,6 +774,7 @@ export default function CalendarScreen() {
               const dayAppointments = getAppointmentsForDate(dateStr);
               const todayCheck = isToday(day);
               const isWeekend = day.getDay() === 0 || day.getDay() === 6;
+              const blockedDay = getBlockedDateForDay(dateStr);
 
               return (
                 <TouchableOpacity
@@ -766,6 +783,7 @@ export default function CalendarScreen() {
                     styles.dayCell,
                     todayCheck && styles.dayCellToday,
                     isWeekend && styles.dayCellWeekend,
+                    blockedDay && { backgroundColor: 'rgba(239,68,68,0.08)' },
                   ]}
                   onPress={() => {
                     setCurrentDate(day);
@@ -778,11 +796,16 @@ export default function CalendarScreen() {
                       styles.dayNumber,
                       todayCheck && styles.dayNumberToday,
                       isWeekend && !todayCheck && styles.dayNumberWeekend,
+                      blockedDay && { color: 'rgba(220,38,38,0.7)' },
                     ]}>
                       {day.getDate()}
                     </Text>
                   </View>
-                  {dayAppointments.length > 0 && (
+                  {blockedDay ? (
+                    <View style={{ alignItems: 'center', marginTop: 2 }}>
+                      <Ionicons name="close-circle" size={10} color="rgba(220,38,38,0.5)" />
+                    </View>
+                  ) : dayAppointments.length > 0 ? (
                     <View style={styles.appointmentDots}>
                       {dayAppointments.slice(0, 3).map((apt, i) => (
                         <View
@@ -797,7 +820,7 @@ export default function CalendarScreen() {
                         <Text style={styles.moreDotsText}>+{dayAppointments.length - 3}</Text>
                       )}
                     </View>
-                  )}
+                  ) : null}
                 </TouchableOpacity>
               );
             })}
@@ -842,13 +865,25 @@ export default function CalendarScreen() {
           dayAppts = dayAppts.filter(apt => apt.staffId === filterStaffId);
         }
         const todayCheck = isToday(day);
+        const blockedDay = getBlockedDateForDay(dateStr);
 
         return (
           <View
             key={index}
-            style={[styles.weekDayColumn, todayCheck && styles.weekDayColumnToday]}
+            style={[
+              styles.weekDayColumn,
+              todayCheck && styles.weekDayColumnToday,
+              blockedDay && { backgroundColor: 'rgba(239,68,68,0.06)' },
+            ]}
           >
-            {dayAppts.length === 0 ? (
+            {blockedDay ? (
+              <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', paddingVertical: 12 }}>
+                <Ionicons name="close-circle" size={18} color="rgba(220,38,38,0.4)" />
+                <Text style={{ fontSize: 9, color: 'rgba(220,38,38,0.6)', marginTop: 3, textAlign: 'center' }} numberOfLines={2}>
+                  {blockedDay.title}
+                </Text>
+              </View>
+            ) : dayAppts.length === 0 ? (
               <View style={styles.emptyDayColumn}>
                 <Ionicons name="remove-outline" size={16} color="#D1D5DB" />
               </View>
@@ -876,7 +911,7 @@ export default function CalendarScreen() {
                 );
               })
             )}
-            {dayAppts.length > 6 && (
+            {!blockedDay && dayAppts.length > 6 && (
               <Text style={styles.moreText}>+{dayAppts.length - 6}</Text>
             )}
           </View>
@@ -922,17 +957,30 @@ export default function CalendarScreen() {
                     <View style={styles.weekStaffDayHeaders}>
                       {days.map((day, idx) => {
                         const todayCheck = isToday(day);
+                        const dayBlocked = getBlockedDateForDay(formatDateString(day));
                         return (
                           <TouchableOpacity
                             key={idx}
-                            style={[styles.weekStaffDayHeader, todayCheck && styles.weekStaffDayHeaderToday]}
+                            style={[
+                              styles.weekStaffDayHeader,
+                              todayCheck && styles.weekStaffDayHeaderToday,
+                              dayBlocked && { backgroundColor: 'rgba(239,68,68,0.1)' },
+                            ]}
                             onPress={() => { setCurrentDate(day); setViewType('day'); }}
                             activeOpacity={0.7}
                           >
-                            <Text style={[styles.weekStaffDayName, todayCheck && styles.weekStaffDayNameToday]}>
+                            <Text style={[
+                              styles.weekStaffDayName,
+                              todayCheck && styles.weekStaffDayNameToday,
+                              dayBlocked && { color: 'rgba(220,38,38,0.7)' },
+                            ]}>
                               {WEEKDAYS[idx]}
                             </Text>
-                            <Text style={[styles.weekStaffDayNum, todayCheck && styles.weekStaffDayNumToday]}>
+                            <Text style={[
+                              styles.weekStaffDayNum,
+                              todayCheck && styles.weekStaffDayNumToday,
+                              dayBlocked && { color: 'rgba(220,38,38,0.7)' },
+                            ]}>
                               {day.getDate()}
                             </Text>
                           </TouchableOpacity>
@@ -957,20 +1005,33 @@ export default function CalendarScreen() {
         <View style={styles.weekHeader}>
           {days.map((day, index) => {
             const todayCheck = isToday(day);
+            const dayBlocked = getBlockedDateForDay(formatDateString(day));
             return (
               <TouchableOpacity
                 key={index}
-                style={[styles.weekDayHeader, todayCheck && styles.weekDayHeaderToday]}
+                style={[
+                  styles.weekDayHeader,
+                  todayCheck && styles.weekDayHeaderToday,
+                  dayBlocked && { backgroundColor: 'rgba(239,68,68,0.1)' },
+                ]}
                 onPress={() => {
                   setCurrentDate(day);
                   setViewType('day');
                 }}
                 activeOpacity={0.7}
               >
-                <Text style={[styles.weekDayName, todayCheck && styles.weekDayNameToday]}>
+                <Text style={[
+                  styles.weekDayName,
+                  todayCheck && styles.weekDayNameToday,
+                  dayBlocked && { color: 'rgba(220,38,38,0.7)' },
+                ]}>
                   {WEEKDAYS[index]}
                 </Text>
-                <Text style={[styles.weekDayNum, todayCheck && styles.weekDayNumToday]}>
+                <Text style={[
+                  styles.weekDayNum,
+                  todayCheck && styles.weekDayNumToday,
+                  dayBlocked && { color: 'rgba(220,38,38,0.7)' },
+                ]}>
                   {day.getDate()}
                 </Text>
               </TouchableOpacity>
@@ -1109,6 +1170,34 @@ export default function CalendarScreen() {
                 ) : null
               ))}
 
+              {/* Blocked date (holiday) overlay — full grid cover */}
+              {(() => {
+                const blocked = getBlockedDateForDay(dateStr);
+                if (!blocked) return null;
+                return (
+                  <View
+                    pointerEvents="none"
+                    style={{
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      height: totalGridHeight,
+                      backgroundColor: 'rgba(239,68,68,0.08)',
+                      zIndex: 2,
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                    }}
+                  >
+                    <View style={{ backgroundColor: 'rgba(239,68,68,0.15)', borderRadius: 12, paddingHorizontal: 16, paddingVertical: 10, alignItems: 'center' }}>
+                      <Ionicons name="calendar-outline" size={28} color="rgba(220,38,38,0.5)" />
+                      <Text style={{ fontSize: 13, fontWeight: '600', color: 'rgba(220,38,38,0.7)', marginTop: 4 }}>Tatil</Text>
+                      <Text style={{ fontSize: 11, color: 'rgba(220,38,38,0.5)', marginTop: 2 }}>{blocked.title}</Text>
+                    </View>
+                  </View>
+                );
+              })()}
+
               {/* Inactive / closed hour overlays per staff */}
               {displayStaff.map((staff, staffIndex) => {
                 const regions = getInactiveRegions(staff.id, currentDate);
@@ -1158,6 +1247,9 @@ export default function CalendarScreen() {
                     const h = Math.floor(totalMin / 60);
                     const m = totalMin % 60;
                     const tappedTime = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+
+                    // Block taps on blocked dates (holidays)
+                    if (getBlockedDateForDay(dateStr)) return;
 
                     // Block past time slots for today
                     if (isToday(currentDate)) {
