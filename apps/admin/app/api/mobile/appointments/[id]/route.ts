@@ -174,8 +174,22 @@ export async function PUT(
 
     const updateData: any = {};
 
-    if (serviceId) updateData.serviceId = serviceId;
-    if (staffId) updateData.staffId = staffId;
+    if (serviceId) {
+      updateData.serviceId = serviceId;
+      const svc = await prisma.service.findUnique({ where: { id: serviceId }, select: { name: true, duration: true, price: true } });
+      if (svc) {
+        updateData.serviceName = svc.name;
+        updateData.duration = svc.duration;
+        updateData.price = svc.price;
+      }
+    }
+    if (staffId) {
+      updateData.staffId = staffId;
+      const stf = await prisma.staff.findUnique({ where: { id: staffId }, select: { firstName: true, lastName: true } });
+      if (stf) {
+        updateData.staffName = `${stf.firstName} ${stf.lastName}`.trim();
+      }
+    }
     if (date) updateData.date = date;
     if (time) updateData.time = time;
     if (notes !== undefined) updateData.notes = notes;
