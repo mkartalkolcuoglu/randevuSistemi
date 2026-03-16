@@ -24,12 +24,20 @@ import Animated, {
   withSpring,
 } from 'react-native-reanimated';
 import { useAuthStore } from '../../../src/store/auth.store';
+import api from '../../../src/services/api';
 import { appointmentService } from '../../../src/services/appointment.service';
 import { notificationService } from '../../../src/services/notification.service';
 import { Appointment } from '../../../src/types';
 import { getServiceColor } from '../../../src/constants/service-colors';
 import DrawerMenu from '../../../src/components/DrawerMenu';
 import Header from '../../../src/components/Header';
+
+// Map JS Date.getDay() (0=Sun) to working hours day key
+const DAY_KEY_MAP = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'] as const;
+
+interface StaffWorkingHours {
+  [day: string]: { start: string; end: string; closed: boolean };
+}
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const DAY_WIDTH = (SCREEN_WIDTH - 48) / 7;
@@ -224,6 +232,9 @@ export default function CalendarScreen() {
   const [timeInterval, setTimeInterval] = useState(DEFAULT_INTERVAL);
   const [gridStartHour, setGridStartHour] = useState(DEFAULT_START_HOUR);
   const [gridEndHour, setGridEndHour] = useState(DEFAULT_END_HOUR);
+  const [staffWorkingHoursMap, setStaffWorkingHoursMap] = useState<Record<string, StaffWorkingHours>>({});
+  const [tenantWorkingHours, setTenantWorkingHours] = useState<StaffWorkingHours | null>(null);
+  const [allStaffList, setAllStaffList] = useState<{ id: string; name: string }[]>([]);
 
   const verticalScrollRef = useRef<ScrollView>(null);
   const gridBodyRef = useRef<View>(null);
@@ -271,9 +282,10 @@ export default function CalendarScreen() {
   const fetchAppointments = async (silent = false) => {
     if (!silent) setIsLoading(true);
     try {
-      const [appointmentsRes, settingsRes] = await Promise.all([
+      const [appointmentsRes, settingsRes, staffRes] = await Promise.all([
         appointmentService.getStaffAppointments({ limit: 1000 }),
         appointmentService.getTenantSettings(),
+        api.get('/api/mobile/staff?includeAll=true').catch(() => ({ data: { data: [] } })),
       ]);
       const appts = appointmentsRes.data || [];
 
@@ -343,6 +355,28 @@ export default function CalendarScreen() {
 
         setGridStartHour(minStart);
         setGridEndHour(maxEnd);
+
+        // Save tenant working hours for fallback
+        if (wh) {
+          setTenantWorkingHours(wh);
+        }
+      }
+
+      // Build staff working hours map and full staff list
+      const staffList = staffRes?.data?.data || [];
+      if (staffList.length > 0) {
+        const whMap: Record<string, StaffWorkingHours> = {};
+        const sList: { id: string; name: string }[] = [];
+        staffList.forEach((s: any) => {
+          if (s.workingHours && typeof s.workingHours === 'object') {
+            whMap[s.id] = s.workingHours;
+          }
+          if (s.isActive !== false) {
+            sList.push({ id: s.id, name: `${s.firstName} ${s.lastName}`.trim() });
+          }
+        });
+        setStaffWorkingHoursMap(whMap);
+        setAllStaffList(sList.sort((a, b) => a.name.localeCompare(b.name, 'tr')));
       }
     } catch (error) {
       console.error('Error fetching appointments:', error);
@@ -366,8 +400,9 @@ export default function CalendarScreen() {
     }, [])
   );
 
-  // Get unique staff members from appointments (alphabetically sorted — stable order)
+  // Get unique staff members — prefer full staff list from API, fallback to appointments
   const staffMembers = useMemo(() => {
+    if (allStaffList.length > 0) return allStaffList;
     const staffMap = new Map<string, string>();
     appointments.forEach(apt => {
       if (apt.staffId && apt.staffName) {
@@ -377,7 +412,7 @@ export default function CalendarScreen() {
     return Array.from(staffMap.entries())
       .map(([id, name]) => ({ id, name }))
       .sort((a, b) => a.name.localeCompare(b.name, 'tr'));
-  }, [appointments]);
+  }, [appointments, allStaffList]);
 
   // Display staff list (used both in render and drag handlers)
   const displayStaff = useMemo(() =>
@@ -482,6 +517,52 @@ export default function CalendarScreen() {
     if (hours < gridStartHour || hours >= gridEndHour) return null;
     const minutesFromStart = (hours - gridStartHour) * 60 + minutes;
     return (minutesFromStart / 60) * HOUR_HEIGHT;
+  };
+
+  // Get working hours for a staff member on a given date
+  // Returns { start, end, closed } or null (use tenant hours as fallback)
+  const getStaffDayHours = (staffId: string, date: Date): { start: string; end: string; closed: boolean } | null => {
+    const dayKey = DAY_KEY_MAP[date.getDay()];
+    // Staff-specific hours first
+    const staffWH = staffWorkingHoursMap[staffId];
+    if (staffWH && staffWH[dayKey]) {
+      return staffWH[dayKey];
+    }
+    // Fallback to tenant hours
+    if (tenantWorkingHours && tenantWorkingHours[dayKey]) {
+      return tenantWorkingHours[dayKey];
+    }
+    return null;
+  };
+
+  // Build inactive overlay regions for a staff column
+  // Returns array of { top, height } for closed/outside-hours regions
+  const getInactiveRegions = (staffId: string, date: Date): { top: number; height: number }[] => {
+    if (staffId === 'all') return [];
+    const dayHours = getStaffDayHours(staffId, date);
+    if (!dayHours) return []; // No data — assume open
+    if (dayHours.closed) {
+      // Whole day closed
+      return [{ top: 0, height: totalGridHeight }];
+    }
+    const regions: { top: number; height: number }[] = [];
+    const [startH, startM] = dayHours.start.split(':').map(Number);
+    const [endH, endM] = dayHours.end.split(':').map(Number);
+    const openMin = startH * 60 + startM;
+    const closeMin = endH * 60 + endM;
+    const gridStartMin = gridStartHour * 60;
+    const gridEndMin = gridEndHour * 60;
+    // Before opening
+    if (openMin > gridStartMin) {
+      const h = ((openMin - gridStartMin) / 60) * HOUR_HEIGHT;
+      regions.push({ top: 0, height: h });
+    }
+    // After closing
+    if (closeMin < gridEndMin) {
+      const topPos = ((closeMin - gridStartMin) / 60) * HOUR_HEIGHT;
+      regions.push({ top: topPos, height: totalGridHeight - topPos });
+    }
+    return regions;
   };
 
   // Handle WhatsApp
@@ -1028,6 +1109,34 @@ export default function CalendarScreen() {
                 ) : null
               ))}
 
+              {/* Inactive / closed hour overlays per staff */}
+              {displayStaff.map((staff, staffIndex) => {
+                const regions = getInactiveRegions(staff.id, currentDate);
+                return regions.map((region, ri) => (
+                  <View
+                    key={`inactive-${staff.id}-${ri}`}
+                    pointerEvents="none"
+                    style={{
+                      position: 'absolute',
+                      top: region.top,
+                      left: staffIndex * columnWidth,
+                      width: columnWidth,
+                      height: region.height,
+                      backgroundColor: 'rgba(148,163,184,0.13)',
+                      zIndex: 0,
+                    }}
+                  >
+                    {/* Diagonal stripes pattern indicator */}
+                    {region.height === totalGridHeight && (
+                      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+                        <Ionicons name="close-circle-outline" size={24} color="rgba(148,163,184,0.4)" />
+                        <Text style={{ fontSize: 10, color: 'rgba(100,116,139,0.5)', marginTop: 2 }}>Kapalı</Text>
+                      </View>
+                    )}
+                  </View>
+                ));
+              })}
+
               {/* Tappable background areas for each staff column */}
               {displayStaff.map((staff, staffIndex) => (
                 <TouchableOpacity
@@ -1055,6 +1164,17 @@ export default function CalendarScreen() {
                       const now = new Date();
                       const nowMinutes = now.getHours() * 60 + now.getMinutes();
                       if (totalMin <= nowMinutes) return;
+                    }
+
+                    // Block taps on closed/inactive hours
+                    const dayHours = getStaffDayHours(staff.id, currentDate);
+                    if (dayHours) {
+                      if (dayHours.closed) return;
+                      const [openH, openM] = dayHours.start.split(':').map(Number);
+                      const [closeH, closeM] = dayHours.end.split(':').map(Number);
+                      const openMin = openH * 60 + openM;
+                      const closeMin = closeH * 60 + closeM;
+                      if (totalMin < openMin || totalMin >= closeMin) return;
                     }
 
                     router.push({
