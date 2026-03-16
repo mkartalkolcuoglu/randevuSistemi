@@ -60,6 +60,7 @@ export async function GET(
             name: true,
             duration: true,
             price: true,
+            color: true,
           },
         },
         staff: {
@@ -177,11 +178,12 @@ export async function PUT(
 
     if (serviceId) {
       updateData.serviceId = serviceId;
-      const svc = await prisma.service.findUnique({ where: { id: serviceId }, select: { name: true, duration: true, price: true } });
+      const svc = await prisma.service.findUnique({ where: { id: serviceId }, select: { name: true, duration: true, price: true, color: true } });
       if (svc) {
         updateData.serviceName = svc.name;
         updateData.duration = svc.duration;
         updateData.price = svc.price;
+        updateData.serviceColor = svc.color || null;
       }
     }
     if (staffId) {

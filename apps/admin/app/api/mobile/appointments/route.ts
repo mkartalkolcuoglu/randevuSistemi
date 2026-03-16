@@ -137,6 +137,9 @@ export async function GET(request: NextRequest) {
     const appointments = await prisma.appointment.findMany({
       where: whereClause,
       orderBy: [{ date: 'desc' }, { time: 'desc' }],
+      include: {
+        service: { select: { color: true } },
+      },
     });
 
     console.log('📋 [APPOINTMENTS] Found appointments:', appointments.length);
@@ -175,7 +178,7 @@ export async function GET(request: NextRequest) {
         customerEmail: apt.customerEmail || '',
         serviceId: apt.serviceId,
         serviceName: apt.serviceName || 'Bilinmiyor',
-        serviceColor: apt.serviceColor || null,
+        serviceColor: apt.serviceColor || apt.service?.color || null,
         staffId: apt.staffId,
         staffName: apt.staffName || 'Bilinmiyor',
         date: apt.date,
