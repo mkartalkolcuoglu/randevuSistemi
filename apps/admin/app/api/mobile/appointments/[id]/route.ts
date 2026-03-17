@@ -385,6 +385,29 @@ export async function PATCH(
       await createAppointmentTransaction(updatedAppointment);
     }
 
+    // If appointment is already completed/confirmed and price changed, update existing transaction
+    if (wasCompleted && isCompleted) {
+      const oldTotal = (appointment.price || 0) + (appointment.extraCharge || 0);
+      const newTotal = (updatedAppointment.price || 0) + (updatedAppointment.extraCharge || 0);
+
+      if (oldTotal !== newTotal) {
+        console.log(`💰 [MOBILE] Price changed for completed appointment: ${oldTotal} → ${newTotal}`);
+        const existingTx = await prisma.transaction.findFirst({
+          where: { appointmentId: id, type: 'appointment' }
+        });
+        if (existingTx) {
+          await prisma.transaction.update({
+            where: { id: existingTx.id },
+            data: {
+              amount: newTotal,
+              description: `Randevu: ${updatedAppointment.serviceName} - ${updatedAppointment.customerName}${updatedAppointment.extraCharge ? ` (+₺${updatedAppointment.extraCharge} ek ücret)` : ''}`
+            }
+          });
+          console.log(`✅ [MOBILE] Transaction updated: ${existingTx.amount} → ${newTotal}`);
+        }
+      }
+    }
+
     // If status changed to "no_show", handle blacklist
     if (status === 'no_show' && oldStatus !== 'no_show' && updatedAppointment.customerPhone) {
       console.log(`🚫 [MOBILE] Status changed to no_show - checking blacklist`);

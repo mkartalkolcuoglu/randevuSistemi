@@ -102,10 +102,21 @@ export async function PUT(
     if (isCompleted && !wasCompleted) {
       console.log(`✅ Status changed to ${data.status} - checking for package deduction`);
       await deductFromPackage(updatedAppointment);
-      
+
       // Create transaction for cash register (kasa)
       console.log(`💰 Creating transaction for completed appointment: ${updatedAppointment.id}`);
       await createAppointmentTransaction(updatedAppointment);
+    }
+
+    // If appointment is already completed/confirmed and price changed, update existing transaction
+    if (wasCompleted && isCompleted) {
+      const oldTotal = (oldAppointment?.price || 0) + (oldAppointment?.extraCharge || 0);
+      const newTotal = (updatedAppointment.price || 0) + (updatedAppointment.extraCharge || 0);
+
+      if (oldTotal !== newTotal) {
+        console.log(`💰 Price changed for completed appointment: ${oldTotal} → ${newTotal} - updating transaction`);
+        await updateExistingTransaction(updatedAppointment, newTotal);
+      }
     }
 
     // If status changed to "no_show", increment customer's no-show count and check blacklist
@@ -450,6 +461,39 @@ async function createAppointmentTransaction(appointment: any) {
       appointmentId: appointment.id
     });
     // Don't throw error - transaction creation failure shouldn't fail appointment update
+  }
+}
+
+/**
+ * Update existing transaction when price/extraCharge changes on a completed appointment
+ */
+async function updateExistingTransaction(appointment: any, newTotal: number) {
+  try {
+    const existingTransaction = await prisma.transaction.findFirst({
+      where: {
+        appointmentId: appointment.id,
+        type: 'appointment'
+      }
+    });
+
+    if (!existingTransaction) {
+      console.log('ℹ️ [TRANSACTION] No existing transaction to update');
+      return;
+    }
+
+    const description = `Randevu: ${appointment.serviceName} - ${appointment.customerName}${appointment.extraCharge ? ` (+₺${appointment.extraCharge} ek ücret)` : ''}`;
+
+    await prisma.transaction.update({
+      where: { id: existingTransaction.id },
+      data: {
+        amount: newTotal,
+        description
+      }
+    });
+
+    console.log(`✅ [TRANSACTION] Updated transaction ${existingTransaction.id}: ${existingTransaction.amount} → ${newTotal}`);
+  } catch (error) {
+    console.error('❌ [TRANSACTION] Error updating transaction:', error);
   }
 }
 
