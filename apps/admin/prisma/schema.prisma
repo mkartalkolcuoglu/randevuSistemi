@@ -126,6 +126,9 @@ model Appointment {
   refundNotes       String?
   extraCharge       Float?    @default(0) @map("extra_charge")
   extraChargeNote   String?   @map("extra_charge_note")
+  feedbackSent      Boolean?  @default(false) @map("feedback_sent")
+  feedbackSentAt    DateTime? @db.Timestamp(6) @map("feedback_sent_at")
+  completedAt       DateTime? @db.Timestamp(6) @map("completed_at")
 
   tenant   Tenant   @relation(fields: [tenantId], references: [id])
   customer Customer @relation(fields: [customerId], references: [id])

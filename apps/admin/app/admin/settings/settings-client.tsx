@@ -62,7 +62,9 @@ export default function SettingsClient({ user }: SettingsClientProps) {
       whatsappReminder: DEFAULT_TEMPLATES.whatsappReminder,
       smsReminder: DEFAULT_TEMPLATES.smsReminder,
       staffDailyReminder: DEFAULT_TEMPLATES.staffDailyReminder,
-      ownerDailyReminder: DEFAULT_TEMPLATES.ownerDailyReminder || ''
+      ownerDailyReminder: DEFAULT_TEMPLATES.ownerDailyReminder || '',
+      whatsappSurvey: DEFAULT_TEMPLATES.whatsappSurvey,
+      smsSurvey: DEFAULT_TEMPLATES.smsSurvey,
     },
     // Bildirim kanal tercihleri
     notificationSettings: {
@@ -71,6 +73,9 @@ export default function SettingsClient({ user }: SettingsClientProps) {
       staffDailyChannel: 'whatsapp' as string,
       ownerDailyChannel: 'whatsapp' as string,
       autoSendConfirmation: false,
+      surveyChannel: 'whatsapp' as string,
+      autoSendSurvey: false,
+      surveyDelayMinutes: 0,
     },
     // Ödeme ayarları
     cardPaymentEnabled: true, // Kredi kartı ile ödeme aktif mi
@@ -96,6 +101,8 @@ export default function SettingsClient({ user }: SettingsClientProps) {
   const smsReminderRef = useRef<HTMLTextAreaElement>(null);
   const staffDailyReminderRef = useRef<HTMLTextAreaElement>(null);
   const ownerDailyReminderRef = useRef<HTMLTextAreaElement>(null);
+  const whatsappSurveyRef = useRef<HTMLTextAreaElement>(null);
+  const smsSurveyRef = useRef<HTMLTextAreaElement>(null);
 
   const insertVariable = (
     ref: React.RefObject<HTMLTextAreaElement | null>,
@@ -224,6 +231,8 @@ export default function SettingsClient({ user }: SettingsClientProps) {
               smsReminder: tenant.messageTemplates?.smsReminder || DEFAULT_TEMPLATES.smsReminder,
               staffDailyReminder: tenant.messageTemplates?.staffDailyReminder || DEFAULT_TEMPLATES.staffDailyReminder,
               ownerDailyReminder: tenant.messageTemplates?.ownerDailyReminder || DEFAULT_TEMPLATES.ownerDailyReminder,
+              whatsappSurvey: tenant.messageTemplates?.whatsappSurvey || DEFAULT_TEMPLATES.whatsappSurvey,
+              smsSurvey: tenant.messageTemplates?.smsSurvey || DEFAULT_TEMPLATES.smsSurvey,
             },
             notificationSettings: {
               confirmationChannel: tenant.notificationSettings?.confirmationChannel || 'whatsapp',
@@ -231,6 +240,9 @@ export default function SettingsClient({ user }: SettingsClientProps) {
               staffDailyChannel: tenant.notificationSettings?.staffDailyChannel || 'whatsapp',
               ownerDailyChannel: tenant.notificationSettings?.ownerDailyChannel || 'whatsapp',
               autoSendConfirmation: tenant.notificationSettings?.autoSendConfirmation || false,
+              surveyChannel: tenant.notificationSettings?.surveyChannel || 'whatsapp',
+              autoSendSurvey: tenant.notificationSettings?.autoSendSurvey || false,
+              surveyDelayMinutes: tenant.notificationSettings?.surveyDelayMinutes || 0,
             },
             themeSettings: themeData,
             location: locationData,
@@ -1971,6 +1983,128 @@ export default function SettingsClient({ user }: SettingsClientProps) {
                 <div className="flex flex-wrap gap-1.5">
                   {['{sahipAdi}', '{gun}', '{tarih}', '{gelenMusteri}', '{iptalSayisi}', '{gelmediler}', '{toplamRandevu}', '{nakitGelir}', '{kartGelir}', '{paketGelir}', '{toplamGelir}', '{isletmeAdi}'].map(v => (
                     <span key={v} onClick={() => insertVariable(ownerDailyReminderRef, 'ownerDailyReminder', v)} className="inline-block px-2 py-0.5 bg-gray-100 text-gray-600 text-xs rounded font-mono cursor-pointer hover:bg-blue-100 hover:text-blue-700 transition-colors">{v}</span>
+                  ))}
+                </div>
+              </div>
+
+              {/* Memnuniyet Anketi */}
+              <div className="border-t pt-6 mt-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-base font-semibold text-gray-900">Memnuniyet Anketi</h3>
+                </div>
+
+                {/* Auto-send toggle */}
+                <div className="flex items-center justify-between mb-3 p-3 bg-gray-50 rounded-lg">
+                  <div>
+                    <label className="text-sm font-medium text-gray-700">Otomatik Gönderim</label>
+                    <p className="text-xs text-gray-500">Randevu tamamlandığında otomatik anket gönder</p>
+                  </div>
+                  <input
+                    type="checkbox"
+                    className="w-5 h-5 rounded border-gray-300 text-blue-600"
+                    checked={settings.notificationSettings.autoSendSurvey}
+                    onChange={(e) => setSettings(prev => ({
+                      ...prev,
+                      notificationSettings: { ...prev.notificationSettings, autoSendSurvey: e.target.checked }
+                    }))}
+                  />
+                </div>
+
+                {/* Delay selector */}
+                <div className="flex items-center gap-3 mb-3">
+                  <label className="text-sm font-medium text-gray-700 whitespace-nowrap">Gecikme Süresi:</label>
+                  <select
+                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                    value={settings.notificationSettings.surveyDelayMinutes}
+                    onChange={(e) => setSettings(prev => ({
+                      ...prev,
+                      notificationSettings: { ...prev.notificationSettings, surveyDelayMinutes: parseInt(e.target.value) }
+                    }))}
+                  >
+                    <option value={0}>Hemen</option>
+                    <option value={60}>1 saat sonra</option>
+                    <option value={120}>2 saat sonra</option>
+                    <option value={1440}>1 gün sonra</option>
+                  </select>
+                </div>
+
+                {/* Channel selector */}
+                <div className="flex items-center gap-3 mb-4">
+                  <label className="text-sm font-medium text-gray-700 whitespace-nowrap">Kanal:</label>
+                  <select
+                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                    value={settings.notificationSettings.surveyChannel}
+                    onChange={(e) => setSettings(prev => ({
+                      ...prev,
+                      notificationSettings: { ...prev.notificationSettings, surveyChannel: e.target.value }
+                    }))}
+                  >
+                    <option value="whatsapp">WhatsApp</option>
+                    <option value="sms">SMS</option>
+                    <option value="both">WhatsApp + SMS</option>
+                    <option value="off">Kapalı</option>
+                  </select>
+                </div>
+
+                {/* WhatsApp Survey Template */}
+                <label className="block text-sm font-medium text-gray-700 mb-1">WhatsApp Anket Mesajı</label>
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-xs text-gray-500 flex-1">Tamamlanan randevu sonrası müşteriye gönderilecek WhatsApp mesajı</span>
+                  <button
+                    type="button"
+                    onClick={() => setSettings(prev => ({
+                      ...prev,
+                      messageTemplates: { ...prev.messageTemplates, whatsappSurvey: DEFAULT_TEMPLATES.whatsappSurvey }
+                    }))}
+                    className="text-xs text-blue-600 hover:text-blue-800"
+                  >
+                    Varsayılana Dön
+                  </button>
+                </div>
+                <textarea
+                  ref={whatsappSurveyRef}
+                  value={settings.messageTemplates.whatsappSurvey}
+                  onChange={(e) => setSettings(prev => ({
+                    ...prev,
+                    messageTemplates: { ...prev.messageTemplates, whatsappSurvey: e.target.value }
+                  }))}
+                  rows={6}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm font-mono mb-1"
+                />
+                <div className="flex flex-wrap gap-1.5 mb-4">
+                  {['{musteriAdi}', '{tarih}', '{saat}', '{personel}', '{hizmet}', '{isletmeAdi}', '{anketLinki}'].map(v => (
+                    <span key={v} onClick={() => insertVariable(whatsappSurveyRef, 'whatsappSurvey', v)} className="inline-block px-2 py-0.5 bg-gray-100 text-gray-600 text-xs rounded font-mono cursor-pointer hover:bg-blue-100 hover:text-blue-700 transition-colors">{v}</span>
+                  ))}
+                </div>
+
+                {/* SMS Survey Template */}
+                <label className="block text-sm font-medium text-gray-700 mb-1">SMS Anket Mesajı</label>
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-xs text-gray-500 flex-1">SMS ile gönderilecek kısa anket mesajı</span>
+                  <button
+                    type="button"
+                    onClick={() => setSettings(prev => ({
+                      ...prev,
+                      messageTemplates: { ...prev.messageTemplates, smsSurvey: DEFAULT_TEMPLATES.smsSurvey }
+                    }))}
+                    className="text-xs text-blue-600 hover:text-blue-800"
+                  >
+                    Varsayılana Dön
+                  </button>
+                </div>
+                <textarea
+                  ref={smsSurveyRef}
+                  value={settings.messageTemplates.smsSurvey}
+                  onChange={(e) => setSettings(prev => ({
+                    ...prev,
+                    messageTemplates: { ...prev.messageTemplates, smsSurvey: e.target.value }
+                  }))}
+                  rows={3}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm font-mono mb-1"
+                />
+                <div className="flex flex-wrap gap-1.5">
+                  {['{musteriAdi}', '{tarih}', '{saat}', '{personel}', '{hizmet}', '{isletmeAdi}', '{anketLinki}'].map(v => (
+                    <span key={v} onClick={() => insertVariable(smsSurveyRef, 'smsSurvey', v)} className="inline-block px-2 py-0.5 bg-gray-100 text-gray-600 text-xs rounded font-mono cursor-pointer hover:bg-blue-100 hover:text-blue-700 transition-colors">{v}</span>
                   ))}
                 </div>
               </div>

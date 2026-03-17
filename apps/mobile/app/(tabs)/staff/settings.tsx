@@ -84,6 +84,8 @@ interface MessageTemplates {
   smsReminder: string;
   staffDailyReminder: string;
   ownerDailyReminder: string;
+  whatsappSurvey: string;
+  smsSurvey: string;
 }
 
 interface NotificationSettings {
@@ -92,6 +94,9 @@ interface NotificationSettings {
   staffDailyChannel: string;
   ownerDailyChannel: string;
   autoSendConfirmation?: boolean;
+  surveyChannel?: string;
+  autoSendSurvey?: boolean;
+  surveyDelayMinutes?: number;
 }
 
 interface SettingsData {
@@ -244,6 +249,19 @@ _{isletmeAdi}_`,
 💎 *Toplam Gelir: {toplamGelir} TL*
 
 _{isletmeAdi}_`,
+
+  whatsappSurvey: `Merhaba {musteriAdi},
+
+{isletmeAdi}'deki randevunuz tamamlandi! 🎉
+
+Hizmetimizden memnun kaldiniz mi? Geri bildiriminiz bizim icin cok degerli.
+
+📝 Degerlendirme yapmak icin: {anketLinki}
+
+Tesekkurler! 🙏
+*{isletmeAdi}*`,
+
+  smsSurvey: `{isletmeAdi} randevunuz tamamlandi. Degerlendirme icin: {anketLinki} Tesekkurler!`,
 };
 
 const CUSTOMER_VARIABLES = [
@@ -281,6 +299,23 @@ const OWNER_VARIABLES = [
   { key: '{paketGelir}', label: 'Paket Gelir' },
   { key: '{toplamGelir}', label: 'Toplam Gelir' },
   { key: '{isletmeAdi}', label: 'İşletme Adı' },
+];
+
+const SURVEY_VARIABLES = [
+  { key: '{musteriAdi}', label: 'Müşteri Adı' },
+  { key: '{tarih}', label: 'Tarih' },
+  { key: '{saat}', label: 'Saat' },
+  { key: '{personel}', label: 'Personel' },
+  { key: '{hizmet}', label: 'Hizmet' },
+  { key: '{isletmeAdi}', label: 'İşletme Adı' },
+  { key: '{anketLinki}', label: 'Anket Linki' },
+];
+
+const SURVEY_DELAY_OPTIONS = [
+  { value: 0, label: 'Hemen' },
+  { value: 60, label: '1 saat sonra' },
+  { value: 120, label: '2 saat sonra' },
+  { value: 1440, label: '1 gün sonra' },
 ];
 
 type TemplateKey = keyof MessageTemplates;
@@ -532,6 +567,34 @@ export default function StaffSettingsScreen() {
     setFormData(prev => ({
       ...prev,
       notificationSettings: { ...current, autoSendConfirmation: value },
+    }));
+    setHasChanges(true);
+  };
+
+  const getAutoSendSurvey = (): boolean => {
+    const settings = (formData as any).notificationSettings as NotificationSettings | null;
+    return settings?.autoSendSurvey || false;
+  };
+
+  const toggleAutoSendSurvey = (value: boolean) => {
+    const current = ((formData as any).notificationSettings as NotificationSettings | null) || {};
+    setFormData(prev => ({
+      ...prev,
+      notificationSettings: { ...current, autoSendSurvey: value },
+    }));
+    setHasChanges(true);
+  };
+
+  const getSurveyDelayMinutes = (): number => {
+    const settings = (formData as any).notificationSettings as NotificationSettings | null;
+    return settings?.surveyDelayMinutes || 0;
+  };
+
+  const setSurveyDelayMinutes = (value: number) => {
+    const current = ((formData as any).notificationSettings as NotificationSettings | null) || {};
+    setFormData(prev => ({
+      ...prev,
+      notificationSettings: { ...current, surveyDelayMinutes: value },
     }));
     setHasChanges(true);
   };
@@ -1700,6 +1763,108 @@ export default function StaffSettingsScreen() {
                   <Text style={styles.resetButtonText}>Varsayılana Dön</Text>
                 </TouchableOpacity>
               </View>
+
+              {/* 5. Memnuniyet Anketi */}
+              <View style={styles.card}>
+                <View style={styles.cardHeader}>
+                  <View style={[styles.cardIcon, { backgroundColor: '#FEF3C7' }]}>
+                    <Ionicons name="star-outline" size={20} color="#D97706" />
+                  </View>
+                  <Text style={styles.cardTitle}>Memnuniyet Anketi</Text>
+                </View>
+
+                {/* Auto-send toggle */}
+                <View style={styles.autoSendRow}>
+                  <View style={styles.autoSendInfo}>
+                    <Text style={styles.autoSendLabel}>Otomatik anket gönder</Text>
+                    <Text style={styles.autoSendDescription}>Randevu tamamlandığında müşteriye otomatik anket gönderilir</Text>
+                  </View>
+                  <Switch
+                    value={getAutoSendSurvey()}
+                    onValueChange={toggleAutoSendSurvey}
+                    trackColor={{ false: '#D1D5DB', true: '#FCD34D' }}
+                    thumbColor={getAutoSendSurvey() ? '#D97706' : '#f4f3f4'}
+                  />
+                </View>
+
+                {/* Delay selector */}
+                <Text style={styles.msgLabel}>Gecikme Süresi</Text>
+                <TouchableOpacity
+                  style={styles.pickerButton}
+                  onPress={() => setShowChannelPicker({
+                    key: 'surveyDelay',
+                    options: SURVEY_DELAY_OPTIONS.map(o => ({ value: String(o.value), label: o.label })),
+                  })}
+                >
+                  <Text style={styles.pickerButtonText}>
+                    {SURVEY_DELAY_OPTIONS.find(o => o.value === getSurveyDelayMinutes())?.label || 'Hemen'}
+                  </Text>
+                  <Ionicons name="chevron-down" size={16} color="#6B7280" />
+                </TouchableOpacity>
+
+                {/* Channel selector */}
+                <Text style={[styles.msgLabel, { marginTop: 8 }]}>Gönderim Kanalı</Text>
+                <TouchableOpacity
+                  style={styles.pickerButton}
+                  onPress={() => setShowChannelPicker({ key: 'surveyChannel', options: CHANNEL_OPTIONS })}
+                >
+                  <Text style={styles.pickerButtonText}>{getChannelLabel(getNotificationSetting('surveyChannel') || 'whatsapp')}</Text>
+                  <Ionicons name="chevron-down" size={16} color="#6B7280" />
+                </TouchableOpacity>
+
+                {/* WhatsApp Survey Template */}
+                <Text style={[styles.msgLabel, { marginTop: 12 }]}>WhatsApp Anket Mesajı</Text>
+                <TextInput
+                  style={styles.templateInput}
+                  multiline
+                  value={getMessageTemplate('whatsappSurvey')}
+                  onChangeText={(t) => updateMessageTemplate('whatsappSurvey', t)}
+                  onFocus={() => setActiveTemplateField('whatsappSurvey')}
+                  onSelectionChange={(e) => setTemplateCursorPos(e.nativeEvent.selection.start)}
+                />
+                <View style={styles.variableRow}>
+                  {SURVEY_VARIABLES.map(v => (
+                    <TouchableOpacity
+                      key={v.key}
+                      style={styles.variableTag}
+                      onPress={() => insertVariable('whatsappSurvey', v.key)}
+                    >
+                      <Text style={styles.variableTagText}>{v.label}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+                <TouchableOpacity style={styles.resetButton} onPress={() => resetTemplate('whatsappSurvey')}>
+                  <Ionicons name="refresh-outline" size={14} color="#6B7280" />
+                  <Text style={styles.resetButtonText}>Varsayılana Dön</Text>
+                </TouchableOpacity>
+
+                {/* SMS Survey Template */}
+                <Text style={[styles.msgLabel, { marginTop: 16 }]}>SMS Anket Mesajı</Text>
+                <Text style={styles.autoSendDescription}>SMS ile gönderilecek kısa anket mesajı (emoji kullanmayın)</Text>
+                <TextInput
+                  style={[styles.templateInput, { minHeight: 60 }]}
+                  multiline
+                  value={getMessageTemplate('smsSurvey')}
+                  onChangeText={(t) => updateMessageTemplate('smsSurvey', t)}
+                  onFocus={() => setActiveTemplateField('smsSurvey')}
+                  onSelectionChange={(e) => setTemplateCursorPos(e.nativeEvent.selection.start)}
+                />
+                <View style={styles.variableRow}>
+                  {SURVEY_VARIABLES.map(v => (
+                    <TouchableOpacity
+                      key={v.key}
+                      style={styles.variableTag}
+                      onPress={() => insertVariable('smsSurvey', v.key)}
+                    >
+                      <Text style={styles.variableTagText}>{v.label}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+                <TouchableOpacity style={styles.resetButton} onPress={() => resetTemplate('smsSurvey')}>
+                  <Ionicons name="refresh-outline" size={14} color="#6B7280" />
+                  <Text style={styles.resetButtonText}>Varsayılana Dön</Text>
+                </TouchableOpacity>
+              </View>
             </View>
           )}
 
@@ -1989,14 +2154,20 @@ export default function StaffSettingsScreen() {
             </View>
             <ScrollView style={styles.modalScroll}>
               {(showChannelPicker?.options || []).map((option) => {
-                const currentVal = showChannelPicker ? getNotificationSetting(showChannelPicker.key as keyof NotificationSettings) : '';
+                const currentVal = showChannelPicker?.key === 'surveyDelay'
+                  ? String(getSurveyDelayMinutes())
+                  : showChannelPicker ? getNotificationSetting(showChannelPicker.key as keyof NotificationSettings) : '';
                 return (
                   <TouchableOpacity
                     key={option.value}
                     style={[styles.modalOption, currentVal === option.value && styles.modalOptionSelected]}
                     onPress={() => {
                       if (showChannelPicker) {
-                        updateNotificationSetting(showChannelPicker.key as keyof NotificationSettings, option.value);
+                        if (showChannelPicker.key === 'surveyDelay') {
+                          setSurveyDelayMinutes(parseInt(option.value));
+                        } else {
+                          updateNotificationSetting(showChannelPicker.key as keyof NotificationSettings, option.value);
+                        }
                         setShowChannelPicker(null);
                       }
                     }}

@@ -73,7 +73,20 @@ _{isletmeAdi}_`,
 
 💎 *Toplam Gelir: {toplamGelir} TL*
 
-_{isletmeAdi}_`
+_{isletmeAdi}_`,
+
+  whatsappSurvey: `Merhaba {musteriAdi},
+
+{isletmeAdi}'deki randevunuz tamamlandi! 🎉
+
+Hizmetimizden memnun kaldiniz mi? Geri bildiriminiz bizim icin cok degerli.
+
+📝 Degerlendirme yapmak icin: {anketLinki}
+
+Tesekkurler! 🙏
+*{isletmeAdi}*`,
+
+  smsSurvey: `{isletmeAdi} randevunuz tamamlandi. Degerlendirme icin: {anketLinki} Tesekkurler!`
 };
 
 /**
@@ -149,4 +162,17 @@ export const OWNER_VARIABLES = [
   { key: '{paketGelir}', label: 'Paket Gelir' },
   { key: '{toplamGelir}', label: 'Toplam Gelir' },
   { key: '{isletmeAdi}', label: 'Isletme Adi' },
+];
+
+/**
+ * Anket mesajı değişkenleri
+ */
+export const SURVEY_VARIABLES = [
+  { key: '{musteriAdi}', label: 'Musteri Adi' },
+  { key: '{tarih}', label: 'Tarih' },
+  { key: '{saat}', label: 'Saat' },
+  { key: '{personel}', label: 'Personel' },
+  { key: '{hizmet}', label: 'Hizmet' },
+  { key: '{isletmeAdi}', label: 'Isletme Adi' },
+  { key: '{anketLinki}', label: 'Anket Linki' },
 ];

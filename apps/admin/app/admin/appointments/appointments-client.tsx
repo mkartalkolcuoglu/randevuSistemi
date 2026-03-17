@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle, Button, Badge, Input } from '@/components/ui';
-import { Plus, Search, Calendar, Clock, User, Edit, Trash2, ArrowLeft, MessageCircle, Eye } from 'lucide-react';
+import { Plus, Search, Calendar, Clock, User, Edit, Trash2, ArrowLeft, MessageCircle, Eye, Star } from 'lucide-react';
 import AdminHeader from '../admin-header';
 import { DataTable, Column } from '../../../components/DataTable';
 import type { ClientUser } from '../../../lib/client-permissions';
@@ -36,6 +36,28 @@ export default function AppointmentsClient({ initialAppointments, tenantId, user
         console.error('Error deleting appointment:', error);
         alert('Randevu silinirken hata oluştu');
       }
+    }
+  };
+
+  const handleSendSurvey = async (id: string) => {
+    if (!confirm('Memnuniyet anketi gönderilsin mi?')) return;
+
+    try {
+      const response = await fetch('/api/whatsapp/send-survey', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ appointmentId: id }),
+      });
+      const data = await response.json();
+      if (response.ok) {
+        alert(`✅ ${data.message}`);
+        window.location.reload();
+      } else {
+        alert(`❌ ${data.error || 'Anket gönderilemedi'}`);
+      }
+    } catch (error) {
+      console.error('Survey send error:', error);
+      alert('❌ Anket gönderilirken hata oluştu');
     }
   };
 
@@ -186,9 +208,9 @@ export default function AppointmentsClient({ initialAppointments, tenantId, user
       render: (apt) => (
         <div className="flex items-center space-x-2" onClick={(e) => e.stopPropagation()}>
           {/* WhatsApp Button */}
-          <Button 
-            variant="outline" 
-            size="sm" 
+          <Button
+            variant="outline"
+            size="sm"
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
@@ -199,7 +221,35 @@ export default function AppointmentsClient({ initialAppointments, tenantId, user
           >
             <MessageCircle className="w-4 h-4" />
           </Button>
-          
+
+          {/* Survey Button - only for completed appointments */}
+          {apt.status === 'completed' && !apt.feedbackSent && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                handleSendSurvey(apt.id);
+              }}
+              className="text-yellow-600 hover:text-yellow-700 hover:bg-yellow-50"
+              title="Anket Gönder"
+            >
+              <Star className="w-4 h-4" />
+            </Button>
+          )}
+          {apt.status === 'completed' && apt.feedbackSent && (
+            <Button
+              variant="outline"
+              size="sm"
+              disabled
+              className="text-gray-400 cursor-not-allowed"
+              title="Anket Gönderildi"
+            >
+              <Star className="w-4 h-4" />
+            </Button>
+          )}
+
           {/* Detail Button */}
           <Link href={`/admin/appointments/${apt.id}`}>
             <Button variant="outline" size="sm" onClick={(e) => e.stopPropagation()} title="Detay Görüntüle">

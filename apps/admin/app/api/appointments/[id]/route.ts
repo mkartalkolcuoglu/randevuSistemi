@@ -140,7 +140,7 @@ export async function PUT(
     // If status changed to "confirmed", send WhatsApp confirmation (non-blocking)
     const isConfirmed = data.status === 'confirmed';
     const wasConfirmed = oldAppointment?.status === 'confirmed';
-    
+
     if (isConfirmed && !wasConfirmed && !updatedAppointment.whatsappSent) {
       console.log(`📱 Status changed to confirmed - sending WhatsApp notification`);
       // Send WhatsApp in background (don't wait for it)
@@ -151,6 +151,43 @@ export async function PUT(
       }).catch(error => {
         console.error('⚠️ WhatsApp send failed (non-blocking):', error);
       });
+    }
+
+    // If status changed to "completed", set completedAt and auto-send survey
+    const justCompleted = data.status === 'completed' && oldAppointment?.status !== 'completed';
+    if (justCompleted) {
+      // Set completedAt timestamp
+      await prisma.appointment.update({
+        where: { id },
+        data: { completedAt: new Date() },
+      });
+
+      // Check if auto-send survey is enabled
+      try {
+        const surveySettings = await prisma.settings.findUnique({
+          where: { tenantId: updatedAppointment.tenantId },
+          select: { notificationSettings: true },
+        });
+        let notifSettings: any = {};
+        try {
+          notifSettings = surveySettings?.notificationSettings ? JSON.parse(surveySettings.notificationSettings) : {};
+        } catch {}
+
+        if (notifSettings.autoSendSurvey && notifSettings.surveyChannel !== 'off') {
+          const delayMinutes = notifSettings.surveyDelayMinutes || 0;
+          if (delayMinutes === 0) {
+            // Send immediately (non-blocking)
+            fetch(`${request.nextUrl.origin}/api/whatsapp/send-survey`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ appointmentId: id }),
+            }).catch(err => console.error('Auto-send survey failed:', err));
+          }
+          // Delayed sends are handled by the cron job
+        }
+      } catch (err) {
+        console.error('Auto-send survey check failed:', err);
+      }
     }
 
     return NextResponse.json({

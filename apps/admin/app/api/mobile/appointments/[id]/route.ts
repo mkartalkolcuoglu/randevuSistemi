@@ -420,6 +420,39 @@ export async function PATCH(
       await refundPackageUsage(updatedAppointment);
     }
 
+    // If status changed to "completed", set completedAt and auto-send survey
+    if (status === 'completed' && oldStatus !== 'completed') {
+      await prisma.appointment.update({
+        where: { id },
+        data: { completedAt: new Date() },
+      });
+
+      try {
+        const surveySettings = await prisma.settings.findUnique({
+          where: { tenantId: appointment.tenantId },
+          select: { notificationSettings: true },
+        });
+        let notifSettings: any = {};
+        try {
+          notifSettings = surveySettings?.notificationSettings ? JSON.parse(surveySettings.notificationSettings) : {};
+        } catch {}
+
+        if (notifSettings.autoSendSurvey && notifSettings.surveyChannel !== 'off') {
+          const delayMinutes = notifSettings.surveyDelayMinutes || 0;
+          if (delayMinutes === 0) {
+            const adminUrl = process.env.NEXT_PUBLIC_ADMIN_URL || 'https://admin.netrandevu.com';
+            fetch(`${adminUrl}/api/whatsapp/send-survey`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ appointmentId: id }),
+            }).catch(err => console.error('Auto-send survey failed:', err));
+          }
+        }
+      } catch (err) {
+        console.error('Auto-send survey check failed:', err);
+      }
+    }
+
     return NextResponse.json({
       success: true,
       message: 'Randevu güncellendi',
