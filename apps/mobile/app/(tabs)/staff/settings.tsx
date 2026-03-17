@@ -20,6 +20,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { useAuthStore } from '../../../src/store/auth.store';
 import api from '../../../src/services/api';
 import DrawerMenu from '../../../src/components/DrawerMenu';
@@ -66,6 +67,14 @@ interface Documents {
   taxDocument: string | null;
   iban: string;
   signatureDocument: string | null;
+}
+
+interface BlockedDate {
+  id: string;
+  title: string;
+  startDate: string;
+  endDate: string;
+  staffId?: string | null;
 }
 
 interface MessageTemplates {
@@ -281,10 +290,11 @@ const TABS = [
   { id: 'location', label: 'Konum', icon: 'location-outline' },
   { id: 'working', label: 'Çalışma', icon: 'time-outline' },
   { id: 'documents', label: 'Belgeler', icon: 'document-outline' },
+  { id: 'holidays', label: 'Tatiller', icon: 'calendar-outline' },
   { id: 'messages', label: 'Mesajlar', icon: 'chatbubble-outline' },
 ];
 
-type TabId = 'theme' | 'business' | 'owner' | 'login' | 'location' | 'working' | 'documents' | 'messages';
+type TabId = 'theme' | 'business' | 'owner' | 'login' | 'location' | 'working' | 'documents' | 'holidays' | 'messages';
 
 export default function StaffSettingsScreen() {
   const router = useRouter();
@@ -313,6 +323,14 @@ export default function StaffSettingsScreen() {
   const [activeTemplateField, setActiveTemplateField] = useState<TemplateKey | null>(null);
   const [templateCursorPos, setTemplateCursorPos] = useState<number>(0);
 
+  // Holidays state
+  const [blockedDates, setBlockedDates] = useState<BlockedDate[]>([]);
+  const [blockedDatesLoading, setBlockedDatesLoading] = useState(false);
+  const [blockedDateSaving, setBlockedDateSaving] = useState(false);
+  const [newBlockedDate, setNewBlockedDate] = useState({ title: '', startDate: '', endDate: '' });
+  const [showStartDatePicker, setShowStartDatePicker] = useState(false);
+  const [showEndDatePicker, setShowEndDatePicker] = useState(false);
+
   const fetchSettings = async () => {
     try {
       const response = await api.get('/api/mobile/settings');
@@ -336,10 +354,20 @@ export default function StaffSettingsScreen() {
     }
   }, [isOwner]);
 
+  // Lazy load blocked dates when holidays tab is selected
+  useEffect(() => {
+    if (activeTab === 'holidays' && isOwner && blockedDates.length === 0 && !blockedDatesLoading) {
+      fetchBlockedDates();
+    }
+  }, [activeTab]);
+
   const onRefresh = useCallback(() => {
     setRefreshing(true);
     fetchSettings();
-  }, []);
+    if (activeTab === 'holidays') {
+      fetchBlockedDates();
+    }
+  }, [activeTab]);
 
   const updateFormData = (key: string, value: any) => {
     setFormData(prev => ({ ...prev, [key]: value }));
@@ -495,6 +523,92 @@ export default function StaffSettingsScreen() {
   const getChannelLabel = (value: string): string => {
     const all = [...CHANNEL_OPTIONS, ...STAFF_CHANNEL_OPTIONS];
     return all.find(o => o.value === value)?.label || value;
+  };
+
+  // Blocked dates functions
+  const fetchBlockedDates = async () => {
+    setBlockedDatesLoading(true);
+    try {
+      const response = await api.get('/api/mobile/blocked-dates');
+      if (response.data.success) {
+        const sorted = (response.data.data || []).sort((a: BlockedDate, b: BlockedDate) =>
+          a.startDate.localeCompare(b.startDate)
+        );
+        setBlockedDates(sorted);
+      }
+    } catch (error: any) {
+      console.error('Error fetching blocked dates:', error?.response?.data || error.message);
+    } finally {
+      setBlockedDatesLoading(false);
+    }
+  };
+
+  const handleAddBlockedDate = async () => {
+    if (!newBlockedDate.title.trim()) {
+      Alert.alert('Hata', 'Tatil başlığı giriniz');
+      return;
+    }
+    if (!newBlockedDate.startDate || !newBlockedDate.endDate) {
+      Alert.alert('Hata', 'Başlangıç ve bitiş tarihi seçiniz');
+      return;
+    }
+    if (newBlockedDate.startDate > newBlockedDate.endDate) {
+      Alert.alert('Hata', 'Başlangıç tarihi bitiş tarihinden sonra olamaz');
+      return;
+    }
+
+    setBlockedDateSaving(true);
+    try {
+      const response = await api.post('/api/mobile/blocked-dates', {
+        title: newBlockedDate.title.trim(),
+        startDate: newBlockedDate.startDate,
+        endDate: newBlockedDate.endDate,
+      });
+      if (response.data.success) {
+        const created = response.data.data;
+        setBlockedDates(prev =>
+          [...prev, created].sort((a, b) => a.startDate.localeCompare(b.startDate))
+        );
+        setNewBlockedDate({ title: '', startDate: '', endDate: '' });
+        Alert.alert('Başarılı', 'Tatil günü eklendi');
+      } else {
+        Alert.alert('Hata', response.data.error || 'Tatil eklenemedi');
+      }
+    } catch (error: any) {
+      console.error('Error adding blocked date:', error?.response?.data || error.message);
+      Alert.alert('Hata', 'Tatil eklenirken bir hata oluştu');
+    } finally {
+      setBlockedDateSaving(false);
+    }
+  };
+
+  const handleDeleteBlockedDate = (bd: BlockedDate) => {
+    Alert.alert('Tatil Sil', `"${bd.title}" tatilini silmek istediğinize emin misiniz?`, [
+      { text: 'İptal', style: 'cancel' },
+      {
+        text: 'Sil',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            const response = await api.delete(`/api/mobile/blocked-dates?id=${bd.id}`);
+            if (response.data.success) {
+              setBlockedDates(prev => prev.filter(d => d.id !== bd.id));
+            } else {
+              Alert.alert('Hata', response.data.error || 'Silinemedi');
+            }
+          } catch (error: any) {
+            console.error('Error deleting blocked date:', error?.response?.data || error.message);
+            Alert.alert('Hata', 'Tatil silinirken bir hata oluştu');
+          }
+        },
+      },
+    ]);
+  };
+
+  const formatDateTR = (dateStr: string): string => {
+    if (!dateStr) return '';
+    const [y, m, d] = dateStr.split('-');
+    return `${d}.${m}.${y}`;
   };
 
 
@@ -1178,7 +1292,124 @@ export default function StaffSettingsScreen() {
             </View>
           )}
 
-          {/* 8. MESAJLAR TAB */}
+          {/* 8. TATİLLER TAB */}
+          {activeTab === 'holidays' && (
+            <View style={styles.section}>
+              {/* Bilgi Notu */}
+              <View style={styles.holidayInfoNote}>
+                <Ionicons name="information-circle" size={20} color="#D97706" />
+                <Text style={styles.holidayInfoNoteText}>
+                  Tatil günlerinde müşteriler randevu oluşturamaz.
+                </Text>
+              </View>
+
+              {/* Yeni Tatil Ekle */}
+              <View style={styles.card}>
+                <View style={styles.cardHeader}>
+                  <View style={[styles.cardIcon, { backgroundColor: '#FEE2E2' }]}>
+                    <Ionicons name="add-circle-outline" size={20} color="#DC2626" />
+                  </View>
+                  <View style={styles.cardTitleContainer}>
+                    <Text style={styles.cardTitle}>Yeni Tatil Ekle</Text>
+                    <Text style={styles.cardDescription}>İşletmeniz için tatil günü tanımlayın</Text>
+                  </View>
+                </View>
+
+                <View style={styles.inputGroup}>
+                  <Text style={styles.inputLabel}>Tatil Başlığı</Text>
+                  <TextInput
+                    style={styles.input}
+                    value={newBlockedDate.title}
+                    onChangeText={(t) => setNewBlockedDate(prev => ({ ...prev, title: t }))}
+                    placeholder="Örn: Yılbaşı Tatili"
+                    placeholderTextColor="#9CA3AF"
+                  />
+                </View>
+
+                <View style={styles.inputGroup}>
+                  <Text style={styles.inputLabel}>Başlangıç Tarihi</Text>
+                  <TouchableOpacity
+                    style={styles.pickerButton}
+                    onPress={() => setShowStartDatePicker(true)}
+                  >
+                    <Text style={[styles.pickerButtonText, !newBlockedDate.startDate && { color: '#9CA3AF' }]}>
+                      {newBlockedDate.startDate ? formatDateTR(newBlockedDate.startDate) : 'Tarih seçiniz'}
+                    </Text>
+                    <Ionicons name="calendar-outline" size={16} color="#6B7280" />
+                  </TouchableOpacity>
+                </View>
+
+                <View style={styles.inputGroup}>
+                  <Text style={styles.inputLabel}>Bitiş Tarihi</Text>
+                  <TouchableOpacity
+                    style={styles.pickerButton}
+                    onPress={() => setShowEndDatePicker(true)}
+                  >
+                    <Text style={[styles.pickerButtonText, !newBlockedDate.endDate && { color: '#9CA3AF' }]}>
+                      {newBlockedDate.endDate ? formatDateTR(newBlockedDate.endDate) : 'Tarih seçiniz'}
+                    </Text>
+                    <Ionicons name="calendar-outline" size={16} color="#6B7280" />
+                  </TouchableOpacity>
+                </View>
+
+                <TouchableOpacity
+                  style={[styles.holidayAddButton, blockedDateSaving && styles.holidayAddButtonDisabled]}
+                  onPress={handleAddBlockedDate}
+                  disabled={blockedDateSaving}
+                >
+                  {blockedDateSaving ? (
+                    <ActivityIndicator size="small" color="#fff" />
+                  ) : (
+                    <>
+                      <Ionicons name="add" size={20} color="#fff" />
+                      <Text style={styles.holidayAddButtonText}>Tatil Ekle</Text>
+                    </>
+                  )}
+                </TouchableOpacity>
+              </View>
+
+              {/* Mevcut Tatiller */}
+              <View style={styles.card}>
+                <Text style={styles.cardTitleStandalone}>Mevcut Tatiller</Text>
+                {blockedDatesLoading ? (
+                  <View style={styles.holidayEmptyState}>
+                    <ActivityIndicator size="small" color={THEME_COLOR} />
+                  </View>
+                ) : blockedDates.length === 0 ? (
+                  <View style={styles.holidayEmptyState}>
+                    <Ionicons name="calendar-outline" size={36} color="#D1D5DB" />
+                    <Text style={styles.holidayEmptyText}>Henüz tatil günü eklenmemiş</Text>
+                  </View>
+                ) : (
+                  blockedDates.map((bd, index) => (
+                    <View
+                      key={bd.id}
+                      style={[
+                        styles.holidayRow,
+                        index === blockedDates.length - 1 && styles.holidayRowLast,
+                      ]}
+                    >
+                      <View style={styles.holidayInfo}>
+                        <Text style={styles.holidayTitle}>{bd.title}</Text>
+                        <Text style={styles.holidayDates}>
+                          {formatDateTR(bd.startDate)}
+                          {bd.startDate !== bd.endDate ? ` — ${formatDateTR(bd.endDate)}` : ''}
+                        </Text>
+                      </View>
+                      <TouchableOpacity
+                        style={styles.holidayDeleteButton}
+                        onPress={() => handleDeleteBlockedDate(bd)}
+                      >
+                        <Ionicons name="trash-outline" size={18} color="#DC2626" />
+                      </TouchableOpacity>
+                    </View>
+                  ))
+                )}
+              </View>
+            </View>
+          )}
+
+          {/* 9. MESAJLAR TAB */}
           {activeTab === 'messages' && (
             <View style={styles.section}>
               {/* Hatırlatma Süresi */}
@@ -1579,6 +1810,110 @@ export default function StaffSettingsScreen() {
           </View>
         </View>
       </Modal>
+
+      {/* Start Date Picker */}
+      {showStartDatePicker && (
+        Platform.OS === 'ios' ? (
+          <Modal visible={showStartDatePicker} transparent animationType="fade" onRequestClose={() => setShowStartDatePicker(false)}>
+            <View style={styles.datePickerModalOverlay}>
+              <View style={styles.datePickerModalContent}>
+                <View style={styles.datePickerModalHeader}>
+                  <TouchableOpacity onPress={() => setShowStartDatePicker(false)}>
+                    <Text style={styles.datePickerCancelText}>İptal</Text>
+                  </TouchableOpacity>
+                  <Text style={styles.datePickerModalTitle}>Başlangıç Tarihi</Text>
+                  <TouchableOpacity onPress={() => setShowStartDatePicker(false)}>
+                    <Text style={styles.datePickerDoneText}>Tamam</Text>
+                  </TouchableOpacity>
+                </View>
+                <DateTimePicker
+                  value={newBlockedDate.startDate ? new Date(newBlockedDate.startDate) : new Date()}
+                  mode="date"
+                  display="spinner"
+                  locale="tr-TR"
+                  minimumDate={new Date()}
+                  onChange={(event, selectedDate) => {
+                    if (selectedDate) {
+                      const dateStr = selectedDate.toISOString().split('T')[0];
+                      setNewBlockedDate(prev => ({
+                        ...prev,
+                        startDate: dateStr,
+                        endDate: prev.endDate && prev.endDate < dateStr ? dateStr : prev.endDate,
+                      }));
+                    }
+                  }}
+                  style={styles.datePickerIOS}
+                />
+              </View>
+            </View>
+          </Modal>
+        ) : (
+          <DateTimePicker
+            value={newBlockedDate.startDate ? new Date(newBlockedDate.startDate) : new Date()}
+            mode="date"
+            display="default"
+            minimumDate={new Date()}
+            onChange={(event, selectedDate) => {
+              setShowStartDatePicker(false);
+              if (event.type === 'set' && selectedDate) {
+                const dateStr = selectedDate.toISOString().split('T')[0];
+                setNewBlockedDate(prev => ({
+                  ...prev,
+                  startDate: dateStr,
+                  endDate: prev.endDate && prev.endDate < dateStr ? dateStr : prev.endDate,
+                }));
+              }
+            }}
+          />
+        )
+      )}
+
+      {/* End Date Picker */}
+      {showEndDatePicker && (
+        Platform.OS === 'ios' ? (
+          <Modal visible={showEndDatePicker} transparent animationType="fade" onRequestClose={() => setShowEndDatePicker(false)}>
+            <View style={styles.datePickerModalOverlay}>
+              <View style={styles.datePickerModalContent}>
+                <View style={styles.datePickerModalHeader}>
+                  <TouchableOpacity onPress={() => setShowEndDatePicker(false)}>
+                    <Text style={styles.datePickerCancelText}>İptal</Text>
+                  </TouchableOpacity>
+                  <Text style={styles.datePickerModalTitle}>Bitiş Tarihi</Text>
+                  <TouchableOpacity onPress={() => setShowEndDatePicker(false)}>
+                    <Text style={styles.datePickerDoneText}>Tamam</Text>
+                  </TouchableOpacity>
+                </View>
+                <DateTimePicker
+                  value={newBlockedDate.endDate ? new Date(newBlockedDate.endDate) : (newBlockedDate.startDate ? new Date(newBlockedDate.startDate) : new Date())}
+                  mode="date"
+                  display="spinner"
+                  locale="tr-TR"
+                  minimumDate={newBlockedDate.startDate ? new Date(newBlockedDate.startDate) : new Date()}
+                  onChange={(event, selectedDate) => {
+                    if (selectedDate) {
+                      setNewBlockedDate(prev => ({ ...prev, endDate: selectedDate.toISOString().split('T')[0] }));
+                    }
+                  }}
+                  style={styles.datePickerIOS}
+                />
+              </View>
+            </View>
+          </Modal>
+        ) : (
+          <DateTimePicker
+            value={newBlockedDate.endDate ? new Date(newBlockedDate.endDate) : (newBlockedDate.startDate ? new Date(newBlockedDate.startDate) : new Date())}
+            mode="date"
+            display="default"
+            minimumDate={newBlockedDate.startDate ? new Date(newBlockedDate.startDate) : new Date()}
+            onChange={(event, selectedDate) => {
+              setShowEndDatePicker(false);
+              if (event.type === 'set' && selectedDate) {
+                setNewBlockedDate(prev => ({ ...prev, endDate: selectedDate.toISOString().split('T')[0] }));
+              }
+            }}
+          />
+        )
+      )}
 
       {/* Channel Picker Modal */}
       <Modal visible={!!showChannelPicker} transparent animationType="slide">
@@ -2252,6 +2587,123 @@ const styles = StyleSheet.create({
     color: THEME_COLOR,
     fontWeight: '600',
   },
+  // Holiday styles
+  holidayAddButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#DC2626',
+    borderRadius: 12,
+    paddingVertical: 12,
+    gap: 8,
+    marginTop: 8,
+  },
+  holidayAddButtonDisabled: {
+    backgroundColor: '#D1D5DB',
+  },
+  holidayAddButtonText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#fff',
+  },
+  holidayEmptyState: {
+    alignItems: 'center',
+    paddingVertical: 24,
+  },
+  holidayEmptyText: {
+    fontSize: 14,
+    color: '#9CA3AF',
+    marginTop: 8,
+  },
+  holidayRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#FEE2E2',
+  },
+  holidayRowLast: {
+    borderBottomWidth: 0,
+  },
+  holidayInfo: {
+    flex: 1,
+  },
+  holidayTitle: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#991B1B',
+  },
+  holidayDates: {
+    fontSize: 13,
+    color: '#DC2626',
+    marginTop: 2,
+  },
+  holidayDeleteButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: '#FEE2E2',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  holidayInfoNote: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFBEB',
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 16,
+    gap: 8,
+  },
+  holidayInfoNoteText: {
+    flex: 1,
+    fontSize: 13,
+    color: '#92400E',
+    lineHeight: 18,
+  },
+  // DateTimePicker modal styles
+  datePickerModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
+  },
+  datePickerModalContent: {
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingBottom: 40,
+  },
+  datePickerModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
+  datePickerModalTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1F2937',
+  },
+  datePickerCancelText: {
+    fontSize: 16,
+    color: '#6B7280',
+  },
+  datePickerDoneText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: THEME_COLOR,
+  },
+  datePickerIOS: {
+    height: 200,
+    width: '100%',
+  },
+  // Message styles
   msgLabel: {
     fontSize: 13,
     fontWeight: '600',
