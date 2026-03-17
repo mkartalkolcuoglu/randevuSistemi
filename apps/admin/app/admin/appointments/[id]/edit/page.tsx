@@ -399,7 +399,6 @@ export default function EditAppointmentPage() {
                   type="date"
                   value={formData.date}
                   onChange={handleInputChange}
-                  min={new Date().toISOString().split('T')[0]}
                   required
                 />
               </div>
