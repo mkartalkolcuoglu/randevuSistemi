@@ -139,6 +139,10 @@ export async function GET(request: NextRequest) {
       blacklistThreshold: settings?.blacklistThreshold || 3,
       reminderMinutes: settings?.reminderMinutes || 120,
 
+      // Message Templates & Notification Settings
+      messageTemplates: settings?.messageTemplates ? JSON.parse(settings.messageTemplates) : null,
+      notificationSettings: settings?.notificationSettings ? JSON.parse(settings.notificationSettings) : null,
+
       // Payment Settings
       cardPaymentEnabled: tenant.cardPaymentEnabled !== false,
 
@@ -207,6 +211,9 @@ export async function PUT(request: NextRequest) {
       reminderMinutes,
       // Payment
       cardPaymentEnabled,
+      // Message & Notification
+      messageTemplates,
+      notificationSettings,
     } = body;
 
     // Prepare tenant update data
@@ -307,6 +314,12 @@ export async function PUT(request: NextRequest) {
     }
     if (workingHours) {
       settingsUpdateData.workingHours = JSON.stringify(workingHours);
+    }
+    if (messageTemplates !== undefined) {
+      settingsUpdateData.messageTemplates = messageTemplates ? JSON.stringify(messageTemplates) : null;
+    }
+    if (notificationSettings !== undefined) {
+      settingsUpdateData.notificationSettings = notificationSettings ? JSON.stringify(notificationSettings) : null;
     }
 
     const existingSettings = await prisma.settings.findUnique({

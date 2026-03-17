@@ -68,6 +68,21 @@ interface Documents {
   signatureDocument: string | null;
 }
 
+interface MessageTemplates {
+  whatsappConfirmation: string;
+  whatsappReminder: string;
+  smsReminder: string;
+  staffDailyReminder: string;
+  ownerDailyReminder: string;
+}
+
+interface NotificationSettings {
+  confirmationChannel: string;
+  reminderChannel: string;
+  staffDailyChannel: string;
+  ownerDailyChannel: string;
+}
+
 interface SettingsData {
   businessName: string;
   businessType: string;
@@ -88,6 +103,8 @@ interface SettingsData {
   cardPaymentEnabled: boolean;
   plan: string;
   status: string;
+  messageTemplates: MessageTemplates | null;
+  notificationSettings: NotificationSettings | null;
 }
 
 const DAYS = [
@@ -131,6 +148,130 @@ const BUSINESS_TYPES = [
   { value: 'other', label: 'Diğer' },
 ];
 
+const CHANNEL_OPTIONS = [
+  { value: 'whatsapp', label: 'WhatsApp' },
+  { value: 'sms', label: 'SMS' },
+  { value: 'both', label: 'Her İkisi' },
+  { value: 'off', label: 'Kapalı' },
+];
+
+const STAFF_CHANNEL_OPTIONS = [
+  { value: 'whatsapp', label: 'WhatsApp' },
+  { value: 'sms', label: 'SMS' },
+  { value: 'off', label: 'Kapalı' },
+];
+
+const DEFAULT_TEMPLATES: MessageTemplates = {
+  whatsappConfirmation: `Merhaba {musteriAdi},
+
+Randevunuz basariyla olusturuldu! 🎉
+
+📅 *Tarih:* {tarih}
+🕐 *Saat:* {saat}
+👤 *Personel:* {personel}
+💼 *Hizmet:* {hizmet}
+💰 *Ucret:* {ucret}
+📍 *Adres:* {isletmeAdres}
+
+Gorusmek uzere! 😊
+
+*{isletmeAdi}*
+📞 {isletmeTelefon}`,
+
+  whatsappReminder: `Merhaba {musteriAdi},
+
+⏰ *Randevunuza {hatirlatmaSuresi} kaldi!*
+
+📅 *Tarih:* {tarih}
+🕐 *Saat:* {saat}
+👤 *Personel:* {personel}
+💼 *Hizmet:* {hizmet}
+📍 *Adres:* {isletmeAdres}
+
+Sizi bekliyoruz! 😊
+
+*{isletmeAdi}*
+📞 {isletmeTelefon}`,
+
+  smsReminder: `{isletmeAdi} randevunuz {hatirlatmaSuresi}. Tarih: {tarih}, Saat: {saat}, Hizmet: {hizmet}. Gorusmek uzere!`,
+
+  staffDailyReminder: `🌅 Gunaydin {personelAdi}!
+
+📅 *{gun}, {tarih}*
+
+Bugun {randevuSayisi} randevunuz var:
+
+{randevuListesi}
+
+Iyi calismalar! 💪
+
+_{isletmeAdi}_`,
+
+  ownerDailyReminder: `🌙 Iyi aksamlar {sahipAdi}!
+
+📊 *{gun}, {tarih} - Gunluk Ozet*
+
+━━━━━━━━━━━━━━━━━━━━
+
+👥 *Musteri Istatistikleri*
+✅ Gelen Musteri: {gelenMusteri}
+❌ Iptal: {iptalSayisi}
+⚠️ Gelmedi: {gelmediler}
+📋 Toplam Randevu: {toplamRandevu}
+
+━━━━━━━━━━━━━━━━━━━━
+
+💰 *Gelir Raporu*
+💵 Nakit: {nakitGelir} TL
+💳 Kredi Karti: {kartGelir} TL
+🎁 Paket: {paketGelir} TL
+
+━━━━━━━━━━━━━━━━━━━━
+
+💎 *Toplam Gelir: {toplamGelir} TL*
+
+_{isletmeAdi}_`,
+};
+
+const CUSTOMER_VARIABLES = [
+  { key: '{musteriAdi}', label: 'Müşteri Adı' },
+  { key: '{tarih}', label: 'Tarih' },
+  { key: '{saat}', label: 'Saat' },
+  { key: '{personel}', label: 'Personel' },
+  { key: '{hizmet}', label: 'Hizmet' },
+  { key: '{ucret}', label: 'Ücret' },
+  { key: '{isletmeAdi}', label: 'İşletme Adı' },
+  { key: '{isletmeTelefon}', label: 'İşletme Telefon' },
+  { key: '{isletmeAdres}', label: 'İşletme Adres' },
+  { key: '{hatirlatmaSuresi}', label: 'Hatırlatma Süresi' },
+];
+
+const STAFF_VARIABLES = [
+  { key: '{personelAdi}', label: 'Personel Adı' },
+  { key: '{gun}', label: 'Gün' },
+  { key: '{tarih}', label: 'Tarih' },
+  { key: '{randevuSayisi}', label: 'Randevu Sayısı' },
+  { key: '{randevuListesi}', label: 'Randevu Listesi' },
+  { key: '{isletmeAdi}', label: 'İşletme Adı' },
+];
+
+const OWNER_VARIABLES = [
+  { key: '{sahipAdi}', label: 'Sahip Adı' },
+  { key: '{gun}', label: 'Gün' },
+  { key: '{tarih}', label: 'Tarih' },
+  { key: '{gelenMusteri}', label: 'Gelen Müşteri' },
+  { key: '{iptalSayisi}', label: 'İptal Sayısı' },
+  { key: '{gelmediler}', label: 'Gelmediler' },
+  { key: '{toplamRandevu}', label: 'Toplam Randevu' },
+  { key: '{nakitGelir}', label: 'Nakit Gelir' },
+  { key: '{kartGelir}', label: 'Kart Gelir' },
+  { key: '{paketGelir}', label: 'Paket Gelir' },
+  { key: '{toplamGelir}', label: 'Toplam Gelir' },
+  { key: '{isletmeAdi}', label: 'İşletme Adı' },
+];
+
+type TemplateKey = keyof MessageTemplates;
+
 // Tab sıralaması web ile aynı
 const TABS = [
   { id: 'theme', label: 'Tema', icon: 'color-palette-outline' },
@@ -140,9 +281,10 @@ const TABS = [
   { id: 'location', label: 'Konum', icon: 'location-outline' },
   { id: 'working', label: 'Çalışma', icon: 'time-outline' },
   { id: 'documents', label: 'Belgeler', icon: 'document-outline' },
+  { id: 'messages', label: 'Mesajlar', icon: 'chatbubble-outline' },
 ];
 
-type TabId = 'theme' | 'business' | 'owner' | 'login' | 'location' | 'working' | 'documents';
+type TabId = 'theme' | 'business' | 'owner' | 'login' | 'location' | 'working' | 'documents' | 'messages';
 
 export default function StaffSettingsScreen() {
   const router = useRouter();
@@ -167,6 +309,9 @@ export default function StaffSettingsScreen() {
   const [showReminderPicker, setShowReminderPicker] = useState(false);
   const [showBusinessTypePicker, setShowBusinessTypePicker] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState<{ day: string; field: 'start' | 'end' } | null>(null);
+  const [showChannelPicker, setShowChannelPicker] = useState<{ key: string; options: typeof CHANNEL_OPTIONS } | null>(null);
+  const [activeTemplateField, setActiveTemplateField] = useState<TemplateKey | null>(null);
+  const [templateCursorPos, setTemplateCursorPos] = useState<number>(0);
 
   const fetchSettings = async () => {
     try {
@@ -295,6 +440,61 @@ export default function StaffSettingsScreen() {
   const formatIBAN = (text: string) => {
     const cleaned = text.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
     return cleaned.slice(0, 26);
+  };
+
+  const getMessageTemplate = (key: TemplateKey): string => {
+    const templates = (formData as any).messageTemplates as MessageTemplates | null;
+    return templates?.[key] || DEFAULT_TEMPLATES[key];
+  };
+
+  const updateMessageTemplate = (key: TemplateKey, value: string) => {
+    const current = ((formData as any).messageTemplates as MessageTemplates | null) || { ...DEFAULT_TEMPLATES };
+    setFormData(prev => ({
+      ...prev,
+      messageTemplates: { ...current, [key]: value },
+    }));
+    setHasChanges(true);
+  };
+
+  const resetTemplate = (key: TemplateKey) => {
+    updateMessageTemplate(key, DEFAULT_TEMPLATES[key]);
+  };
+
+  const getNotificationSetting = (key: keyof NotificationSettings): string => {
+    const settings = (formData as any).notificationSettings as NotificationSettings | null;
+    const defaults: Record<string, string> = {
+      confirmationChannel: 'whatsapp',
+      reminderChannel: 'both',
+      staffDailyChannel: 'whatsapp',
+      ownerDailyChannel: 'whatsapp',
+    };
+    return settings?.[key] || defaults[key] || 'whatsapp';
+  };
+
+  const updateNotificationSetting = (key: keyof NotificationSettings, value: string) => {
+    const current = ((formData as any).notificationSettings as NotificationSettings | null) || {
+      confirmationChannel: 'whatsapp',
+      reminderChannel: 'both',
+      staffDailyChannel: 'whatsapp',
+      ownerDailyChannel: 'whatsapp',
+    };
+    setFormData(prev => ({
+      ...prev,
+      notificationSettings: { ...current, [key]: value },
+    }));
+    setHasChanges(true);
+  };
+
+  const insertVariable = (templateKey: TemplateKey, variable: string) => {
+    const currentText = getMessageTemplate(templateKey);
+    const pos = (activeTemplateField === templateKey && templateCursorPos) ? templateCursorPos : currentText.length;
+    const newText = currentText.slice(0, pos) + variable + currentText.slice(pos);
+    updateMessageTemplate(templateKey, newText);
+  };
+
+  const getChannelLabel = (value: string): string => {
+    const all = [...CHANNEL_OPTIONS, ...STAFF_CHANNEL_OPTIONS];
+    return all.find(o => o.value === value)?.label || value;
   };
 
 
@@ -978,6 +1178,238 @@ export default function StaffSettingsScreen() {
             </View>
           )}
 
+          {/* 8. MESAJLAR TAB */}
+          {activeTab === 'messages' && (
+            <View style={styles.section}>
+              {/* Hatırlatma Süresi */}
+              <View style={styles.card}>
+                <View style={styles.cardHeader}>
+                  <View style={[styles.cardIcon, { backgroundColor: '#FEF3C7' }]}>
+                    <Ionicons name="alarm-outline" size={20} color="#D97706" />
+                  </View>
+                  <View style={styles.cardTitleContainer}>
+                    <Text style={styles.cardTitle}>Hatırlatma Süresi</Text>
+                    <Text style={styles.cardDescription}>Randevudan ne kadar önce hatırlatma gönderilsin</Text>
+                  </View>
+                </View>
+                <TouchableOpacity
+                  style={styles.pickerButton}
+                  onPress={() => setShowReminderPicker(true)}
+                >
+                  <Text style={styles.pickerButtonText}>
+                    {REMINDER_OPTIONS.find(o => o.value === formData.reminderMinutes)?.label || '2 saat önce'}
+                  </Text>
+                  <Ionicons name="chevron-down" size={16} color="#6B7280" />
+                </TouchableOpacity>
+              </View>
+
+              {/* 1. Randevu Onay Mesajı */}
+              <View style={styles.card}>
+                <View style={styles.cardHeader}>
+                  <View style={[styles.cardIcon, { backgroundColor: '#D1FAE5' }]}>
+                    <Ionicons name="checkmark-circle-outline" size={20} color="#059669" />
+                  </View>
+                  <View style={styles.cardTitleContainer}>
+                    <Text style={styles.cardTitle}>Randevu Onay Mesajı</Text>
+                    <Text style={styles.cardDescription}>Randevu oluşturulduğunda gönderilen mesaj</Text>
+                  </View>
+                </View>
+                <Text style={styles.msgLabel}>Gönderim Kanalı</Text>
+                <TouchableOpacity
+                  style={styles.pickerButton}
+                  onPress={() => setShowChannelPicker({ key: 'confirmationChannel', options: CHANNEL_OPTIONS })}
+                >
+                  <Text style={styles.pickerButtonText}>{getChannelLabel(getNotificationSetting('confirmationChannel'))}</Text>
+                  <Ionicons name="chevron-down" size={16} color="#6B7280" />
+                </TouchableOpacity>
+                <Text style={[styles.msgLabel, { marginTop: 12 }]}>Mesaj Şablonu</Text>
+                <TextInput
+                  style={styles.templateInput}
+                  multiline
+                  value={getMessageTemplate('whatsappConfirmation')}
+                  onChangeText={(t) => updateMessageTemplate('whatsappConfirmation', t)}
+                  onFocus={() => setActiveTemplateField('whatsappConfirmation')}
+                  onSelectionChange={(e) => setTemplateCursorPos(e.nativeEvent.selection.start)}
+                />
+                <View style={styles.variableRow}>
+                  {CUSTOMER_VARIABLES.filter(v => v.key !== '{hatirlatmaSuresi}').map(v => (
+                    <TouchableOpacity
+                      key={v.key}
+                      style={styles.variableTag}
+                      onPress={() => insertVariable('whatsappConfirmation', v.key)}
+                    >
+                      <Text style={styles.variableTagText}>{v.label}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+                <TouchableOpacity style={styles.resetButton} onPress={() => resetTemplate('whatsappConfirmation')}>
+                  <Ionicons name="refresh-outline" size={14} color="#6B7280" />
+                  <Text style={styles.resetButtonText}>Varsayılana Dön</Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* 2. WhatsApp Hatırlatma */}
+              <View style={styles.card}>
+                <View style={styles.cardHeader}>
+                  <View style={[styles.cardIcon, { backgroundColor: '#DBEAFE' }]}>
+                    <Ionicons name="notifications-outline" size={20} color="#3B82F6" />
+                  </View>
+                  <View style={styles.cardTitleContainer}>
+                    <Text style={styles.cardTitle}>Hatırlatma Mesajı</Text>
+                    <Text style={styles.cardDescription}>Randevudan önce gönderilen hatırlatma</Text>
+                  </View>
+                </View>
+                <Text style={styles.msgLabel}>Gönderim Kanalı</Text>
+                <TouchableOpacity
+                  style={styles.pickerButton}
+                  onPress={() => setShowChannelPicker({ key: 'reminderChannel', options: CHANNEL_OPTIONS })}
+                >
+                  <Text style={styles.pickerButtonText}>{getChannelLabel(getNotificationSetting('reminderChannel'))}</Text>
+                  <Ionicons name="chevron-down" size={16} color="#6B7280" />
+                </TouchableOpacity>
+                <Text style={[styles.msgLabel, { marginTop: 12 }]}>WhatsApp Şablonu</Text>
+                <TextInput
+                  style={styles.templateInput}
+                  multiline
+                  value={getMessageTemplate('whatsappReminder')}
+                  onChangeText={(t) => updateMessageTemplate('whatsappReminder', t)}
+                  onFocus={() => setActiveTemplateField('whatsappReminder')}
+                  onSelectionChange={(e) => setTemplateCursorPos(e.nativeEvent.selection.start)}
+                />
+                <View style={styles.variableRow}>
+                  {CUSTOMER_VARIABLES.map(v => (
+                    <TouchableOpacity
+                      key={v.key}
+                      style={styles.variableTag}
+                      onPress={() => insertVariable('whatsappReminder', v.key)}
+                    >
+                      <Text style={styles.variableTagText}>{v.label}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+                <TouchableOpacity style={styles.resetButton} onPress={() => resetTemplate('whatsappReminder')}>
+                  <Ionicons name="refresh-outline" size={14} color="#6B7280" />
+                  <Text style={styles.resetButtonText}>Varsayılana Dön</Text>
+                </TouchableOpacity>
+
+                <Text style={[styles.msgLabel, { marginTop: 16 }]}>SMS Şablonu</Text>
+                <TextInput
+                  style={styles.templateInput}
+                  multiline
+                  value={getMessageTemplate('smsReminder')}
+                  onChangeText={(t) => updateMessageTemplate('smsReminder', t)}
+                  onFocus={() => setActiveTemplateField('smsReminder')}
+                  onSelectionChange={(e) => setTemplateCursorPos(e.nativeEvent.selection.start)}
+                />
+                <View style={styles.variableRow}>
+                  {CUSTOMER_VARIABLES.map(v => (
+                    <TouchableOpacity
+                      key={v.key}
+                      style={styles.variableTag}
+                      onPress={() => insertVariable('smsReminder', v.key)}
+                    >
+                      <Text style={styles.variableTagText}>{v.label}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+                <TouchableOpacity style={styles.resetButton} onPress={() => resetTemplate('smsReminder')}>
+                  <Ionicons name="refresh-outline" size={14} color="#6B7280" />
+                  <Text style={styles.resetButtonText}>Varsayılana Dön</Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* 3. Personel Günlük Hatırlatma */}
+              <View style={styles.card}>
+                <View style={styles.cardHeader}>
+                  <View style={[styles.cardIcon, { backgroundColor: '#E0E7FF' }]}>
+                    <Ionicons name="people-outline" size={20} color="#6366F1" />
+                  </View>
+                  <View style={styles.cardTitleContainer}>
+                    <Text style={styles.cardTitle}>Personel Günlük Hatırlatma</Text>
+                    <Text style={styles.cardDescription}>Her sabah personele gönderilen randevu listesi</Text>
+                  </View>
+                </View>
+                <Text style={styles.msgLabel}>Gönderim Kanalı</Text>
+                <TouchableOpacity
+                  style={styles.pickerButton}
+                  onPress={() => setShowChannelPicker({ key: 'staffDailyChannel', options: STAFF_CHANNEL_OPTIONS })}
+                >
+                  <Text style={styles.pickerButtonText}>{getChannelLabel(getNotificationSetting('staffDailyChannel'))}</Text>
+                  <Ionicons name="chevron-down" size={16} color="#6B7280" />
+                </TouchableOpacity>
+                <Text style={[styles.msgLabel, { marginTop: 12 }]}>Mesaj Şablonu</Text>
+                <TextInput
+                  style={styles.templateInput}
+                  multiline
+                  value={getMessageTemplate('staffDailyReminder')}
+                  onChangeText={(t) => updateMessageTemplate('staffDailyReminder', t)}
+                  onFocus={() => setActiveTemplateField('staffDailyReminder')}
+                  onSelectionChange={(e) => setTemplateCursorPos(e.nativeEvent.selection.start)}
+                />
+                <View style={styles.variableRow}>
+                  {STAFF_VARIABLES.map(v => (
+                    <TouchableOpacity
+                      key={v.key}
+                      style={styles.variableTag}
+                      onPress={() => insertVariable('staffDailyReminder', v.key)}
+                    >
+                      <Text style={styles.variableTagText}>{v.label}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+                <TouchableOpacity style={styles.resetButton} onPress={() => resetTemplate('staffDailyReminder')}>
+                  <Ionicons name="refresh-outline" size={14} color="#6B7280" />
+                  <Text style={styles.resetButtonText}>Varsayılana Dön</Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* 4. Sahip Günlük Özet */}
+              <View style={styles.card}>
+                <View style={styles.cardHeader}>
+                  <View style={[styles.cardIcon, { backgroundColor: '#FEE2E2' }]}>
+                    <Ionicons name="bar-chart-outline" size={20} color="#DC2626" />
+                  </View>
+                  <View style={styles.cardTitleContainer}>
+                    <Text style={styles.cardTitle}>Günlük Özet Raporu</Text>
+                    <Text style={styles.cardDescription}>Her akşam işletme sahibine gönderilen özet</Text>
+                  </View>
+                </View>
+                <Text style={styles.msgLabel}>Gönderim Kanalı</Text>
+                <TouchableOpacity
+                  style={styles.pickerButton}
+                  onPress={() => setShowChannelPicker({ key: 'ownerDailyChannel', options: STAFF_CHANNEL_OPTIONS })}
+                >
+                  <Text style={styles.pickerButtonText}>{getChannelLabel(getNotificationSetting('ownerDailyChannel'))}</Text>
+                  <Ionicons name="chevron-down" size={16} color="#6B7280" />
+                </TouchableOpacity>
+                <Text style={[styles.msgLabel, { marginTop: 12 }]}>Mesaj Şablonu</Text>
+                <TextInput
+                  style={styles.templateInput}
+                  multiline
+                  value={getMessageTemplate('ownerDailyReminder')}
+                  onChangeText={(t) => updateMessageTemplate('ownerDailyReminder', t)}
+                  onFocus={() => setActiveTemplateField('ownerDailyReminder')}
+                  onSelectionChange={(e) => setTemplateCursorPos(e.nativeEvent.selection.start)}
+                />
+                <View style={styles.variableRow}>
+                  {OWNER_VARIABLES.map(v => (
+                    <TouchableOpacity
+                      key={v.key}
+                      style={styles.variableTag}
+                      onPress={() => insertVariable('ownerDailyReminder', v.key)}
+                    >
+                      <Text style={styles.variableTagText}>{v.label}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+                <TouchableOpacity style={styles.resetButton} onPress={() => resetTemplate('ownerDailyReminder')}>
+                  <Ionicons name="refresh-outline" size={14} color="#6B7280" />
+                  <Text style={styles.resetButtonText}>Varsayılana Dön</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          )}
+
           {/* Bottom Spacing */}
           <View style={{ height: 120 }} />
         </ScrollView>
@@ -1140,6 +1572,42 @@ export default function StaffSettingsScreen() {
                       {time}
                     </Text>
                     {currentValue === time && <Ionicons name="checkmark" size={20} color={THEME_COLOR} />}
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Channel Picker Modal */}
+      <Modal visible={!!showChannelPicker} transparent animationType="slide">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Gönderim Kanalı</Text>
+              <TouchableOpacity onPress={() => setShowChannelPicker(null)}>
+                <Ionicons name="close" size={24} color="#6B7280" />
+              </TouchableOpacity>
+            </View>
+            <ScrollView style={styles.modalScroll}>
+              {(showChannelPicker?.options || []).map((option) => {
+                const currentVal = showChannelPicker ? getNotificationSetting(showChannelPicker.key as keyof NotificationSettings) : '';
+                return (
+                  <TouchableOpacity
+                    key={option.value}
+                    style={[styles.modalOption, currentVal === option.value && styles.modalOptionSelected]}
+                    onPress={() => {
+                      if (showChannelPicker) {
+                        updateNotificationSetting(showChannelPicker.key as keyof NotificationSettings, option.value);
+                        setShowChannelPicker(null);
+                      }
+                    }}
+                  >
+                    <Text style={[styles.modalOptionText, currentVal === option.value && styles.modalOptionTextSelected]}>
+                      {option.label}
+                    </Text>
+                    {currentVal === option.value && <Ionicons name="checkmark" size={20} color={THEME_COLOR} />}
                   </TouchableOpacity>
                 );
               })}
@@ -1783,5 +2251,58 @@ const styles = StyleSheet.create({
   modalOptionTextSelected: {
     color: THEME_COLOR,
     fontWeight: '600',
+  },
+  msgLabel: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#374151',
+    marginBottom: 6,
+    marginTop: 4,
+  },
+  templateInput: {
+    backgroundColor: '#F9FAFB',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    borderRadius: 10,
+    padding: 12,
+    fontSize: 13,
+    color: '#1F2937',
+    minHeight: 120,
+    textAlignVertical: 'top',
+    lineHeight: 20,
+  },
+  variableRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+    marginTop: 8,
+  },
+  variableTag: {
+    backgroundColor: '#EFF6FF',
+    borderWidth: 1,
+    borderColor: '#BFDBFE',
+    borderRadius: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  variableTagText: {
+    fontSize: 11,
+    color: THEME_COLOR,
+    fontWeight: '500',
+  },
+  resetButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    gap: 4,
+    marginTop: 10,
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    backgroundColor: '#F3F4F6',
+    borderRadius: 6,
+  },
+  resetButtonText: {
+    fontSize: 12,
+    color: '#6B7280',
   },
 });
