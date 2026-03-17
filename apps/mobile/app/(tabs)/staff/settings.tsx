@@ -79,6 +79,7 @@ interface BlockedDate {
 
 interface MessageTemplates {
   whatsappConfirmation: string;
+  smsConfirmation: string;
   whatsappReminder: string;
   smsReminder: string;
   staffDailyReminder: string;
@@ -187,6 +188,8 @@ Gorusmek uzere! 😊
 
 *{isletmeAdi}*
 📞 {isletmeTelefon}`,
+
+  smsConfirmation: `{isletmeAdi} randevunuz olusturuldu. Tarih: {tarih}, Saat: {saat}, Personel: {personel}, Hizmet: {hizmet}, Ucret: {ucret}. Gorusmek uzere! Tel: {isletmeTelefon}`,
 
   whatsappReminder: `Merhaba {musteriAdi},
 
@@ -1507,6 +1510,32 @@ export default function StaffSettingsScreen() {
                   ))}
                 </View>
                 <TouchableOpacity style={styles.resetButton} onPress={() => resetTemplate('whatsappConfirmation')}>
+                  <Ionicons name="refresh-outline" size={14} color="#6B7280" />
+                  <Text style={styles.resetButtonText}>Varsayılana Dön</Text>
+                </TouchableOpacity>
+
+                <Text style={[styles.msgLabel, { marginTop: 16 }]}>SMS Onay Şablonu</Text>
+                <Text style={styles.autoSendDescription}>SMS ile gönderilecek onay mesajı (emoji kullanmayın)</Text>
+                <TextInput
+                  style={[styles.templateInput, { minHeight: 60 }]}
+                  multiline
+                  value={getMessageTemplate('smsConfirmation')}
+                  onChangeText={(t) => updateMessageTemplate('smsConfirmation', t)}
+                  onFocus={() => setActiveTemplateField('smsConfirmation')}
+                  onSelectionChange={(e) => setTemplateCursorPos(e.nativeEvent.selection.start)}
+                />
+                <View style={styles.variableRow}>
+                  {CUSTOMER_VARIABLES.filter(v => v.key !== '{hatirlatmaSuresi}').map(v => (
+                    <TouchableOpacity
+                      key={v.key}
+                      style={styles.variableTag}
+                      onPress={() => insertVariable('smsConfirmation', v.key)}
+                    >
+                      <Text style={styles.variableTagText}>{v.label}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+                <TouchableOpacity style={styles.resetButton} onPress={() => resetTemplate('smsConfirmation')}>
                   <Ionicons name="refresh-outline" size={14} color="#6B7280" />
                   <Text style={styles.resetButtonText}>Varsayılana Dön</Text>
                 </TouchableOpacity>

@@ -58,6 +58,7 @@ export default function SettingsClient({ user }: SettingsClientProps) {
     // Mesaj şablonları
     messageTemplates: {
       whatsappConfirmation: DEFAULT_TEMPLATES.whatsappConfirmation,
+      smsConfirmation: DEFAULT_TEMPLATES.smsConfirmation,
       whatsappReminder: DEFAULT_TEMPLATES.whatsappReminder,
       smsReminder: DEFAULT_TEMPLATES.smsReminder,
       staffDailyReminder: DEFAULT_TEMPLATES.staffDailyReminder,
@@ -90,6 +91,7 @@ export default function SettingsClient({ user }: SettingsClientProps) {
 
   // Refs for message template textareas
   const whatsappConfirmationRef = useRef<HTMLTextAreaElement>(null);
+  const smsConfirmationRef = useRef<HTMLTextAreaElement>(null);
   const whatsappReminderRef = useRef<HTMLTextAreaElement>(null);
   const smsReminderRef = useRef<HTMLTextAreaElement>(null);
   const staffDailyReminderRef = useRef<HTMLTextAreaElement>(null);
@@ -217,6 +219,7 @@ export default function SettingsClient({ user }: SettingsClientProps) {
             cardPaymentEnabled: tenant.cardPaymentEnabled !== false, // Default: true
             messageTemplates: {
               whatsappConfirmation: tenant.messageTemplates?.whatsappConfirmation || DEFAULT_TEMPLATES.whatsappConfirmation,
+              smsConfirmation: tenant.messageTemplates?.smsConfirmation || DEFAULT_TEMPLATES.smsConfirmation,
               whatsappReminder: tenant.messageTemplates?.whatsappReminder || DEFAULT_TEMPLATES.whatsappReminder,
               smsReminder: tenant.messageTemplates?.smsReminder || DEFAULT_TEMPLATES.smsReminder,
               staffDailyReminder: tenant.messageTemplates?.staffDailyReminder || DEFAULT_TEMPLATES.staffDailyReminder,
@@ -1758,6 +1761,39 @@ export default function SettingsClient({ user }: SettingsClientProps) {
                 <div className="flex flex-wrap gap-1.5">
                   {['{musteriAdi}', '{tarih}', '{saat}', '{personel}', '{hizmet}', '{ucret}', '{isletmeAdi}', '{isletmeTelefon}', '{isletmeAdres}'].map(v => (
                     <span key={v} onClick={() => insertVariable(whatsappConfirmationRef, 'whatsappConfirmation', v)} className="inline-block px-2 py-0.5 bg-gray-100 text-gray-600 text-xs rounded font-mono cursor-pointer hover:bg-blue-100 hover:text-blue-700 transition-colors">{v}</span>
+                  ))}
+                </div>
+              </div>
+
+              {/* SMS Onay Mesaji */}
+              <div className="space-y-2 mt-4">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-sm font-medium text-gray-700">SMS Onay Sablonu</h4>
+                  <button
+                    type="button"
+                    onClick={() => setSettings(prev => ({
+                      ...prev,
+                      messageTemplates: { ...prev.messageTemplates, smsConfirmation: DEFAULT_TEMPLATES.smsConfirmation }
+                    }))}
+                    className="text-xs text-blue-600 hover:underline"
+                  >
+                    Varsayilana Don
+                  </button>
+                </div>
+                <p className="text-xs text-gray-500">SMS ile gonderilecek onay mesaji (emoji kullanmayin).</p>
+                <textarea
+                  ref={smsConfirmationRef}
+                  value={settings.messageTemplates.smsConfirmation}
+                  onChange={(e) => setSettings(prev => ({
+                    ...prev,
+                    messageTemplates: { ...prev.messageTemplates, smsConfirmation: e.target.value }
+                  }))}
+                  rows={3}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm font-mono focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+                <div className="flex flex-wrap gap-1.5">
+                  {['{musteriAdi}', '{tarih}', '{saat}', '{personel}', '{hizmet}', '{ucret}', '{isletmeAdi}', '{isletmeTelefon}', '{isletmeAdres}'].map(v => (
+                    <span key={v} onClick={() => insertVariable(smsConfirmationRef, 'smsConfirmation', v)} className="inline-block px-2 py-0.5 bg-gray-100 text-gray-600 text-xs rounded font-mono cursor-pointer hover:bg-blue-100 hover:text-blue-700 transition-colors">{v}</span>
                   ))}
                 </div>
               </div>

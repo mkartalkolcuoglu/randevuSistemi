@@ -108,8 +108,12 @@ export async function POST(request: NextRequest) {
       isletmeAdres: settings.businessAddress || '',
     };
 
+    // Prepare separate messages for WhatsApp and SMS
     const whatsappTemplate = getTemplate(settings.messageTemplates, 'whatsappConfirmation');
-    const message = renderTemplate(whatsappTemplate, templateVars);
+    const whatsappMessage = renderTemplate(whatsappTemplate, templateVars);
+
+    const smsTemplate = getTemplate(settings.messageTemplates, 'smsConfirmation');
+    const smsMessage = renderTemplate(smsTemplate, templateVars);
 
     // Check channel preference
     let notifSettings: any = {};
@@ -132,7 +136,7 @@ export async function POST(request: NextRequest) {
     if (confirmChannel === 'whatsapp' || confirmChannel === 'both') {
       const result = await sendWhatsAppMessage({
         to: customer.phone,
-        body: message,
+        body: whatsappMessage,
       });
       whatsappSent = result.sent;
       if (!result.sent) {
@@ -146,7 +150,7 @@ export async function POST(request: NextRequest) {
       const smsResponse = await fetch(`${process.env.NEXT_PUBLIC_ADMIN_URL || 'https://admin.netrandevu.com'}/api/netgsm/send-sms`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ to: smsPhone, message })
+        body: JSON.stringify({ to: smsPhone, message: smsMessage })
       });
       const smsResult = await smsResponse.json();
       smsSent = smsResult.success;

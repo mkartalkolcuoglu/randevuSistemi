@@ -19,6 +19,8 @@ Gorusmek uzere! 😊
 *{isletmeAdi}*
 📞 {isletmeTelefon}`,
 
+  smsConfirmation: `{isletmeAdi} randevunuz olusturuldu. Tarih: {tarih}, Saat: {saat}, Personel: {personel}, Hizmet: {hizmet}, Ucret: {ucret}. Gorusmek uzere! Tel: {isletmeTelefon}`,
+
   whatsappReminder: `Merhaba {musteriAdi},
 
 ⏰ *Randevunuza {hatirlatmaSuresi} kaldi!*
