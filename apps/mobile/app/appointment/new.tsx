@@ -91,6 +91,7 @@ export default function NewAppointmentScreen() {
   const [isSearching, setIsSearching] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [searchTimeout, setSearchTimeout] = useState<ReturnType<typeof setTimeout> | null>(null);
+  const [blacklistWarning, setBlacklistWarning] = useState<string | null>(null);
 
   const [step, setStep] = useState(1); // 1: Service, 2: Staff, 3: DateTime, 4: Customer
   // When coming from calendar with pre-filled staff/date/time, skip steps 2 & 3
@@ -366,6 +367,7 @@ export default function NewAppointmentScreen() {
   const handleCustomerNameChange = (text: string) => {
     setCustomerName(text);
     setSelectedCustomer(null);
+    setBlacklistWarning(null);
 
     if (searchTimeout) {
       clearTimeout(searchTimeout);
@@ -383,6 +385,15 @@ export default function NewAppointmentScreen() {
     setCustomerPhone(customer.phone);
     setShowSuggestions(false);
     Keyboard.dismiss();
+
+    // Blacklist check
+    if (customer.isBlacklisted) {
+      setBlacklistWarning(`UYARI: Bu müşteri kara listede! (${customer.noShowCount || 0} defa gelmedi) Randevu oluşturabilirsiniz ancak dikkatli olun.`);
+    } else if (customer.noShowCount > 0) {
+      setBlacklistWarning(`DİKKAT: Bu müşteri ${customer.noShowCount} defa randevusuna gelmedi.`);
+    } else {
+      setBlacklistWarning(null);
+    }
   };
 
   const handleDateSelect = (date: Date) => {
@@ -674,6 +685,32 @@ export default function NewAppointmentScreen() {
             <Text style={styles.stepTitle}>Müşteri Bilgileri</Text>
             <Text style={styles.stepSubtitle}>Müşteri bilgilerini girin</Text>
 
+            {blacklistWarning && (
+              <View style={{
+                backgroundColor: selectedCustomer?.isBlacklisted ? 'rgba(239,68,68,0.1)' : 'rgba(245,158,11,0.1)',
+                borderLeftWidth: 4,
+                borderLeftColor: selectedCustomer?.isBlacklisted ? '#EF4444' : '#F59E0B',
+                borderRadius: 8,
+                padding: 12,
+                marginBottom: 16,
+                flexDirection: 'row',
+                alignItems: 'center',
+              }}>
+                <Ionicons
+                  name={selectedCustomer?.isBlacklisted ? 'warning' : 'alert-circle'}
+                  size={20}
+                  color={selectedCustomer?.isBlacklisted ? '#DC2626' : '#D97706'}
+                  style={{ marginRight: 8 }}
+                />
+                <Text style={{
+                  flex: 1,
+                  fontSize: 13,
+                  fontWeight: '600',
+                  color: selectedCustomer?.isBlacklisted ? '#DC2626' : '#D97706',
+                }}>{blacklistWarning}</Text>
+              </View>
+            )}
+
             <Text style={styles.label}>Ad Soyad *</Text>
             <View style={styles.autocompleteContainer}>
               <View style={styles.inputWrapper}>
@@ -709,16 +746,31 @@ export default function NewAppointmentScreen() {
                       style={styles.suggestionItem}
                       onPress={() => handleSelectCustomer(customer)}
                     >
-                      <View style={styles.customerAvatar}>
-                        <Text style={styles.customerInitial}>
+                      <View style={[
+                        styles.customerAvatar,
+                        customer.isBlacklisted && { backgroundColor: '#FEE2E2' },
+                      ]}>
+                        <Text style={[
+                          styles.customerInitial,
+                          customer.isBlacklisted && { color: '#DC2626' },
+                        ]}>
                           {customer.firstName.charAt(0)}
                         </Text>
                       </View>
                       <View style={styles.customerInfo}>
-                        <Text style={styles.customerName}>
-                          {customer.firstName} {customer.lastName}
+                        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                          <Text style={styles.customerName}>
+                            {customer.firstName} {customer.lastName}
+                          </Text>
+                          {customer.isBlacklisted && (
+                            <Ionicons name="warning" size={14} color="#DC2626" style={{ marginLeft: 4 }} />
+                          )}
+                        </View>
+                        <Text style={styles.customerPhone}>
+                          {customer.phone}
+                          {customer.noShowCount > 0 && !customer.isBlacklisted ? ` · ${customer.noShowCount} gelmedi` : ''}
+                          {customer.isBlacklisted ? ' · Kara listede' : ''}
                         </Text>
-                        <Text style={styles.customerPhone}>{customer.phone}</Text>
                       </View>
                     </TouchableOpacity>
                   ))}
