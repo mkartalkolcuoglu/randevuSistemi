@@ -22,6 +22,8 @@ export default function NewAppointmentPage() {
   const [workingHours, setWorkingHours] = useState<WorkingHours | null>(null);
   const [blacklistWarning, setBlacklistWarning] = useState<string | null>(null);
   const [phoneError, setPhoneError] = useState<string | null>(null);
+  const [blockedDates, setBlockedDates] = useState<{ title: string; startDate: string; endDate: string }[]>([]);
+  const [blockedDateWarning, setBlockedDateWarning] = useState<string | null>(null);
 
   // Form state
   const [formData, setFormData] = useState({
@@ -46,8 +48,21 @@ export default function NewAppointmentPage() {
     if (!formData.date || !workingHours) {
       setAvailableTimeSlots([]);
       setAllTimeSlots([]);
+      setBlockedDateWarning(null);
       return;
     }
+
+    // Check if the selected date is blocked (holiday)
+    const blocked = blockedDates.find(
+      b => b.startDate <= formData.date && b.endDate >= formData.date
+    );
+    if (blocked) {
+      setBlockedDateWarning(`Bu tarih tatil nedeniyle kapalı: ${blocked.title}`);
+      setAvailableTimeSlots([]);
+      setAllTimeSlots([]);
+      return;
+    }
+    setBlockedDateWarning(null);
 
     // Check if the selected day is a working day
     const dayHours = getWorkingHoursForDay(formData.date, workingHours);
@@ -100,7 +115,7 @@ export default function NewAppointmentPage() {
 
     console.log('✅ Filtered slots:', filtered);
     setAvailableTimeSlots(filtered);
-  }, [formData.date, workingHours, timeInterval]);
+  }, [formData.date, workingHours, timeInterval, blockedDates]);
 
   // Fetch settings and generate time slots on mount
   useEffect(() => {
@@ -111,11 +126,14 @@ export default function NewAppointmentPage() {
           const data = await response.json();
           const interval = data.data?.appointmentTimeInterval || 30;
           setTimeInterval(interval);
-          
+
           // Parse working hours
           const hours = parseWorkingHours(data.data?.workingHours);
           setWorkingHours(hours);
-          
+
+          // Save blocked dates
+          setBlockedDates(data.data?.blockedDates || []);
+
           console.log('⚙️ Settings loaded:', { interval, workingHours: hours });
         }
       } catch (error) {
@@ -154,7 +172,7 @@ export default function NewAppointmentPage() {
       const response = await fetch('/api/services');
       if (response.ok) {
         const data = await response.json();
-        setServices(data.data || []);
+        setServices((data.data || []).filter((s: any) => s.status === 'active'));
       }
     } catch (error) {
       console.error('Error fetching services:', error);
@@ -234,6 +252,12 @@ export default function NewAppointmentPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    // Tatil günü kontrolü
+    if (blockedDateWarning) {
+      alert(blockedDateWarning);
+      return;
+    }
+
     // Telefon numarası validasyonu
     if (formData.customerPhone && (formData.customerPhone.length < 10 || formData.customerPhone.length > 11)) {
       setPhoneError('Telefon numarası 10-11 hane olmalıdır');
@@ -251,18 +275,18 @@ export default function NewAppointmentPage() {
         body: JSON.stringify(formData)
       });
 
-      if (!response.ok) {
-        throw new Error('Network response was not ok');
-      }
-
       const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Randevu oluşturulamadı');
+      }
       console.log('Appointment created:', result);
       
       alert('Randevu başarıyla oluşturuldu!');
       router.push('/admin/appointments');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error creating appointment:', error);
-      alert('Randevu oluşturulurken bir hata oluştu.');
+      alert(error?.message || 'Randevu oluşturulurken bir hata oluştu.');
     } finally {
       setIsLoading(false);
     }
@@ -445,6 +469,9 @@ export default function NewAppointmentPage() {
                   min={new Date().toISOString().split('T')[0]}
                   required
                 />
+                {blockedDateWarning && (
+                  <p className="text-sm text-red-600 font-medium mt-1">⚠️ {blockedDateWarning}</p>
+                )}
               </div>
 
               <div className="space-y-2">
