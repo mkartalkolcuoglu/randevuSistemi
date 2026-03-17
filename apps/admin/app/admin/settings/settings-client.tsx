@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, Button, Tabs, TabsList, TabsTrigger, TabsContent, formatPhone, normalizePhone, PHONE_PLACEHOLDER, PHONE_MAX_LENGTH } from '@/components/ui';
-import { Save, Palette, Building2, User, Key, Clock, Upload, ArrowLeft, MapPin, Settings, CreditCard, FileText, CalendarX2, Trash2, Plus } from 'lucide-react';
+import { Save, Palette, Building2, User, Key, Clock, Upload, ArrowLeft, MapPin, Settings, CreditCard, FileText, CalendarX2, Trash2, Plus, MessageSquare } from 'lucide-react';
 import AdminHeader from '../admin-header';
 import type { ClientUser } from '../../../lib/client-permissions';
 
@@ -54,6 +54,13 @@ export default function SettingsClient({ user }: SettingsClientProps) {
     appointmentTimeInterval: 30, // dakika cinsinden
     blacklistThreshold: 3, // Kara liste eşiği (kaç defa gelmedi)
     reminderMinutes: 120, // Hatırlatma süresi (randevudan kaç dakika önce)
+    // Mesaj şablonları
+    messageTemplates: {
+      whatsappConfirmation: '',
+      whatsappReminder: '',
+      smsReminder: '',
+      staffDailyReminder: ''
+    },
     // Ödeme ayarları
     cardPaymentEnabled: true, // Kredi kartı ile ödeme aktif mi
     // Konum ayarları
@@ -169,6 +176,7 @@ export default function SettingsClient({ user }: SettingsClientProps) {
             blacklistThreshold: tenant.blacklistThreshold || 3, // Default: 3 defa gelmedi
             reminderMinutes: tenant.reminderMinutes || 120, // Default: 2 saat (120 dakika)
             cardPaymentEnabled: tenant.cardPaymentEnabled !== false, // Default: true
+            messageTemplates: tenant.messageTemplates || prev.messageTemplates,
             themeSettings: themeData,
             location: locationData,
             documents: documentsData
@@ -575,6 +583,10 @@ export default function SettingsClient({ user }: SettingsClientProps) {
           <TabsTrigger value="blocked-dates" className="flex flex-col md:flex-row items-center gap-1 py-2 px-2 text-xs md:text-sm">
             <CalendarX2 className="w-4 h-4" />
             <span>Tatiller</span>
+          </TabsTrigger>
+          <TabsTrigger value="messages" className="flex flex-col md:flex-row items-center gap-1 py-2 px-2 text-xs md:text-sm">
+            <MessageSquare className="w-4 h-4" />
+            <span>Mesajlar</span>
           </TabsTrigger>
         </TabsList>
 
@@ -1611,6 +1623,157 @@ export default function SettingsClient({ user }: SettingsClientProps) {
                   Sadece yeni randevu oluşturmayı engeller.
                 </p>
               </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Mesaj Sablonlari */}
+        <TabsContent value="messages">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <MessageSquare className="w-5 h-5 mr-2" />
+                Mesaj Sablonlari
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-8">
+              <p className="text-sm text-gray-500">
+                Musterilere ve personele gonderilen WhatsApp ve SMS mesajlarini buradan duzenleyebilirsiniz.
+                Degiskenleri kullanarak mesajlari kisisellestirebilirsiniz.
+              </p>
+
+              {/* WhatsApp Onay */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-base font-semibold text-gray-900">WhatsApp Onay Mesaji</h3>
+                  <button
+                    type="button"
+                    onClick={() => setSettings(prev => ({
+                      ...prev,
+                      messageTemplates: { ...prev.messageTemplates, whatsappConfirmation: '' }
+                    }))}
+                    className="text-xs text-blue-600 hover:underline"
+                  >
+                    Varsayilana Don
+                  </button>
+                </div>
+                <p className="text-xs text-gray-500">Randevu onaylandiginda musteriye gonderilir.</p>
+                <textarea
+                  value={settings.messageTemplates.whatsappConfirmation}
+                  onChange={(e) => setSettings(prev => ({
+                    ...prev,
+                    messageTemplates: { ...prev.messageTemplates, whatsappConfirmation: e.target.value }
+                  }))}
+                  placeholder="Bos birakirsaniz varsayilan sablon kullanilir"
+                  rows={8}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm font-mono focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+                <div className="flex flex-wrap gap-1.5">
+                  {['{musteriAdi}', '{tarih}', '{saat}', '{personel}', '{hizmet}', '{ucret}', '{isletmeAdi}', '{isletmeTelefon}', '{isletmeAdres}'].map(v => (
+                    <span key={v} className="inline-block px-2 py-0.5 bg-gray-100 text-gray-600 text-xs rounded font-mono">{v}</span>
+                  ))}
+                </div>
+              </div>
+
+              {/* WhatsApp Hatirlatma */}
+              <div className="space-y-3 pt-6 border-t border-gray-200">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-base font-semibold text-gray-900">WhatsApp Hatirlatma Mesaji</h3>
+                  <button
+                    type="button"
+                    onClick={() => setSettings(prev => ({
+                      ...prev,
+                      messageTemplates: { ...prev.messageTemplates, whatsappReminder: '' }
+                    }))}
+                    className="text-xs text-blue-600 hover:underline"
+                  >
+                    Varsayilana Don
+                  </button>
+                </div>
+                <p className="text-xs text-gray-500">Randevu saatinden once musteriye gonderilir.</p>
+                <textarea
+                  value={settings.messageTemplates.whatsappReminder}
+                  onChange={(e) => setSettings(prev => ({
+                    ...prev,
+                    messageTemplates: { ...prev.messageTemplates, whatsappReminder: e.target.value }
+                  }))}
+                  placeholder="Bos birakirsaniz varsayilan sablon kullanilir"
+                  rows={8}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm font-mono focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+                <div className="flex flex-wrap gap-1.5">
+                  {['{musteriAdi}', '{tarih}', '{saat}', '{personel}', '{hizmet}', '{hatirlatmaSuresi}', '{isletmeAdi}', '{isletmeTelefon}', '{isletmeAdres}'].map(v => (
+                    <span key={v} className="inline-block px-2 py-0.5 bg-gray-100 text-gray-600 text-xs rounded font-mono">{v}</span>
+                  ))}
+                </div>
+              </div>
+
+              {/* SMS Hatirlatma */}
+              <div className="space-y-3 pt-6 border-t border-gray-200">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-base font-semibold text-gray-900">SMS Hatirlatma Mesaji</h3>
+                  <button
+                    type="button"
+                    onClick={() => setSettings(prev => ({
+                      ...prev,
+                      messageTemplates: { ...prev.messageTemplates, smsReminder: '' }
+                    }))}
+                    className="text-xs text-blue-600 hover:underline"
+                  >
+                    Varsayilana Don
+                  </button>
+                </div>
+                <p className="text-xs text-gray-500">Randevu saatinden once musteriye SMS olarak gonderilir. Kisa tutun.</p>
+                <textarea
+                  value={settings.messageTemplates.smsReminder}
+                  onChange={(e) => setSettings(prev => ({
+                    ...prev,
+                    messageTemplates: { ...prev.messageTemplates, smsReminder: e.target.value }
+                  }))}
+                  placeholder="Bos birakirsaniz varsayilan sablon kullanilir"
+                  rows={3}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm font-mono focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+                <div className="flex flex-wrap gap-1.5">
+                  {['{musteriAdi}', '{tarih}', '{saat}', '{hizmet}', '{hatirlatmaSuresi}', '{isletmeAdi}'].map(v => (
+                    <span key={v} className="inline-block px-2 py-0.5 bg-gray-100 text-gray-600 text-xs rounded font-mono">{v}</span>
+                  ))}
+                </div>
+              </div>
+
+              {/* Personel Gunluk Ozet */}
+              <div className="space-y-3 pt-6 border-t border-gray-200">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-base font-semibold text-gray-900">Personel Gunluk Ozet Mesaji</h3>
+                  <button
+                    type="button"
+                    onClick={() => setSettings(prev => ({
+                      ...prev,
+                      messageTemplates: { ...prev.messageTemplates, staffDailyReminder: '' }
+                    }))}
+                    className="text-xs text-blue-600 hover:underline"
+                  >
+                    Varsayilana Don
+                  </button>
+                </div>
+                <p className="text-xs text-gray-500">Her sabah personele gonderilen gunluk randevu ozeti.</p>
+                <textarea
+                  value={settings.messageTemplates.staffDailyReminder}
+                  onChange={(e) => setSettings(prev => ({
+                    ...prev,
+                    messageTemplates: { ...prev.messageTemplates, staffDailyReminder: e.target.value }
+                  }))}
+                  placeholder="Bos birakirsaniz varsayilan sablon kullanilir"
+                  rows={8}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm font-mono focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+                <div className="flex flex-wrap gap-1.5">
+                  {['{personelAdi}', '{gun}', '{tarih}', '{randevuSayisi}', '{randevuListesi}', '{isletmeAdi}'].map(v => (
+                    <span key={v} className="inline-block px-2 py-0.5 bg-gray-100 text-gray-600 text-xs rounded font-mono">{v}</span>
+                  ))}
+                </div>
+              </div>
+
             </CardContent>
           </Card>
         </TabsContent>

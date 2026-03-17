@@ -78,12 +78,13 @@ export async function GET() {
       workingHours: settings.workingHours ? JSON.parse(settings.workingHours) : {},
       notificationSettings: settings.notificationSettings ? JSON.parse(settings.notificationSettings) : {},
       paymentSettings: settings.paymentSettings ? JSON.parse(settings.paymentSettings) : {},
-      themeSettings: settings.themeSettings ? JSON.parse(settings.themeSettings) : {}
+      themeSettings: settings.themeSettings ? JSON.parse(settings.themeSettings) : {},
+      messageTemplates: settings.messageTemplates ? JSON.parse(settings.messageTemplates) : null
     };
 
-    return NextResponse.json({ 
-      success: true, 
-      data: responseData 
+    return NextResponse.json({
+      success: true,
+      data: responseData
     });
   } catch (error) {
     console.error('Error fetching settings:', error);
@@ -135,7 +136,10 @@ export async function POST(request: NextRequest) {
       workingHours: JSON.stringify(data.workingHours),
       notificationSettings: JSON.stringify(data.notificationSettings),
       paymentSettings: JSON.stringify(data.paymentSettings),
-      themeSettings: data.themeSettings ? JSON.stringify(data.themeSettings) : null
+      themeSettings: data.themeSettings ? JSON.stringify(data.themeSettings) : null,
+      ...(data.messageTemplates !== undefined && {
+        messageTemplates: data.messageTemplates ? JSON.stringify(data.messageTemplates) : null
+      })
     };
 
     if (settings) {
@@ -157,7 +161,8 @@ export async function POST(request: NextRequest) {
       workingHours: JSON.parse(settings.workingHours || '{}'),
       notificationSettings: JSON.parse(settings.notificationSettings || '{}'),
       paymentSettings: JSON.parse(settings.paymentSettings || '{}'),
-      themeSettings: JSON.parse(settings.themeSettings || '{}')
+      themeSettings: JSON.parse(settings.themeSettings || '{}'),
+      messageTemplates: settings.messageTemplates ? JSON.parse(settings.messageTemplates) : null
     };
 
     return NextResponse.json({

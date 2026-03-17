@@ -172,6 +172,7 @@ model Settings {
   appointmentTimeInterval Int?     @default(30) @map("appointment_time_interval")
   blacklistThreshold      Int?     @default(3) @map("blacklist_threshold")
   reminderMinutes         Int?     @default(120) @map("reminder_minutes")
+  messageTemplates        String?  @map("message_templates") @db.Text
 
   @@map("settings")
 }

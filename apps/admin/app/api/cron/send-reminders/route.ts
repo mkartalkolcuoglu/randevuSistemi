@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '../../../../lib/prisma';
 import { formatPhoneForSMS } from '../../../../lib/netgsm-client';
+import { getTemplate, renderTemplate } from '../../../../lib/message-templates';
 
 /**
  * Cron Job: Send appointment reminders based on tenant settings
@@ -133,7 +134,7 @@ export async function GET(request: NextRequest) {
 
         const settings = await prisma.settings.findUnique({
           where: { tenantId: appointment.tenantId },
-          select: { reminderMinutes: true }
+          select: { reminderMinutes: true, messageTemplates: true }
         });
 
         const reminderMinutes = settings?.reminderMinutes || 120;
@@ -153,21 +154,24 @@ export async function GET(request: NextRequest) {
         // Format phone number
         const phoneNumber = formatPhoneForSMS(appointment.customerPhone);
 
-        // Prepare message templates
-        const whatsappMessage = `Merhaba ${appointment.customerName},
+        // Prepare message templates from settings or defaults
+        const templateVars: Record<string, string> = {
+          musteriAdi: appointment.customerName,
+          tarih: appointment.date,
+          saat: appointment.time,
+          personel: appointment.staffName,
+          hizmet: appointment.serviceName,
+          hatirlatmaSuresi: reminderTimeText,
+          isletmeAdi: tenant?.businessName || 'Randevu',
+          isletmeTelefon: '',
+          isletmeAdres: tenant?.address || ''
+        };
 
-${tenant?.businessName || 'Randevu'} randevunuz ${reminderTimeText}!
+        const whatsappTemplate = getTemplate(settings?.messageTemplates, 'whatsappReminder');
+        const smsTemplate = getTemplate(settings?.messageTemplates, 'smsReminder');
 
-📅 Tarih: ${appointment.date}
-🕐 Saat: ${appointment.time}
-💇 Hizmet: ${appointment.serviceName}
-👤 Personel: ${appointment.staffName}
-
-${tenant?.address ? `Adres: ${tenant.address}` : ''}
-
-Görüşmek üzere!`;
-
-        const smsMessage = `${tenant?.businessName || 'Randevu'} randevunuz ${reminderTimeText}. Tarih: ${appointment.date}, Saat: ${appointment.time}, Hizmet: ${appointment.serviceName}. Görüşmek üzere!`;
+        const whatsappMessage = renderTemplate(whatsappTemplate, templateVars);
+        const smsMessage = renderTemplate(smsTemplate, templateVars);
 
         // Send WhatsApp reminder
         const whatsappResponse = await fetch(`${process.env.NEXT_PUBLIC_ADMIN_URL || 'https://admin.netrandevu.com'}/api/whapi/send-message`, {

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '../../../../lib/prisma';
-import { sendWhatsAppMessage, generateConfirmationMessage } from '../../../../lib/whapi-client';
+import { sendWhatsAppMessage } from '../../../../lib/whapi-client';
+import { getTemplate, renderTemplate } from '../../../../lib/message-templates';
 
 export async function POST(request: NextRequest) {
   try {
@@ -87,18 +88,27 @@ export async function POST(request: NextRequest) {
       price: appointment.price
     });
 
-    const message = generateConfirmationMessage({
-      customerName: appointment.customerName,
-      date: appointment.date,
-      time: appointment.time,
-      staffName: appointment.staffName,
-      serviceName: appointment.serviceName,
-      price: appointment.price || undefined,
-      businessName: settings.businessName,
-      businessPhone: settings.businessPhone || '',
-      businessAddress: settings.businessAddress || undefined,
-      isPackage, // Paket kullanımı mı?
-    });
+    // Build template variables
+    const priceText = isPackage
+      ? '📦 Paket kullanımı'
+      : appointment.price
+        ? `${appointment.price} TL`
+        : '';
+
+    const templateVars: Record<string, string> = {
+      musteriAdi: appointment.customerName,
+      tarih: appointment.date,
+      saat: appointment.time,
+      personel: appointment.staffName,
+      hizmet: appointment.serviceName,
+      ucret: priceText,
+      isletmeAdi: settings.businessName || 'Randevu',
+      isletmeTelefon: settings.businessPhone || '',
+      isletmeAdres: settings.businessAddress || '',
+    };
+
+    const whatsappTemplate = getTemplate(settings.messageTemplates, 'whatsappConfirmation');
+    const message = renderTemplate(whatsappTemplate, templateVars);
 
     // Send WhatsApp message
     const result = await sendWhatsAppMessage({

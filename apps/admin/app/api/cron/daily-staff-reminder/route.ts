@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '../../../../lib/prisma';
 import { formatPhoneForWhatsApp, sendWhatsAppMessage } from '../../../../lib/whapi-client';
+import { getTemplate, renderTemplate } from '../../../../lib/message-templates';
 
 /**
  * Cron Job: Send daily appointment summary to staff at 08:30
@@ -90,10 +91,15 @@ export async function GET(request: NextRequest) {
           continue;
         }
 
-        // Get tenant info
+        // Get tenant info and settings
         const tenant = await prisma.tenant.findUnique({
           where: { id: staff.tenantId },
           select: { businessName: true }
+        });
+
+        const tenantSettings = await prisma.settings.findUnique({
+          where: { tenantId: staff.tenantId },
+          select: { messageTemplates: true }
         });
 
         // Format the appointment list
@@ -103,21 +109,19 @@ export async function GET(request: NextRequest) {
    ${apt.notes ? `💬 Not: ${apt.notes}` : ''}`;
         }).join('\n\n');
 
-        // Create the message
+        // Create the message from template
         const dayName = turkeyNow.toLocaleDateString('tr-TR', { weekday: 'long' });
         const dateFormatted = turkeyNow.toLocaleDateString('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric' });
 
-        const message = `🌅 Günaydın ${staff.firstName}!
-
-📅 *${dayName}, ${dateFormatted}*
-
-Bugün ${todayAppointments.length} randevunuz var:
-
-${appointmentList}
-
-İyi çalışmalar! 💪
-
-_${tenant?.businessName || 'Randevu Sistemi'}_`;
+        const staffTemplate = getTemplate(tenantSettings?.messageTemplates, 'staffDailyReminder');
+        const message = renderTemplate(staffTemplate, {
+          personelAdi: staff.firstName,
+          gun: dayName,
+          tarih: dateFormatted,
+          randevuSayisi: String(todayAppointments.length),
+          randevuListesi: appointmentList,
+          isletmeAdi: tenant?.businessName || 'Randevu Sistemi'
+        });
 
         // Format and send WhatsApp message
         const phoneNumber = formatPhoneForWhatsApp(staff.phone!);
