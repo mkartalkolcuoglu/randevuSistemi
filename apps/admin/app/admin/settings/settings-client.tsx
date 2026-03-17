@@ -1,10 +1,11 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, Button, Tabs, TabsList, TabsTrigger, TabsContent, formatPhone, normalizePhone, PHONE_PLACEHOLDER, PHONE_MAX_LENGTH } from '@/components/ui';
 import { Save, Palette, Building2, User, Key, Clock, Upload, ArrowLeft, MapPin, Settings, CreditCard, FileText, CalendarX2, Trash2, Plus, MessageSquare } from 'lucide-react';
 import AdminHeader from '../admin-header';
 import type { ClientUser } from '../../../lib/client-permissions';
+import { DEFAULT_TEMPLATES } from '../../../lib/message-templates';
 
 interface SettingsClientProps {
   user: ClientUser;
@@ -56,10 +57,10 @@ export default function SettingsClient({ user }: SettingsClientProps) {
     reminderMinutes: 120, // Hatırlatma süresi (randevudan kaç dakika önce)
     // Mesaj şablonları
     messageTemplates: {
-      whatsappConfirmation: '',
-      whatsappReminder: '',
-      smsReminder: '',
-      staffDailyReminder: ''
+      whatsappConfirmation: DEFAULT_TEMPLATES.whatsappConfirmation,
+      whatsappReminder: DEFAULT_TEMPLATES.whatsappReminder,
+      smsReminder: DEFAULT_TEMPLATES.smsReminder,
+      staffDailyReminder: DEFAULT_TEMPLATES.staffDailyReminder
     },
     // Ödeme ayarları
     cardPaymentEnabled: true, // Kredi kartı ile ödeme aktif mi
@@ -77,6 +78,34 @@ export default function SettingsClient({ user }: SettingsClientProps) {
       signatureDocument: ''
     }
   });
+
+  // Refs for message template textareas
+  const whatsappConfirmationRef = useRef<HTMLTextAreaElement>(null);
+  const whatsappReminderRef = useRef<HTMLTextAreaElement>(null);
+  const smsReminderRef = useRef<HTMLTextAreaElement>(null);
+  const staffDailyReminderRef = useRef<HTMLTextAreaElement>(null);
+
+  const insertVariable = (
+    ref: React.RefObject<HTMLTextAreaElement | null>,
+    templateKey: keyof typeof DEFAULT_TEMPLATES,
+    variable: string
+  ) => {
+    const textarea = ref.current;
+    if (!textarea) return;
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const currentValue = settings.messageTemplates[templateKey];
+    const newValue = currentValue.substring(0, start) + variable + currentValue.substring(end);
+    setSettings(prev => ({
+      ...prev,
+      messageTemplates: { ...prev.messageTemplates, [templateKey]: newValue }
+    }));
+    // Restore cursor position after variable insertion
+    setTimeout(() => {
+      textarea.focus();
+      textarea.selectionStart = textarea.selectionEnd = start + variable.length;
+    }, 0);
+  };
 
   const loadSettings = async () => {
     try {
@@ -176,7 +205,12 @@ export default function SettingsClient({ user }: SettingsClientProps) {
             blacklistThreshold: tenant.blacklistThreshold || 3, // Default: 3 defa gelmedi
             reminderMinutes: tenant.reminderMinutes || 120, // Default: 2 saat (120 dakika)
             cardPaymentEnabled: tenant.cardPaymentEnabled !== false, // Default: true
-            messageTemplates: tenant.messageTemplates || prev.messageTemplates,
+            messageTemplates: {
+              whatsappConfirmation: tenant.messageTemplates?.whatsappConfirmation || DEFAULT_TEMPLATES.whatsappConfirmation,
+              whatsappReminder: tenant.messageTemplates?.whatsappReminder || DEFAULT_TEMPLATES.whatsappReminder,
+              smsReminder: tenant.messageTemplates?.smsReminder || DEFAULT_TEMPLATES.smsReminder,
+              staffDailyReminder: tenant.messageTemplates?.staffDailyReminder || DEFAULT_TEMPLATES.staffDailyReminder,
+            },
             themeSettings: themeData,
             location: locationData,
             documents: documentsData
@@ -1650,7 +1684,7 @@ export default function SettingsClient({ user }: SettingsClientProps) {
                     type="button"
                     onClick={() => setSettings(prev => ({
                       ...prev,
-                      messageTemplates: { ...prev.messageTemplates, whatsappConfirmation: '' }
+                      messageTemplates: { ...prev.messageTemplates, whatsappConfirmation: DEFAULT_TEMPLATES.whatsappConfirmation }
                     }))}
                     className="text-xs text-blue-600 hover:underline"
                   >
@@ -1659,18 +1693,18 @@ export default function SettingsClient({ user }: SettingsClientProps) {
                 </div>
                 <p className="text-xs text-gray-500">Randevu onaylandiginda musteriye gonderilir.</p>
                 <textarea
+                  ref={whatsappConfirmationRef}
                   value={settings.messageTemplates.whatsappConfirmation}
                   onChange={(e) => setSettings(prev => ({
                     ...prev,
                     messageTemplates: { ...prev.messageTemplates, whatsappConfirmation: e.target.value }
                   }))}
-                  placeholder="Bos birakirsaniz varsayilan sablon kullanilir"
                   rows={8}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm font-mono focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
                 <div className="flex flex-wrap gap-1.5">
                   {['{musteriAdi}', '{tarih}', '{saat}', '{personel}', '{hizmet}', '{ucret}', '{isletmeAdi}', '{isletmeTelefon}', '{isletmeAdres}'].map(v => (
-                    <span key={v} className="inline-block px-2 py-0.5 bg-gray-100 text-gray-600 text-xs rounded font-mono">{v}</span>
+                    <span key={v} onClick={() => insertVariable(whatsappConfirmationRef, 'whatsappConfirmation', v)} className="inline-block px-2 py-0.5 bg-gray-100 text-gray-600 text-xs rounded font-mono cursor-pointer hover:bg-blue-100 hover:text-blue-700 transition-colors">{v}</span>
                   ))}
                 </div>
               </div>
@@ -1683,7 +1717,7 @@ export default function SettingsClient({ user }: SettingsClientProps) {
                     type="button"
                     onClick={() => setSettings(prev => ({
                       ...prev,
-                      messageTemplates: { ...prev.messageTemplates, whatsappReminder: '' }
+                      messageTemplates: { ...prev.messageTemplates, whatsappReminder: DEFAULT_TEMPLATES.whatsappReminder }
                     }))}
                     className="text-xs text-blue-600 hover:underline"
                   >
@@ -1692,18 +1726,18 @@ export default function SettingsClient({ user }: SettingsClientProps) {
                 </div>
                 <p className="text-xs text-gray-500">Randevu saatinden once musteriye gonderilir.</p>
                 <textarea
+                  ref={whatsappReminderRef}
                   value={settings.messageTemplates.whatsappReminder}
                   onChange={(e) => setSettings(prev => ({
                     ...prev,
                     messageTemplates: { ...prev.messageTemplates, whatsappReminder: e.target.value }
                   }))}
-                  placeholder="Bos birakirsaniz varsayilan sablon kullanilir"
                   rows={8}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm font-mono focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
                 <div className="flex flex-wrap gap-1.5">
                   {['{musteriAdi}', '{tarih}', '{saat}', '{personel}', '{hizmet}', '{hatirlatmaSuresi}', '{isletmeAdi}', '{isletmeTelefon}', '{isletmeAdres}'].map(v => (
-                    <span key={v} className="inline-block px-2 py-0.5 bg-gray-100 text-gray-600 text-xs rounded font-mono">{v}</span>
+                    <span key={v} onClick={() => insertVariable(whatsappReminderRef, 'whatsappReminder', v)} className="inline-block px-2 py-0.5 bg-gray-100 text-gray-600 text-xs rounded font-mono cursor-pointer hover:bg-blue-100 hover:text-blue-700 transition-colors">{v}</span>
                   ))}
                 </div>
               </div>
@@ -1716,7 +1750,7 @@ export default function SettingsClient({ user }: SettingsClientProps) {
                     type="button"
                     onClick={() => setSettings(prev => ({
                       ...prev,
-                      messageTemplates: { ...prev.messageTemplates, smsReminder: '' }
+                      messageTemplates: { ...prev.messageTemplates, smsReminder: DEFAULT_TEMPLATES.smsReminder }
                     }))}
                     className="text-xs text-blue-600 hover:underline"
                   >
@@ -1725,18 +1759,18 @@ export default function SettingsClient({ user }: SettingsClientProps) {
                 </div>
                 <p className="text-xs text-gray-500">Randevu saatinden once musteriye SMS olarak gonderilir. Kisa tutun.</p>
                 <textarea
+                  ref={smsReminderRef}
                   value={settings.messageTemplates.smsReminder}
                   onChange={(e) => setSettings(prev => ({
                     ...prev,
                     messageTemplates: { ...prev.messageTemplates, smsReminder: e.target.value }
                   }))}
-                  placeholder="Bos birakirsaniz varsayilan sablon kullanilir"
                   rows={3}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm font-mono focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
                 <div className="flex flex-wrap gap-1.5">
                   {['{musteriAdi}', '{tarih}', '{saat}', '{hizmet}', '{hatirlatmaSuresi}', '{isletmeAdi}'].map(v => (
-                    <span key={v} className="inline-block px-2 py-0.5 bg-gray-100 text-gray-600 text-xs rounded font-mono">{v}</span>
+                    <span key={v} onClick={() => insertVariable(smsReminderRef, 'smsReminder', v)} className="inline-block px-2 py-0.5 bg-gray-100 text-gray-600 text-xs rounded font-mono cursor-pointer hover:bg-blue-100 hover:text-blue-700 transition-colors">{v}</span>
                   ))}
                 </div>
               </div>
@@ -1749,7 +1783,7 @@ export default function SettingsClient({ user }: SettingsClientProps) {
                     type="button"
                     onClick={() => setSettings(prev => ({
                       ...prev,
-                      messageTemplates: { ...prev.messageTemplates, staffDailyReminder: '' }
+                      messageTemplates: { ...prev.messageTemplates, staffDailyReminder: DEFAULT_TEMPLATES.staffDailyReminder }
                     }))}
                     className="text-xs text-blue-600 hover:underline"
                   >
@@ -1758,18 +1792,18 @@ export default function SettingsClient({ user }: SettingsClientProps) {
                 </div>
                 <p className="text-xs text-gray-500">Her sabah personele gonderilen gunluk randevu ozeti.</p>
                 <textarea
+                  ref={staffDailyReminderRef}
                   value={settings.messageTemplates.staffDailyReminder}
                   onChange={(e) => setSettings(prev => ({
                     ...prev,
                     messageTemplates: { ...prev.messageTemplates, staffDailyReminder: e.target.value }
                   }))}
-                  placeholder="Bos birakirsaniz varsayilan sablon kullanilir"
                   rows={8}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm font-mono focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
                 <div className="flex flex-wrap gap-1.5">
                   {['{personelAdi}', '{gun}', '{tarih}', '{randevuSayisi}', '{randevuListesi}', '{isletmeAdi}'].map(v => (
-                    <span key={v} className="inline-block px-2 py-0.5 bg-gray-100 text-gray-600 text-xs rounded font-mono">{v}</span>
+                    <span key={v} onClick={() => insertVariable(staffDailyReminderRef, 'staffDailyReminder', v)} className="inline-block px-2 py-0.5 bg-gray-100 text-gray-600 text-xs rounded font-mono cursor-pointer hover:bg-blue-100 hover:text-blue-700 transition-colors">{v}</span>
                   ))}
                 </div>
               </div>
