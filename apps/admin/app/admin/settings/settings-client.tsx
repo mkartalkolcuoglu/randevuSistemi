@@ -68,7 +68,8 @@ export default function SettingsClient({ user }: SettingsClientProps) {
       confirmationChannel: 'whatsapp' as string,
       reminderChannel: 'both' as string,
       staffDailyChannel: 'whatsapp' as string,
-      ownerDailyChannel: 'whatsapp' as string
+      ownerDailyChannel: 'whatsapp' as string,
+      autoSendConfirmation: false,
     },
     // Ödeme ayarları
     cardPaymentEnabled: true, // Kredi kartı ile ödeme aktif mi
@@ -226,6 +227,7 @@ export default function SettingsClient({ user }: SettingsClientProps) {
               reminderChannel: tenant.notificationSettings?.reminderChannel || 'both',
               staffDailyChannel: tenant.notificationSettings?.staffDailyChannel || 'whatsapp',
               ownerDailyChannel: tenant.notificationSettings?.ownerDailyChannel || 'whatsapp',
+              autoSendConfirmation: tenant.notificationSettings?.autoSendConfirmation || false,
             },
             themeSettings: themeData,
             location: locationData,
@@ -1709,6 +1711,24 @@ export default function SettingsClient({ user }: SettingsClientProps) {
                   </button>
                 </div>
                 <p className="text-xs text-gray-500">Randevu onaylandiginda musteriye gonderilir.</p>
+                <div className="flex items-center justify-between py-2 px-3 bg-blue-50 rounded-lg border border-blue-200">
+                  <div>
+                    <p className="text-sm font-medium text-gray-700">Otomatik bildirim gonder</p>
+                    <p className="text-xs text-gray-500">Randevu olusturuldugunda musteriye otomatik onay mesaji gonderilir</p>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={settings.notificationSettings.autoSendConfirmation}
+                      onChange={(e) => setSettings(prev => ({
+                        ...prev,
+                        notificationSettings: { ...prev.notificationSettings, autoSendConfirmation: e.target.checked }
+                      }))}
+                      className="sr-only peer"
+                    />
+                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                  </label>
+                </div>
                 <div className="flex items-center gap-2">
                   <label className="text-xs font-medium text-gray-600">Kanal:</label>
                   <select

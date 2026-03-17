@@ -334,6 +334,21 @@ export async function POST(request: NextRequest) {
       },
     });
 
+    // Auto-send confirmation if enabled
+    try {
+      const settingsRecord = await prisma.settings.findUnique({ where: { tenantId: auth.tenantId }, select: { notificationSettings: true } });
+      let notifSettings: any = {};
+      try { notifSettings = settingsRecord?.notificationSettings ? JSON.parse(settingsRecord.notificationSettings) : {}; } catch {}
+      if (notifSettings.autoSendConfirmation) {
+        const adminUrl = process.env.NEXT_PUBLIC_ADMIN_URL || 'https://admin.netrandevu.com';
+        fetch(`${adminUrl}/api/whatsapp/send-confirmation`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ appointmentId: appointment.id })
+        }).catch(err => console.error('Auto-send confirmation failed:', err));
+      }
+    } catch (err) { console.error('Auto-send check failed:', err); }
+
     return NextResponse.json({
       success: true,
       message: 'Randevu oluşturuldu',

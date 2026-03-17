@@ -90,6 +90,7 @@ interface NotificationSettings {
   reminderChannel: string;
   staffDailyChannel: string;
   ownerDailyChannel: string;
+  autoSendConfirmation?: boolean;
 }
 
 interface SettingsData {
@@ -509,6 +510,25 @@ export default function StaffSettingsScreen() {
     setFormData(prev => ({
       ...prev,
       notificationSettings: { ...current, [key]: value },
+    }));
+    setHasChanges(true);
+  };
+
+  const getAutoSendConfirmation = (): boolean => {
+    const settings = (formData as any).notificationSettings as NotificationSettings | null;
+    return settings?.autoSendConfirmation || false;
+  };
+
+  const toggleAutoSendConfirmation = (value: boolean) => {
+    const current = ((formData as any).notificationSettings as NotificationSettings | null) || {
+      confirmationChannel: 'whatsapp',
+      reminderChannel: 'both',
+      staffDailyChannel: 'whatsapp',
+      ownerDailyChannel: 'whatsapp',
+    };
+    setFormData(prev => ({
+      ...prev,
+      notificationSettings: { ...current, autoSendConfirmation: value },
     }));
     setHasChanges(true);
   };
@@ -1444,6 +1464,19 @@ export default function StaffSettingsScreen() {
                     <Text style={styles.cardTitle}>Randevu Onay Mesajı</Text>
                     <Text style={styles.cardDescription}>Randevu oluşturulduğunda gönderilen mesaj</Text>
                   </View>
+                </View>
+                {/* Otomatik Bildirim Switch */}
+                <View style={styles.autoSendRow}>
+                  <View style={styles.autoSendInfo}>
+                    <Text style={styles.autoSendLabel}>Otomatik bildirim gönder</Text>
+                    <Text style={styles.autoSendDescription}>Randevu oluşturulduğunda müşteriye otomatik onay mesajı gönderilir</Text>
+                  </View>
+                  <Switch
+                    value={getAutoSendConfirmation()}
+                    onValueChange={toggleAutoSendConfirmation}
+                    trackColor={{ false: '#D1D5DB', true: '#93C5FD' }}
+                    thumbColor={getAutoSendConfirmation() ? '#2563EB' : '#f4f3f4'}
+                  />
                 </View>
                 <Text style={styles.msgLabel}>Gönderim Kanalı</Text>
                 <TouchableOpacity
@@ -2663,6 +2696,33 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#92400E',
     lineHeight: 18,
+  },
+  // Auto-send confirmation styles
+  autoSendRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#EFF6FF',
+    borderWidth: 1,
+    borderColor: '#BFDBFE',
+    borderRadius: 10,
+    padding: 12,
+    marginBottom: 12,
+  },
+  autoSendInfo: {
+    flex: 1,
+    marginRight: 12,
+  },
+  autoSendLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1F2937',
+  },
+  autoSendDescription: {
+    fontSize: 11,
+    color: '#6B7280',
+    marginTop: 2,
+    lineHeight: 16,
   },
   // DateTimePicker modal styles
   datePickerModalOverlay: {

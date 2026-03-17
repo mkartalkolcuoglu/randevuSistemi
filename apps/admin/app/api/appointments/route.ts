@@ -357,6 +357,21 @@ export async function POST(request: NextRequest) {
         console.error('🔔 [APPOINTMENT] Failed to create notification:', error);
       });
 
+      // Auto-send confirmation if enabled
+      try {
+        const settingsRecord = await prisma.settings.findUnique({ where: { tenantId: tenant.id }, select: { notificationSettings: true } });
+        let notifSettings: any = {};
+        try { notifSettings = settingsRecord?.notificationSettings ? JSON.parse(settingsRecord.notificationSettings) : {}; } catch {}
+        if (notifSettings.autoSendConfirmation) {
+          const adminUrl = process.env.NEXT_PUBLIC_ADMIN_URL || 'https://admin.netrandevu.com';
+          fetch(`${adminUrl}/api/whatsapp/send-confirmation`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ appointmentId: newAppointment.id })
+          }).catch(err => console.error('Auto-send confirmation failed:', err));
+        }
+      } catch (err) { console.error('Auto-send check failed:', err); }
+
       return NextResponse.json({
         success: true,
         message: 'Appointment created successfully',
@@ -575,6 +590,21 @@ export async function POST(request: NextRequest) {
     }).catch((error: Error) => {
       console.error('🔔 [ADMIN-APPOINTMENT] Failed to create notification:', error);
     });
+
+    // Auto-send confirmation if enabled
+    try {
+      const settingsRecord = await prisma.settings.findUnique({ where: { tenantId }, select: { notificationSettings: true } });
+      let notifSettings: any = {};
+      try { notifSettings = settingsRecord?.notificationSettings ? JSON.parse(settingsRecord.notificationSettings) : {}; } catch {}
+      if (notifSettings.autoSendConfirmation) {
+        const adminUrl = process.env.NEXT_PUBLIC_ADMIN_URL || 'https://admin.netrandevu.com';
+        fetch(`${adminUrl}/api/whatsapp/send-confirmation`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ appointmentId: newAppointment.id })
+        }).catch(err => console.error('Auto-send confirmation failed:', err));
+      }
+    } catch (err) { console.error('Auto-send check failed:', err); }
 
     return NextResponse.json({
       success: true,
