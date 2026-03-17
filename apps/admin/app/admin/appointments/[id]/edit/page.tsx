@@ -33,7 +33,9 @@ export default function EditAppointmentPage() {
     notes: '',
     status: 'pending',
     paymentType: 'cash',
-    packageInfo: null as any
+    packageInfo: null as any,
+    extraCharge: 0,
+    extraChargeNote: ''
   });
 
   // Update available time slots when date or settings change
@@ -174,7 +176,9 @@ export default function EditAppointmentPage() {
           notes: appointment.notes || '',
           status: appointment.status || 'pending',
           paymentType: appointment.paymentType || 'cash',
-          packageInfo: parsedPackageInfo
+          packageInfo: parsedPackageInfo,
+          extraCharge: appointment.extraCharge || 0,
+          extraChargeNote: appointment.extraChargeNote || ''
         };
         setFormData(newFormData);
       } else {
@@ -238,7 +242,9 @@ export default function EditAppointmentPage() {
         ...formData,
         serviceName: selectedService?.name || '',
         staffName: selectedStaff ? `${selectedStaff.firstName} ${selectedStaff.lastName}` : '',
-        price: selectedService?.price || 0
+        price: selectedService?.price || 0,
+        extraCharge: parseFloat(String(formData.extraCharge)) || 0,
+        extraChargeNote: formData.extraChargeNote || null
       };
 
       console.log('📤 Sending update:', dataToSend);
@@ -506,6 +512,33 @@ export default function EditAppointmentPage() {
                 placeholder="Randevu hakkında notlar..."
                 rows={3}
               />
+            </div>
+
+            {/* Extra Charge */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <Label htmlFor="extraCharge">Ek Ücret (₺)</Label>
+                <Input
+                  id="extraCharge"
+                  name="extraCharge"
+                  type="number"
+                  value={formData.extraCharge}
+                  onChange={handleInputChange}
+                  placeholder="0"
+                  min="0"
+                  step="0.01"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="extraChargeNote">Ek Ücret Notu</Label>
+                <Input
+                  id="extraChargeNote"
+                  name="extraChargeNote"
+                  value={formData.extraChargeNote}
+                  onChange={handleInputChange}
+                  placeholder="Ek ücret açıklaması (ör: ek malzeme, uzatma)"
+                />
+              </div>
             </div>
 
             <div className="flex gap-4 pt-6">

@@ -124,6 +124,8 @@ model Appointment {
   refundCompleted   Boolean?  @default(false)
   refundCompletedAt DateTime? @db.Timestamp(6)
   refundNotes       String?
+  extraCharge       Float?    @default(0) @map("extra_charge")
+  extraChargeNote   String?   @map("extra_charge_note")
 
   tenant   Tenant   @relation(fields: [tenantId], references: [id])
   customer Customer @relation(fields: [customerId], references: [id])

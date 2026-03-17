@@ -378,9 +378,16 @@ export default function AppointmentDetailPage() {
                           Paket Kullanımı
                         </div>
                       ) : (
-                        <p className="text-lg font-semibold text-green-600">
-                          ₺{appointment.price || 0}
-                        </p>
+                        <div className="text-right">
+                          <p className="text-lg font-semibold text-green-600">
+                            ₺{((appointment.price || 0) + (appointment.extraCharge || 0)).toFixed(0)}
+                          </p>
+                          {appointment.extraCharge > 0 && (
+                            <p className="text-xs text-gray-500">
+                              Hizmet: ₺{appointment.price || 0} + Ek: ₺{appointment.extraCharge}
+                            </p>
+                          )}
+                        </div>
                       )}
                     </div>
                   </div>
@@ -488,8 +495,18 @@ export default function AppointmentDetailPage() {
                 <div className="pt-4 border-t">
                   <h4 className="font-medium mb-2">Toplam Tutar</h4>
                   <div className="text-2xl font-bold text-green-600">
-                    ₺{appointment.price}
+                    ₺{((appointment.price || 0) + (appointment.extraCharge || 0)).toFixed(0)}
                   </div>
+                  {appointment.extraCharge > 0 && (
+                    <div className="mt-1 text-sm text-gray-500">
+                      <span>Hizmet: ₺{appointment.price || 0}</span>
+                      <span className="mx-1">+</span>
+                      <span className="text-orange-600">Ek Ücret: ₺{appointment.extraCharge}</span>
+                      {appointment.extraChargeNote && (
+                        <p className="text-xs text-gray-400 mt-1">({appointment.extraChargeNote})</p>
+                      )}
+                    </div>
+                  )}
                 </div>
               )}
             </CardContent>

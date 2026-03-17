@@ -93,6 +93,8 @@ export interface Appointment {
   notes?: string;
   price: number;
   paymentType: PaymentType;
+  extraCharge?: number;
+  extraChargeNote?: string;
   createdAt: string;
   updatedAt: string;
 }

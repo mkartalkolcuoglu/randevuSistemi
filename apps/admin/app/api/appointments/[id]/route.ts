@@ -86,7 +86,9 @@ export async function PUT(
         notes: data.notes || '',
         price: data.price || 0,
         duration: data.duration || 60,
-        paymentType: data.paymentType || 'cash'
+        paymentType: data.paymentType || 'cash',
+        ...(data.extraCharge !== undefined && { extraCharge: parseFloat(data.extraCharge) || 0 }),
+        ...(data.extraChargeNote !== undefined && { extraChargeNote: data.extraChargeNote || null })
         // Note: packageInfo is NOT updated - it's set only at creation
       }
     });
@@ -382,9 +384,10 @@ async function createAppointmentTransaction(appointment: any) {
       return;
     }
 
-    // Skip if no price
-    if (!appointment.price || appointment.price <= 0) {
-      console.log('⚠️ [TRANSACTION] Skipping - No price set:', appointment.price);
+    // Skip if no price (including extra charge)
+    const totalPrice = (appointment.price || 0) + (appointment.extraCharge || 0);
+    if (totalPrice <= 0) {
+      console.log('⚠️ [TRANSACTION] Skipping - No price set:', appointment.price, 'extraCharge:', appointment.extraCharge);
       return;
     }
 
@@ -417,12 +420,14 @@ async function createAppointmentTransaction(appointment: any) {
     const today = new Date();
     const transactionDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
 
+    const totalAmount = (appointment.price || 0) + (appointment.extraCharge || 0);
+
     const transaction = await prisma.transaction.create({
       data: {
         tenantId: appointment.tenantId,
         type: 'appointment',
-        amount: appointment.price,
-        description: `Randevu: ${appointment.serviceName} - ${appointment.customerName}`,
+        amount: totalAmount,
+        description: `Randevu: ${appointment.serviceName} - ${appointment.customerName}${appointment.extraCharge ? ` (+₺${appointment.extraCharge} ek ücret)` : ''}`,
         paymentType: appointment.paymentType || 'cash',
         customerId: appointment.customerId,
         customerName: appointment.customerName,

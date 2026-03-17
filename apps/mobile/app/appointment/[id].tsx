@@ -16,18 +16,18 @@ import { appointmentService } from '../../src/services/appointment.service';
 import { Appointment, AppointmentStatus } from '../../src/types';
 
 const STATUS_COLORS: Record<string, { bg: string; text: string; label: string }> = {
-  pending: { bg: '#FEF3C7', text: '#D97706', label: 'Bekliyor' },
-  confirmed: { bg: '#DBEAFE', text: '#2563EB', label: 'Onaylandi' },
-  completed: { bg: '#D1FAE5', text: '#059669', label: 'Tamamlandi' },
-  cancelled: { bg: '#FEE2E2', text: '#DC2626', label: 'Iptal' },
-  no_show: { bg: '#F3F4F6', text: '#6B7280', label: 'Gelmedi' },
+  pending: { bg: '#FEF3C7', text: '#D97706', label: 'Beklemede' },
+  confirmed: { bg: '#DBEAFE', text: '#2563EB', label: 'Onaylandı' },
+  completed: { bg: '#D1FAE5', text: '#059669', label: 'Tamamlandı' },
+  cancelled: { bg: '#FEE2E2', text: '#DC2626', label: 'İptal Edildi' },
+  no_show: { bg: '#F3F4F6', text: '#6B7280', label: 'Gelmedi ve Bilgi Vermedi' },
 };
 
 const STATUS_OPTIONS: { status: AppointmentStatus; label: string; color: string }[] = [
   { status: 'confirmed', label: 'Onayla', color: '#2563EB' },
-  { status: 'completed', label: 'Tamamlandi', color: '#059669' },
-  { status: 'cancelled', label: 'Iptal Et', color: '#DC2626' },
-  { status: 'no_show', label: 'Gelmedi', color: '#6B7280' },
+  { status: 'completed', label: 'Tamamlandı', color: '#059669' },
+  { status: 'cancelled', label: 'İptal Et', color: '#DC2626' },
+  { status: 'no_show', label: 'Gelmedi ve Bilgi Vermedi', color: '#6B7280' },
 ];
 
 export default function AppointmentDetailScreen() {
@@ -212,8 +212,19 @@ export default function AppointmentDetailScreen() {
             </View>
             <View style={styles.cardRow}>
               <Ionicons name="cash-outline" size={20} color="#6B7280" />
-              <Text style={styles.cardTextBold}>{appointment.price} TL</Text>
+              <Text style={styles.cardTextBold}>
+                {((appointment.price || 0) + (appointment.extraCharge || 0)).toFixed(0)} TL
+                {(appointment.extraCharge || 0) > 0 && (
+                  ` (Hizmet: ${appointment.price} + Ek: ${appointment.extraCharge})`
+                )}
+              </Text>
             </View>
+            {appointment.extraChargeNote && (
+              <View style={styles.cardRow}>
+                <Ionicons name="information-circle-outline" size={20} color="#F59E0B" />
+                <Text style={[styles.cardText, { color: '#D97706' }]}>Ek ücret: {appointment.extraChargeNote}</Text>
+              </View>
+            )}
           </View>
         </View>
 

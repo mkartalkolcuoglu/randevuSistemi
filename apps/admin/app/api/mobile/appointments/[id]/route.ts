@@ -152,7 +152,7 @@ export async function PUT(
 
     const { id } = await params;
     const body = await request.json();
-    const { serviceId, staffId, date, time, customerName, customerPhone, notes } = body;
+    const { serviceId, staffId, date, time, customerName, customerPhone, notes, extraCharge, extraChargeNote } = body;
 
     const appointment = await prisma.appointment.findUnique({
       where: { id },
@@ -196,6 +196,8 @@ export async function PUT(
     if (date) updateData.date = date;
     if (time) updateData.time = time;
     if (notes !== undefined) updateData.notes = notes;
+    if (extraCharge !== undefined) updateData.extraCharge = parseFloat(extraCharge) || 0;
+    if (extraChargeNote !== undefined) updateData.extraChargeNote = extraChargeNote || null;
 
     // Update customer info if provided
     if (customerName || customerPhone) {

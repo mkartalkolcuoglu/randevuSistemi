@@ -18,6 +18,14 @@ import { useAuthStore } from '../../src/store/auth.store';
 import { appointmentService } from '../../src/services/appointment.service';
 import { Service, Staff, Appointment } from '../../src/types';
 
+const STATUS_OPTIONS = [
+  { key: 'pending', label: 'Beklemede', icon: 'time', color: '#D97706', bg: '#FEF3C7' },
+  { key: 'confirmed', label: 'Onaylandı', icon: 'checkmark-circle', color: '#2563EB', bg: '#DBEAFE' },
+  { key: 'completed', label: 'Tamamlandı', icon: 'checkmark-done-circle', color: '#059669', bg: '#D1FAE5' },
+  { key: 'no_show', label: 'Gelmedi ve Bilgi Vermedi', icon: 'close-circle', color: '#EA580C', bg: '#FFEDD5' },
+  { key: 'cancelled', label: 'İptal Edildi', icon: 'ban', color: '#DC2626', bg: '#FEE2E2' },
+] as const;
+
 export default function EditAppointmentScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -35,6 +43,9 @@ export default function EditAppointmentScreen() {
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
   const [notes, setNotes] = useState('');
+  const [extraCharge, setExtraCharge] = useState('0');
+  const [extraChargeNote, setExtraChargeNote] = useState('');
+  const [selectedStatus, setSelectedStatus] = useState('pending');
 
   const [activeSection, setActiveSection] = useState<string | null>(null);
 
@@ -47,12 +58,12 @@ export default function EditAppointmentScreen() {
     setIsLoading(true);
     try {
       const [servicesRes, staffRes, appointmentRes] = await Promise.all([
-        appointmentService.getServices(selectedTenant.id),
+        appointmentService.getServices(selectedTenant.id, true),
         appointmentService.getAvailableStaff(selectedTenant.id),
         appointmentService.getAppointment(id),
       ]);
 
-      setServices(servicesRes.data || []);
+      const serviceList = servicesRes.data || [];
       setStaffList(staffRes.data || []);
 
       if (appointmentRes.data) {
@@ -61,16 +72,32 @@ export default function EditAppointmentScreen() {
         setCustomerName(apt.customerName || '');
         setCustomerPhone(apt.customerPhone || '');
         setNotes(apt.notes || '');
+        setExtraCharge(String(apt.extraCharge || 0));
+        setExtraChargeNote(apt.extraChargeNote || '');
         setSelectedDate(new Date(apt.date));
         setSelectedTime(apt.time?.substring(0, 5) || '');
+        setSelectedStatus(apt.status || 'pending');
 
-        // Set service
-        const service = servicesRes.data?.find((s: Service) => s.id === apt.serviceId);
+        // Set service — find by ID, or fallback from appointment's denormalized data
+        let service = serviceList.find((s: Service) => s.id === apt.serviceId);
+        if (!service && apt.serviceId) {
+          service = {
+            id: apt.serviceId,
+            name: apt.serviceName || 'Bilinmeyen Hizmet',
+            price: apt.price || 0,
+            duration: apt.duration || 30,
+            tenantId: selectedTenant.id,
+          } as Service;
+          serviceList.push(service);
+        }
         if (service) setSelectedService(service);
+        setServices(serviceList);
 
         // Set staff
         const staff = staffRes.data?.find((s: Staff) => s.id === apt.staffId);
         if (staff) setSelectedStaff(staff);
+      } else {
+        setServices(serviceList);
       }
     } catch (error) {
       console.error('Error fetching data:', error);
@@ -114,12 +141,19 @@ export default function EditAppointmentScreen() {
       const response = await appointmentService.updateAppointment(id, {
         serviceId: selectedService.id,
         staffId: selectedStaff.id,
-        date: selectedDate.toISOString().split('T')[0],
+        date: `${selectedDate.getFullYear()}-${(selectedDate.getMonth()+1).toString().padStart(2,'0')}-${selectedDate.getDate().toString().padStart(2,'0')}`,
         time: selectedTime,
         customerName,
         customerPhone,
         notes,
+        extraCharge: parseFloat(extraCharge) || 0,
+        extraChargeNote: extraChargeNote || null,
       });
+
+      // Update status if changed
+      if (appointment && selectedStatus !== appointment.status) {
+        await appointmentService.updateAppointmentStatus(id, selectedStatus);
+      }
 
       if (response.success) {
         Alert.alert('Başarılı', 'Randevu güncellendi', [
@@ -394,6 +428,109 @@ export default function EditAppointmentScreen() {
           </View>
         )}
 
+        {/* Status Section */}
+        <TouchableOpacity
+          style={styles.section}
+          onPress={() => setActiveSection(activeSection === 'status' ? null : 'status')}
+        >
+          <View style={styles.sectionHeader}>
+            <View style={[styles.sectionIcon, {
+              backgroundColor: STATUS_OPTIONS.find(s => s.key === selectedStatus)?.bg || '#F3F4F6',
+            }]}>
+              <Ionicons
+                name={(STATUS_OPTIONS.find(s => s.key === selectedStatus)?.icon || 'ellipse') as any}
+                size={20}
+                color={STATUS_OPTIONS.find(s => s.key === selectedStatus)?.color || '#6B7280'}
+              />
+            </View>
+            <View style={styles.sectionInfo}>
+              <Text style={styles.sectionLabel}>Durum</Text>
+              <Text style={[styles.sectionValue, {
+                color: STATUS_OPTIONS.find(s => s.key === selectedStatus)?.color || '#6B7280',
+              }]}>
+                {STATUS_OPTIONS.find(s => s.key === selectedStatus)?.label || 'Beklemede'}
+              </Text>
+            </View>
+            <Ionicons
+              name={activeSection === 'status' ? 'chevron-up' : 'chevron-down'}
+              size={20}
+              color="#6B7280"
+            />
+          </View>
+        </TouchableOpacity>
+
+        {activeSection === 'status' && (
+          <View style={styles.expandedSection}>
+            {STATUS_OPTIONS.map((status) => (
+              <TouchableOpacity
+                key={status.key}
+                style={[
+                  styles.optionCard,
+                  selectedStatus === status.key && styles.optionCardSelected,
+                ]}
+                onPress={() => {
+                  setSelectedStatus(status.key);
+                  setActiveSection(null);
+                }}
+              >
+                <View style={[styles.statusIcon, { backgroundColor: status.bg }]}>
+                  <Ionicons name={status.icon as any} size={22} color={status.color} />
+                </View>
+                <View style={styles.optionInfo}>
+                  <Text style={styles.optionTitle}>{status.label}</Text>
+                </View>
+                {selectedStatus === status.key && (
+                  <Ionicons name="checkmark-circle" size={24} color="#3B82F6" />
+                )}
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
+
+        {/* Extra Charge Section */}
+        <TouchableOpacity
+          style={styles.section}
+          onPress={() => setActiveSection(activeSection === 'extraCharge' ? null : 'extraCharge')}
+        >
+          <View style={styles.sectionHeader}>
+            <View style={[styles.sectionIcon, { backgroundColor: '#FEF3C7' }]}>
+              <Ionicons name="add-circle" size={20} color="#D97706" />
+            </View>
+            <View style={styles.sectionInfo}>
+              <Text style={styles.sectionLabel}>Ek Ucret</Text>
+              <Text style={styles.sectionValue}>
+                {parseFloat(extraCharge) > 0 ? `${extraCharge} TL` : 'Ek ucret yok'}
+                {extraChargeNote ? ` - ${extraChargeNote}` : ''}
+              </Text>
+            </View>
+            <Ionicons
+              name={activeSection === 'extraCharge' ? 'chevron-up' : 'chevron-down'}
+              size={20}
+              color="#6B7280"
+            />
+          </View>
+        </TouchableOpacity>
+
+        {activeSection === 'extraCharge' && (
+          <View style={styles.expandedSection}>
+            <Text style={styles.inputLabel}>Ek Ucret (TL)</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="0"
+              keyboardType="numeric"
+              value={extraCharge}
+              onChangeText={setExtraCharge}
+            />
+            <Text style={styles.inputLabel}>Ek Ucret Notu</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Ek ucret aciklamasi (orn: ek malzeme, uzatma)"
+              value={extraChargeNote}
+              onChangeText={setExtraChargeNote}
+            />
+          </View>
+        )}
+
         {/* Notes Section */}
         <TouchableOpacity
           style={styles.section}
@@ -598,6 +735,14 @@ const styles = StyleSheet.create({
     height: 40,
     borderRadius: 20,
     backgroundColor: '#3B82F6',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  statusIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
