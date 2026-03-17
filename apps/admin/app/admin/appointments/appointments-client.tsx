@@ -60,7 +60,8 @@ export default function AppointmentsClient({ initialAppointments, tenantId, user
         // Refresh appointments to show updated whatsappSent status
         window.location.reload();
       } else {
-        alert(`❌ Hata: ${data.error || 'WhatsApp mesajı gönderilemedi'}\n\nDetay: ${data.details || ''}`);
+        const detailStr = typeof data.details === 'object' ? JSON.stringify(data.details) : (data.details || '');
+        alert(`❌ Hata: ${data.error || 'WhatsApp mesajı gönderilemedi'}\n\nDetay: ${detailStr}`);
       }
     } catch (error) {
       console.error('❌ WhatsApp send error:', error);

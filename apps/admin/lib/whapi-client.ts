@@ -97,12 +97,12 @@ export async function sendWhatsAppMessage(params: SendMessageParams): Promise<Se
       return {
         sent: false,
         error: data.message || 'WhatsApp mesajı gönderilemedi',
-        details: data
+        details: JSON.stringify(data)
       };
     }
 
     console.log('✅ WhatsApp message sent successfully:', data);
-    
+
     return {
       sent: true,
       message: 'Mesaj başarıyla gönderildi',
@@ -114,7 +114,7 @@ export async function sendWhatsAppMessage(params: SendMessageParams): Promise<Se
     return {
       sent: false,
       error: error instanceof Error ? error.message : 'Bilinmeyen hata',
-      details: error
+      details: error instanceof Error ? error.message : JSON.stringify(error)
     };
   }
 }
