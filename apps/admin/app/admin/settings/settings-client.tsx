@@ -1707,7 +1707,7 @@ export default function SettingsClient({ user }: SettingsClientProps) {
           </Card>
         </TabsContent>
 
-        {/* Mesaj Yonetim Paneli */}
+        {/* Mesaj Yönetim Paneli */}
         <TabsContent value="messages">
           <div className="space-y-6">
 
@@ -1719,13 +1719,13 @@ export default function SettingsClient({ user }: SettingsClientProps) {
                     <Zap className="w-6 h-6 text-indigo-600" />
                   </div>
                   <div className="flex-1">
-                    <h3 className="text-lg font-bold text-gray-900 mb-1">Varsayilan Gonderim Kanali</h3>
-                    <p className="text-sm text-gray-500 mb-4">Tum mesaj turleri icin varsayilan kanal. Her mesaj turu bunu ayri olarak degistirebilir.</p>
+                    <h3 className="text-lg font-bold text-gray-900 mb-1">Varsayılan Gönderim Kanalı</h3>
+                    <p className="text-sm text-gray-500 mb-4">Tüm mesaj türleri için varsayılan kanal. Her mesaj türü bunu ayrı olarak değiştirebilir.</p>
                     <div className="flex flex-wrap gap-2">
                       {[
-                        { value: 'smart', label: 'Akilli Mod', desc: 'Mobil app > WhatsApp > SMS otomatik sec', icon: Zap, color: 'purple' },
-                        { value: 'whatsapp', label: 'WhatsApp', desc: 'Her zaman WhatsApp ile gonder', icon: MessageSquare, color: 'green' },
-                        { value: 'sms', label: 'SMS', desc: 'Her zaman SMS ile gonder', icon: Smartphone, color: 'blue' },
+                        { value: 'smart', label: 'Akıllı Mod', desc: 'Mobil app > WhatsApp > SMS otomatik seç', icon: Zap, color: 'purple' },
+                        { value: 'whatsapp', label: 'WhatsApp', desc: 'Her zaman WhatsApp ile gönder', icon: MessageSquare, color: 'green' },
+                        { value: 'sms', label: 'SMS', desc: 'Her zaman SMS ile gönder', icon: Smartphone, color: 'blue' },
                       ].map(opt => (
                         <button
                           key={opt.value}
@@ -1755,7 +1755,7 @@ export default function SettingsClient({ user }: SettingsClientProps) {
                     {settings.notificationSettings.defaultChannel === 'smart' && (
                       <div className="mt-3 p-3 bg-purple-50 rounded-lg border border-purple-200">
                         <p className="text-xs text-purple-700">
-                          <strong>Akilli Mod:</strong> Mobil uygulama yuklu musterilere bildirim (push), diger musterilere WhatsApp veya SMS ile gonderilir. Her kanal da kapaliysa mesaj gonderilmez.
+                          <strong>Akıllı Mod:</strong> Mobil uygulama yüklü müşterilere bildirim (push), diğer müşterilere WhatsApp veya SMS ile gönderilir. Her kanal da kapalıysa mesaj gönderilmez.
                         </p>
                       </div>
                     )}
@@ -1764,10 +1764,10 @@ export default function SettingsClient({ user }: SettingsClientProps) {
               </CardContent>
             </Card>
 
-            {/* Musteri Mesajlari */}
+            {/* Müşteri Mesajları */}
             <div>
               <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3 flex items-center gap-2">
-                <Users className="w-4 h-4" /> Musteri Mesajlari
+                <Users className="w-4 h-4" /> Müşteri Mesajları
               </h3>
 
               <div className="space-y-3">
@@ -1783,8 +1783,8 @@ export default function SettingsClient({ user }: SettingsClientProps) {
                         <Send className="w-5 h-5 text-green-600" />
                       </div>
                       <div className="text-left">
-                        <p className="font-semibold text-gray-900">Randevu Onay Mesaji</p>
-                        <p className="text-xs text-gray-500">Randevu olusturuldugunda musteriye gonderilir</p>
+                        <p className="font-semibold text-gray-900">Randevu Onay Mesajı</p>
+                        <p className="text-xs text-gray-500">Randevu oluşturulduğunda müşteriye gönderilir</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-3">
@@ -1813,11 +1813,11 @@ export default function SettingsClient({ user }: SettingsClientProps) {
                           onChange={(e) => setSettings(prev => ({ ...prev, notificationSettings: { ...prev.notificationSettings, confirmationChannel: e.target.value } }))}
                           className="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-green-500"
                         >
-                          <option value="default">Varsayilan ({channelLabel(settings.notificationSettings.defaultChannel)})</option>
+                          <option value="default">Varsayılan ({channelLabel(settings.notificationSettings.defaultChannel)})</option>
                           <option value="whatsapp">WhatsApp</option>
                           <option value="sms">SMS</option>
                           <option value="both">Her ikisi</option>
-                          <option value="off">Kapali</option>
+                          <option value="off">Kapalı</option>
                         </select>
                       </div>
 
@@ -1826,8 +1826,8 @@ export default function SettingsClient({ user }: SettingsClientProps) {
                         {(() => { const ch = getEffectiveChannel(settings.notificationSettings.confirmationChannel); return ch === 'whatsapp' || ch === 'both' || ch === 'smart'; })() && (
                           <div className="space-y-2">
                             <div className="flex items-center justify-between">
-                              <label className="text-sm font-medium text-gray-700">WhatsApp Sablonu</label>
-                              <button type="button" onClick={() => setSettings(prev => ({ ...prev, messageTemplates: { ...prev.messageTemplates, whatsappConfirmation: DEFAULT_TEMPLATES.whatsappConfirmation } }))} className="text-xs text-blue-600 hover:underline">Varsayilana Don</button>
+                              <label className="text-sm font-medium text-gray-700">WhatsApp Şablonu</label>
+                              <button type="button" onClick={() => setSettings(prev => ({ ...prev, messageTemplates: { ...prev.messageTemplates, whatsappConfirmation: DEFAULT_TEMPLATES.whatsappConfirmation } }))} className="text-xs text-blue-600 hover:underline">Varsayılana Dön</button>
                             </div>
                             <textarea ref={whatsappConfirmationRef} value={settings.messageTemplates.whatsappConfirmation} onChange={(e) => setSettings(prev => ({ ...prev, messageTemplates: { ...prev.messageTemplates, whatsappConfirmation: e.target.value } }))} rows={8} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm font-mono focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white" />
                             <div className="flex flex-wrap gap-1.5">
@@ -1842,10 +1842,10 @@ export default function SettingsClient({ user }: SettingsClientProps) {
                         {(() => { const ch = getEffectiveChannel(settings.notificationSettings.confirmationChannel); return ch === 'sms' || ch === 'both' || ch === 'smart'; })() && (
                           <div className="space-y-2">
                             <div className="flex items-center justify-between">
-                              <label className="text-sm font-medium text-gray-700">SMS Sablonu</label>
-                              <button type="button" onClick={() => setSettings(prev => ({ ...prev, messageTemplates: { ...prev.messageTemplates, smsConfirmation: DEFAULT_TEMPLATES.smsConfirmation } }))} className="text-xs text-blue-600 hover:underline">Varsayilana Don</button>
+                              <label className="text-sm font-medium text-gray-700">SMS Şablonu</label>
+                              <button type="button" onClick={() => setSettings(prev => ({ ...prev, messageTemplates: { ...prev.messageTemplates, smsConfirmation: DEFAULT_TEMPLATES.smsConfirmation } }))} className="text-xs text-blue-600 hover:underline">Varsayılana Dön</button>
                             </div>
-                            <p className="text-xs text-gray-400">SMS mesajlarinda emoji kullanmayin.</p>
+                            <p className="text-xs text-gray-400">SMS mesajlarında emoji kullanmayın.</p>
                             <textarea ref={smsConfirmationRef} value={settings.messageTemplates.smsConfirmation} onChange={(e) => setSettings(prev => ({ ...prev, messageTemplates: { ...prev.messageTemplates, smsConfirmation: e.target.value } }))} rows={4} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm font-mono focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white" />
                             <div className="flex flex-wrap gap-1.5">
                               {['{musteriAdi}', '{tarih}', '{saat}', '{personel}', '{hizmet}', '{ucret}', '{isletmeAdi}', '{isletmeTelefon}', '{isletmeAdres}'].map(v => (
@@ -1860,14 +1860,14 @@ export default function SettingsClient({ user }: SettingsClientProps) {
                       <div className="mt-2 p-4 bg-white rounded-xl border border-gray-200">
                         <div className="flex items-center gap-2 mb-3">
                           <Eye className="w-4 h-4 text-gray-400" />
-                          <span className="text-xs font-semibold text-gray-500 uppercase">Onizleme</span>
+                          <span className="text-xs font-semibold text-gray-500 uppercase">Önizleme</span>
                         </div>
                         <div className="bg-green-50 rounded-lg p-3 max-w-sm">
                           <pre className="text-xs text-gray-700 whitespace-pre-wrap font-sans leading-relaxed">
                             {renderTemplate(settings.messageTemplates.whatsappConfirmation, {
-                              musteriAdi: 'Ahmet Yilmaz', tarih: '2026-03-20', saat: '14:00',
-                              personel: 'Mehmet Usta', hizmet: 'Sac Kesimi', ucret: '250 TL',
-                              isletmeAdi: settings.businessName || 'Isletme', isletmeTelefon: settings.phone || '05XX XXX XX XX', isletmeAdres: settings.businessAddress || 'Adres'
+                              musteriAdi: 'Ahmet Yılmaz', tarih: '2026-03-20', saat: '14:00',
+                              personel: 'Mehmet Usta', hizmet: 'Saç Kesimi', ucret: '250 TL',
+                              isletmeAdi: settings.businessName || 'İşletme', isletmeTelefon: settings.phone || '05XX XXX XX XX', isletmeAdres: settings.businessAddress || 'Adres'
                             })}
                           </pre>
                         </div>
@@ -1876,7 +1876,7 @@ export default function SettingsClient({ user }: SettingsClientProps) {
                   )}
                 </div>
 
-                {/* Randevu Hatirlatma */}
+                {/* Randevu Hatırlatma */}
                 <div className="border rounded-xl overflow-hidden bg-white shadow-sm">
                   <button
                     type="button"
@@ -1888,8 +1888,8 @@ export default function SettingsClient({ user }: SettingsClientProps) {
                         <Bell className="w-5 h-5 text-amber-600" />
                       </div>
                       <div className="text-left">
-                        <p className="font-semibold text-gray-900">Randevu Hatirlatma</p>
-                        <p className="text-xs text-gray-500">Randevudan {settings.reminderMinutes < 60 ? `${settings.reminderMinutes} dk` : settings.reminderMinutes < 1440 ? `${settings.reminderMinutes / 60} saat` : '1 gun'} once gonderilir</p>
+                        <p className="font-semibold text-gray-900">Randevu Hatırlatma</p>
+                        <p className="text-xs text-gray-500">Randevudan {settings.reminderMinutes < 60 ? `${settings.reminderMinutes} dk` : settings.reminderMinutes < 1440 ? `${settings.reminderMinutes / 60} saat` : '1 gün'} önce gönderilir</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-3">
@@ -1904,27 +1904,27 @@ export default function SettingsClient({ user }: SettingsClientProps) {
                     <div className="border-t p-4 space-y-4 bg-gray-50/50">
                       <div className="flex flex-wrap items-center gap-3">
                         <div>
-                          <label className="text-sm font-medium text-gray-700">Hatirlatma Suresi:</label>
+                          <label className="text-sm font-medium text-gray-700">Hatırlatma Süresi:</label>
                           <select value={settings.reminderMinutes} onChange={(e) => setSettings(prev => ({ ...prev, reminderMinutes: parseInt(e.target.value) }))} className="ml-2 px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-amber-500">
-                            <option value={10}>10 dakika once</option>
-                            <option value={30}>30 dakika once</option>
-                            <option value={60}>1 saat once</option>
-                            <option value={120}>2 saat once</option>
-                            <option value={180}>3 saat once</option>
-                            <option value={240}>4 saat once</option>
-                            <option value={360}>6 saat once</option>
-                            <option value={720}>12 saat once</option>
-                            <option value={1440}>1 gun once</option>
+                            <option value={10}>10 dakika önce</option>
+                            <option value={30}>30 dakika önce</option>
+                            <option value={60}>1 saat önce</option>
+                            <option value={120}>2 saat önce</option>
+                            <option value={180}>3 saat önce</option>
+                            <option value={240}>4 saat önce</option>
+                            <option value={360}>6 saat önce</option>
+                            <option value={720}>12 saat önce</option>
+                            <option value={1440}>1 gün önce</option>
                           </select>
                         </div>
                         <div>
                           <label className="text-sm font-medium text-gray-700">Kanal:</label>
                           <select value={settings.notificationSettings.reminderChannel} onChange={(e) => setSettings(prev => ({ ...prev, notificationSettings: { ...prev.notificationSettings, reminderChannel: e.target.value } }))} className="ml-2 px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-amber-500">
-                            <option value="default">Varsayilan ({channelLabel(settings.notificationSettings.defaultChannel)})</option>
+                            <option value="default">Varsayılan ({channelLabel(settings.notificationSettings.defaultChannel)})</option>
                             <option value="whatsapp">WhatsApp</option>
                             <option value="sms">SMS</option>
                             <option value="both">Her ikisi</option>
-                            <option value="off">Kapali</option>
+                            <option value="off">Kapalı</option>
                           </select>
                         </div>
                       </div>
@@ -1933,8 +1933,8 @@ export default function SettingsClient({ user }: SettingsClientProps) {
                         {(() => { const ch = getEffectiveChannel(settings.notificationSettings.reminderChannel); return ch === 'whatsapp' || ch === 'both' || ch === 'smart'; })() && (
                           <div className="space-y-2">
                             <div className="flex items-center justify-between">
-                              <label className="text-sm font-medium text-gray-700">WhatsApp Sablonu</label>
-                              <button type="button" onClick={() => setSettings(prev => ({ ...prev, messageTemplates: { ...prev.messageTemplates, whatsappReminder: DEFAULT_TEMPLATES.whatsappReminder } }))} className="text-xs text-blue-600 hover:underline">Varsayilana Don</button>
+                              <label className="text-sm font-medium text-gray-700">WhatsApp Şablonu</label>
+                              <button type="button" onClick={() => setSettings(prev => ({ ...prev, messageTemplates: { ...prev.messageTemplates, whatsappReminder: DEFAULT_TEMPLATES.whatsappReminder } }))} className="text-xs text-blue-600 hover:underline">Varsayılana Dön</button>
                             </div>
                             <textarea ref={whatsappReminderRef} value={settings.messageTemplates.whatsappReminder} onChange={(e) => setSettings(prev => ({ ...prev, messageTemplates: { ...prev.messageTemplates, whatsappReminder: e.target.value } }))} rows={8} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm font-mono focus:ring-2 focus:ring-amber-500 focus:border-transparent bg-white" />
                             <div className="flex flex-wrap gap-1.5">
@@ -1947,8 +1947,8 @@ export default function SettingsClient({ user }: SettingsClientProps) {
                         {(() => { const ch = getEffectiveChannel(settings.notificationSettings.reminderChannel); return ch === 'sms' || ch === 'both' || ch === 'smart'; })() && (
                           <div className="space-y-2">
                             <div className="flex items-center justify-between">
-                              <label className="text-sm font-medium text-gray-700">SMS Sablonu</label>
-                              <button type="button" onClick={() => setSettings(prev => ({ ...prev, messageTemplates: { ...prev.messageTemplates, smsReminder: DEFAULT_TEMPLATES.smsReminder } }))} className="text-xs text-blue-600 hover:underline">Varsayilana Don</button>
+                              <label className="text-sm font-medium text-gray-700">SMS Şablonu</label>
+                              <button type="button" onClick={() => setSettings(prev => ({ ...prev, messageTemplates: { ...prev.messageTemplates, smsReminder: DEFAULT_TEMPLATES.smsReminder } }))} className="text-xs text-blue-600 hover:underline">Varsayılana Dön</button>
                             </div>
                             <textarea ref={smsReminderRef} value={settings.messageTemplates.smsReminder} onChange={(e) => setSettings(prev => ({ ...prev, messageTemplates: { ...prev.messageTemplates, smsReminder: e.target.value } }))} rows={4} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm font-mono focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white" />
                             <div className="flex flex-wrap gap-1.5">
@@ -1976,7 +1976,7 @@ export default function SettingsClient({ user }: SettingsClientProps) {
                       </div>
                       <div className="text-left">
                         <p className="font-semibold text-gray-900">Memnuniyet Anketi</p>
-                        <p className="text-xs text-gray-500">Randevu tamamlandiktan sonra musteriye gonderilir</p>
+                        <p className="text-xs text-gray-500">Randevu tamamlandıktan sonra müşteriye gönderilir</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-3">
@@ -2005,17 +2005,17 @@ export default function SettingsClient({ user }: SettingsClientProps) {
                             <option value={0}>Hemen</option>
                             <option value={60}>1 saat sonra</option>
                             <option value={120}>2 saat sonra</option>
-                            <option value={1440}>1 gun sonra</option>
+                            <option value={1440}>1 gün sonra</option>
                           </select>
                         </div>
                         <div>
                           <label className="text-sm font-medium text-gray-700">Kanal:</label>
                           <select value={settings.notificationSettings.surveyChannel} onChange={(e) => setSettings(prev => ({ ...prev, notificationSettings: { ...prev.notificationSettings, surveyChannel: e.target.value } }))} className="ml-2 px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-yellow-500">
-                            <option value="default">Varsayilan ({channelLabel(settings.notificationSettings.defaultChannel)})</option>
+                            <option value="default">Varsayılan ({channelLabel(settings.notificationSettings.defaultChannel)})</option>
                             <option value="whatsapp">WhatsApp</option>
                             <option value="sms">SMS</option>
                             <option value="both">Her ikisi</option>
-                            <option value="off">Kapali</option>
+                            <option value="off">Kapalı</option>
                           </select>
                         </div>
                       </div>
@@ -2024,8 +2024,8 @@ export default function SettingsClient({ user }: SettingsClientProps) {
                         {(() => { const ch = getEffectiveChannel(settings.notificationSettings.surveyChannel); return ch === 'whatsapp' || ch === 'both' || ch === 'smart'; })() && (
                           <div className="space-y-2">
                             <div className="flex items-center justify-between">
-                              <label className="text-sm font-medium text-gray-700">WhatsApp Sablonu</label>
-                              <button type="button" onClick={() => setSettings(prev => ({ ...prev, messageTemplates: { ...prev.messageTemplates, whatsappSurvey: DEFAULT_TEMPLATES.whatsappSurvey } }))} className="text-xs text-blue-600 hover:underline">Varsayilana Don</button>
+                              <label className="text-sm font-medium text-gray-700">WhatsApp Şablonu</label>
+                              <button type="button" onClick={() => setSettings(prev => ({ ...prev, messageTemplates: { ...prev.messageTemplates, whatsappSurvey: DEFAULT_TEMPLATES.whatsappSurvey } }))} className="text-xs text-blue-600 hover:underline">Varsayılana Dön</button>
                             </div>
                             <textarea ref={whatsappSurveyRef} value={settings.messageTemplates.whatsappSurvey} onChange={(e) => setSettings(prev => ({ ...prev, messageTemplates: { ...prev.messageTemplates, whatsappSurvey: e.target.value } }))} rows={6} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm font-mono focus:ring-2 focus:ring-yellow-500 focus:border-transparent bg-white" />
                             <div className="flex flex-wrap gap-1.5">
@@ -2038,8 +2038,8 @@ export default function SettingsClient({ user }: SettingsClientProps) {
                         {(() => { const ch = getEffectiveChannel(settings.notificationSettings.surveyChannel); return ch === 'sms' || ch === 'both' || ch === 'smart'; })() && (
                           <div className="space-y-2">
                             <div className="flex items-center justify-between">
-                              <label className="text-sm font-medium text-gray-700">SMS Sablonu</label>
-                              <button type="button" onClick={() => setSettings(prev => ({ ...prev, messageTemplates: { ...prev.messageTemplates, smsSurvey: DEFAULT_TEMPLATES.smsSurvey } }))} className="text-xs text-blue-600 hover:underline">Varsayilana Don</button>
+                              <label className="text-sm font-medium text-gray-700">SMS Şablonu</label>
+                              <button type="button" onClick={() => setSettings(prev => ({ ...prev, messageTemplates: { ...prev.messageTemplates, smsSurvey: DEFAULT_TEMPLATES.smsSurvey } }))} className="text-xs text-blue-600 hover:underline">Varsayılana Dön</button>
                             </div>
                             <textarea ref={smsSurveyRef} value={settings.messageTemplates.smsSurvey} onChange={(e) => setSettings(prev => ({ ...prev, messageTemplates: { ...prev.messageTemplates, smsSurvey: e.target.value } }))} rows={3} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm font-mono focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white" />
                             <div className="flex flex-wrap gap-1.5">
@@ -2056,14 +2056,14 @@ export default function SettingsClient({ user }: SettingsClientProps) {
               </div>
             </div>
 
-            {/* Isletme / Personel Mesajlari */}
+            {/* İşletme / Personel Mesajları */}
             <div>
               <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3 flex items-center gap-2">
-                <Briefcase className="w-4 h-4" /> Isletme & Personel Mesajlari
+                <Briefcase className="w-4 h-4" /> İşletme & Personel Mesajları
               </h3>
 
               <div className="space-y-3">
-                {/* Personel Gunluk Ozet */}
+                {/* Personel Günlük Özet */}
                 <div className="border rounded-xl overflow-hidden bg-white shadow-sm">
                   <button
                     type="button"
@@ -2075,8 +2075,8 @@ export default function SettingsClient({ user }: SettingsClientProps) {
                         <Users className="w-5 h-5 text-blue-600" />
                       </div>
                       <div className="text-left">
-                        <p className="font-semibold text-gray-900">Personel Gunluk Ozet</p>
-                        <p className="text-xs text-gray-500">Her sabah 08:30'da personele gonderilir</p>
+                        <p className="font-semibold text-gray-900">Personel Günlük Özet</p>
+                        <p className="text-xs text-gray-500">Her sabah 08:30'da personele gönderilir</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-3">
@@ -2094,13 +2094,13 @@ export default function SettingsClient({ user }: SettingsClientProps) {
                         <select value={settings.notificationSettings.staffDailyChannel} onChange={(e) => setSettings(prev => ({ ...prev, notificationSettings: { ...prev.notificationSettings, staffDailyChannel: e.target.value } }))} className="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-blue-500">
                           <option value="whatsapp">WhatsApp</option>
                           <option value="sms">SMS</option>
-                          <option value="off">Kapali</option>
+                          <option value="off">Kapalı</option>
                         </select>
                       </div>
                       <div className="space-y-2">
                         <div className="flex items-center justify-between">
-                          <label className="text-sm font-medium text-gray-700">Mesaj Sablonu</label>
-                          <button type="button" onClick={() => setSettings(prev => ({ ...prev, messageTemplates: { ...prev.messageTemplates, staffDailyReminder: DEFAULT_TEMPLATES.staffDailyReminder } }))} className="text-xs text-blue-600 hover:underline">Varsayilana Don</button>
+                          <label className="text-sm font-medium text-gray-700">Mesaj Şablonu</label>
+                          <button type="button" onClick={() => setSettings(prev => ({ ...prev, messageTemplates: { ...prev.messageTemplates, staffDailyReminder: DEFAULT_TEMPLATES.staffDailyReminder } }))} className="text-xs text-blue-600 hover:underline">Varsayılana Dön</button>
                         </div>
                         <textarea ref={staffDailyReminderRef} value={settings.messageTemplates.staffDailyReminder} onChange={(e) => setSettings(prev => ({ ...prev, messageTemplates: { ...prev.messageTemplates, staffDailyReminder: e.target.value } }))} rows={8} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm font-mono focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white" />
                         <div className="flex flex-wrap gap-1.5">
@@ -2113,7 +2113,7 @@ export default function SettingsClient({ user }: SettingsClientProps) {
                   )}
                 </div>
 
-                {/* Isletme Sahibi Gunluk Ozet */}
+                {/* İşletme Sahibi Günlük Özet */}
                 <div className="border rounded-xl overflow-hidden bg-white shadow-sm">
                   <button
                     type="button"
@@ -2125,8 +2125,8 @@ export default function SettingsClient({ user }: SettingsClientProps) {
                         <Briefcase className="w-5 h-5 text-indigo-600" />
                       </div>
                       <div className="text-left">
-                        <p className="font-semibold text-gray-900">Isletme Sahibi Gunluk Ozet</p>
-                        <p className="text-xs text-gray-500">Her aksam 21:00'de isletme sahibine gonderilir</p>
+                        <p className="font-semibold text-gray-900">İşletme Sahibi Günlük Özet</p>
+                        <p className="text-xs text-gray-500">Her akşam 21:00'de işletme sahibine gönderilir</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-3">
@@ -2144,13 +2144,13 @@ export default function SettingsClient({ user }: SettingsClientProps) {
                         <select value={settings.notificationSettings.ownerDailyChannel} onChange={(e) => setSettings(prev => ({ ...prev, notificationSettings: { ...prev.notificationSettings, ownerDailyChannel: e.target.value } }))} className="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-indigo-500">
                           <option value="whatsapp">WhatsApp</option>
                           <option value="sms">SMS</option>
-                          <option value="off">Kapali</option>
+                          <option value="off">Kapalı</option>
                         </select>
                       </div>
                       <div className="space-y-2">
                         <div className="flex items-center justify-between">
-                          <label className="text-sm font-medium text-gray-700">Mesaj Sablonu</label>
-                          <button type="button" onClick={() => setSettings(prev => ({ ...prev, messageTemplates: { ...prev.messageTemplates, ownerDailyReminder: DEFAULT_TEMPLATES.ownerDailyReminder } }))} className="text-xs text-blue-600 hover:underline">Varsayilana Don</button>
+                          <label className="text-sm font-medium text-gray-700">Mesaj Şablonu</label>
+                          <button type="button" onClick={() => setSettings(prev => ({ ...prev, messageTemplates: { ...prev.messageTemplates, ownerDailyReminder: DEFAULT_TEMPLATES.ownerDailyReminder } }))} className="text-xs text-blue-600 hover:underline">Varsayılana Dön</button>
                         </div>
                         <textarea ref={ownerDailyReminderRef} value={settings.messageTemplates.ownerDailyReminder} onChange={(e) => setSettings(prev => ({ ...prev, messageTemplates: { ...prev.messageTemplates, ownerDailyReminder: e.target.value } }))} rows={8} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm font-mono focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white" />
                         <div className="flex flex-wrap gap-1.5">
