@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '../../../../lib/prisma';
 import { formatPhoneForWhatsApp, sendWhatsAppMessage } from '../../../../lib/whapi-client';
+import { formatPhoneForSMS } from '../../../../lib/netgsm-client';
 import { getTemplate, renderTemplate } from '../../../../lib/message-templates';
 
 /**
@@ -99,8 +100,20 @@ export async function GET(request: NextRequest) {
 
         const tenantSettings = await prisma.settings.findUnique({
           where: { tenantId: staff.tenantId },
-          select: { messageTemplates: true }
+          select: { messageTemplates: true, notificationSettings: true }
         });
+
+        // Check channel preference
+        let notifSettings: any = {};
+        try {
+          notifSettings = tenantSettings?.notificationSettings ? JSON.parse(tenantSettings.notificationSettings) : {};
+        } catch { /* use defaults */ }
+        const staffChannel = notifSettings.staffDailyChannel || 'whatsapp';
+
+        if (staffChannel === 'off') {
+          console.log(`⏭️ [CRON] Staff daily reminders disabled for tenant ${staff.tenantId}`);
+          continue;
+        }
 
         // Format the appointment list
         const appointmentList = todayAppointments.map((apt, index) => {
@@ -123,19 +136,30 @@ export async function GET(request: NextRequest) {
           isletmeAdi: tenant?.businessName || 'Randevu Sistemi'
         });
 
-        // Format and send WhatsApp message
-        const phoneNumber = formatPhoneForWhatsApp(staff.phone!);
+        // Send via selected channel
+        let sent = false;
 
-        const result = await sendWhatsAppMessage({
-          to: phoneNumber,
-          body: message
-        });
+        if (staffChannel === 'whatsapp') {
+          const phoneNumber = formatPhoneForWhatsApp(staff.phone!);
+          const result = await sendWhatsAppMessage({ to: phoneNumber, body: message });
+          sent = result.sent;
+          if (!sent) console.error(`❌ [CRON] WhatsApp failed for ${staff.firstName}:`, result.error);
+        } else if (staffChannel === 'sms') {
+          const phoneNumber = formatPhoneForSMS(staff.phone!);
+          const smsResponse = await fetch(`${process.env.NEXT_PUBLIC_ADMIN_URL || 'https://admin.netrandevu.com'}/api/netgsm/send-sms`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ to: phoneNumber, message })
+          });
+          const smsResult = await smsResponse.json();
+          sent = smsResult.success;
+          if (!sent) console.error(`❌ [CRON] SMS failed for ${staff.firstName}:`, smsResult.error);
+        }
 
-        if (result.sent) {
-          console.log(`✅ [CRON] Daily summary sent to ${staff.firstName} ${staff.lastName}`);
+        if (sent) {
+          console.log(`✅ [CRON] Daily summary sent to ${staff.firstName} ${staff.lastName} via ${staffChannel}`);
           successCount++;
         } else {
-          console.error(`❌ [CRON] Failed to send to ${staff.firstName}:`, result.error);
           errorCount++;
         }
 

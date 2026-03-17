@@ -60,7 +60,15 @@ export default function SettingsClient({ user }: SettingsClientProps) {
       whatsappConfirmation: DEFAULT_TEMPLATES.whatsappConfirmation,
       whatsappReminder: DEFAULT_TEMPLATES.whatsappReminder,
       smsReminder: DEFAULT_TEMPLATES.smsReminder,
-      staffDailyReminder: DEFAULT_TEMPLATES.staffDailyReminder
+      staffDailyReminder: DEFAULT_TEMPLATES.staffDailyReminder,
+      ownerDailyReminder: DEFAULT_TEMPLATES.ownerDailyReminder || ''
+    },
+    // Bildirim kanal tercihleri
+    notificationSettings: {
+      confirmationChannel: 'whatsapp' as string,
+      reminderChannel: 'both' as string,
+      staffDailyChannel: 'whatsapp' as string,
+      ownerDailyChannel: 'whatsapp' as string
     },
     // Ödeme ayarları
     cardPaymentEnabled: true, // Kredi kartı ile ödeme aktif mi
@@ -84,6 +92,7 @@ export default function SettingsClient({ user }: SettingsClientProps) {
   const whatsappReminderRef = useRef<HTMLTextAreaElement>(null);
   const smsReminderRef = useRef<HTMLTextAreaElement>(null);
   const staffDailyReminderRef = useRef<HTMLTextAreaElement>(null);
+  const ownerDailyReminderRef = useRef<HTMLTextAreaElement>(null);
 
   const insertVariable = (
     ref: React.RefObject<HTMLTextAreaElement | null>,
@@ -210,6 +219,13 @@ export default function SettingsClient({ user }: SettingsClientProps) {
               whatsappReminder: tenant.messageTemplates?.whatsappReminder || DEFAULT_TEMPLATES.whatsappReminder,
               smsReminder: tenant.messageTemplates?.smsReminder || DEFAULT_TEMPLATES.smsReminder,
               staffDailyReminder: tenant.messageTemplates?.staffDailyReminder || DEFAULT_TEMPLATES.staffDailyReminder,
+              ownerDailyReminder: tenant.messageTemplates?.ownerDailyReminder || DEFAULT_TEMPLATES.ownerDailyReminder,
+            },
+            notificationSettings: {
+              confirmationChannel: tenant.notificationSettings?.confirmationChannel || 'whatsapp',
+              reminderChannel: tenant.notificationSettings?.reminderChannel || 'both',
+              staffDailyChannel: tenant.notificationSettings?.staffDailyChannel || 'whatsapp',
+              ownerDailyChannel: tenant.notificationSettings?.ownerDailyChannel || 'whatsapp',
             },
             themeSettings: themeData,
             location: locationData,
@@ -1187,30 +1203,6 @@ export default function SettingsClient({ user }: SettingsClientProps) {
             </p>
           </div>
 
-          <div className="space-y-2">
-            <label className="block text-sm font-medium text-gray-700">
-              Randevu Hatırlatma Süresi
-            </label>
-            <select
-              value={settings.reminderMinutes}
-              onChange={(e) => setSettings(prev => ({ ...prev, reminderMinutes: parseInt(e.target.value) }))}
-              className="w-full md:w-64 px-4 py-2.5 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base font-medium"
-            >
-              <option value={10}>10 dakika önce</option>
-              <option value={30}>30 dakika önce</option>
-              <option value={60}>1 saat önce</option>
-              <option value={120}>2 saat önce</option>
-              <option value={180}>3 saat önce</option>
-              <option value={240}>4 saat önce</option>
-              <option value={360}>6 saat önce</option>
-              <option value={720}>12 saat önce</option>
-              <option value={1440}>1 gün önce</option>
-            </select>
-            <p className="text-xs text-gray-500 mt-1">
-              Müşterilere randevu saatinden ne kadar önce WhatsApp ve SMS hatırlatması gönderilsin?
-            </p>
-          </div>
-
           {/* Ödeme Ayarları */}
           <div className="pt-6 mt-6 border-t border-gray-200">
             <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
@@ -1673,13 +1665,38 @@ export default function SettingsClient({ user }: SettingsClientProps) {
             <CardContent className="space-y-8">
               <p className="text-sm text-gray-500">
                 Musterilere ve personele gonderilen WhatsApp ve SMS mesajlarini buradan duzenleyebilirsiniz.
-                Degiskenleri kullanarak mesajlari kisisellestirebilirsiniz.
+                Her mesaj turu icin gonderm kanalini secebilir ve sablonlari kisisellestirebilirsiniz.
               </p>
 
-              {/* WhatsApp Onay */}
-              <div className="space-y-3">
+              {/* Hatırlatma Süresi */}
+              <div className="bg-blue-50 rounded-lg p-4 space-y-2">
+                <label className="block text-sm font-semibold text-gray-900">
+                  Randevu Hatirlatma Suresi
+                </label>
+                <select
+                  value={settings.reminderMinutes}
+                  onChange={(e) => setSettings(prev => ({ ...prev, reminderMinutes: parseInt(e.target.value) }))}
+                  className="w-full md:w-64 px-4 py-2.5 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base font-medium"
+                >
+                  <option value={10}>10 dakika once</option>
+                  <option value={30}>30 dakika once</option>
+                  <option value={60}>1 saat once</option>
+                  <option value={120}>2 saat once</option>
+                  <option value={180}>3 saat once</option>
+                  <option value={240}>4 saat once</option>
+                  <option value={360}>6 saat once</option>
+                  <option value={720}>12 saat once</option>
+                  <option value={1440}>1 gun once</option>
+                </select>
+                <p className="text-xs text-gray-500">
+                  Musterilere randevu saatinden ne kadar once hatirlatma mesaji gonderilsin?
+                </p>
+              </div>
+
+              {/* Randevu Onay Mesaji */}
+              <div className="space-y-3 pt-6 border-t border-gray-200">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-base font-semibold text-gray-900">WhatsApp Onay Mesaji</h3>
+                  <h3 className="text-base font-semibold text-gray-900">Randevu Onay Mesaji</h3>
                   <button
                     type="button"
                     onClick={() => setSettings(prev => ({
@@ -1692,6 +1709,22 @@ export default function SettingsClient({ user }: SettingsClientProps) {
                   </button>
                 </div>
                 <p className="text-xs text-gray-500">Randevu onaylandiginda musteriye gonderilir.</p>
+                <div className="flex items-center gap-2">
+                  <label className="text-xs font-medium text-gray-600">Kanal:</label>
+                  <select
+                    value={settings.notificationSettings.confirmationChannel}
+                    onChange={(e) => setSettings(prev => ({
+                      ...prev,
+                      notificationSettings: { ...prev.notificationSettings, confirmationChannel: e.target.value }
+                    }))}
+                    className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="whatsapp">WhatsApp</option>
+                    <option value="sms">SMS</option>
+                    <option value="both">Her ikisi</option>
+                    <option value="off">Kapali</option>
+                  </select>
+                </div>
                 <textarea
                   ref={whatsappConfirmationRef}
                   value={settings.messageTemplates.whatsappConfirmation}
@@ -1709,68 +1742,83 @@ export default function SettingsClient({ user }: SettingsClientProps) {
                 </div>
               </div>
 
-              {/* WhatsApp Hatirlatma */}
+              {/* Hatirlatma Mesaji */}
               <div className="space-y-3 pt-6 border-t border-gray-200">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-base font-semibold text-gray-900">WhatsApp Hatirlatma Mesaji</h3>
-                  <button
-                    type="button"
-                    onClick={() => setSettings(prev => ({
-                      ...prev,
-                      messageTemplates: { ...prev.messageTemplates, whatsappReminder: DEFAULT_TEMPLATES.whatsappReminder }
-                    }))}
-                    className="text-xs text-blue-600 hover:underline"
-                  >
-                    Varsayilana Don
-                  </button>
+                  <h3 className="text-base font-semibold text-gray-900">Hatirlatma Mesaji</h3>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setSettings(prev => ({
+                        ...prev,
+                        messageTemplates: {
+                          ...prev.messageTemplates,
+                          whatsappReminder: DEFAULT_TEMPLATES.whatsappReminder,
+                          smsReminder: DEFAULT_TEMPLATES.smsReminder
+                        }
+                      }))}
+                      className="text-xs text-blue-600 hover:underline"
+                    >
+                      Varsayilana Don
+                    </button>
+                  </div>
                 </div>
                 <p className="text-xs text-gray-500">Randevu saatinden once musteriye gonderilir.</p>
-                <textarea
-                  ref={whatsappReminderRef}
-                  value={settings.messageTemplates.whatsappReminder}
-                  onChange={(e) => setSettings(prev => ({
-                    ...prev,
-                    messageTemplates: { ...prev.messageTemplates, whatsappReminder: e.target.value }
-                  }))}
-                  rows={8}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm font-mono focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
+                <div className="flex items-center gap-2">
+                  <label className="text-xs font-medium text-gray-600">Kanal:</label>
+                  <select
+                    value={settings.notificationSettings.reminderChannel}
+                    onChange={(e) => setSettings(prev => ({
+                      ...prev,
+                      notificationSettings: { ...prev.notificationSettings, reminderChannel: e.target.value }
+                    }))}
+                    className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="whatsapp">WhatsApp</option>
+                    <option value="sms">SMS</option>
+                    <option value="both">Her ikisi</option>
+                    <option value="off">Kapali</option>
+                  </select>
+                </div>
+                {(settings.notificationSettings.reminderChannel === 'whatsapp' || settings.notificationSettings.reminderChannel === 'both') && (
+                  <div className="space-y-1">
+                    <label className="text-xs font-medium text-gray-600">WhatsApp Sablonu:</label>
+                    <textarea
+                      ref={whatsappReminderRef}
+                      value={settings.messageTemplates.whatsappReminder}
+                      onChange={(e) => setSettings(prev => ({
+                        ...prev,
+                        messageTemplates: { ...prev.messageTemplates, whatsappReminder: e.target.value }
+                      }))}
+                      rows={8}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm font-mono focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                  </div>
+                )}
+                {(settings.notificationSettings.reminderChannel === 'sms' || settings.notificationSettings.reminderChannel === 'both') && (
+                  <div className="space-y-1">
+                    <label className="text-xs font-medium text-gray-600">SMS Sablonu:</label>
+                    <textarea
+                      ref={smsReminderRef}
+                      value={settings.messageTemplates.smsReminder}
+                      onChange={(e) => setSettings(prev => ({
+                        ...prev,
+                        messageTemplates: { ...prev.messageTemplates, smsReminder: e.target.value }
+                      }))}
+                      rows={3}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm font-mono focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                  </div>
+                )}
                 <div className="flex flex-wrap gap-1.5">
                   {['{musteriAdi}', '{tarih}', '{saat}', '{personel}', '{hizmet}', '{hatirlatmaSuresi}', '{isletmeAdi}', '{isletmeTelefon}', '{isletmeAdres}'].map(v => (
-                    <span key={v} onClick={() => insertVariable(whatsappReminderRef, 'whatsappReminder', v)} className="inline-block px-2 py-0.5 bg-gray-100 text-gray-600 text-xs rounded font-mono cursor-pointer hover:bg-blue-100 hover:text-blue-700 transition-colors">{v}</span>
-                  ))}
-                </div>
-              </div>
-
-              {/* SMS Hatirlatma */}
-              <div className="space-y-3 pt-6 border-t border-gray-200">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-base font-semibold text-gray-900">SMS Hatirlatma Mesaji</h3>
-                  <button
-                    type="button"
-                    onClick={() => setSettings(prev => ({
-                      ...prev,
-                      messageTemplates: { ...prev.messageTemplates, smsReminder: DEFAULT_TEMPLATES.smsReminder }
-                    }))}
-                    className="text-xs text-blue-600 hover:underline"
-                  >
-                    Varsayilana Don
-                  </button>
-                </div>
-                <p className="text-xs text-gray-500">Randevu saatinden once musteriye SMS olarak gonderilir. Kisa tutun.</p>
-                <textarea
-                  ref={smsReminderRef}
-                  value={settings.messageTemplates.smsReminder}
-                  onChange={(e) => setSettings(prev => ({
-                    ...prev,
-                    messageTemplates: { ...prev.messageTemplates, smsReminder: e.target.value }
-                  }))}
-                  rows={3}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm font-mono focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-                <div className="flex flex-wrap gap-1.5">
-                  {['{musteriAdi}', '{tarih}', '{saat}', '{hizmet}', '{hatirlatmaSuresi}', '{isletmeAdi}'].map(v => (
-                    <span key={v} onClick={() => insertVariable(smsReminderRef, 'smsReminder', v)} className="inline-block px-2 py-0.5 bg-gray-100 text-gray-600 text-xs rounded font-mono cursor-pointer hover:bg-blue-100 hover:text-blue-700 transition-colors">{v}</span>
+                    <span key={v} onClick={() => {
+                      if (settings.notificationSettings.reminderChannel === 'sms') {
+                        insertVariable(smsReminderRef, 'smsReminder', v);
+                      } else {
+                        insertVariable(whatsappReminderRef, 'whatsappReminder', v);
+                      }
+                    }} className="inline-block px-2 py-0.5 bg-gray-100 text-gray-600 text-xs rounded font-mono cursor-pointer hover:bg-blue-100 hover:text-blue-700 transition-colors">{v}</span>
                   ))}
                 </div>
               </div>
@@ -1791,6 +1839,21 @@ export default function SettingsClient({ user }: SettingsClientProps) {
                   </button>
                 </div>
                 <p className="text-xs text-gray-500">Her sabah personele gonderilen gunluk randevu ozeti.</p>
+                <div className="flex items-center gap-2">
+                  <label className="text-xs font-medium text-gray-600">Kanal:</label>
+                  <select
+                    value={settings.notificationSettings.staffDailyChannel}
+                    onChange={(e) => setSettings(prev => ({
+                      ...prev,
+                      notificationSettings: { ...prev.notificationSettings, staffDailyChannel: e.target.value }
+                    }))}
+                    className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="whatsapp">WhatsApp</option>
+                    <option value="sms">SMS</option>
+                    <option value="off">Kapali</option>
+                  </select>
+                </div>
                 <textarea
                   ref={staffDailyReminderRef}
                   value={settings.messageTemplates.staffDailyReminder}
@@ -1804,6 +1867,54 @@ export default function SettingsClient({ user }: SettingsClientProps) {
                 <div className="flex flex-wrap gap-1.5">
                   {['{personelAdi}', '{gun}', '{tarih}', '{randevuSayisi}', '{randevuListesi}', '{isletmeAdi}'].map(v => (
                     <span key={v} onClick={() => insertVariable(staffDailyReminderRef, 'staffDailyReminder', v)} className="inline-block px-2 py-0.5 bg-gray-100 text-gray-600 text-xs rounded font-mono cursor-pointer hover:bg-blue-100 hover:text-blue-700 transition-colors">{v}</span>
+                  ))}
+                </div>
+              </div>
+
+              {/* Isletme Gunluk Ozet */}
+              <div className="space-y-3 pt-6 border-t border-gray-200">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-base font-semibold text-gray-900">Isletme Gunluk Ozet Mesaji</h3>
+                  <button
+                    type="button"
+                    onClick={() => setSettings(prev => ({
+                      ...prev,
+                      messageTemplates: { ...prev.messageTemplates, ownerDailyReminder: DEFAULT_TEMPLATES.ownerDailyReminder }
+                    }))}
+                    className="text-xs text-blue-600 hover:underline"
+                  >
+                    Varsayilana Don
+                  </button>
+                </div>
+                <p className="text-xs text-gray-500">Her aksam isletme sahibine gonderilen gunluk gelir ve musteri ozeti.</p>
+                <div className="flex items-center gap-2">
+                  <label className="text-xs font-medium text-gray-600">Kanal:</label>
+                  <select
+                    value={settings.notificationSettings.ownerDailyChannel}
+                    onChange={(e) => setSettings(prev => ({
+                      ...prev,
+                      notificationSettings: { ...prev.notificationSettings, ownerDailyChannel: e.target.value }
+                    }))}
+                    className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="whatsapp">WhatsApp</option>
+                    <option value="sms">SMS</option>
+                    <option value="off">Kapali</option>
+                  </select>
+                </div>
+                <textarea
+                  ref={ownerDailyReminderRef}
+                  value={settings.messageTemplates.ownerDailyReminder}
+                  onChange={(e) => setSettings(prev => ({
+                    ...prev,
+                    messageTemplates: { ...prev.messageTemplates, ownerDailyReminder: e.target.value }
+                  }))}
+                  rows={8}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm font-mono focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+                <div className="flex flex-wrap gap-1.5">
+                  {['{sahipAdi}', '{gun}', '{tarih}', '{gelenMusteri}', '{iptalSayisi}', '{gelmediler}', '{toplamRandevu}', '{nakitGelir}', '{kartGelir}', '{paketGelir}', '{toplamGelir}', '{isletmeAdi}'].map(v => (
+                    <span key={v} onClick={() => insertVariable(ownerDailyReminderRef, 'ownerDailyReminder', v)} className="inline-block px-2 py-0.5 bg-gray-100 text-gray-600 text-xs rounded font-mono cursor-pointer hover:bg-blue-100 hover:text-blue-700 transition-colors">{v}</span>
                   ))}
                 </div>
               </div>

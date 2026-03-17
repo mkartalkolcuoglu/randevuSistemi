@@ -46,6 +46,31 @@ Bugun {randevuSayisi} randevunuz var:
 
 Iyi calismalar! 💪
 
+_{isletmeAdi}_`,
+
+  ownerDailyReminder: `🌙 Iyi aksamlar {sahipAdi}!
+
+📊 *{gun}, {tarih} - Gunluk Ozet*
+
+━━━━━━━━━━━━━━━━━━━━
+
+👥 *Musteri Istatistikleri*
+✅ Gelen Musteri: {gelenMusteri}
+❌ Iptal: {iptalSayisi}
+⚠️ Gelmedi: {gelmediler}
+📋 Toplam Randevu: {toplamRandevu}
+
+━━━━━━━━━━━━━━━━━━━━
+
+💰 *Gelir Raporu*
+💵 Nakit: {nakitGelir} TL
+💳 Kredi Karti: {kartGelir} TL
+🎁 Paket: {paketGelir} TL
+
+━━━━━━━━━━━━━━━━━━━━
+
+💎 *Toplam Gelir: {toplamGelir} TL*
+
 _{isletmeAdi}_`
 };
 
@@ -103,5 +128,23 @@ export const STAFF_VARIABLES = [
   { key: '{tarih}', label: 'Tarih' },
   { key: '{randevuSayisi}', label: 'Randevu Sayisi' },
   { key: '{randevuListesi}', label: 'Randevu Listesi' },
+  { key: '{isletmeAdi}', label: 'Isletme Adi' },
+];
+
+/**
+ * Sahip günlük özet değişkenleri
+ */
+export const OWNER_VARIABLES = [
+  { key: '{sahipAdi}', label: 'Sahip Adi' },
+  { key: '{gun}', label: 'Gun' },
+  { key: '{tarih}', label: 'Tarih' },
+  { key: '{gelenMusteri}', label: 'Gelen Musteri' },
+  { key: '{iptalSayisi}', label: 'Iptal Sayisi' },
+  { key: '{gelmediler}', label: 'Gelmediler' },
+  { key: '{toplamRandevu}', label: 'Toplam Randevu' },
+  { key: '{nakitGelir}', label: 'Nakit Gelir' },
+  { key: '{kartGelir}', label: 'Kart Gelir' },
+  { key: '{paketGelir}', label: 'Paket Gelir' },
+  { key: '{toplamGelir}', label: 'Toplam Gelir' },
   { key: '{isletmeAdi}', label: 'Isletme Adi' },
 ];

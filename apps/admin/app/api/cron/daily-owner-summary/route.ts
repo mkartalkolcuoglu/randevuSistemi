@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '../../../../lib/prisma';
 import { formatPhoneForWhatsApp, sendWhatsAppMessage } from '../../../../lib/whapi-client';
+import { formatPhoneForSMS } from '../../../../lib/netgsm-client';
+import { getTemplate, renderTemplate } from '../../../../lib/message-templates';
 
 /**
  * Cron Job: Send daily business summary to tenant owners at 21:00
@@ -116,52 +118,67 @@ export async function GET(request: NextRequest) {
           continue;
         }
 
-        // Format the message
+        // Get tenant settings for channel preference and template
+        const tenantSettings = await prisma.settings.findUnique({
+          where: { tenantId: tenant.id },
+          select: { notificationSettings: true, messageTemplates: true }
+        });
+
+        let notifSettings: any = {};
+        try {
+          notifSettings = tenantSettings?.notificationSettings ? JSON.parse(tenantSettings.notificationSettings) : {};
+        } catch { /* use defaults */ }
+        const ownerChannel = notifSettings.ownerDailyChannel || 'whatsapp';
+
+        if (ownerChannel === 'off') {
+          console.log(`⏭️ [CRON] Owner summary disabled for ${tenant.businessName}`);
+          continue;
+        }
+
+        // Format the message using template
         const dayName = turkeyNow.toLocaleDateString('tr-TR', { weekday: 'long' });
         const dateFormatted = turkeyNow.toLocaleDateString('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric' });
 
-        const message = `🌙 İyi akşamlar ${tenant.ownerName}!
-
-📊 *${dayName}, ${dateFormatted} - Günlük Özet*
-
-━━━━━━━━━━━━━━━━━━━━
-
-👥 *Müşteri İstatistikleri*
-✅ Gelen Müşteri: ${totalCustomers}
-❌ İptal: ${totalCancelled}
-⚠️ Gelmedi: ${totalNoShow}
-📋 Toplam Randevu: ${totalAppointments}
-
-━━━━━━━━━━━━━━━━━━━━
-
-💰 *Gelir Raporu*
-💵 Nakit: ${cashRevenue.toLocaleString('tr-TR')} TL
-💳 Kredi Kartı: ${cardRevenue.toLocaleString('tr-TR')} TL
-🎁 Paket: ${packageRevenue.toLocaleString('tr-TR')} TL
-
-━━━━━━━━━━━━━━━━━━━━
-
-💎 *Toplam Gelir: ${totalRevenue.toLocaleString('tr-TR')} TL*
-
-━━━━━━━━━━━━━━━━━━━━
-
-${totalCustomers > 0 ? '🎉 Harika bir gün geçirdiniz!' : '📅 Yarın daha iyi olacak!'}
-
-_${tenant.businessName}_`;
-
-        // Format and send WhatsApp message
-        const phoneNumber = formatPhoneForWhatsApp(tenant.phone!);
-
-        const result = await sendWhatsAppMessage({
-          to: phoneNumber,
-          body: message
+        const ownerTemplate = getTemplate(tenantSettings?.messageTemplates, 'ownerDailyReminder');
+        const message = renderTemplate(ownerTemplate, {
+          sahipAdi: tenant.ownerName,
+          gun: dayName,
+          tarih: dateFormatted,
+          gelenMusteri: String(totalCustomers),
+          iptalSayisi: String(totalCancelled),
+          gelmediler: String(totalNoShow),
+          toplamRandevu: String(totalAppointments),
+          nakitGelir: cashRevenue.toLocaleString('tr-TR'),
+          kartGelir: cardRevenue.toLocaleString('tr-TR'),
+          paketGelir: packageRevenue.toLocaleString('tr-TR'),
+          toplamGelir: totalRevenue.toLocaleString('tr-TR'),
+          isletmeAdi: tenant.businessName
         });
 
-        if (result.sent) {
-          console.log(`✅ [CRON] Summary sent to ${tenant.businessName}`);
+        // Send via selected channel
+        let sent = false;
+
+        if (ownerChannel === 'whatsapp') {
+          const phoneNumber = formatPhoneForWhatsApp(tenant.phone!);
+          const result = await sendWhatsAppMessage({ to: phoneNumber, body: message });
+          sent = result.sent;
+          if (!sent) console.error(`❌ [CRON] WhatsApp failed for ${tenant.businessName}:`, result.error);
+        } else if (ownerChannel === 'sms') {
+          const phoneNumber = formatPhoneForSMS(tenant.phone!);
+          const smsResponse = await fetch(`${process.env.NEXT_PUBLIC_ADMIN_URL || 'https://admin.netrandevu.com'}/api/netgsm/send-sms`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ to: phoneNumber, message })
+          });
+          const smsResult = await smsResponse.json();
+          sent = smsResult.success;
+          if (!sent) console.error(`❌ [CRON] SMS failed for ${tenant.businessName}:`, smsResult.error);
+        }
+
+        if (sent) {
+          console.log(`✅ [CRON] Summary sent to ${tenant.businessName} via ${ownerChannel}`);
           successCount++;
         } else {
-          console.error(`❌ [CRON] Failed to send to ${tenant.businessName}:`, result.error);
           errorCount++;
         }
 

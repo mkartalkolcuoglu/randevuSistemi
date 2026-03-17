@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '../../../../lib/prisma';
 import { sendWhatsAppMessage } from '../../../../lib/whapi-client';
+import { formatPhoneForSMS } from '../../../../lib/netgsm-client';
 import { getTemplate, renderTemplate } from '../../../../lib/message-templates';
 
 export async function POST(request: NextRequest) {
@@ -110,15 +111,53 @@ export async function POST(request: NextRequest) {
     const whatsappTemplate = getTemplate(settings.messageTemplates, 'whatsappConfirmation');
     const message = renderTemplate(whatsappTemplate, templateVars);
 
-    // Send WhatsApp message
-    const result = await sendWhatsAppMessage({
-      to: customer.phone,
-      body: message,
-    });
+    // Check channel preference
+    let notifSettings: any = {};
+    try {
+      notifSettings = settings.notificationSettings ? JSON.parse(settings.notificationSettings) : {};
+    } catch { /* use defaults */ }
+    const confirmChannel = notifSettings.confirmationChannel || 'whatsapp';
 
-    if (!result.sent) {
+    if (confirmChannel === 'off') {
+      return NextResponse.json({
+        success: false,
+        error: 'Onay mesajı gönderimi kapalı',
+      }, { status: 400 });
+    }
+
+    let whatsappSent = false;
+    let smsSent = false;
+
+    // Send WhatsApp if channel includes it
+    if (confirmChannel === 'whatsapp' || confirmChannel === 'both') {
+      const result = await sendWhatsAppMessage({
+        to: customer.phone,
+        body: message,
+      });
+      whatsappSent = result.sent;
+      if (!result.sent) {
+        console.error('❌ WhatsApp send failed:', result.error);
+      }
+    }
+
+    // Send SMS if channel includes it
+    if (confirmChannel === 'sms' || confirmChannel === 'both') {
+      const smsPhone = formatPhoneForSMS(customer.phone);
+      const smsResponse = await fetch(`${process.env.NEXT_PUBLIC_ADMIN_URL || 'https://admin.netrandevu.com'}/api/netgsm/send-sms`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ to: smsPhone, message })
+      });
+      const smsResult = await smsResponse.json();
+      smsSent = smsResult.success;
+      if (!smsSent) {
+        console.error('❌ SMS send failed:', smsResult.error);
+      }
+    }
+
+    if (!whatsappSent && !smsSent) {
       return NextResponse.json(
-        { success: false, error: result.error, details: result.details },
+        { success: false, error: 'Mesaj gönderilemedi', details: `Kanal: ${confirmChannel}` },
         { status: 500 }
       );
     }
@@ -132,12 +171,12 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    console.log(`✅ WhatsApp confirmation sent for appointment ${appointmentId}`);
+    const channelInfo = whatsappSent && smsSent ? 'WhatsApp + SMS' : whatsappSent ? 'WhatsApp' : 'SMS';
+    console.log(`✅ Confirmation sent for appointment ${appointmentId} via ${channelInfo}`);
 
     return NextResponse.json({
       success: true,
-      message: 'WhatsApp onay mesajı gönderildi',
-      details: result.details,
+      message: `Onay mesajı gönderildi (${channelInfo})`,
     });
 
   } catch (error) {

@@ -134,7 +134,7 @@ export async function GET(request: NextRequest) {
 
         const settings = await prisma.settings.findUnique({
           where: { tenantId: appointment.tenantId },
-          select: { reminderMinutes: true, messageTemplates: true }
+          select: { reminderMinutes: true, messageTemplates: true, notificationSettings: true }
         });
 
         const reminderMinutes = settings?.reminderMinutes || 120;
@@ -173,40 +173,55 @@ export async function GET(request: NextRequest) {
         const whatsappMessage = renderTemplate(whatsappTemplate, templateVars);
         const smsMessage = renderTemplate(smsTemplate, templateVars);
 
-        // Send WhatsApp reminder
-        const whatsappResponse = await fetch(`${process.env.NEXT_PUBLIC_ADMIN_URL || 'https://admin.netrandevu.com'}/api/whapi/send-message`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            to: phoneNumber,
-            message: whatsappMessage
-          })
-        });
+        // Get channel preference
+        let notifSettings: any = {};
+        try {
+          notifSettings = settings?.notificationSettings ? JSON.parse(settings.notificationSettings) : {};
+        } catch { /* use defaults */ }
+        const reminderChannel = notifSettings.reminderChannel || 'both';
 
-        const whatsappResult = await whatsappResponse.json();
-
-        if (whatsappResult.success) {
-          console.log(`✅ [CRON] WhatsApp reminder sent to ${phoneNumber}`);
-        } else {
-          console.error(`❌ [CRON] WhatsApp reminder failed for ${phoneNumber}:`, whatsappResult.error);
+        if (reminderChannel === 'off') {
+          console.log(`⏭️ [CRON] Reminders disabled for tenant ${appointment.tenantId}`);
+          continue;
         }
 
-        // Send SMS reminder
-        const smsResponse = await fetch(`${process.env.NEXT_PUBLIC_ADMIN_URL || 'https://admin.netrandevu.com'}/api/netgsm/send-sms`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            to: phoneNumber,
-            message: smsMessage
-          })
-        });
+        let whatsappResult = { success: false };
+        let smsResult = { success: false };
 
-        const smsResult = await smsResponse.json();
+        // Send WhatsApp if channel includes it
+        if (reminderChannel === 'whatsapp' || reminderChannel === 'both') {
+          const whatsappResponse = await fetch(`${process.env.NEXT_PUBLIC_ADMIN_URL || 'https://admin.netrandevu.com'}/api/whapi/send-message`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              to: phoneNumber,
+              message: whatsappMessage
+            })
+          });
+          whatsappResult = await whatsappResponse.json();
+          if (whatsappResult.success) {
+            console.log(`✅ [CRON] WhatsApp reminder sent to ${phoneNumber}`);
+          } else {
+            console.error(`❌ [CRON] WhatsApp reminder failed for ${phoneNumber}:`, (whatsappResult as any).error);
+          }
+        }
 
-        if (smsResult.success) {
-          console.log(`✅ [CRON] SMS reminder sent to ${phoneNumber}`);
-        } else {
-          console.error(`❌ [CRON] SMS reminder failed for ${phoneNumber}:`, smsResult.error);
+        // Send SMS if channel includes it
+        if (reminderChannel === 'sms' || reminderChannel === 'both') {
+          const smsResponse = await fetch(`${process.env.NEXT_PUBLIC_ADMIN_URL || 'https://admin.netrandevu.com'}/api/netgsm/send-sms`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              to: phoneNumber,
+              message: smsMessage
+            })
+          });
+          smsResult = await smsResponse.json();
+          if (smsResult.success) {
+            console.log(`✅ [CRON] SMS reminder sent to ${phoneNumber}`);
+          } else {
+            console.error(`❌ [CRON] SMS reminder failed for ${phoneNumber}:`, (smsResult as any).error);
+          }
         }
 
         // Consider it success if at least one channel succeeded

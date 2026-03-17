@@ -69,6 +69,7 @@ export async function GET() {
       blacklistThreshold: settings?.blacklistThreshold || 3,
       reminderMinutes: settings?.reminderMinutes || 120,
       messageTemplates: settings?.messageTemplates ? JSON.parse(settings.messageTemplates) : null,
+      notificationSettings: settings?.notificationSettings ? JSON.parse(settings.notificationSettings) : null,
       blockedDates,
       _settings: {
         businessPhone: settings?.businessPhone,
@@ -206,6 +207,9 @@ export async function PUT(request: Request) {
     }
     if (data.messageTemplates !== undefined) {
       settingsData.messageTemplates = data.messageTemplates ? JSON.stringify(data.messageTemplates) : null;
+    }
+    if (data.notificationSettings !== undefined) {
+      settingsData.notificationSettings = data.notificationSettings ? JSON.stringify(data.notificationSettings) : null;
     }
     if (data.workingHours) {
       settingsData.workingHours = JSON.stringify(data.workingHours);
