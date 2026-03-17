@@ -3,11 +3,12 @@ import { prisma } from '../../../../../lib/prisma';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const appointment = await prisma.appointment.findUnique({
-      where: { id: params.id },
+      where: { id },
       select: {
         id: true,
         tenantId: true,
@@ -36,7 +37,7 @@ export async function GET(
 
     // Check if feedback already exists
     const existingFeedback = await prisma.feedback.findUnique({
-      where: { appointmentId: params.id },
+      where: { appointmentId: id },
     });
 
     // Get tenant info

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, use } from 'react';
 import { Star, CheckCircle, AlertCircle, Calendar, Clock, User, Scissors } from 'lucide-react';
 
 interface AppointmentData {
@@ -23,10 +23,11 @@ interface AppointmentData {
 const RATING_LABELS = ['', 'Cok Kotu', 'Kotu', 'Orta', 'Iyi', 'Mukemmel'];
 
 export default function DegerlendirmePage({
-  params,
+  params: paramsPromise,
 }: {
-  params: { slug: string; appointmentId: string };
+  params: Promise<{ slug: string; appointmentId: string }>;
 }) {
+  const params = use(paramsPromise);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
