@@ -13,6 +13,7 @@ export async function GET(
         id: true,
         tenantId: true,
         customerName: true,
+        customerPhone: true,
         serviceName: true,
         staffName: true,
         date: true,

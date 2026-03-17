@@ -6,6 +6,7 @@ import { Star, CheckCircle, AlertCircle, Calendar, Clock, User, Scissors } from 
 interface AppointmentData {
   id: string;
   customerName: string;
+  customerPhone: string | null;
   serviceName: string;
   staffName: string;
   date: string;
@@ -85,7 +86,7 @@ export default function DegerlendirmePage({
         body: JSON.stringify({
           appointmentId: params.appointmentId,
           customerName: appointment?.customerName,
-          customerPhone: '',
+          customerPhone: appointment?.customerPhone || '',
           rating,
           comment: comment.trim() || undefined,
           serviceName: appointment?.serviceName,

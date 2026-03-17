@@ -16,7 +16,7 @@ export async function POST(request: NextRequest) {
     } = body;
 
     // Validasyon
-    if (!appointmentId || !customerName || !customerPhone || !rating) {
+    if (!appointmentId || !customerName || !rating) {
       return NextResponse.json(
         { success: false, error: 'Gerekli alanlar eksik' },
         { status: 400 }
