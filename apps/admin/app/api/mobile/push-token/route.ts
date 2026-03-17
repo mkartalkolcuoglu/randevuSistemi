@@ -4,7 +4,6 @@ import jwt from 'jsonwebtoken';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 
-// Helper to verify token and get user info
 async function verifyAuth(request: NextRequest) {
   const authHeader = request.headers.get('Authorization');
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -48,28 +47,27 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Store push token - we'll use the Notification model or create a new PushToken model
-    // For now, we'll update the customer or staff record with the push token
     if (auth.customerId) {
-      await prisma.customer.update({
+      // Get customer phone to update all records across tenants
+      const customer = await prisma.customer.findUnique({
         where: { id: auth.customerId },
-        data: {
-          // We'd need to add pushToken field to Customer model
-          // pushToken: token,
-        },
+        select: { phone: true },
       });
-    } else if (auth.staffId) {
-      await prisma.staff.update({
-        where: { id: auth.staffId },
-        data: {
-          // We'd need to add pushToken field to Staff model
-          // pushToken: token,
-        },
-      });
+
+      if (customer?.phone) {
+        await prisma.customer.updateMany({
+          where: { phone: customer.phone },
+          data: { expoPushToken: token },
+        });
+      } else {
+        await prisma.customer.update({
+          where: { id: auth.customerId },
+          data: { expoPushToken: token },
+        });
+      }
     }
 
-    // For now, just acknowledge receipt
-    console.log(`Push token registered for user ${auth.staffId || auth.ownerId || auth.customerId}: ${token}`);
+    console.log(`✅ Push token registered for ${auth.customerId || auth.staffId || auth.ownerId}`);
 
     return NextResponse.json({
       success: true,
@@ -95,9 +93,21 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    const { token } = await request.json();
+    if (auth.customerId) {
+      const customer = await prisma.customer.findUnique({
+        where: { id: auth.customerId },
+        select: { phone: true },
+      });
 
-    console.log(`Push token removed for user ${auth.staffId || auth.ownerId || auth.customerId}: ${token}`);
+      if (customer?.phone) {
+        await prisma.customer.updateMany({
+          where: { phone: customer.phone },
+          data: { expoPushToken: null },
+        });
+      }
+    }
+
+    console.log(`🗑️ Push token removed for ${auth.customerId || auth.staffId || auth.ownerId}`);
 
     return NextResponse.json({
       success: true,

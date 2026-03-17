@@ -2,10 +2,10 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, Button, Tabs, TabsList, TabsTrigger, TabsContent, formatPhone, normalizePhone, PHONE_PLACEHOLDER, PHONE_MAX_LENGTH } from '@/components/ui';
-import { Save, Palette, Building2, User, Key, Clock, Upload, ArrowLeft, MapPin, Settings, CreditCard, FileText, CalendarX2, Trash2, Plus, MessageSquare } from 'lucide-react';
+import { Save, Palette, Building2, User, Key, Clock, Upload, ArrowLeft, MapPin, Settings, CreditCard, FileText, CalendarX2, Trash2, Plus, MessageSquare, ChevronDown, Send, Bell, Star, Users, Briefcase, Zap, Smartphone, Eye } from 'lucide-react';
 import AdminHeader from '../admin-header';
 import type { ClientUser } from '../../../lib/client-permissions';
-import { DEFAULT_TEMPLATES } from '../../../lib/message-templates';
+import { DEFAULT_TEMPLATES, renderTemplate } from '../../../lib/message-templates';
 
 interface SettingsClientProps {
   user: ClientUser;
@@ -68,12 +68,13 @@ export default function SettingsClient({ user }: SettingsClientProps) {
     },
     // Bildirim kanal tercihleri
     notificationSettings: {
-      confirmationChannel: 'whatsapp' as string,
-      reminderChannel: 'both' as string,
+      defaultChannel: 'smart' as string,
+      confirmationChannel: 'default' as string,
+      reminderChannel: 'default' as string,
       staffDailyChannel: 'whatsapp' as string,
       ownerDailyChannel: 'whatsapp' as string,
       autoSendConfirmation: false,
-      surveyChannel: 'whatsapp' as string,
+      surveyChannel: 'default' as string,
       autoSendSurvey: false,
       surveyDelayMinutes: 0,
     },
@@ -103,6 +104,42 @@ export default function SettingsClient({ user }: SettingsClientProps) {
   const ownerDailyReminderRef = useRef<HTMLTextAreaElement>(null);
   const whatsappSurveyRef = useRef<HTMLTextAreaElement>(null);
   const smsSurveyRef = useRef<HTMLTextAreaElement>(null);
+
+  const [openAccordion, setOpenAccordion] = useState<string | null>(null);
+
+  const toggleAccordion = (key: string) => {
+    setOpenAccordion(prev => prev === key ? null : key);
+  };
+
+  // Resolve effective channel for a message type
+  const getEffectiveChannel = (channel: string) => {
+    if (channel === 'default') {
+      return settings.notificationSettings.defaultChannel || 'whatsapp';
+    }
+    return channel;
+  };
+
+  const channelLabel = (ch: string) => {
+    if (ch === 'default') {
+      const def = settings.notificationSettings.defaultChannel || 'whatsapp';
+      const labels: Record<string, string> = { whatsapp: 'WhatsApp', sms: 'SMS', smart: 'Akıllı', both: 'Her ikisi', off: 'Kapalı' };
+      return `Varsayılan (${labels[def] || def})`;
+    }
+    const labels: Record<string, string> = { whatsapp: 'WhatsApp', sms: 'SMS', smart: 'Akıllı', both: 'Her ikisi', off: 'Kapalı' };
+    return labels[ch] || ch;
+  };
+
+  const channelBadgeColor = (ch: string) => {
+    const effective = ch === 'default' ? (settings.notificationSettings.defaultChannel || 'whatsapp') : ch;
+    switch (effective) {
+      case 'whatsapp': return 'bg-green-100 text-green-700';
+      case 'sms': return 'bg-blue-100 text-blue-700';
+      case 'smart': return 'bg-purple-100 text-purple-700';
+      case 'both': return 'bg-amber-100 text-amber-700';
+      case 'off': return 'bg-gray-100 text-gray-500';
+      default: return 'bg-gray-100 text-gray-600';
+    }
+  };
 
   const insertVariable = (
     ref: React.RefObject<HTMLTextAreaElement | null>,
@@ -1670,447 +1707,465 @@ export default function SettingsClient({ user }: SettingsClientProps) {
           </Card>
         </TabsContent>
 
-        {/* Mesaj Sablonlari */}
+        {/* Mesaj Yonetim Paneli */}
         <TabsContent value="messages">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <MessageSquare className="w-5 h-5 mr-2" />
-                Mesaj Sablonlari
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-8">
-              <p className="text-sm text-gray-500">
-                Musterilere ve personele gonderilen WhatsApp ve SMS mesajlarini buradan duzenleyebilirsiniz.
-                Her mesaj turu icin gonderm kanalini secebilir ve sablonlari kisisellestirebilirsiniz.
-              </p>
+          <div className="space-y-6">
 
-              {/* Hatırlatma Süresi */}
-              <div className="bg-blue-50 rounded-lg p-4 space-y-2">
-                <label className="block text-sm font-semibold text-gray-900">
-                  Randevu Hatirlatma Suresi
-                </label>
-                <select
-                  value={settings.reminderMinutes}
-                  onChange={(e) => setSettings(prev => ({ ...prev, reminderMinutes: parseInt(e.target.value) }))}
-                  className="w-full md:w-64 px-4 py-2.5 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base font-medium"
-                >
-                  <option value={10}>10 dakika once</option>
-                  <option value={30}>30 dakika once</option>
-                  <option value={60}>1 saat once</option>
-                  <option value={120}>2 saat once</option>
-                  <option value={180}>3 saat once</option>
-                  <option value={240}>4 saat once</option>
-                  <option value={360}>6 saat once</option>
-                  <option value={720}>12 saat once</option>
-                  <option value={1440}>1 gun once</option>
-                </select>
-                <p className="text-xs text-gray-500">
-                  Musterilere randevu saatinden ne kadar once hatirlatma mesaji gonderilsin?
-                </p>
-              </div>
-
-              {/* Randevu Onay Mesaji */}
-              <div className="space-y-3 pt-6 border-t border-gray-200">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-base font-semibold text-gray-900">Randevu Onay Mesaji</h3>
-                  <button
-                    type="button"
-                    onClick={() => setSettings(prev => ({
-                      ...prev,
-                      messageTemplates: { ...prev.messageTemplates, whatsappConfirmation: DEFAULT_TEMPLATES.whatsappConfirmation }
-                    }))}
-                    className="text-xs text-blue-600 hover:underline"
-                  >
-                    Varsayilana Don
-                  </button>
-                </div>
-                <p className="text-xs text-gray-500">Randevu onaylandiginda musteriye gonderilir.</p>
-                <div className="flex items-center justify-between py-2 px-3 bg-blue-50 rounded-lg border border-blue-200">
-                  <div>
-                    <p className="text-sm font-medium text-gray-700">Otomatik bildirim gonder</p>
-                    <p className="text-xs text-gray-500">Randevu olusturuldugunda musteriye otomatik onay mesaji gonderilir</p>
+            {/* Genel Kanal Tercihi */}
+            <Card className="border-2 border-indigo-100">
+              <CardContent className="p-6">
+                <div className="flex items-start gap-4">
+                  <div className="w-12 h-12 rounded-xl bg-indigo-100 flex items-center justify-center flex-shrink-0">
+                    <Zap className="w-6 h-6 text-indigo-600" />
                   </div>
-                  <label className="relative inline-flex items-center cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={settings.notificationSettings.autoSendConfirmation}
-                      onChange={(e) => setSettings(prev => ({
-                        ...prev,
-                        notificationSettings: { ...prev.notificationSettings, autoSendConfirmation: e.target.checked }
-                      }))}
-                      className="sr-only peer"
-                    />
-                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-                  </label>
-                </div>
-                <div className="flex items-center gap-2">
-                  <label className="text-xs font-medium text-gray-600">Kanal:</label>
-                  <select
-                    value={settings.notificationSettings.confirmationChannel}
-                    onChange={(e) => setSettings(prev => ({
-                      ...prev,
-                      notificationSettings: { ...prev.notificationSettings, confirmationChannel: e.target.value }
-                    }))}
-                    className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="whatsapp">WhatsApp</option>
-                    <option value="sms">SMS</option>
-                    <option value="both">Her ikisi</option>
-                    <option value="off">Kapali</option>
-                  </select>
-                </div>
-                <textarea
-                  ref={whatsappConfirmationRef}
-                  value={settings.messageTemplates.whatsappConfirmation}
-                  onChange={(e) => setSettings(prev => ({
-                    ...prev,
-                    messageTemplates: { ...prev.messageTemplates, whatsappConfirmation: e.target.value }
-                  }))}
-                  rows={8}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm font-mono focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-                <div className="flex flex-wrap gap-1.5">
-                  {['{musteriAdi}', '{tarih}', '{saat}', '{personel}', '{hizmet}', '{ucret}', '{isletmeAdi}', '{isletmeTelefon}', '{isletmeAdres}'].map(v => (
-                    <span key={v} onClick={() => insertVariable(whatsappConfirmationRef, 'whatsappConfirmation', v)} className="inline-block px-2 py-0.5 bg-gray-100 text-gray-600 text-xs rounded font-mono cursor-pointer hover:bg-blue-100 hover:text-blue-700 transition-colors">{v}</span>
-                  ))}
-                </div>
-              </div>
-
-              {/* SMS Onay Mesaji */}
-              <div className="space-y-2 mt-4">
-                <div className="flex items-center justify-between">
-                  <h4 className="text-sm font-medium text-gray-700">SMS Onay Sablonu</h4>
-                  <button
-                    type="button"
-                    onClick={() => setSettings(prev => ({
-                      ...prev,
-                      messageTemplates: { ...prev.messageTemplates, smsConfirmation: DEFAULT_TEMPLATES.smsConfirmation }
-                    }))}
-                    className="text-xs text-blue-600 hover:underline"
-                  >
-                    Varsayilana Don
-                  </button>
-                </div>
-                <p className="text-xs text-gray-500">SMS ile gonderilecek onay mesaji (emoji kullanmayin).</p>
-                <textarea
-                  ref={smsConfirmationRef}
-                  value={settings.messageTemplates.smsConfirmation}
-                  onChange={(e) => setSettings(prev => ({
-                    ...prev,
-                    messageTemplates: { ...prev.messageTemplates, smsConfirmation: e.target.value }
-                  }))}
-                  rows={3}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm font-mono focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-                <div className="flex flex-wrap gap-1.5">
-                  {['{musteriAdi}', '{tarih}', '{saat}', '{personel}', '{hizmet}', '{ucret}', '{isletmeAdi}', '{isletmeTelefon}', '{isletmeAdres}'].map(v => (
-                    <span key={v} onClick={() => insertVariable(smsConfirmationRef, 'smsConfirmation', v)} className="inline-block px-2 py-0.5 bg-gray-100 text-gray-600 text-xs rounded font-mono cursor-pointer hover:bg-blue-100 hover:text-blue-700 transition-colors">{v}</span>
-                  ))}
-                </div>
-              </div>
-
-              {/* Hatirlatma Mesaji */}
-              <div className="space-y-3 pt-6 border-t border-gray-200">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-base font-semibold text-gray-900">Hatirlatma Mesaji</h3>
-                  <div className="flex gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setSettings(prev => ({
-                        ...prev,
-                        messageTemplates: {
-                          ...prev.messageTemplates,
-                          whatsappReminder: DEFAULT_TEMPLATES.whatsappReminder,
-                          smsReminder: DEFAULT_TEMPLATES.smsReminder
-                        }
-                      }))}
-                      className="text-xs text-blue-600 hover:underline"
-                    >
-                      Varsayilana Don
-                    </button>
+                  <div className="flex-1">
+                    <h3 className="text-lg font-bold text-gray-900 mb-1">Varsayilan Gonderim Kanali</h3>
+                    <p className="text-sm text-gray-500 mb-4">Tum mesaj turleri icin varsayilan kanal. Her mesaj turu bunu ayri olarak degistirebilir.</p>
+                    <div className="flex flex-wrap gap-2">
+                      {[
+                        { value: 'smart', label: 'Akilli Mod', desc: 'Mobil app > WhatsApp > SMS otomatik sec', icon: Zap, color: 'purple' },
+                        { value: 'whatsapp', label: 'WhatsApp', desc: 'Her zaman WhatsApp ile gonder', icon: MessageSquare, color: 'green' },
+                        { value: 'sms', label: 'SMS', desc: 'Her zaman SMS ile gonder', icon: Smartphone, color: 'blue' },
+                      ].map(opt => (
+                        <button
+                          key={opt.value}
+                          type="button"
+                          onClick={() => setSettings(prev => ({
+                            ...prev,
+                            notificationSettings: { ...prev.notificationSettings, defaultChannel: opt.value }
+                          }))}
+                          className={`flex items-center gap-3 px-4 py-3 rounded-xl border-2 transition-all ${
+                            settings.notificationSettings.defaultChannel === opt.value
+                              ? opt.color === 'purple' ? 'border-purple-500 bg-purple-50 shadow-sm' : opt.color === 'green' ? 'border-green-500 bg-green-50 shadow-sm' : 'border-blue-500 bg-blue-50 shadow-sm'
+                              : 'border-gray-200 bg-white hover:border-gray-300'
+                          }`}
+                        >
+                          <opt.icon className={`w-5 h-5 ${
+                            settings.notificationSettings.defaultChannel === opt.value
+                              ? opt.color === 'purple' ? 'text-purple-600' : opt.color === 'green' ? 'text-green-600' : 'text-blue-600'
+                              : 'text-gray-400'
+                          }`} />
+                          <div className="text-left">
+                            <p className={`text-sm font-semibold ${settings.notificationSettings.defaultChannel === opt.value ? 'text-gray-900' : 'text-gray-700'}`}>{opt.label}</p>
+                            <p className="text-xs text-gray-500">{opt.desc}</p>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                    {settings.notificationSettings.defaultChannel === 'smart' && (
+                      <div className="mt-3 p-3 bg-purple-50 rounded-lg border border-purple-200">
+                        <p className="text-xs text-purple-700">
+                          <strong>Akilli Mod:</strong> Mobil uygulama yuklu musterilere bildirim (push), diger musterilere WhatsApp veya SMS ile gonderilir. Her kanal da kapaliysa mesaj gonderilmez.
+                        </p>
+                      </div>
+                    )}
                   </div>
                 </div>
-                <p className="text-xs text-gray-500">Randevu saatinden once musteriye gonderilir.</p>
-                <div className="flex items-center gap-2">
-                  <label className="text-xs font-medium text-gray-600">Kanal:</label>
-                  <select
-                    value={settings.notificationSettings.reminderChannel}
-                    onChange={(e) => setSettings(prev => ({
-                      ...prev,
-                      notificationSettings: { ...prev.notificationSettings, reminderChannel: e.target.value }
-                    }))}
-                    className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="whatsapp">WhatsApp</option>
-                    <option value="sms">SMS</option>
-                    <option value="both">Her ikisi</option>
-                    <option value="off">Kapali</option>
-                  </select>
-                </div>
-                {(settings.notificationSettings.reminderChannel === 'whatsapp' || settings.notificationSettings.reminderChannel === 'both') && (
-                  <div className="space-y-1">
-                    <label className="text-xs font-medium text-gray-600">WhatsApp Sablonu:</label>
-                    <textarea
-                      ref={whatsappReminderRef}
-                      value={settings.messageTemplates.whatsappReminder}
-                      onChange={(e) => setSettings(prev => ({
-                        ...prev,
-                        messageTemplates: { ...prev.messageTemplates, whatsappReminder: e.target.value }
-                      }))}
-                      rows={8}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm font-mono focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
-                  </div>
-                )}
-                {(settings.notificationSettings.reminderChannel === 'sms' || settings.notificationSettings.reminderChannel === 'both') && (
-                  <div className="space-y-1">
-                    <label className="text-xs font-medium text-gray-600">SMS Sablonu:</label>
-                    <textarea
-                      ref={smsReminderRef}
-                      value={settings.messageTemplates.smsReminder}
-                      onChange={(e) => setSettings(prev => ({
-                        ...prev,
-                        messageTemplates: { ...prev.messageTemplates, smsReminder: e.target.value }
-                      }))}
-                      rows={3}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm font-mono focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
-                  </div>
-                )}
-                <div className="flex flex-wrap gap-1.5">
-                  {['{musteriAdi}', '{tarih}', '{saat}', '{personel}', '{hizmet}', '{hatirlatmaSuresi}', '{isletmeAdi}', '{isletmeTelefon}', '{isletmeAdres}'].map(v => (
-                    <span key={v} onClick={() => {
-                      if (settings.notificationSettings.reminderChannel === 'sms') {
-                        insertVariable(smsReminderRef, 'smsReminder', v);
-                      } else {
-                        insertVariable(whatsappReminderRef, 'whatsappReminder', v);
-                      }
-                    }} className="inline-block px-2 py-0.5 bg-gray-100 text-gray-600 text-xs rounded font-mono cursor-pointer hover:bg-blue-100 hover:text-blue-700 transition-colors">{v}</span>
-                  ))}
-                </div>
-              </div>
+              </CardContent>
+            </Card>
 
-              {/* Personel Gunluk Ozet */}
-              <div className="space-y-3 pt-6 border-t border-gray-200">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-base font-semibold text-gray-900">Personel Gunluk Ozet Mesaji</h3>
+            {/* Musteri Mesajlari */}
+            <div>
+              <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3 flex items-center gap-2">
+                <Users className="w-4 h-4" /> Musteri Mesajlari
+              </h3>
+
+              <div className="space-y-3">
+                {/* Randevu Onay */}
+                <div className="border rounded-xl overflow-hidden bg-white shadow-sm">
                   <button
                     type="button"
-                    onClick={() => setSettings(prev => ({
-                      ...prev,
-                      messageTemplates: { ...prev.messageTemplates, staffDailyReminder: DEFAULT_TEMPLATES.staffDailyReminder }
-                    }))}
-                    className="text-xs text-blue-600 hover:underline"
+                    onClick={() => toggleAccordion('confirmation')}
+                    className="w-full flex items-center justify-between p-4 hover:bg-gray-50 transition-colors"
                   >
-                    Varsayilana Don
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-lg bg-green-100 flex items-center justify-center">
+                        <Send className="w-5 h-5 text-green-600" />
+                      </div>
+                      <div className="text-left">
+                        <p className="font-semibold text-gray-900">Randevu Onay Mesaji</p>
+                        <p className="text-xs text-gray-500">Randevu olusturuldugunda musteriye gonderilir</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <label className="relative inline-flex items-center cursor-pointer" onClick={(e) => e.stopPropagation()}>
+                        <input
+                          type="checkbox"
+                          checked={settings.notificationSettings.autoSendConfirmation}
+                          onChange={(e) => setSettings(prev => ({ ...prev, notificationSettings: { ...prev.notificationSettings, autoSendConfirmation: e.target.checked } }))}
+                          className="sr-only peer"
+                        />
+                        <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-500"></div>
+                      </label>
+                      <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${channelBadgeColor(settings.notificationSettings.confirmationChannel)}`}>
+                        {channelLabel(settings.notificationSettings.confirmationChannel)}
+                      </span>
+                      <ChevronDown className={`w-5 h-5 text-gray-400 transition-transform ${openAccordion === 'confirmation' ? 'rotate-180' : ''}`} />
+                    </div>
                   </button>
-                </div>
-                <p className="text-xs text-gray-500">Her sabah personele gonderilen gunluk randevu ozeti.</p>
-                <div className="flex items-center gap-2">
-                  <label className="text-xs font-medium text-gray-600">Kanal:</label>
-                  <select
-                    value={settings.notificationSettings.staffDailyChannel}
-                    onChange={(e) => setSettings(prev => ({
-                      ...prev,
-                      notificationSettings: { ...prev.notificationSettings, staffDailyChannel: e.target.value }
-                    }))}
-                    className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="whatsapp">WhatsApp</option>
-                    <option value="sms">SMS</option>
-                    <option value="off">Kapali</option>
-                  </select>
-                </div>
-                <textarea
-                  ref={staffDailyReminderRef}
-                  value={settings.messageTemplates.staffDailyReminder}
-                  onChange={(e) => setSettings(prev => ({
-                    ...prev,
-                    messageTemplates: { ...prev.messageTemplates, staffDailyReminder: e.target.value }
-                  }))}
-                  rows={8}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm font-mono focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-                <div className="flex flex-wrap gap-1.5">
-                  {['{personelAdi}', '{gun}', '{tarih}', '{randevuSayisi}', '{randevuListesi}', '{isletmeAdi}'].map(v => (
-                    <span key={v} onClick={() => insertVariable(staffDailyReminderRef, 'staffDailyReminder', v)} className="inline-block px-2 py-0.5 bg-gray-100 text-gray-600 text-xs rounded font-mono cursor-pointer hover:bg-blue-100 hover:text-blue-700 transition-colors">{v}</span>
-                  ))}
-                </div>
-              </div>
 
-              {/* Isletme Gunluk Ozet */}
-              <div className="space-y-3 pt-6 border-t border-gray-200">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-base font-semibold text-gray-900">Isletme Gunluk Ozet Mesaji</h3>
+                  {openAccordion === 'confirmation' && (
+                    <div className="border-t p-4 space-y-4 bg-gray-50/50">
+                      <div className="flex items-center gap-3">
+                        <label className="text-sm font-medium text-gray-700">Kanal:</label>
+                        <select
+                          value={settings.notificationSettings.confirmationChannel}
+                          onChange={(e) => setSettings(prev => ({ ...prev, notificationSettings: { ...prev.notificationSettings, confirmationChannel: e.target.value } }))}
+                          className="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-green-500"
+                        >
+                          <option value="default">Varsayilan ({channelLabel(settings.notificationSettings.defaultChannel)})</option>
+                          <option value="whatsapp">WhatsApp</option>
+                          <option value="sms">SMS</option>
+                          <option value="both">Her ikisi</option>
+                          <option value="off">Kapali</option>
+                        </select>
+                      </div>
+
+                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                        {/* WhatsApp Template */}
+                        {(() => { const ch = getEffectiveChannel(settings.notificationSettings.confirmationChannel); return ch === 'whatsapp' || ch === 'both' || ch === 'smart'; })() && (
+                          <div className="space-y-2">
+                            <div className="flex items-center justify-between">
+                              <label className="text-sm font-medium text-gray-700">WhatsApp Sablonu</label>
+                              <button type="button" onClick={() => setSettings(prev => ({ ...prev, messageTemplates: { ...prev.messageTemplates, whatsappConfirmation: DEFAULT_TEMPLATES.whatsappConfirmation } }))} className="text-xs text-blue-600 hover:underline">Varsayilana Don</button>
+                            </div>
+                            <textarea ref={whatsappConfirmationRef} value={settings.messageTemplates.whatsappConfirmation} onChange={(e) => setSettings(prev => ({ ...prev, messageTemplates: { ...prev.messageTemplates, whatsappConfirmation: e.target.value } }))} rows={8} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm font-mono focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white" />
+                            <div className="flex flex-wrap gap-1.5">
+                              {['{musteriAdi}', '{tarih}', '{saat}', '{personel}', '{hizmet}', '{ucret}', '{isletmeAdi}', '{isletmeTelefon}', '{isletmeAdres}'].map(v => (
+                                <span key={v} onClick={() => insertVariable(whatsappConfirmationRef, 'whatsappConfirmation', v)} className="inline-block px-2 py-0.5 bg-white text-gray-600 text-xs rounded font-mono cursor-pointer hover:bg-green-100 hover:text-green-700 transition-colors border border-gray-200">{v}</span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* SMS Template */}
+                        {(() => { const ch = getEffectiveChannel(settings.notificationSettings.confirmationChannel); return ch === 'sms' || ch === 'both' || ch === 'smart'; })() && (
+                          <div className="space-y-2">
+                            <div className="flex items-center justify-between">
+                              <label className="text-sm font-medium text-gray-700">SMS Sablonu</label>
+                              <button type="button" onClick={() => setSettings(prev => ({ ...prev, messageTemplates: { ...prev.messageTemplates, smsConfirmation: DEFAULT_TEMPLATES.smsConfirmation } }))} className="text-xs text-blue-600 hover:underline">Varsayilana Don</button>
+                            </div>
+                            <p className="text-xs text-gray-400">SMS mesajlarinda emoji kullanmayin.</p>
+                            <textarea ref={smsConfirmationRef} value={settings.messageTemplates.smsConfirmation} onChange={(e) => setSettings(prev => ({ ...prev, messageTemplates: { ...prev.messageTemplates, smsConfirmation: e.target.value } }))} rows={4} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm font-mono focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white" />
+                            <div className="flex flex-wrap gap-1.5">
+                              {['{musteriAdi}', '{tarih}', '{saat}', '{personel}', '{hizmet}', '{ucret}', '{isletmeAdi}', '{isletmeTelefon}', '{isletmeAdres}'].map(v => (
+                                <span key={v} onClick={() => insertVariable(smsConfirmationRef, 'smsConfirmation', v)} className="inline-block px-2 py-0.5 bg-white text-gray-600 text-xs rounded font-mono cursor-pointer hover:bg-blue-100 hover:text-blue-700 transition-colors border border-gray-200">{v}</span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Preview */}
+                      <div className="mt-2 p-4 bg-white rounded-xl border border-gray-200">
+                        <div className="flex items-center gap-2 mb-3">
+                          <Eye className="w-4 h-4 text-gray-400" />
+                          <span className="text-xs font-semibold text-gray-500 uppercase">Onizleme</span>
+                        </div>
+                        <div className="bg-green-50 rounded-lg p-3 max-w-sm">
+                          <pre className="text-xs text-gray-700 whitespace-pre-wrap font-sans leading-relaxed">
+                            {renderTemplate(settings.messageTemplates.whatsappConfirmation, {
+                              musteriAdi: 'Ahmet Yilmaz', tarih: '2026-03-20', saat: '14:00',
+                              personel: 'Mehmet Usta', hizmet: 'Sac Kesimi', ucret: '250 TL',
+                              isletmeAdi: settings.businessName || 'Isletme', isletmeTelefon: settings.phone || '05XX XXX XX XX', isletmeAdres: settings.businessAddress || 'Adres'
+                            })}
+                          </pre>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Randevu Hatirlatma */}
+                <div className="border rounded-xl overflow-hidden bg-white shadow-sm">
                   <button
                     type="button"
-                    onClick={() => setSettings(prev => ({
-                      ...prev,
-                      messageTemplates: { ...prev.messageTemplates, ownerDailyReminder: DEFAULT_TEMPLATES.ownerDailyReminder }
-                    }))}
-                    className="text-xs text-blue-600 hover:underline"
+                    onClick={() => toggleAccordion('reminder')}
+                    className="w-full flex items-center justify-between p-4 hover:bg-gray-50 transition-colors"
                   >
-                    Varsayilana Don
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-lg bg-amber-100 flex items-center justify-center">
+                        <Bell className="w-5 h-5 text-amber-600" />
+                      </div>
+                      <div className="text-left">
+                        <p className="font-semibold text-gray-900">Randevu Hatirlatma</p>
+                        <p className="text-xs text-gray-500">Randevudan {settings.reminderMinutes < 60 ? `${settings.reminderMinutes} dk` : settings.reminderMinutes < 1440 ? `${settings.reminderMinutes / 60} saat` : '1 gun'} once gonderilir</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${channelBadgeColor(settings.notificationSettings.reminderChannel)}`}>
+                        {channelLabel(settings.notificationSettings.reminderChannel)}
+                      </span>
+                      <ChevronDown className={`w-5 h-5 text-gray-400 transition-transform ${openAccordion === 'reminder' ? 'rotate-180' : ''}`} />
+                    </div>
                   </button>
-                </div>
-                <p className="text-xs text-gray-500">Her aksam isletme sahibine gonderilen gunluk gelir ve musteri ozeti.</p>
-                <div className="flex items-center gap-2">
-                  <label className="text-xs font-medium text-gray-600">Kanal:</label>
-                  <select
-                    value={settings.notificationSettings.ownerDailyChannel}
-                    onChange={(e) => setSettings(prev => ({
-                      ...prev,
-                      notificationSettings: { ...prev.notificationSettings, ownerDailyChannel: e.target.value }
-                    }))}
-                    className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="whatsapp">WhatsApp</option>
-                    <option value="sms">SMS</option>
-                    <option value="off">Kapali</option>
-                  </select>
-                </div>
-                <textarea
-                  ref={ownerDailyReminderRef}
-                  value={settings.messageTemplates.ownerDailyReminder}
-                  onChange={(e) => setSettings(prev => ({
-                    ...prev,
-                    messageTemplates: { ...prev.messageTemplates, ownerDailyReminder: e.target.value }
-                  }))}
-                  rows={8}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm font-mono focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-                <div className="flex flex-wrap gap-1.5">
-                  {['{sahipAdi}', '{gun}', '{tarih}', '{gelenMusteri}', '{iptalSayisi}', '{gelmediler}', '{toplamRandevu}', '{nakitGelir}', '{kartGelir}', '{paketGelir}', '{toplamGelir}', '{isletmeAdi}'].map(v => (
-                    <span key={v} onClick={() => insertVariable(ownerDailyReminderRef, 'ownerDailyReminder', v)} className="inline-block px-2 py-0.5 bg-gray-100 text-gray-600 text-xs rounded font-mono cursor-pointer hover:bg-blue-100 hover:text-blue-700 transition-colors">{v}</span>
-                  ))}
-                </div>
-              </div>
 
-              {/* Memnuniyet Anketi */}
-              <div className="border-t pt-6 mt-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-base font-semibold text-gray-900">Memnuniyet Anketi</h3>
-                </div>
+                  {openAccordion === 'reminder' && (
+                    <div className="border-t p-4 space-y-4 bg-gray-50/50">
+                      <div className="flex flex-wrap items-center gap-3">
+                        <div>
+                          <label className="text-sm font-medium text-gray-700">Hatirlatma Suresi:</label>
+                          <select value={settings.reminderMinutes} onChange={(e) => setSettings(prev => ({ ...prev, reminderMinutes: parseInt(e.target.value) }))} className="ml-2 px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-amber-500">
+                            <option value={10}>10 dakika once</option>
+                            <option value={30}>30 dakika once</option>
+                            <option value={60}>1 saat once</option>
+                            <option value={120}>2 saat once</option>
+                            <option value={180}>3 saat once</option>
+                            <option value={240}>4 saat once</option>
+                            <option value={360}>6 saat once</option>
+                            <option value={720}>12 saat once</option>
+                            <option value={1440}>1 gun once</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label className="text-sm font-medium text-gray-700">Kanal:</label>
+                          <select value={settings.notificationSettings.reminderChannel} onChange={(e) => setSettings(prev => ({ ...prev, notificationSettings: { ...prev.notificationSettings, reminderChannel: e.target.value } }))} className="ml-2 px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-amber-500">
+                            <option value="default">Varsayilan ({channelLabel(settings.notificationSettings.defaultChannel)})</option>
+                            <option value="whatsapp">WhatsApp</option>
+                            <option value="sms">SMS</option>
+                            <option value="both">Her ikisi</option>
+                            <option value="off">Kapali</option>
+                          </select>
+                        </div>
+                      </div>
 
-                {/* Auto-send toggle */}
-                <div className="flex items-center justify-between mb-3 p-3 bg-gray-50 rounded-lg">
-                  <div>
-                    <label className="text-sm font-medium text-gray-700">Otomatik Gönderim</label>
-                    <p className="text-xs text-gray-500">Randevu tamamlandığında otomatik anket gönder</p>
-                  </div>
-                  <input
-                    type="checkbox"
-                    className="w-5 h-5 rounded border-gray-300 text-blue-600"
-                    checked={settings.notificationSettings.autoSendSurvey}
-                    onChange={(e) => setSettings(prev => ({
-                      ...prev,
-                      notificationSettings: { ...prev.notificationSettings, autoSendSurvey: e.target.checked }
-                    }))}
-                  />
-                </div>
-
-                {/* Delay selector */}
-                <div className="flex items-center gap-3 mb-3">
-                  <label className="text-sm font-medium text-gray-700 whitespace-nowrap">Gecikme Süresi:</label>
-                  <select
-                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                    value={settings.notificationSettings.surveyDelayMinutes}
-                    onChange={(e) => setSettings(prev => ({
-                      ...prev,
-                      notificationSettings: { ...prev.notificationSettings, surveyDelayMinutes: parseInt(e.target.value) }
-                    }))}
-                  >
-                    <option value={0}>Hemen</option>
-                    <option value={60}>1 saat sonra</option>
-                    <option value={120}>2 saat sonra</option>
-                    <option value={1440}>1 gün sonra</option>
-                  </select>
+                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                        {(() => { const ch = getEffectiveChannel(settings.notificationSettings.reminderChannel); return ch === 'whatsapp' || ch === 'both' || ch === 'smart'; })() && (
+                          <div className="space-y-2">
+                            <div className="flex items-center justify-between">
+                              <label className="text-sm font-medium text-gray-700">WhatsApp Sablonu</label>
+                              <button type="button" onClick={() => setSettings(prev => ({ ...prev, messageTemplates: { ...prev.messageTemplates, whatsappReminder: DEFAULT_TEMPLATES.whatsappReminder } }))} className="text-xs text-blue-600 hover:underline">Varsayilana Don</button>
+                            </div>
+                            <textarea ref={whatsappReminderRef} value={settings.messageTemplates.whatsappReminder} onChange={(e) => setSettings(prev => ({ ...prev, messageTemplates: { ...prev.messageTemplates, whatsappReminder: e.target.value } }))} rows={8} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm font-mono focus:ring-2 focus:ring-amber-500 focus:border-transparent bg-white" />
+                            <div className="flex flex-wrap gap-1.5">
+                              {['{musteriAdi}', '{tarih}', '{saat}', '{personel}', '{hizmet}', '{hatirlatmaSuresi}', '{isletmeAdi}', '{isletmeTelefon}', '{isletmeAdres}'].map(v => (
+                                <span key={v} onClick={() => insertVariable(whatsappReminderRef, 'whatsappReminder', v)} className="inline-block px-2 py-0.5 bg-white text-gray-600 text-xs rounded font-mono cursor-pointer hover:bg-amber-100 hover:text-amber-700 transition-colors border border-gray-200">{v}</span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                        {(() => { const ch = getEffectiveChannel(settings.notificationSettings.reminderChannel); return ch === 'sms' || ch === 'both' || ch === 'smart'; })() && (
+                          <div className="space-y-2">
+                            <div className="flex items-center justify-between">
+                              <label className="text-sm font-medium text-gray-700">SMS Sablonu</label>
+                              <button type="button" onClick={() => setSettings(prev => ({ ...prev, messageTemplates: { ...prev.messageTemplates, smsReminder: DEFAULT_TEMPLATES.smsReminder } }))} className="text-xs text-blue-600 hover:underline">Varsayilana Don</button>
+                            </div>
+                            <textarea ref={smsReminderRef} value={settings.messageTemplates.smsReminder} onChange={(e) => setSettings(prev => ({ ...prev, messageTemplates: { ...prev.messageTemplates, smsReminder: e.target.value } }))} rows={4} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm font-mono focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white" />
+                            <div className="flex flex-wrap gap-1.5">
+                              {['{musteriAdi}', '{tarih}', '{saat}', '{personel}', '{hizmet}', '{hatirlatmaSuresi}', '{isletmeAdi}', '{isletmeTelefon}', '{isletmeAdres}'].map(v => (
+                                <span key={v} onClick={() => insertVariable(smsReminderRef, 'smsReminder', v)} className="inline-block px-2 py-0.5 bg-white text-gray-600 text-xs rounded font-mono cursor-pointer hover:bg-blue-100 hover:text-blue-700 transition-colors border border-gray-200">{v}</span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
 
-                {/* Channel selector */}
-                <div className="flex items-center gap-3 mb-4">
-                  <label className="text-sm font-medium text-gray-700 whitespace-nowrap">Kanal:</label>
-                  <select
-                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                    value={settings.notificationSettings.surveyChannel}
-                    onChange={(e) => setSettings(prev => ({
-                      ...prev,
-                      notificationSettings: { ...prev.notificationSettings, surveyChannel: e.target.value }
-                    }))}
-                  >
-                    <option value="whatsapp">WhatsApp</option>
-                    <option value="sms">SMS</option>
-                    <option value="both">WhatsApp + SMS</option>
-                    <option value="off">Kapalı</option>
-                  </select>
-                </div>
-
-                {/* WhatsApp Survey Template */}
-                <label className="block text-sm font-medium text-gray-700 mb-1">WhatsApp Anket Mesajı</label>
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="text-xs text-gray-500 flex-1">Tamamlanan randevu sonrası müşteriye gönderilecek WhatsApp mesajı</span>
+                {/* Memnuniyet Anketi */}
+                <div className="border rounded-xl overflow-hidden bg-white shadow-sm">
                   <button
                     type="button"
-                    onClick={() => setSettings(prev => ({
-                      ...prev,
-                      messageTemplates: { ...prev.messageTemplates, whatsappSurvey: DEFAULT_TEMPLATES.whatsappSurvey }
-                    }))}
-                    className="text-xs text-blue-600 hover:text-blue-800"
+                    onClick={() => toggleAccordion('survey')}
+                    className="w-full flex items-center justify-between p-4 hover:bg-gray-50 transition-colors"
                   >
-                    Varsayılana Dön
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-lg bg-yellow-100 flex items-center justify-center">
+                        <Star className="w-5 h-5 text-yellow-600" />
+                      </div>
+                      <div className="text-left">
+                        <p className="font-semibold text-gray-900">Memnuniyet Anketi</p>
+                        <p className="text-xs text-gray-500">Randevu tamamlandiktan sonra musteriye gonderilir</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <label className="relative inline-flex items-center cursor-pointer" onClick={(e) => e.stopPropagation()}>
+                        <input
+                          type="checkbox"
+                          checked={settings.notificationSettings.autoSendSurvey}
+                          onChange={(e) => setSettings(prev => ({ ...prev, notificationSettings: { ...prev.notificationSettings, autoSendSurvey: e.target.checked } }))}
+                          className="sr-only peer"
+                        />
+                        <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-yellow-500"></div>
+                      </label>
+                      <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${channelBadgeColor(settings.notificationSettings.surveyChannel)}`}>
+                        {channelLabel(settings.notificationSettings.surveyChannel)}
+                      </span>
+                      <ChevronDown className={`w-5 h-5 text-gray-400 transition-transform ${openAccordion === 'survey' ? 'rotate-180' : ''}`} />
+                    </div>
                   </button>
-                </div>
-                <textarea
-                  ref={whatsappSurveyRef}
-                  value={settings.messageTemplates.whatsappSurvey}
-                  onChange={(e) => setSettings(prev => ({
-                    ...prev,
-                    messageTemplates: { ...prev.messageTemplates, whatsappSurvey: e.target.value }
-                  }))}
-                  rows={6}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm font-mono mb-1"
-                />
-                <div className="flex flex-wrap gap-1.5 mb-4">
-                  {['{musteriAdi}', '{tarih}', '{saat}', '{personel}', '{hizmet}', '{isletmeAdi}', '{anketLinki}'].map(v => (
-                    <span key={v} onClick={() => insertVariable(whatsappSurveyRef, 'whatsappSurvey', v)} className="inline-block px-2 py-0.5 bg-gray-100 text-gray-600 text-xs rounded font-mono cursor-pointer hover:bg-blue-100 hover:text-blue-700 transition-colors">{v}</span>
-                  ))}
-                </div>
 
-                {/* SMS Survey Template */}
-                <label className="block text-sm font-medium text-gray-700 mb-1">SMS Anket Mesajı</label>
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="text-xs text-gray-500 flex-1">SMS ile gönderilecek kısa anket mesajı</span>
-                  <button
-                    type="button"
-                    onClick={() => setSettings(prev => ({
-                      ...prev,
-                      messageTemplates: { ...prev.messageTemplates, smsSurvey: DEFAULT_TEMPLATES.smsSurvey }
-                    }))}
-                    className="text-xs text-blue-600 hover:text-blue-800"
-                  >
-                    Varsayılana Dön
-                  </button>
-                </div>
-                <textarea
-                  ref={smsSurveyRef}
-                  value={settings.messageTemplates.smsSurvey}
-                  onChange={(e) => setSettings(prev => ({
-                    ...prev,
-                    messageTemplates: { ...prev.messageTemplates, smsSurvey: e.target.value }
-                  }))}
-                  rows={3}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm font-mono mb-1"
-                />
-                <div className="flex flex-wrap gap-1.5">
-                  {['{musteriAdi}', '{tarih}', '{saat}', '{personel}', '{hizmet}', '{isletmeAdi}', '{anketLinki}'].map(v => (
-                    <span key={v} onClick={() => insertVariable(smsSurveyRef, 'smsSurvey', v)} className="inline-block px-2 py-0.5 bg-gray-100 text-gray-600 text-xs rounded font-mono cursor-pointer hover:bg-blue-100 hover:text-blue-700 transition-colors">{v}</span>
-                  ))}
+                  {openAccordion === 'survey' && (
+                    <div className="border-t p-4 space-y-4 bg-gray-50/50">
+                      <div className="flex flex-wrap items-center gap-3">
+                        <div>
+                          <label className="text-sm font-medium text-gray-700">Gecikme:</label>
+                          <select value={settings.notificationSettings.surveyDelayMinutes} onChange={(e) => setSettings(prev => ({ ...prev, notificationSettings: { ...prev.notificationSettings, surveyDelayMinutes: parseInt(e.target.value) } }))} className="ml-2 px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-yellow-500">
+                            <option value={0}>Hemen</option>
+                            <option value={60}>1 saat sonra</option>
+                            <option value={120}>2 saat sonra</option>
+                            <option value={1440}>1 gun sonra</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label className="text-sm font-medium text-gray-700">Kanal:</label>
+                          <select value={settings.notificationSettings.surveyChannel} onChange={(e) => setSettings(prev => ({ ...prev, notificationSettings: { ...prev.notificationSettings, surveyChannel: e.target.value } }))} className="ml-2 px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-yellow-500">
+                            <option value="default">Varsayilan ({channelLabel(settings.notificationSettings.defaultChannel)})</option>
+                            <option value="whatsapp">WhatsApp</option>
+                            <option value="sms">SMS</option>
+                            <option value="both">Her ikisi</option>
+                            <option value="off">Kapali</option>
+                          </select>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                        {(() => { const ch = getEffectiveChannel(settings.notificationSettings.surveyChannel); return ch === 'whatsapp' || ch === 'both' || ch === 'smart'; })() && (
+                          <div className="space-y-2">
+                            <div className="flex items-center justify-between">
+                              <label className="text-sm font-medium text-gray-700">WhatsApp Sablonu</label>
+                              <button type="button" onClick={() => setSettings(prev => ({ ...prev, messageTemplates: { ...prev.messageTemplates, whatsappSurvey: DEFAULT_TEMPLATES.whatsappSurvey } }))} className="text-xs text-blue-600 hover:underline">Varsayilana Don</button>
+                            </div>
+                            <textarea ref={whatsappSurveyRef} value={settings.messageTemplates.whatsappSurvey} onChange={(e) => setSettings(prev => ({ ...prev, messageTemplates: { ...prev.messageTemplates, whatsappSurvey: e.target.value } }))} rows={6} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm font-mono focus:ring-2 focus:ring-yellow-500 focus:border-transparent bg-white" />
+                            <div className="flex flex-wrap gap-1.5">
+                              {['{musteriAdi}', '{tarih}', '{saat}', '{personel}', '{hizmet}', '{isletmeAdi}', '{anketLinki}'].map(v => (
+                                <span key={v} onClick={() => insertVariable(whatsappSurveyRef, 'whatsappSurvey', v)} className="inline-block px-2 py-0.5 bg-white text-gray-600 text-xs rounded font-mono cursor-pointer hover:bg-yellow-100 hover:text-yellow-700 transition-colors border border-gray-200">{v}</span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                        {(() => { const ch = getEffectiveChannel(settings.notificationSettings.surveyChannel); return ch === 'sms' || ch === 'both' || ch === 'smart'; })() && (
+                          <div className="space-y-2">
+                            <div className="flex items-center justify-between">
+                              <label className="text-sm font-medium text-gray-700">SMS Sablonu</label>
+                              <button type="button" onClick={() => setSettings(prev => ({ ...prev, messageTemplates: { ...prev.messageTemplates, smsSurvey: DEFAULT_TEMPLATES.smsSurvey } }))} className="text-xs text-blue-600 hover:underline">Varsayilana Don</button>
+                            </div>
+                            <textarea ref={smsSurveyRef} value={settings.messageTemplates.smsSurvey} onChange={(e) => setSettings(prev => ({ ...prev, messageTemplates: { ...prev.messageTemplates, smsSurvey: e.target.value } }))} rows={3} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm font-mono focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white" />
+                            <div className="flex flex-wrap gap-1.5">
+                              {['{musteriAdi}', '{tarih}', '{saat}', '{personel}', '{hizmet}', '{isletmeAdi}', '{anketLinki}'].map(v => (
+                                <span key={v} onClick={() => insertVariable(smsSurveyRef, 'smsSurvey', v)} className="inline-block px-2 py-0.5 bg-white text-gray-600 text-xs rounded font-mono cursor-pointer hover:bg-blue-100 hover:text-blue-700 transition-colors border border-gray-200">{v}</span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
+            </div>
 
-            </CardContent>
-          </Card>
+            {/* Isletme / Personel Mesajlari */}
+            <div>
+              <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3 flex items-center gap-2">
+                <Briefcase className="w-4 h-4" /> Isletme & Personel Mesajlari
+              </h3>
+
+              <div className="space-y-3">
+                {/* Personel Gunluk Ozet */}
+                <div className="border rounded-xl overflow-hidden bg-white shadow-sm">
+                  <button
+                    type="button"
+                    onClick={() => toggleAccordion('staffDaily')}
+                    className="w-full flex items-center justify-between p-4 hover:bg-gray-50 transition-colors"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center">
+                        <Users className="w-5 h-5 text-blue-600" />
+                      </div>
+                      <div className="text-left">
+                        <p className="font-semibold text-gray-900">Personel Gunluk Ozet</p>
+                        <p className="text-xs text-gray-500">Her sabah 08:30'da personele gonderilir</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${channelBadgeColor(settings.notificationSettings.staffDailyChannel)}`}>
+                        {channelLabel(settings.notificationSettings.staffDailyChannel)}
+                      </span>
+                      <ChevronDown className={`w-5 h-5 text-gray-400 transition-transform ${openAccordion === 'staffDaily' ? 'rotate-180' : ''}`} />
+                    </div>
+                  </button>
+
+                  {openAccordion === 'staffDaily' && (
+                    <div className="border-t p-4 space-y-4 bg-gray-50/50">
+                      <div className="flex items-center gap-3">
+                        <label className="text-sm font-medium text-gray-700">Kanal:</label>
+                        <select value={settings.notificationSettings.staffDailyChannel} onChange={(e) => setSettings(prev => ({ ...prev, notificationSettings: { ...prev.notificationSettings, staffDailyChannel: e.target.value } }))} className="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-blue-500">
+                          <option value="whatsapp">WhatsApp</option>
+                          <option value="sms">SMS</option>
+                          <option value="off">Kapali</option>
+                        </select>
+                      </div>
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <label className="text-sm font-medium text-gray-700">Mesaj Sablonu</label>
+                          <button type="button" onClick={() => setSettings(prev => ({ ...prev, messageTemplates: { ...prev.messageTemplates, staffDailyReminder: DEFAULT_TEMPLATES.staffDailyReminder } }))} className="text-xs text-blue-600 hover:underline">Varsayilana Don</button>
+                        </div>
+                        <textarea ref={staffDailyReminderRef} value={settings.messageTemplates.staffDailyReminder} onChange={(e) => setSettings(prev => ({ ...prev, messageTemplates: { ...prev.messageTemplates, staffDailyReminder: e.target.value } }))} rows={8} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm font-mono focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white" />
+                        <div className="flex flex-wrap gap-1.5">
+                          {['{personelAdi}', '{gun}', '{tarih}', '{randevuSayisi}', '{randevuListesi}', '{isletmeAdi}'].map(v => (
+                            <span key={v} onClick={() => insertVariable(staffDailyReminderRef, 'staffDailyReminder', v)} className="inline-block px-2 py-0.5 bg-white text-gray-600 text-xs rounded font-mono cursor-pointer hover:bg-blue-100 hover:text-blue-700 transition-colors border border-gray-200">{v}</span>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Isletme Sahibi Gunluk Ozet */}
+                <div className="border rounded-xl overflow-hidden bg-white shadow-sm">
+                  <button
+                    type="button"
+                    onClick={() => toggleAccordion('ownerDaily')}
+                    className="w-full flex items-center justify-between p-4 hover:bg-gray-50 transition-colors"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-lg bg-indigo-100 flex items-center justify-center">
+                        <Briefcase className="w-5 h-5 text-indigo-600" />
+                      </div>
+                      <div className="text-left">
+                        <p className="font-semibold text-gray-900">Isletme Sahibi Gunluk Ozet</p>
+                        <p className="text-xs text-gray-500">Her aksam 21:00'de isletme sahibine gonderilir</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${channelBadgeColor(settings.notificationSettings.ownerDailyChannel)}`}>
+                        {channelLabel(settings.notificationSettings.ownerDailyChannel)}
+                      </span>
+                      <ChevronDown className={`w-5 h-5 text-gray-400 transition-transform ${openAccordion === 'ownerDaily' ? 'rotate-180' : ''}`} />
+                    </div>
+                  </button>
+
+                  {openAccordion === 'ownerDaily' && (
+                    <div className="border-t p-4 space-y-4 bg-gray-50/50">
+                      <div className="flex items-center gap-3">
+                        <label className="text-sm font-medium text-gray-700">Kanal:</label>
+                        <select value={settings.notificationSettings.ownerDailyChannel} onChange={(e) => setSettings(prev => ({ ...prev, notificationSettings: { ...prev.notificationSettings, ownerDailyChannel: e.target.value } }))} className="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-indigo-500">
+                          <option value="whatsapp">WhatsApp</option>
+                          <option value="sms">SMS</option>
+                          <option value="off">Kapali</option>
+                        </select>
+                      </div>
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <label className="text-sm font-medium text-gray-700">Mesaj Sablonu</label>
+                          <button type="button" onClick={() => setSettings(prev => ({ ...prev, messageTemplates: { ...prev.messageTemplates, ownerDailyReminder: DEFAULT_TEMPLATES.ownerDailyReminder } }))} className="text-xs text-blue-600 hover:underline">Varsayilana Don</button>
+                        </div>
+                        <textarea ref={ownerDailyReminderRef} value={settings.messageTemplates.ownerDailyReminder} onChange={(e) => setSettings(prev => ({ ...prev, messageTemplates: { ...prev.messageTemplates, ownerDailyReminder: e.target.value } }))} rows={8} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm font-mono focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white" />
+                        <div className="flex flex-wrap gap-1.5">
+                          {['{sahipAdi}', '{gun}', '{tarih}', '{gelenMusteri}', '{iptalSayisi}', '{gelmediler}', '{toplamRandevu}', '{nakitGelir}', '{kartGelir}', '{paketGelir}', '{toplamGelir}', '{isletmeAdi}'].map(v => (
+                            <span key={v} onClick={() => insertVariable(ownerDailyReminderRef, 'ownerDailyReminder', v)} className="inline-block px-2 py-0.5 bg-white text-gray-600 text-xs rounded font-mono cursor-pointer hover:bg-indigo-100 hover:text-indigo-700 transition-colors border border-gray-200">{v}</span>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+          </div>
         </TabsContent>
       </Tabs>
 

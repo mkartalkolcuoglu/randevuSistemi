@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '../../../../lib/prisma';
 import { formatPhoneForSMS } from '../../../../lib/netgsm-client';
 import { getTemplate, renderTemplate } from '../../../../lib/message-templates';
+import { sendExpoPushNotification } from '../../../../lib/expo-push';
 
 /**
  * Cron Job: Send appointment reminders based on tenant settings
@@ -178,18 +179,68 @@ export async function GET(request: NextRequest) {
         try {
           notifSettings = settings?.notificationSettings ? JSON.parse(settings.notificationSettings) : {};
         } catch { /* use defaults */ }
-        const reminderChannel = notifSettings.reminderChannel || 'both';
+        let reminderChannel = notifSettings.reminderChannel || 'both';
+
+        // Resolve 'default' to the defaultChannel setting
+        if (reminderChannel === 'default') {
+          reminderChannel = notifSettings.defaultChannel || 'whatsapp';
+        }
 
         if (reminderChannel === 'off') {
           console.log(`⏭️ [CRON] Reminders disabled for tenant ${appointment.tenantId}`);
           continue;
         }
 
+        // Get customer for notification preferences (smart mode)
+        let sendWhatsApp = false;
+        let sendSms = false;
+
+        if (reminderChannel === 'smart') {
+          // Look up customer preferences + push token
+          const customer = appointment.customerId ? await prisma.customer.findUnique({ where: { id: appointment.customerId }, select: { whatsappNotifications: true, smsNotifications: true, expoPushToken: true } }) : null;
+          if (customer?.expoPushToken) {
+            // Try push first
+            const pushResult = await sendExpoPushNotification(
+              customer.expoPushToken,
+              `Randevu Hatırlatması - ${tenant?.businessName || 'Randevu'}`,
+              `${appointment.customerName}, ${appointment.date} ${appointment.time} tarihli ${appointment.serviceName} randevunuz ${reminderTimeText}.`,
+              { type: 'reminder', appointmentId: appointment.id }
+            );
+            if (pushResult.success) {
+              successCount++;
+              await prisma.appointment.update({ where: { id: appointment.id }, data: { reminderSent: true, reminderSentAt: new Date() } });
+              console.log(`✅ [CRON] Push reminder sent for appointment ${appointment.id}`);
+              await new Promise(resolve => setTimeout(resolve, 100));
+              continue;
+            }
+            // Push failed - clear invalid token and fallback
+            if (pushResult.invalidToken) {
+              await prisma.customer.update({ where: { id: appointment.customerId }, data: { expoPushToken: null } });
+            }
+            // Fallback below
+            if (customer?.whatsappNotifications !== false) {
+              sendWhatsApp = true;
+            } else if (customer?.smsNotifications !== false) {
+              sendSms = true;
+            }
+          } else if (customer?.whatsappNotifications !== false) {
+            sendWhatsApp = true;
+          } else if (customer?.smsNotifications !== false) {
+            sendSms = true;
+          } else {
+            console.log(`⏭️ [CRON] Customer opted out of all notifications for appointment ${appointment.id}`);
+            continue;
+          }
+        } else {
+          sendWhatsApp = reminderChannel === 'whatsapp' || reminderChannel === 'both';
+          sendSms = reminderChannel === 'sms' || reminderChannel === 'both';
+        }
+
         let whatsappResult = { success: false };
         let smsResult = { success: false };
 
         // Send WhatsApp if channel includes it
-        if (reminderChannel === 'whatsapp' || reminderChannel === 'both') {
+        if (sendWhatsApp) {
           const whatsappResponse = await fetch(`${process.env.NEXT_PUBLIC_ADMIN_URL || 'https://admin.netrandevu.com'}/api/whapi/send-message`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -207,7 +258,7 @@ export async function GET(request: NextRequest) {
         }
 
         // Send SMS if channel includes it
-        if (reminderChannel === 'sms' || reminderChannel === 'both') {
+        if (sendSms) {
           const smsResponse = await fetch(`${process.env.NEXT_PUBLIC_ADMIN_URL || 'https://admin.netrandevu.com'}/api/netgsm/send-sms`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },

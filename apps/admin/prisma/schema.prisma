@@ -60,6 +60,7 @@ model Customer {
   whatsappNotifications Boolean?  @default(true) @map("whatsapp_notifications")
   smsNotifications      Boolean?  @default(true) @map("sms_notifications")
   pushNotifications     Boolean?  @default(true) @map("push_notifications")
+  expoPushToken         String?   @map("expo_push_token")
 
   tenant       Tenant        @relation(fields: [tenantId], references: [id])
   appointments Appointment[]

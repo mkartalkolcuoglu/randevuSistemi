@@ -5,25 +5,25 @@
 export const DEFAULT_TEMPLATES = {
   whatsappConfirmation: `Merhaba {musteriAdi},
 
-Randevunuz basariyla olusturuldu! 🎉
+Randevunuz başarıyla oluşturuldu! 🎉
 
 📅 *Tarih:* {tarih}
 🕐 *Saat:* {saat}
 👤 *Personel:* {personel}
 💼 *Hizmet:* {hizmet}
-💰 *Ucret:* {ucret}
+💰 *Ücret:* {ucret}
 📍 *Adres:* {isletmeAdres}
 
-Gorusmek uzere! 😊
+Görüşmek üzere! 😊
 
 *{isletmeAdi}*
 📞 {isletmeTelefon}`,
 
-  smsConfirmation: `{isletmeAdi} randevunuz olusturuldu. Tarih: {tarih}, Saat: {saat}, Personel: {personel}, Hizmet: {hizmet}, Ucret: {ucret}. Gorusmek uzere! Tel: {isletmeTelefon}`,
+  smsConfirmation: `{isletmeAdi} randevunuz oluşturuldu. Tarih: {tarih}, Saat: {saat}, Personel: {personel}, Hizmet: {hizmet}, Ücret: {ucret}. Görüşmek üzere! Tel: {isletmeTelefon}`,
 
   whatsappReminder: `Merhaba {musteriAdi},
 
-⏰ *Randevunuza {hatirlatmaSuresi} kaldi!*
+⏰ *Randevunuza {hatirlatmaSuresi} kaldı!*
 
 📅 *Tarih:* {tarih}
 🕐 *Saat:* {saat}
@@ -36,29 +36,29 @@ Sizi bekliyoruz! 😊
 *{isletmeAdi}*
 📞 {isletmeTelefon}`,
 
-  smsReminder: `{isletmeAdi} randevunuz {hatirlatmaSuresi}. Tarih: {tarih}, Saat: {saat}, Hizmet: {hizmet}. Gorusmek uzere!`,
+  smsReminder: `{isletmeAdi} randevunuz {hatirlatmaSuresi}. Tarih: {tarih}, Saat: {saat}, Hizmet: {hizmet}. Görüşmek üzere!`,
 
-  staffDailyReminder: `🌅 Gunaydin {personelAdi}!
+  staffDailyReminder: `🌅 Günaydın {personelAdi}!
 
 📅 *{gun}, {tarih}*
 
-Bugun {randevuSayisi} randevunuz var:
+Bugün {randevuSayisi} randevunuz var:
 
 {randevuListesi}
 
-Iyi calismalar! 💪
+İyi çalışmalar! 💪
 
 _{isletmeAdi}_`,
 
-  ownerDailyReminder: `🌙 Iyi aksamlar {sahipAdi}!
+  ownerDailyReminder: `🌙 İyi akşamlar {sahipAdi}!
 
-📊 *{gun}, {tarih} - Gunluk Ozet*
+📊 *{gun}, {tarih} - Günlük Özet*
 
 ━━━━━━━━━━━━━━━━━━━━
 
-👥 *Musteri Istatistikleri*
-✅ Gelen Musteri: {gelenMusteri}
-❌ Iptal: {iptalSayisi}
+👥 *Müşteri İstatistikleri*
+✅ Gelen Müşteri: {gelenMusteri}
+❌ İptal: {iptalSayisi}
 ⚠️ Gelmedi: {gelmediler}
 📋 Toplam Randevu: {toplamRandevu}
 
@@ -66,7 +66,7 @@ _{isletmeAdi}_`,
 
 💰 *Gelir Raporu*
 💵 Nakit: {nakitGelir} TL
-💳 Kredi Karti: {kartGelir} TL
+💳 Kredi Kartı: {kartGelir} TL
 🎁 Paket: {paketGelir} TL
 
 ━━━━━━━━━━━━━━━━━━━━
@@ -77,16 +77,16 @@ _{isletmeAdi}_`,
 
   whatsappSurvey: `Merhaba {musteriAdi},
 
-{isletmeAdi}'deki randevunuz tamamlandi! 🎉
+{isletmeAdi}'deki randevunuz tamamlandı! 🎉
 
-Hizmetimizden memnun kaldiniz mi? Geri bildiriminiz bizim icin cok degerli.
+Hizmetimizden memnun kaldınız mı? Geri bildiriminiz bizim için çok değerli.
 
-📝 Degerlendirme yapmak icin: {anketLinki}
+📝 Değerlendirme yapmak için: {anketLinki}
 
-Tesekkurler! 🙏
+Teşekkürler! 🙏
 *{isletmeAdi}*`,
 
-  smsSurvey: `{isletmeAdi} randevunuz tamamlandi. Degerlendirme icin: {anketLinki} Tesekkurler!`
+  smsSurvey: `{isletmeAdi} randevunuz tamamlandı. Değerlendirme için: {anketLinki} Teşekkürler!`
 };
 
 /**
@@ -122,57 +122,57 @@ export function getTemplate(
  * Müşteri mesajları için kullanılabilir değişkenler
  */
 export const CUSTOMER_VARIABLES = [
-  { key: '{musteriAdi}', label: 'Musteri Adi' },
+  { key: '{musteriAdi}', label: 'Müşteri Adı' },
   { key: '{tarih}', label: 'Tarih' },
   { key: '{saat}', label: 'Saat' },
   { key: '{personel}', label: 'Personel' },
   { key: '{hizmet}', label: 'Hizmet' },
-  { key: '{ucret}', label: 'Ucret' },
-  { key: '{isletmeAdi}', label: 'Isletme Adi' },
-  { key: '{isletmeTelefon}', label: 'Isletme Telefon' },
-  { key: '{isletmeAdres}', label: 'Isletme Adres' },
-  { key: '{hatirlatmaSuresi}', label: 'Hatirlatma Suresi' },
+  { key: '{ucret}', label: 'Ücret' },
+  { key: '{isletmeAdi}', label: 'İşletme Adı' },
+  { key: '{isletmeTelefon}', label: 'İşletme Telefon' },
+  { key: '{isletmeAdres}', label: 'İşletme Adres' },
+  { key: '{hatirlatmaSuresi}', label: 'Hatırlatma Süresi' },
 ];
 
 /**
  * Personel mesajları için kullanılabilir değişkenler
  */
 export const STAFF_VARIABLES = [
-  { key: '{personelAdi}', label: 'Personel Adi' },
-  { key: '{gun}', label: 'Gun (Pazartesi, Sali...)' },
+  { key: '{personelAdi}', label: 'Personel Adı' },
+  { key: '{gun}', label: 'Gün (Pazartesi, Salı...)' },
   { key: '{tarih}', label: 'Tarih' },
-  { key: '{randevuSayisi}', label: 'Randevu Sayisi' },
+  { key: '{randevuSayisi}', label: 'Randevu Sayısı' },
   { key: '{randevuListesi}', label: 'Randevu Listesi' },
-  { key: '{isletmeAdi}', label: 'Isletme Adi' },
+  { key: '{isletmeAdi}', label: 'İşletme Adı' },
 ];
 
 /**
  * Sahip günlük özet değişkenleri
  */
 export const OWNER_VARIABLES = [
-  { key: '{sahipAdi}', label: 'Sahip Adi' },
-  { key: '{gun}', label: 'Gun' },
+  { key: '{sahipAdi}', label: 'Sahip Adı' },
+  { key: '{gun}', label: 'Gün' },
   { key: '{tarih}', label: 'Tarih' },
-  { key: '{gelenMusteri}', label: 'Gelen Musteri' },
-  { key: '{iptalSayisi}', label: 'Iptal Sayisi' },
+  { key: '{gelenMusteri}', label: 'Gelen Müşteri' },
+  { key: '{iptalSayisi}', label: 'İptal Sayısı' },
   { key: '{gelmediler}', label: 'Gelmediler' },
   { key: '{toplamRandevu}', label: 'Toplam Randevu' },
   { key: '{nakitGelir}', label: 'Nakit Gelir' },
   { key: '{kartGelir}', label: 'Kart Gelir' },
   { key: '{paketGelir}', label: 'Paket Gelir' },
   { key: '{toplamGelir}', label: 'Toplam Gelir' },
-  { key: '{isletmeAdi}', label: 'Isletme Adi' },
+  { key: '{isletmeAdi}', label: 'İşletme Adı' },
 ];
 
 /**
  * Anket mesajı değişkenleri
  */
 export const SURVEY_VARIABLES = [
-  { key: '{musteriAdi}', label: 'Musteri Adi' },
+  { key: '{musteriAdi}', label: 'Müşteri Adı' },
   { key: '{tarih}', label: 'Tarih' },
   { key: '{saat}', label: 'Saat' },
   { key: '{personel}', label: 'Personel' },
   { key: '{hizmet}', label: 'Hizmet' },
-  { key: '{isletmeAdi}', label: 'Isletme Adi' },
+  { key: '{isletmeAdi}', label: 'İşletme Adı' },
   { key: '{anketLinki}', label: 'Anket Linki' },
 ];

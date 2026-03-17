@@ -18,6 +18,7 @@ import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view
 import { useAuthStore } from '../../src/store/auth.store';
 import { OTP_LENGTH, OTP_RESEND_TIMEOUT } from '../../src/constants/config';
 import ErrorBottomSheet from '../../src/components/ErrorBottomSheet';
+import { notificationService } from '../../src/services/notification.service';
 
 export default function VerifyScreen() {
   const router = useRouter();
@@ -77,6 +78,8 @@ export default function VerifyScreen() {
       const result = await verifyOtpCustomer(phone, verifyCode);
 
       if (result.success) {
+        // Register push token after successful login
+        notificationService.registerForPushNotifications().catch(console.error);
         if (result.isNewCustomer) {
           router.replace('/onboarding/profile');
         } else {
@@ -92,6 +95,8 @@ export default function VerifyScreen() {
       const result = await verifyOtp(phone, verifyCode);
 
       if (result.success) {
+        // Register push token after successful login
+        notificationService.registerForPushNotifications().catch(console.error);
         if (result.needsTenantSelection) {
           router.replace('/(auth)/select-tenant');
         } else {

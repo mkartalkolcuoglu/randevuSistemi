@@ -3,6 +3,7 @@ import { prisma } from '../../../../lib/prisma';
 import { sendWhatsAppMessage } from '../../../../lib/whapi-client';
 import { formatPhoneForSMS } from '../../../../lib/netgsm-client';
 import { getTemplate, renderTemplate } from '../../../../lib/message-templates';
+import { sendExpoPushNotification } from '../../../../lib/expo-push';
 
 export async function POST(request: NextRequest) {
   try {
@@ -21,21 +22,21 @@ export async function POST(request: NextRequest) {
 
     if (!appointment) {
       return NextResponse.json(
-        { success: false, error: 'Randevu bulunamadi' },
+        { success: false, error: 'Randevu bulunamadı' },
         { status: 404 }
       );
     }
 
     if (appointment.status !== 'completed') {
       return NextResponse.json(
-        { success: false, error: 'Randevu henuz tamamlanmamis' },
+        { success: false, error: 'Randevu henüz tamamlanmamış' },
         { status: 400 }
       );
     }
 
     if (appointment.feedbackSent) {
       return NextResponse.json(
-        { success: false, error: 'Anket zaten gonderilmis' },
+        { success: false, error: 'Anket zaten gönderilmiş' },
         { status: 400 }
       );
     }
@@ -47,7 +48,7 @@ export async function POST(request: NextRequest) {
 
     if (existingFeedback) {
       return NextResponse.json(
-        { success: false, error: 'Bu randevu icin zaten degerlendirme yapilmis' },
+        { success: false, error: 'Bu randevu için zaten değerlendirme yapılmış' },
         { status: 400 }
       );
     }
@@ -59,7 +60,7 @@ export async function POST(request: NextRequest) {
 
     if (!customer?.phone) {
       return NextResponse.json(
-        { success: false, error: 'Musterinin telefon numarasi yok' },
+        { success: false, error: 'Müşterinin telefon numarası yok' },
         { status: 400 }
       );
     }
@@ -72,7 +73,7 @@ export async function POST(request: NextRequest) {
 
     if (!tenant) {
       return NextResponse.json(
-        { success: false, error: 'Isletme bulunamadi' },
+        { success: false, error: 'İşletme bulunamadı' },
         { status: 404 }
       );
     }
@@ -84,7 +85,7 @@ export async function POST(request: NextRequest) {
 
     if (!settings) {
       return NextResponse.json(
-        { success: false, error: 'Isletme ayarlari bulunamadi' },
+        { success: false, error: 'İşletme ayarları bulunamadı' },
         { status: 404 }
       );
     }
@@ -95,13 +96,38 @@ export async function POST(request: NextRequest) {
       notifSettings = settings.notificationSettings ? JSON.parse(settings.notificationSettings) : {};
     } catch { /* use defaults */ }
 
-    const surveyChannel = notifSettings.surveyChannel || 'whatsapp';
+    let surveyChannel = notifSettings.surveyChannel || 'whatsapp';
+
+    // Resolve 'default' to the defaultChannel setting
+    if (surveyChannel === 'default') {
+      surveyChannel = notifSettings.defaultChannel || 'whatsapp';
+    }
 
     if (surveyChannel === 'off') {
       return NextResponse.json(
-        { success: false, error: 'Anket gonderimi kapali' },
+        { success: false, error: 'Anket gönderimi kapalı' },
         { status: 400 }
       );
+    }
+
+    // Smart mode: choose channel based on customer preferences (Push > WhatsApp > SMS)
+    let sendPush = false;
+    let sendWhatsApp = false;
+    let sendSms = false;
+
+    if (surveyChannel === 'smart') {
+      if (customer.expoPushToken) {
+        sendPush = true;
+      } else if (customer.whatsappNotifications !== false) {
+        sendWhatsApp = true;
+      } else if (customer.smsNotifications !== false) {
+        sendSms = true;
+      } else {
+        return NextResponse.json({ success: false, error: 'Müşteri tüm bildirim kanallarını kapattı' }, { status: 400 });
+      }
+    } else {
+      sendWhatsApp = surveyChannel === 'whatsapp' || surveyChannel === 'both';
+      sendSms = surveyChannel === 'sms' || surveyChannel === 'both';
     }
 
     // Build survey link
@@ -119,11 +145,35 @@ export async function POST(request: NextRequest) {
       anketLinki: surveyLink,
     };
 
+    let pushSent = false;
     let whatsappSent = false;
     let smsSent = false;
 
+    // Send Push Notification (priority in smart mode)
+    if (sendPush && customer.expoPushToken) {
+      const pushResult = await sendExpoPushNotification(
+        customer.expoPushToken,
+        `Memnuniyet Anketi - ${tenant.businessName}`,
+        `${appointment.customerName}, randevunuzu değerlendirin!`,
+        { type: 'survey', appointmentId, surveyLink }
+      );
+      pushSent = pushResult.success;
+
+      if (!pushSent) {
+        if (pushResult.invalidToken) {
+          await prisma.customer.update({ where: { id: customer.id }, data: { expoPushToken: null } });
+        }
+        // Fallback to WhatsApp > SMS
+        if (customer.whatsappNotifications !== false) {
+          sendWhatsApp = true;
+        } else if (customer.smsNotifications !== false) {
+          sendSms = true;
+        }
+      }
+    }
+
     // Send WhatsApp
-    if (surveyChannel === 'whatsapp' || surveyChannel === 'both') {
+    if (sendWhatsApp) {
       const template = getTemplate(settings.messageTemplates, 'whatsappSurvey');
       const message = renderTemplate(template, templateVars);
       const result = await sendWhatsAppMessage({
@@ -137,7 +187,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Send SMS
-    if (surveyChannel === 'sms' || surveyChannel === 'both') {
+    if (sendSms) {
       const template = getTemplate(settings.messageTemplates, 'smsSurvey');
       const message = renderTemplate(template, templateVars);
       const smsPhone = formatPhoneForSMS(customer.phone);
@@ -154,9 +204,9 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    if (!whatsappSent && !smsSent) {
+    if (!pushSent && !whatsappSent && !smsSent) {
       return NextResponse.json(
-        { success: false, error: 'Anket mesaji gonderilemedi' },
+        { success: false, error: 'Anket mesajı gönderilemedi' },
         { status: 500 }
       );
     }
@@ -170,17 +220,17 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    const channelInfo = whatsappSent && smsSent ? 'WhatsApp + SMS' : whatsappSent ? 'WhatsApp' : 'SMS';
-    console.log(`Anket gonderildi: ${appointmentId} (${channelInfo})`);
+    const channelInfo = pushSent ? 'Push' : whatsappSent && smsSent ? 'WhatsApp + SMS' : whatsappSent ? 'WhatsApp' : 'SMS';
+    console.log(`Anket gönderildi: ${appointmentId} (${channelInfo})`);
 
     return NextResponse.json({
       success: true,
-      message: `Anket mesaji gonderildi (${channelInfo})`,
+      message: `Anket mesajı gönderildi (${channelInfo})`,
     });
   } catch (error) {
     console.error('Send survey error:', error);
     return NextResponse.json(
-      { success: false, error: 'Anket gonderilirken hata olustu' },
+      { success: false, error: 'Anket gönderilirken hata oluştu' },
       { status: 500 }
     );
   }

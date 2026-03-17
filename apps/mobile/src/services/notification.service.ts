@@ -41,7 +41,7 @@ class NotificationService {
 
       // Get push token
       const tokenData = await Notifications.getExpoPushTokenAsync({
-        projectId: 'your-project-id', // Replace with actual EAS project ID
+        projectId: '430b9711-2691-4080-93cb-e3bedea94a57',
       });
 
       this.expoPushToken = tokenData.data;
