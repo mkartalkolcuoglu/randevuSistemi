@@ -58,6 +58,8 @@ model Customer {
   isBlacklisted         Boolean?  @default(false) @map("is_blacklisted")
   blacklistedAt         DateTime? @map("blacklisted_at") @db.Timestamp(6)
   whatsappNotifications Boolean?  @default(true) @map("whatsapp_notifications")
+  smsNotifications      Boolean?  @default(true) @map("sms_notifications")
+  pushNotifications     Boolean?  @default(true) @map("push_notifications")
 
   tenant       Tenant        @relation(fields: [tenantId], references: [id])
   appointments Appointment[]

@@ -141,7 +141,7 @@ export default function CustomerProfileScreen() {
       icon: 'notifications-outline' as const,
       label: 'Bildirimler',
       description: 'Bildirim tercihlerinizi yönetin',
-      onPress: () => Alert.alert('Bildirimler', 'Bildirim ayarları yakında eklenecek'),
+      onPress: () => router.push('/(tabs)/customer/notifications'),
       color: '#F59E0B',
     },
     {

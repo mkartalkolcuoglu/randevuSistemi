@@ -99,8 +99,9 @@ export default function TabLayout() {
             ),
           }}
         />
-        {/* Hide payment screen from tab bar */}
+        {/* Hide payment and notifications screens from tab bar */}
         <Tabs.Screen name="customer/payment" options={{ href: null }} />
+        <Tabs.Screen name="customer/notifications" options={{ href: null }} />
         {/* Hide all staff tabs for customers */}
         <Tabs.Screen name="staff/index" options={{ href: null }} />
         <Tabs.Screen name="staff/appointments" options={{ href: null }} />
@@ -120,16 +121,16 @@ export default function TabLayout() {
     );
   }
 
-  // Staff/Owner layout - 4 tabs: Ana Sayfa, Yeni Randevu, Müşteriler, Takvim
+  // Staff/Owner layout - 4 tabs: Takvim, Randevular, Müşteriler, Ana Sayfa
   return (
     <Tabs screenOptions={getScreenOptions(TAB_ACTIVE_COLOR)}>
-      {/* Visible tabs */}
+      {/* Visible tabs - Calendar first as default */}
       <Tabs.Screen
-        name="staff/index"
+        name="staff/calendar"
         options={{
-          title: 'Ana Sayfa',
+          title: 'Takvim',
           tabBarIcon: ({ color }) => (
-            <Ionicons name="home" size={TAB_ICON_SIZE} color={color} />
+            <Ionicons name="calendar" size={TAB_ICON_SIZE} color={color} />
           ),
         }}
       />
@@ -152,11 +153,11 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="staff/calendar"
+        name="staff/index"
         options={{
-          title: 'Takvim',
+          title: 'Ana Sayfa',
           tabBarIcon: ({ color }) => (
-            <Ionicons name="calendar" size={TAB_ICON_SIZE} color={color} />
+            <Ionicons name="home" size={TAB_ICON_SIZE} color={color} />
           ),
         }}
       />
@@ -179,6 +180,7 @@ export default function TabLayout() {
       <Tabs.Screen name="customer/packages" options={{ href: null }} />
       <Tabs.Screen name="customer/profile" options={{ href: null }} />
       <Tabs.Screen name="customer/payment" options={{ href: null }} />
+      <Tabs.Screen name="customer/notifications" options={{ href: null }} />
     </Tabs>
   );
 }
