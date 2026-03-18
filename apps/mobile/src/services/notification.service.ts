@@ -3,16 +3,20 @@ import * as Device from 'expo-device';
 import { Platform } from 'react-native';
 import api from './api';
 
-// Configure notification handler
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: true,
-    shouldShowBanner: true,
-    shouldShowList: true,
-  }),
-});
+// Configure notification handler (safe init)
+try {
+  Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+      shouldShowAlert: true,
+      shouldPlaySound: true,
+      shouldSetBadge: true,
+      shouldShowBanner: true,
+      shouldShowList: true,
+    }),
+  });
+} catch (e) {
+  console.warn('Failed to set notification handler:', e);
+}
 
 class NotificationService {
   private expoPushToken: string | null = null;
@@ -24,11 +28,9 @@ class NotificationService {
     }
 
     try {
-      // Check existing permissions
       const { status: existingStatus } = await Notifications.getPermissionsAsync();
       let finalStatus = existingStatus;
 
-      // Request permission if not granted
       if (existingStatus !== 'granted') {
         const { status } = await Notifications.requestPermissionsAsync();
         finalStatus = status;
@@ -39,31 +41,28 @@ class NotificationService {
         return null;
       }
 
-      // Get push token
       const tokenData = await Notifications.getExpoPushTokenAsync({
         projectId: '430b9711-2691-4080-93cb-e3bedea94a57',
       });
 
       this.expoPushToken = tokenData.data;
 
-      // Configure Android channel
       if (Platform.OS === 'android') {
         await Notifications.setNotificationChannelAsync('default', {
           name: 'default',
           importance: Notifications.AndroidImportance.MAX,
           vibrationPattern: [0, 250, 250, 250],
-          lightColor: '#3B82F6',
+          lightColor: '#163974',
         });
 
         await Notifications.setNotificationChannelAsync('reminders', {
           name: 'Randevu Hatırlatmaları',
           importance: Notifications.AndroidImportance.HIGH,
           vibrationPattern: [0, 250, 250, 250],
-          lightColor: '#3B82F6',
+          lightColor: '#163974',
         });
       }
 
-      // Send token to backend
       await this.sendTokenToBackend(this.expoPushToken);
 
       return this.expoPushToken;
@@ -112,22 +111,27 @@ class NotificationService {
     data?: Record<string, any>,
     triggerSeconds?: number
   ): Promise<string> {
-    const trigger: Notifications.NotificationTriggerInput = triggerSeconds
-      ? {
-          type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
-          seconds: triggerSeconds
-        }
-      : null;
+    try {
+      const trigger: Notifications.NotificationTriggerInput = triggerSeconds
+        ? {
+            type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
+            seconds: triggerSeconds,
+          }
+        : null;
 
-    return await Notifications.scheduleNotificationAsync({
-      content: {
-        title,
-        body,
-        data: data || {},
-        sound: true,
-      },
-      trigger,
-    });
+      return await Notifications.scheduleNotificationAsync({
+        content: {
+          title,
+          body,
+          data: data || {},
+          sound: true,
+        },
+        trigger,
+      });
+    } catch (error) {
+      console.error('Error scheduling notification:', error);
+      return '';
+    }
   }
 
   async cancelAllNotifications(): Promise<void> {

@@ -87,7 +87,7 @@ export default function BusinessLoginScreen() {
               <View style={styles.header}>
                 <TouchableOpacity
                   style={styles.backButton}
-                  onPress={() => router.back()}
+                  onPress={() => router.replace('/(auth)/login')}
                   activeOpacity={0.7}
                 >
                   <Ionicons name="arrow-back" size={24} color="#fff" />
@@ -192,7 +192,7 @@ export default function BusinessLoginScreen() {
                 </View>
 
                 {/* Forgot Password */}
-                <TouchableOpacity style={styles.forgotPassword}>
+                <TouchableOpacity style={styles.forgotPassword} onPress={() => router.push('/(auth)/forgot-password')}>
                   <Text style={styles.forgotPasswordText}>Şifremi Unuttum</Text>
                 </TouchableOpacity>
 
