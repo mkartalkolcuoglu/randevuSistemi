@@ -14,6 +14,7 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { appointmentService } from '../../src/services/appointment.service';
 import { Appointment, AppointmentStatus } from '../../src/types';
+import api from '../../src/services/api';
 
 const STATUS_COLORS: Record<string, { bg: string; text: string; label: string }> = {
   pending: { bg: '#FEF3C7', text: '#D97706', label: 'Beklemede' },
@@ -90,6 +91,45 @@ export default function AppointmentDetailScreen() {
         },
       ]
     );
+  };
+
+  const [sendingConfirmation, setSendingConfirmation] = useState(false);
+  const [sendingSurvey, setSendingSurvey] = useState(false);
+
+  const handleSendConfirmation = async () => {
+    if (!appointment) return;
+    setSendingConfirmation(true);
+    try {
+      const response = await api.post('/api/whatsapp/send-confirmation', { appointmentId: appointment.id });
+      if (response.data.success) {
+        Alert.alert('Başarılı', response.data.message || 'Onay mesajı gönderildi');
+        setAppointment(prev => prev ? { ...prev, whatsappSent: true } : null);
+      } else {
+        Alert.alert('Hata', response.data.message || 'Mesaj gönderilemedi');
+      }
+    } catch (error: any) {
+      Alert.alert('Hata', error?.response?.data?.message || 'Mesaj gönderilemedi');
+    } finally {
+      setSendingConfirmation(false);
+    }
+  };
+
+  const handleSendSurvey = async () => {
+    if (!appointment) return;
+    setSendingSurvey(true);
+    try {
+      const response = await api.post('/api/whatsapp/send-survey', { appointmentId: appointment.id });
+      if (response.data.success) {
+        Alert.alert('Başarılı', response.data.message || 'Anket gönderildi');
+        setAppointment(prev => prev ? { ...prev, feedbackSent: true } : null);
+      } else {
+        Alert.alert('Hata', response.data.message || 'Anket gönderilemedi');
+      }
+    } catch (error: any) {
+      Alert.alert('Hata', error?.response?.data?.message || 'Anket gönderilemedi');
+    } finally {
+      setSendingSurvey(false);
+    }
   };
 
   if (isLoading) {
@@ -267,6 +307,44 @@ export default function AppointmentDetailScreen() {
           </View>
         </View>
 
+        {/* Mesaj Gönder */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Mesaj Gönder</Text>
+          <View style={{ gap: 10 }}>
+            <TouchableOpacity
+              style={[styles.messageButton, { backgroundColor: '#059669' }, ((appointment as any).whatsappSent || sendingConfirmation) && { opacity: 0.5 }]}
+              onPress={handleSendConfirmation}
+              disabled={(appointment as any).whatsappSent || sendingConfirmation}
+            >
+              {sendingConfirmation ? (
+                <ActivityIndicator size="small" color="#fff" />
+              ) : (
+                <Ionicons name="checkmark-circle-outline" size={20} color="#fff" />
+              )}
+              <Text style={styles.messageButtonText}>
+                {(appointment as any).whatsappSent ? 'Onay Mesajı Gönderildi' : 'Onay Mesajı Gönder'}
+              </Text>
+            </TouchableOpacity>
+
+            {appointment.status === 'completed' && (
+              <TouchableOpacity
+                style={[styles.messageButton, { backgroundColor: '#D97706' }, ((appointment as any).feedbackSent || sendingSurvey) && { opacity: 0.5 }]}
+                onPress={handleSendSurvey}
+                disabled={(appointment as any).feedbackSent || sendingSurvey}
+              >
+                {sendingSurvey ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <Ionicons name="star-outline" size={20} color="#fff" />
+                )}
+                <Text style={styles.messageButtonText}>
+                  {(appointment as any).feedbackSent ? 'Anket Gönderildi' : 'Memnuniyet Anketi Gönder'}
+                </Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        </View>
+
         <View style={{ height: 40 }} />
       </ScrollView>
     </SafeAreaView>
@@ -427,5 +505,18 @@ const styles = StyleSheet.create({
   statusButtonText: {
     fontSize: 14,
     color: '#4B5563',
+  },
+  messageButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 14,
+    borderRadius: 12,
+  },
+  messageButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#fff',
   },
 });

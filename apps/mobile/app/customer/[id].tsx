@@ -60,6 +60,33 @@ export default function CustomerDetailScreen() {
     }
   };
 
+  const toggleBlacklist = () => {
+    if (!customer) return;
+    const action = customer.isBlacklisted ? 'çıkarmak' : 'eklemek';
+    Alert.alert(
+      'Kara Liste',
+      `${customer.firstName} ${customer.lastName} müşterisini kara listeye ${action} istediğinize emin misiniz?`,
+      [
+        { text: 'İptal', style: 'cancel' },
+        {
+          text: customer.isBlacklisted ? 'Çıkar' : 'Ekle',
+          style: customer.isBlacklisted ? 'default' : 'destructive',
+          onPress: async () => {
+            try {
+              await api.put(`/api/mobile/customers/${id}`, {
+                isBlacklisted: !customer.isBlacklisted,
+              });
+              setCustomer(prev => prev ? { ...prev, isBlacklisted: !prev.isBlacklisted } : null);
+              Alert.alert('Başarılı', customer.isBlacklisted ? 'Müşteri kara listeden çıkarıldı' : 'Müşteri kara listeye eklendi');
+            } catch {
+              Alert.alert('Hata', 'İşlem başarısız oldu');
+            }
+          },
+        },
+      ]
+    );
+  };
+
   if (isLoading) {
     return (
       <SafeAreaView style={styles.container}>
@@ -130,6 +157,12 @@ export default function CustomerDetailScreen() {
             </TouchableOpacity>
             <TouchableOpacity style={[styles.actionButton, styles.whatsappButton]} onPress={handleWhatsApp}>
               <Ionicons name="logo-whatsapp" size={22} color="#fff" />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.actionButton, { backgroundColor: customer.isBlacklisted ? '#10B981' : '#EF4444' }]}
+              onPress={toggleBlacklist}
+            >
+              <Ionicons name={customer.isBlacklisted ? 'shield-checkmark' : 'ban'} size={22} color="#fff" />
             </TouchableOpacity>
           </View>
         </View>

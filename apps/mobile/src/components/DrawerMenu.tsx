@@ -103,6 +103,7 @@ export default function DrawerMenu({ isOpen, onClose }: DrawerMenuProps) {
         { id: 'staff', label: 'Personel', icon: 'people-circle', route: '/(tabs)/staff/team', color: '#06B6D4', bgColor: '#ECFEFF', permissionKey: 'staff' },
         { id: 'packages', label: 'Paketler', icon: 'gift', route: '/(tabs)/staff/packages', color: '#6366F1', bgColor: '#E0E7FF', permissionKey: 'packages' },
         { id: 'stock', label: 'Stok Yönetimi', icon: 'cube', route: '/(tabs)/staff/stock', color: '#14B8A6', bgColor: '#CCFBF1', permissionKey: 'stock' },
+        { id: 'tasks', label: 'Görevler', icon: 'checkbox', route: '/(tabs)/staff/tasks', color: '#8B5CF6', bgColor: '#EDE9FE', permissionKey: 'dashboard' },
       ],
     },
     {
@@ -126,27 +127,20 @@ export default function DrawerMenu({ isOpen, onClose }: DrawerMenuProps) {
       return menuSections;
     }
 
-    // If permissions is null/undefined, staff can see all items (no restrictions set)
-    if (!permissions) {
-      return menuSections;
-    }
-
-    // Filter items based on staff permissions
+    // Filter items based on staff permissions (null permissions uses defaults via canAccessPage)
     return menuSections
       .map(section => ({
         ...section,
         items: section.items.filter(item => {
-          // If no permission key, allow access
           if (!item.permissionKey) return true;
-          // Check if user has read permission for this page
           return canAccessPage(permissions, item.permissionKey);
         }),
       }))
       .filter(section => section.items.length > 0); // Remove empty sections
   }, [isOwner, permissions]);
 
-  // Check if user can access settings (allow if permissions not set)
-  const canAccessSettings = isOwner || !permissions || canAccessPage(permissions, 'settings');
+  // Check if user can access settings
+  const canAccessSettings = isOwner || canAccessPage(permissions, 'settings');
 
   const handleNavigate = (route: string) => {
     onClose();
