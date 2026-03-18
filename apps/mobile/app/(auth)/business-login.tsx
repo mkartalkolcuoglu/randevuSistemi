@@ -238,7 +238,7 @@ export default function BusinessLoginScreen() {
                       <Ionicons name="call-outline" size={20} color="#667eea" />
                     </View>
                     <Text style={styles.helpText}>
-                      Destek için: 0850 XXX XX XX
+                      Destek için: destek@netrandevu.com
                     </Text>
                   </View>
                 </View>

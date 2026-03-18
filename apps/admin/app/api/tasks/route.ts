@@ -1,8 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '../../../lib/prisma';
+import { cookies } from 'next/headers';
+
+async function getTenantId() {
+  const cookieStore = await cookies();
+  const sessionCookie = cookieStore.get('tenant-session');
+  if (!sessionCookie) return null;
+  try {
+    const session = JSON.parse(sessionCookie.value);
+    return session.tenantId || null;
+  } catch { return null; }
+}
 
 export async function GET(request: NextRequest) {
   try {
+    const tenantId = await getTenantId();
+    if (!tenantId) {
+      return NextResponse.json({ success: false, error: 'Not authenticated' }, { status: 401 });
+    }
+
     const { searchParams } = new URL(request.url);
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '20');
@@ -11,7 +27,7 @@ export async function GET(request: NextRequest) {
     const priority = searchParams.get('priority') || 'all';
 
     // Build where clause
-    const where: any = {};
+    const where: any = { tenantId };
     
     if (search) {
       where.OR = [
@@ -62,10 +78,16 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    const tenantId = await getTenantId();
+    if (!tenantId) {
+      return NextResponse.json({ success: false, error: 'Not authenticated' }, { status: 401 });
+    }
+
     const data = await request.json();
-    
+
     const newTask = await prisma.task.create({
       data: {
+        tenantId,
         title: data.title,
         description: data.description,
         assignedTo: data.assignedTo,

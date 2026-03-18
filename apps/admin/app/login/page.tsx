@@ -129,7 +129,7 @@ export default function LoginPage() {
             <div className="mt-6 text-center">
               <p className="text-sm text-gray-600">
                 Hesabınız yok mu? İşletmenizi kaydetmek için{' '}
-                <a href="http://localhost:3002" className="text-blue-600 hover:text-blue-700 font-medium">
+                <a href="https://netrandevu.com" className="text-blue-600 hover:text-blue-700 font-medium">
                   buraya tıklayın
                 </a>
               </p>
