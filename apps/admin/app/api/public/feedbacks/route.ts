@@ -54,6 +54,57 @@ export async function GET(request: NextRequest) {
       1: feedbacks.filter(f => f.rating === 1).length,
     };
 
+    // Memnuniyet oranı (4-5 yıldız)
+    const satisfactionRate = totalFeedbacks > 0
+      ? ((ratingDistribution[4] + ratingDistribution[5]) / totalFeedbacks * 100)
+      : 0;
+
+    // Personel bazlı puanlar
+    const staffMap = new Map<string, { total: number; count: number; feedbacks: typeof feedbacks }>();
+    feedbacks.forEach(f => {
+      if (!f.staffName) return;
+      const existing = staffMap.get(f.staffName) || { total: 0, count: 0, feedbacks: [] as typeof feedbacks };
+      existing.total += f.rating;
+      existing.count += 1;
+      existing.feedbacks.push(f);
+      staffMap.set(f.staffName, existing);
+    });
+
+    const staffRatings = Array.from(staffMap.entries())
+      .map(([name, data]) => ({
+        name,
+        averageRating: Number((data.total / data.count).toFixed(1)),
+        feedbackCount: data.count,
+        recentFeedbacks: data.feedbacks.slice(0, 5).map(f => ({
+          id: f.id,
+          rating: f.rating,
+          comment: f.comment,
+          customerName: f.customerName,
+          serviceName: f.serviceName,
+          appointmentDate: f.appointmentDate,
+          createdAt: f.createdAt,
+        })),
+      }))
+      .sort((a, b) => b.averageRating - a.averageRating);
+
+    // Hizmet bazlı puanlar
+    const serviceMap = new Map<string, { total: number; count: number }>();
+    feedbacks.forEach(f => {
+      if (!f.serviceName) return;
+      const existing = serviceMap.get(f.serviceName) || { total: 0, count: 0 };
+      existing.total += f.rating;
+      existing.count += 1;
+      serviceMap.set(f.serviceName, existing);
+    });
+
+    const serviceRatings = Array.from(serviceMap.entries())
+      .map(([name, data]) => ({
+        name,
+        averageRating: Number((data.total / data.count).toFixed(1)),
+        feedbackCount: data.count,
+      }))
+      .sort((a, b) => b.averageRating - a.averageRating);
+
     return NextResponse.json({
       success: true,
       data: {
@@ -61,8 +112,11 @@ export async function GET(request: NextRequest) {
         stats: {
           totalFeedbacks,
           averageRating: Number(averageRating.toFixed(1)),
-          ratingDistribution
-        }
+          satisfactionRate: Number(satisfactionRate.toFixed(0)),
+          ratingDistribution,
+        },
+        staffRatings,
+        serviceRatings,
       }
     });
 
