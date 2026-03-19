@@ -604,9 +604,14 @@ function MonthView({ appointments, date, onAppointmentClick }: { appointments: a
   );
 }
 
-// Staff View Component - Horizontal scrollable staff columns
+// Staff View Component - Time grid with staff columns (like mobile app)
 function StaffView({ appointments, date, onAppointmentClick }: { appointments: any[]; date: Date; onAppointmentClick: (apt: any) => void }) {
   const safeAppointments = Array.isArray(appointments) ? appointments : [];
+  const START_HOUR = 8;
+  const END_HOUR = 21;
+  const HOUR_HEIGHT = 80; // px per hour
+  const TIME_COL_WIDTH = 60; // px
+  const STAFF_COLORS = ['from-blue-600 to-blue-700', 'from-purple-600 to-purple-700', 'from-teal-600 to-teal-700', 'from-rose-600 to-rose-700', 'from-amber-600 to-amber-700', 'from-indigo-600 to-indigo-700'];
 
   // Get appointments for the selected date
   const dayAppointments = safeAppointments.filter(apt => {
@@ -614,28 +619,18 @@ function StaffView({ appointments, date, onAppointmentClick }: { appointments: a
     return aptDate.toDateString() === date.toDateString();
   });
 
-  // Group by staff
+  // Collect all unique staff
   const staffMap = new Map<string, { id: string; name: string; appointments: any[] }>();
-
-  // First, collect all unique staff from ALL appointments (not just today)
   safeAppointments.forEach(apt => {
     if (apt.staffId && apt.staffName && !staffMap.has(apt.staffId)) {
       staffMap.set(apt.staffId, { id: apt.staffId, name: apt.staffName, appointments: [] });
     }
   });
-
-  // Then assign today's appointments to their staff
   dayAppointments.forEach(apt => {
     if (apt.staffId && staffMap.has(apt.staffId)) {
       staffMap.get(apt.staffId)!.appointments.push(apt);
     }
   });
-
-  // Sort each staff's appointments by time
-  staffMap.forEach(staff => {
-    staff.appointments.sort((a, b) => a.time.localeCompare(b.time));
-  });
-
   const staffList = Array.from(staffMap.values());
 
   if (staffList.length === 0) {
@@ -648,68 +643,106 @@ function StaffView({ appointments, date, onAppointmentClick }: { appointments: a
     );
   }
 
+  const hours = Array.from({ length: END_HOUR - START_HOUR }, (_, i) => START_HOUR + i);
+  const totalHeight = hours.length * HOUR_HEIGHT;
+
+  // Current time indicator
+  const now = new Date();
+  const isToday = date.toDateString() === now.toDateString();
+  const currentMinutes = now.getHours() * 60 + now.getMinutes();
+  const currentTop = ((currentMinutes - START_HOUR * 60) / 60) * HOUR_HEIGHT;
+
+  // Calculate appointment position
+  const getAptStyle = (apt: any) => {
+    const [h, m] = (apt.time || '09:00').split(':').map(Number);
+    const startMin = h * 60 + m;
+    const duration = apt.duration || 30;
+    const top = ((startMin - START_HOUR * 60) / 60) * HOUR_HEIGHT;
+    const height = Math.max((duration / 60) * HOUR_HEIGHT, 28);
+    return { top: `${top}px`, height: `${height}px` };
+  };
+
   return (
-    <div className="overflow-x-auto -mx-4 sm:-mx-6 pb-4">
-      <div className="flex gap-4 px-4 sm:px-6" style={{ minWidth: `${staffList.length * 280}px` }}>
-        {staffList.map(staff => (
-          <div key={staff.id} className="flex-shrink-0 w-[260px] sm:w-[280px]">
-            {/* Staff Header */}
-            <div className="bg-gradient-to-r from-blue-600 to-blue-700 rounded-t-xl p-4 text-white">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center text-white font-bold text-sm">
+    <div className="overflow-x-auto border rounded-xl bg-white">
+      {/* Staff Headers */}
+      <div className="flex sticky top-0 z-10 border-b">
+        <div style={{ width: TIME_COL_WIDTH, minWidth: TIME_COL_WIDTH }} className="bg-gray-50 border-r flex-shrink-0" />
+        {staffList.map((staff, idx) => (
+          <div key={staff.id} className="flex-1 min-w-[200px] border-r last:border-r-0">
+            <div className={`bg-gradient-to-r ${STAFF_COLORS[idx % STAFF_COLORS.length]} p-3 text-white`}>
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center text-white font-bold text-xs">
                   {staff.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
                 </div>
-                <div className="flex-1 min-w-0">
-                  <div className="font-semibold truncate">{staff.name}</div>
-                  <div className="text-blue-200 text-xs">
-                    {staff.appointments.length} randevu
-                  </div>
+                <div className="min-w-0">
+                  <div className="font-semibold text-sm truncate">{staff.name}</div>
+                  <div className="text-white/70 text-xs">{staff.appointments.length} randevu</div>
                 </div>
               </div>
             </div>
+          </div>
+        ))}
+      </div>
 
-            {/* Appointments List */}
-            <div className="border border-t-0 border-gray-200 rounded-b-xl bg-white min-h-[300px]">
-              {staff.appointments.length > 0 ? (
-                <div className="divide-y divide-gray-100">
-                  {staff.appointments.map(apt => {
-                    const svcColor = getServiceColor(apt.serviceColor);
-                    return (
-                    <div
-                      key={apt.id}
-                      onClick={() => onAppointmentClick(apt)}
-                      className="p-3 hover:opacity-80 transition cursor-pointer"
-                      style={{
-                        borderLeft: svcColor ? `3px solid ${svcColor.hex}` : undefined,
-                        backgroundColor: svcColor ? svcColor.bg + '40' : undefined,
-                      }}
-                    >
-                      <div className="flex items-center justify-between mb-1.5">
-                        <div className="flex items-center gap-1.5">
-                          <Clock className="w-3.5 h-3.5 text-blue-600" />
-                          <span className="font-bold text-sm text-gray-900">{apt.time}</span>
-                        </div>
-                        <Badge className={`${getStatusColorForBadge(apt.status)} text-[10px] px-1.5 py-0.5`}>
-                          {getStatusTextForBadge(apt.status)}
-                        </Badge>
-                      </div>
-                      <div className="font-medium text-sm truncate" style={{ color: svcColor ? svcColor.text : '#111827' }}>
-                        {apt.customerName}
-                      </div>
-                      <div className="text-xs truncate mt-0.5" style={{ color: svcColor ? svcColor.text : '#6B7280' }}>
-                        {apt.serviceName}
-                      </div>
-                    </div>
-                    );
-                  })}
-                </div>
-              ) : (
-                <div className="flex flex-col items-center justify-center py-10 text-gray-400">
-                  <Calendar className="w-8 h-8 mb-2 text-gray-300" />
-                  <span className="text-sm">Randevu yok</span>
-                </div>
-              )}
+      {/* Time Grid */}
+      <div className="flex overflow-y-auto" style={{ maxHeight: '70vh' }}>
+        {/* Time Labels */}
+        <div style={{ width: TIME_COL_WIDTH, minWidth: TIME_COL_WIDTH }} className="flex-shrink-0 border-r bg-gray-50">
+          {hours.map(hour => (
+            <div key={hour} style={{ height: HOUR_HEIGHT }} className="border-b border-gray-100 flex items-start justify-end pr-2 pt-1">
+              <span className="text-xs font-medium text-gray-500">{`${hour.toString().padStart(2, '0')}:00`}</span>
             </div>
+          ))}
+        </div>
+
+        {/* Staff Columns */}
+        {staffList.map(staff => (
+          <div key={staff.id} className="flex-1 min-w-[200px] border-r last:border-r-0 relative">
+            {/* Hour grid lines */}
+            {hours.map(hour => (
+              <div key={hour} style={{ height: HOUR_HEIGHT }} className="border-b border-gray-100">
+                <div className="border-b border-gray-50 border-dashed" style={{ height: HOUR_HEIGHT / 2 }} />
+              </div>
+            ))}
+
+            {/* Current time indicator */}
+            {isToday && currentTop > 0 && currentTop < totalHeight && (
+              <div className="absolute left-0 right-0 z-20 pointer-events-none" style={{ top: `${currentTop}px` }}>
+                <div className="flex items-center">
+                  <div className="w-2 h-2 rounded-full bg-red-500 -ml-1" />
+                  <div className="flex-1 h-[2px] bg-red-500" />
+                </div>
+              </div>
+            )}
+
+            {/* Appointments */}
+            {staff.appointments.map(apt => {
+              const style = getAptStyle(apt);
+              const svcColor = getServiceColor(apt.serviceColor);
+              const statusBg = apt.status === 'completed' ? '#D1FAE5' : apt.status === 'cancelled' ? '#FEE2E2' : apt.status === 'confirmed' ? '#DBEAFE' : '#FEF3C7';
+              return (
+                <div
+                  key={apt.id}
+                  onClick={() => onAppointmentClick(apt)}
+                  className="absolute left-1 right-1 rounded-lg overflow-hidden cursor-pointer hover:shadow-md transition-shadow z-10"
+                  style={{
+                    top: style.top,
+                    height: style.height,
+                    backgroundColor: svcColor ? svcColor.bg : statusBg,
+                    borderLeft: `3px solid ${svcColor ? svcColor.hex : '#3B82F6'}`,
+                  }}
+                >
+                  <div className="p-1.5 h-full overflow-hidden">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-bold" style={{ color: svcColor ? svcColor.text : '#1F2937' }}>{apt.time}</span>
+                      <span className={`text-[9px] px-1 py-0.5 rounded ${getStatusColorForBadge(apt.status)}`}>{getStatusTextForBadge(apt.status)}</span>
+                    </div>
+                    <div className="text-xs font-semibold truncate mt-0.5" style={{ color: svcColor ? svcColor.text : '#1F2937' }}>{apt.customerName}</div>
+                    <div className="text-[10px] truncate" style={{ color: svcColor ? svcColor.text : '#6B7280' }}>{apt.serviceName}</div>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         ))}
       </div>
