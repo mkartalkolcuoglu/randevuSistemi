@@ -36,6 +36,8 @@ export interface User {
   avatar?: string;
   isNewCustomer?: boolean;
   permissions?: StaffPermissions | null;
+  subscriptionEnd?: string | null;
+  subscriptionPlan?: string | null;
 }
 
 export interface Tenant {
@@ -206,14 +208,28 @@ export interface TimeSlot {
   available: boolean;
 }
 
+// Default restricted permissions for staff with no permissions set
+const DEFAULT_STAFF_PERMISSIONS: StaffPermissions = {
+  dashboard: { read: true, create: false, update: false, delete: false },
+  appointments: { read: true, create: true, update: true, delete: false },
+  customers: { read: true, create: true, update: true, delete: false },
+  services: { read: true, create: false, update: false, delete: false },
+  staff: { read: false, create: false, update: false, delete: false },
+  packages: { read: false, create: false, update: false, delete: false },
+  kasa: { read: false, create: false, update: false, delete: false },
+  stock: { read: true, create: false, update: false, delete: false },
+  reports: { read: false, create: false, update: false, delete: false },
+  settings: { read: false, create: false, update: false, delete: false },
+};
+
 // Helper function to check if user has permission
 export function hasPermission(
   permissions: StaffPermissions | null | undefined,
   page: keyof StaffPermissions,
   action: keyof PagePermission
 ): boolean {
-  if (!permissions) return false;
-  return permissions[page]?.[action] ?? false;
+  const effectivePermissions = permissions || DEFAULT_STAFF_PERMISSIONS;
+  return effectivePermissions[page]?.[action] ?? false;
 }
 
 // Check if user can access a page (at least read permission)

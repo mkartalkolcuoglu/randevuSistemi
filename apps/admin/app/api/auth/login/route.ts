@@ -112,7 +112,8 @@ export async function POST(request: NextRequest) {
       select: {
         id: true,
         businessName: true,
-        slug: true
+        slug: true,
+        subscriptionEnd: true,
       }
     });
 
@@ -149,7 +150,8 @@ export async function POST(request: NextRequest) {
       userType: 'staff',
       staffId: staff.id,
       role: staff.role,
-      permissions: permissions
+      permissions: permissions,
+      subscriptionEnd: staffTenant.subscriptionEnd,
     }), {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',

@@ -526,6 +526,25 @@ export default function RandevuPage({ params }: PageProps) {
     );
   }
 
+  if ((tenant as any).subscriptionActive === false) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 flex items-center justify-center">
+        <Card className="w-full max-w-md">
+          <CardContent className="p-8 text-center">
+            <AlertCircle className="w-12 h-12 text-orange-500 mx-auto mb-4" />
+            <h2 className="text-xl font-semibold text-gray-900 mb-2">Randevu Sistemi Geçici Olarak Kapalı</h2>
+            <p className="text-gray-600 mb-4">Bu işletmenin online randevu sistemi şu anda aktif değil. Lütfen işletme ile doğrudan iletişime geçin.</p>
+            {tenant.contactPhone && (
+              <a href={`tel:${tenant.contactPhone}`} className="text-blue-600 font-medium hover:underline">
+                {tenant.contactPhone}
+              </a>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   const renderPhoneVerification = () => (
     <div className="space-y-6">
       <div className="text-center">

@@ -10,6 +10,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import SubscriptionBanner from './SubscriptionBanner';
 
 const THEME_COLOR = '#163974';
 
@@ -69,6 +70,7 @@ export default function Header({
   const insets = useSafeAreaInsets();
 
   return (
+    <View>
     <LinearGradient
       colors={gradientColors}
       start={{ x: 0, y: 0 }}
@@ -171,6 +173,8 @@ export default function Header({
         </View>
       )}
     </LinearGradient>
+    <SubscriptionBanner />
+    </View>
   );
 }
 

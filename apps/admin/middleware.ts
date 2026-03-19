@@ -12,7 +12,22 @@ const pagePermissions: Record<string, string> = {
   '/admin/kasa': 'kasa',
   '/admin/stock': 'stock',
   '/admin/reports': 'reports',
+  '/admin/performans': 'reports',
   '/admin/settings': 'settings',
+};
+
+// Default restricted permissions for staff with null permissions
+const DEFAULT_STAFF_PERMISSIONS: Record<string, { read: boolean }> = {
+  dashboard: { read: true },
+  appointments: { read: true },
+  customers: { read: true },
+  services: { read: true },
+  staff: { read: false },
+  packages: { read: false },
+  kasa: { read: false },
+  stock: { read: true },
+  reports: { read: false },
+  settings: { read: false },
 };
 
 export function middleware(request: NextRequest) {
@@ -62,9 +77,8 @@ export function middleware(request: NextRequest) {
       return NextResponse.redirect(new URL('/login', request.url));
     }
 
-    // Subscription check - only for owner users (not staff)
-    if (sessionData.userType === 'owner') {
-      // Eğer subscriptionEnd varsa ve süresi dolmuşsa
+    // Subscription check - for both owner and staff
+    if (sessionData.userType === 'owner' || sessionData.userType === 'staff') {
       if (sessionData.subscriptionEnd) {
         const subscriptionEnd = new Date(sessionData.subscriptionEnd);
         const now = new Date();
@@ -79,6 +93,15 @@ export function middleware(request: NextRequest) {
         // Subscription dolmuşsa ve subscription sayfasında değilse, redirect et
         if (subscriptionEnd < now && !pathname.startsWith('/admin/select-subscription')) {
           console.log('⚠️ Redirecting to subscription page');
+          if (sessionData.userType === 'staff') {
+            // Staff can't manage subscription — allow dashboard only with warning
+            if (pathname === '/admin' || pathname === '/admin/') {
+              return NextResponse.next();
+            }
+            const redirectUrl = new URL('/admin', request.url);
+            redirectUrl.searchParams.set('error', 'subscription_expired');
+            return NextResponse.redirect(redirectUrl);
+          }
           return NextResponse.redirect(new URL('/admin/select-subscription', request.url));
         }
       }
@@ -86,10 +109,10 @@ export function middleware(request: NextRequest) {
     }
 
     // Permission check for staff users
-    if (sessionData.userType === 'staff' && sessionData.permissions) {
+    if (sessionData.userType === 'staff') {
       // Find matching page permission
       let requiredPermission: string | null = null;
-      
+
       for (const [path, permission] of Object.entries(pagePermissions)) {
         if (pathname === path || pathname.startsWith(path + '/')) {
           requiredPermission = permission;
@@ -99,8 +122,9 @@ export function middleware(request: NextRequest) {
 
       // If this is a protected admin page
       if (requiredPermission) {
-        const permissions = sessionData.permissions;
-        
+        // Use actual permissions or default restricted permissions if null
+        const permissions = sessionData.permissions || DEFAULT_STAFF_PERMISSIONS;
+
         // Check if user has read permission for this page
         if (!permissions[requiredPermission]?.read) {
           console.log(`🚫 Access denied: ${sessionData.ownerName} tried to access ${pathname}`);

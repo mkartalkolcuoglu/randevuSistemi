@@ -42,6 +42,8 @@ export async function GET(request: NextRequest) {
               id: true,
               businessName: true,
               slug: true,
+              subscriptionEnd: true,
+              subscriptionPlan: true,
             },
           },
         },
@@ -67,6 +69,8 @@ export async function GET(request: NextRequest) {
           lastName: staff.lastName,
           email: staff.email,
           permissions: staff.permissions ? JSON.parse(staff.permissions as string) : null,
+          subscriptionEnd: (staff.tenant as any).subscriptionEnd || null,
+          subscriptionPlan: (staff.tenant as any).subscriptionPlan || null,
         },
       });
     } else if (decoded.ownerId) {
@@ -94,6 +98,8 @@ export async function GET(request: NextRequest) {
           lastName: tenant.ownerName?.split(' ').slice(1).join(' ') || '',
           email: tenant.ownerEmail,
           permissions: OWNER_PERMISSIONS,
+          subscriptionEnd: tenant.subscriptionEnd || null,
+          subscriptionPlan: tenant.subscriptionPlan || null,
         },
       });
     } else if (decoded.customerId) {

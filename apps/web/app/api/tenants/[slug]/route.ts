@@ -34,8 +34,9 @@ export async function GET(
         ownerEmail: true,
         businessType: true,
         status: true,
-        workingHours: true, // ✅ Added for working hours functionality
-        cardPaymentEnabled: true, // ✅ Added for card payment toggle
+        workingHours: true,
+        cardPaymentEnabled: true,
+        subscriptionEnd: true,
         createdAt: true
         // Note: Web DB Tenant model doesn't have updatedAt field
       }
@@ -115,6 +116,7 @@ export async function GET(
       cardPaymentEnabled: finalCardPaymentEnabled !== false, // ✅ Card payment toggle from Admin API (default: true)
       blockedDates,
       isActive: tenant.status === 'active',
+      subscriptionActive: !tenant.subscriptionEnd || new Date(tenant.subscriptionEnd) > new Date(),
       createdAt: tenant.createdAt?.toISOString() || new Date().toISOString(),
       updatedAt: tenant.updatedAt?.toISOString() || new Date().toISOString()
     };
