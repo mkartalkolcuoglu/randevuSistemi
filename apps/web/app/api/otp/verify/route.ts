@@ -1,6 +1,28 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '../../../../lib/prisma';
 import { formatPhoneForSMS } from '../../../../lib/netgsm-client';
+import crypto from 'crypto';
+
+const SESSION_SECRET = process.env.SESSION_SECRET || process.env.JWT_SECRET || 'customer-session-secret-key';
+
+function createSessionToken(phone: string): string {
+  const payload = JSON.stringify({ phone, exp: Date.now() + 24 * 60 * 60 * 1000 }); // 24 saat
+  const signature = crypto.createHmac('sha256', SESSION_SECRET).update(payload).digest('hex');
+  return Buffer.from(payload).toString('base64') + '.' + signature;
+}
+
+export function verifySessionToken(token: string): { phone: string } | null {
+  try {
+    const [payloadB64, signature] = token.split('.');
+    if (!payloadB64 || !signature) return null;
+    const payload = Buffer.from(payloadB64, 'base64').toString();
+    const expectedSig = crypto.createHmac('sha256', SESSION_SECRET).update(payload).digest('hex');
+    if (signature !== expectedSig) return null;
+    const data = JSON.parse(payload);
+    if (data.exp < Date.now()) return null;
+    return { phone: data.phone };
+  } catch { return null; }
+}
 
 const MAX_ATTEMPTS = 3; // Maksimum deneme sayısı
 
@@ -106,15 +128,24 @@ export async function POST(request: NextRequest) {
       purpose
     });
 
-    // Session token oluştur (opsiyonel - güvenlik için)
-    const sessionToken = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    // Güvenli session token oluştur ve HttpOnly cookie olarak set et
+    const sessionToken = createSessionToken(formattedPhone);
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       success: true,
       message: 'Doğrulama başarılı',
-      sessionToken,
-      phone: formattedPhone
+      phone: formattedPhone,
     });
+
+    response.cookies.set('customer-session', sessionToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 24 * 60 * 60, // 24 saat
+      path: '/',
+    });
+
+    return response;
 
   } catch (error) {
     console.error('❌ Error verifying OTP:', error);

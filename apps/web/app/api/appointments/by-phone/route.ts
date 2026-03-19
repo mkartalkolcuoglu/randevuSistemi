@@ -1,11 +1,29 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '../../../../lib/prisma';
 import { formatPhoneForSMS } from '../../../../lib/netgsm-client';
+import { verifySessionToken } from '../../otp/verify/route';
 
 export async function GET(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url);
-    const phone = searchParams.get('phone');
+    // Session cookie doğrulama
+    const sessionCookie = request.cookies.get('customer-session');
+    if (!sessionCookie) {
+      return NextResponse.json(
+        { success: false, error: 'Oturum bulunamadı. Lütfen tekrar doğrulama yapın.', code: 'NO_SESSION' },
+        { status: 401 }
+      );
+    }
+
+    const session = verifySessionToken(sessionCookie.value);
+    if (!session) {
+      return NextResponse.json(
+        { success: false, error: 'Oturum süresi dolmuş. Lütfen tekrar doğrulama yapın.', code: 'SESSION_EXPIRED' },
+        { status: 401 }
+      );
+    }
+
+    // Session'daki telefon numarasını kullan (URL'den değil)
+    const phone = session.phone;
 
     if (!phone) {
       return NextResponse.json(

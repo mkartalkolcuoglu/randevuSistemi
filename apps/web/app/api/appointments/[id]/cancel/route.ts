@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '../../../../../lib/prisma';
+import { verifySessionToken } from '../../../otp/verify/route';
 
 export async function POST(
   request: NextRequest,
@@ -7,13 +8,26 @@ export async function POST(
 ) {
   try {
     const { id } = await params;
-    const body = await request.json();
-    const { phone } = body;
+
+    // Session cookie doğrulama
+    const sessionCookie = request.cookies.get('customer-session');
+    let phone: string | null = null;
+
+    if (sessionCookie) {
+      const session = verifySessionToken(sessionCookie.value);
+      if (session) phone = session.phone;
+    }
+
+    // Geriye uyumluluk: cookie yoksa body'den al
+    if (!phone) {
+      const body = await request.json();
+      phone = body.phone;
+    }
 
     if (!phone) {
       return NextResponse.json(
-        { success: false, error: 'Telefon numarası gereklidir' },
-        { status: 400 }
+        { success: false, error: 'Oturum bulunamadı' },
+        { status: 401 }
       );
     }
 

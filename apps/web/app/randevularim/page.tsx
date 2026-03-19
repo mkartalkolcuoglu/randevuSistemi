@@ -149,7 +149,7 @@ function RandevuSorgulamaContent() {
 
         // Randevular sayfasına yönlendir
         setTimeout(() => {
-          router.push(`/randevularim/list?phone=${encodeURIComponent(phone)}`);
+          router.push('/randevularim/list');
         }, 1000);
       } else {
         setError(data.error || 'Hatalı doğrulama kodu');

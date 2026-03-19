@@ -30,18 +30,20 @@ interface Appointment {
 function RandevularimContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const phoneNumber = searchParams.get('phone');
-  
+  // Geriye uyumluluk: URL'de phone varsa kullan, yoksa session cookie'den gelir
+  const phoneFromUrl = searchParams.get('phone');
+  const [phoneNumber, setPhoneNumber] = useState<string | null>(phoneFromUrl);
+
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [cancellingId, setCancellingId] = useState<string | null>(null);
-  
+
   // Filtreler
   const [dateFilter, setDateFilter] = useState<'all' | 'upcoming' | 'past'>('all');
   const [tenantFilter, setTenantFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
-  
+
   // Feedback modal
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
   const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
@@ -51,21 +53,26 @@ function RandevularimContent() {
   const [submittingFeedback, setSubmittingFeedback] = useState(false);
 
   useEffect(() => {
-    if (!phoneNumber) {
-      router.push('/');
-      return;
-    }
     fetchAppointments();
-  }, [phoneNumber]);
+  }, []);
 
   const fetchAppointments = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`/api/appointments/by-phone?phone=${encodeURIComponent(phoneNumber!)}`);
+      // Session cookie otomatik gönderilir — telefon numarasına gerek yok
+      const response = await fetch('/api/appointments/by-phone');
       const data = await response.json();
-      
+
       if (data.success) {
         setAppointments(data.data);
+        // İlk randevudan telefon numarasını al (UI gösterimi için)
+        if (data.data.length > 0 && !phoneNumber) {
+          setPhoneNumber(data.data[0].customerPhone);
+        }
+      } else if (data.code === 'NO_SESSION' || data.code === 'SESSION_EXPIRED') {
+        // Oturum yok veya süresi dolmuş — doğrulama sayfasına yönlendir
+        router.push('/randevularim');
+        return;
       } else {
         setError(data.error || 'Randevular yüklenirken hata oluştu');
       }
