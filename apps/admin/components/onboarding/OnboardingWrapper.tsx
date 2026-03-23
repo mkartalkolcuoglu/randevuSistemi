@@ -14,6 +14,7 @@ export default function OnboardingWrapper({ tenantId, userType }: OnboardingWrap
     completed: boolean;
     completedSteps: string[];
     totalSteps: number;
+    cardPaymentEnabled?: boolean;
   } | null>(null);
   const [showWizard, setShowWizard] = useState(false);
   const [dismissed, setDismissed] = useState(false);
@@ -99,6 +100,7 @@ export default function OnboardingWrapper({ tenantId, userType }: OnboardingWrap
       {showWizard && (
         <OnboardingWizard
           completedSteps={status.completedSteps}
+          cardPaymentEnabled={status.cardPaymentEnabled ?? false}
           onDismiss={handleDismiss}
           onComplete={handleComplete}
         />

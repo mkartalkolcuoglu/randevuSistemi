@@ -16,11 +16,6 @@ export default function DocumentsStep({ onComplete, onNext, saving, setSaving }:
   const [error, setError] = useState('');
 
   const handleSave = async () => {
-    if (!iban.trim() && !identityDocument.trim() && !taxDocument.trim()) {
-      setError('En az bir belge bilgisi gerekli');
-      return;
-    }
-
     setSaving(true);
     setError('');
     try {
@@ -47,7 +42,7 @@ export default function DocumentsStep({ onComplete, onNext, saving, setSaving }:
 
   return (
     <div className="space-y-4">
-      <p className="text-sm text-gray-500">İşletmenize ait belge bilgilerini girin. Bu bilgiler ödeme süreçleri için gerekli olabilir.</p>
+      <p className="text-sm text-gray-500">Kredi kartı ile ödeme almak için gerekli belge bilgilerini girin.</p>
 
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">IBAN</label>

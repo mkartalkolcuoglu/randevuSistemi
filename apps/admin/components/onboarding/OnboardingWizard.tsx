@@ -10,23 +10,26 @@ import NotificationStep from './steps/NotificationStep';
 import ThemeStep from './steps/ThemeStep';
 import DocumentsStep from './steps/DocumentsStep';
 
-const STEPS = [
+const BASE_STEPS = [
   { key: 'workingHours', title: 'Çalışma Saatleri', icon: Clock, description: 'İşletmenizin açık olduğu saatleri belirleyin' },
   { key: 'services', title: 'İlk Hizmetiniz', icon: Scissors, description: 'Sunduğunuz hizmetleri ekleyin' },
   { key: 'staff', title: 'İlk Personeliniz', icon: UserPlus, description: 'Çalışanlarınızı ekleyin' },
   { key: 'location', title: 'Konum Bilgisi', icon: MapPin, description: 'İşletmenizin adresini girin' },
   { key: 'notifications', title: 'Bildirim Tercihleri', icon: Bell, description: 'Bildirim kanallarını ayarlayın' },
   { key: 'theme', title: 'Tema & Logo', icon: Palette, description: 'İşletmenizin görünümünü özelleştirin' },
-  { key: 'documents', title: 'Belgeler', icon: FileText, description: 'Gerekli belgeleri yükleyin' },
-] as const;
+];
+
+const DOCUMENTS_STEP = { key: 'documents', title: 'Belgeler', icon: FileText, description: 'Kredi kartı ödemesi için gerekli belgeleri yükleyin' };
 
 interface OnboardingWizardProps {
   completedSteps: string[];
+  cardPaymentEnabled: boolean;
   onDismiss: () => void;
   onComplete: () => void;
 }
 
-export default function OnboardingWizard({ completedSteps: initialCompleted, onDismiss, onComplete }: OnboardingWizardProps) {
+export default function OnboardingWizard({ completedSteps: initialCompleted, cardPaymentEnabled, onDismiss, onComplete }: OnboardingWizardProps) {
+  const STEPS = cardPaymentEnabled ? [...BASE_STEPS, DOCUMENTS_STEP] : BASE_STEPS;
   const [currentStep, setCurrentStep] = useState(0);
   const [completedSteps, setCompletedSteps] = useState<string[]>(initialCompleted);
   const [saving, setSaving] = useState(false);
@@ -35,7 +38,7 @@ export default function OnboardingWizard({ completedSteps: initialCompleted, onD
   useEffect(() => {
     const firstIncomplete = STEPS.findIndex(s => !initialCompleted.includes(s.key));
     if (firstIncomplete >= 0) setCurrentStep(firstIncomplete);
-  }, [initialCompleted]);
+  }, [initialCompleted, STEPS]);
 
   const handleStepComplete = useCallback((stepKey: string) => {
     setCompletedSteps(prev => {

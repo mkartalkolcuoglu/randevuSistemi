@@ -2,15 +2,14 @@ import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { prisma } from '../../../../lib/prisma';
 
-const STEP_NAMES = [
+const BASE_STEPS = [
   'workingHours',
   'services',
   'staff',
   'location',
   'notifications',
   'theme',
-  'documents',
-] as const;
+];
 
 const DEFAULT_WORKING_HOURS: Record<string, { start: string; end: string; closed: boolean }> = {
   Pazartesi: { start: '09:00', end: '18:00', closed: false },
@@ -41,8 +40,8 @@ export async function GET() {
       return NextResponse.json({
         success: true,
         completed: true,
-        completedSteps: STEP_NAMES as unknown as string[],
-        totalSteps: STEP_NAMES.length,
+        completedSteps: BASE_STEPS,
+        totalSteps: BASE_STEPS.length,
       });
     }
 
@@ -103,8 +102,12 @@ export async function GET() {
       completedSteps.push('theme');
     }
 
-    // Step 7: Documents
-    if (theme.documents) {
+    // Determine required steps based on card payment
+    const cardPaymentEnabled = (tenant as any).cardPaymentEnabled === true;
+    const requiredSteps = cardPaymentEnabled ? [...BASE_STEPS, 'documents'] : BASE_STEPS;
+
+    // Step 7: Documents (only if card payment enabled)
+    if (cardPaymentEnabled && theme.documents) {
       const docs = theme.documents;
       if (docs.iban || docs.taxDocument || docs.identityDocument) {
         completedSteps.push('documents');
@@ -113,9 +116,10 @@ export async function GET() {
 
     return NextResponse.json({
       success: true,
-      completed: completedSteps.length === STEP_NAMES.length,
+      completed: completedSteps.length === requiredSteps.length,
       completedSteps,
-      totalSteps: STEP_NAMES.length,
+      totalSteps: requiredSteps.length,
+      cardPaymentEnabled,
     });
   } catch (error) {
     console.error('[ONBOARDING STATUS] Error:', error);
