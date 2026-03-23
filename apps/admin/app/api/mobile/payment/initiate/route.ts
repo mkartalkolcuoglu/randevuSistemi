@@ -90,10 +90,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Kredi kartı ödemesi aktif mi kontrol et
+    // Kredi kartı ödemesi aktif mi kontrol et + tenant bilgisi
     const tenant = await prisma.tenant.findUnique({
       where: { id: tenantId },
-      select: { cardPaymentEnabled: true },
+      select: { cardPaymentEnabled: true, slug: true, businessName: true },
     });
 
     if (!tenant) {
@@ -122,12 +122,6 @@ export async function POST(request: NextRequest) {
         { status: 404 }
       );
     }
-
-    // Get tenant info for callback
-    const tenant = await prisma.tenant.findUnique({
-      where: { id: tenantId },
-      select: { slug: true, businessName: true }
-    });
 
     // Kullanıcı IP adresini al
     const userIp = request.headers.get('x-forwarded-for')?.split(',')[0].trim() ||
