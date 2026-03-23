@@ -66,6 +66,26 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Kredi kartı ödemesi aktif mi kontrol et
+    const tenant = await prisma.tenant.findUnique({
+      where: { id: tenantId },
+      select: { cardPaymentEnabled: true },
+    });
+
+    if (!tenant) {
+      return NextResponse.json(
+        { success: false, error: 'İşletme bulunamadı' },
+        { status: 404 }
+      );
+    }
+
+    if (tenant.cardPaymentEnabled === false) {
+      return NextResponse.json(
+        { success: false, error: 'Bu işletme kredi kartı ile ödeme kabul etmiyor' },
+        { status: 403 }
+      );
+    }
+
     // Kullanıcı IP adresini al
     const userIp = request.headers.get('x-forwarded-for')?.split(',')[0].trim() ||
                    request.headers.get('x-real-ip') ||
