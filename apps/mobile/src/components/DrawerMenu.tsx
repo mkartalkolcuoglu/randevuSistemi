@@ -103,7 +103,6 @@ export default function DrawerMenu({ isOpen, onClose }: DrawerMenuProps) {
         { id: 'staff', label: 'Personel', icon: 'people-circle', route: '/(tabs)/staff/team', color: '#06B6D4', bgColor: '#ECFEFF', permissionKey: 'staff' },
         { id: 'packages', label: 'Paketler', icon: 'gift', route: '/(tabs)/staff/packages', color: '#6366F1', bgColor: '#E0E7FF', permissionKey: 'packages' },
         { id: 'stock', label: 'Stok Yönetimi', icon: 'cube', route: '/(tabs)/staff/stock', color: '#14B8A6', bgColor: '#CCFBF1', permissionKey: 'stock' },
-        { id: 'tasks', label: 'Görevler', icon: 'checkbox', route: '/(tabs)/staff/tasks', color: '#8B5CF6', bgColor: '#EDE9FE', permissionKey: 'dashboard' },
       ],
     },
     {
