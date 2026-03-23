@@ -113,37 +113,78 @@ export default function RegisterPage() {
   // Kullanıcı adı manuel düzenleme takibi
   const [usernameManuallyEdited, setUsernameManuallyEdited] = useState(false);
 
-  // Anlık kullanıcı adı müsaitlik kontrolü
+  // Anlık müsaitlik kontrolü state'leri
   const [usernameAvailable, setUsernameAvailable] = useState<boolean | null>(null);
   const [usernameChecking, setUsernameChecking] = useState(false);
+  const [emailAvailable, setEmailAvailable] = useState<boolean | null>(null);
+  const [emailChecking, setEmailChecking] = useState(false);
+  const [phoneAvailable, setPhoneAvailable] = useState<boolean | null>(null);
+  const [phoneChecking, setPhoneChecking] = useState(false);
+  const [businessNameAvailable, setBusinessNameAvailable] = useState<boolean | null>(null);
+  const [businessNameChecking, setBusinessNameChecking] = useState(false);
 
-  useEffect(() => {
-    const username = formData.username.trim();
-    if (username.length < 3) {
-      setUsernameAvailable(null);
-      setUsernameChecking(false);
-      return;
-    }
-
-    setUsernameChecking(true);
-    setUsernameAvailable(null);
-
-    const timer = setTimeout(async () => {
-      try {
-        const res = await fetch(`/api/check-username?username=${encodeURIComponent(username)}`);
-        const data = await res.json();
-        if (res.ok && data.success) {
-          setUsernameAvailable(data.available);
-        }
-      } catch {
-        setUsernameAvailable(null);
-      } finally {
-        setUsernameChecking(false);
+  // Debounced field check helper
+  const useFieldCheck = (
+    value: string,
+    field: string,
+    minValid: () => boolean,
+    setAvailable: (v: boolean | null) => void,
+    setChecking: (v: boolean) => void,
+    endpoint?: string
+  ) => {
+    useEffect(() => {
+      if (!minValid()) {
+        setAvailable(null);
+        setChecking(false);
+        return;
       }
-    }, 500);
+      setChecking(true);
+      setAvailable(null);
+      const timer = setTimeout(async () => {
+        try {
+          const url = endpoint || `/api/check-register?field=${field}&value=${encodeURIComponent(value)}`;
+          const res = await fetch(url);
+          const data = await res.json();
+          if (res.ok && data.success) setAvailable(data.available);
+        } catch {
+          setAvailable(null);
+        } finally {
+          setChecking(false);
+        }
+      }, 500);
+      return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [value]);
+  };
 
-    return () => clearTimeout(timer);
-  }, [formData.username]);
+  // Kullanıcı adı kontrolü
+  useFieldCheck(
+    formData.username, 'username',
+    () => formData.username.trim().length >= 3,
+    setUsernameAvailable, setUsernameChecking,
+    `/api/check-username?username=${encodeURIComponent(formData.username.trim())}`
+  );
+
+  // E-posta kontrolü
+  useFieldCheck(
+    formData.ownerEmail, 'email',
+    () => formData.ownerEmail.includes('@') && formData.ownerEmail.includes('.'),
+    setEmailAvailable, setEmailChecking
+  );
+
+  // Telefon kontrolü
+  useFieldCheck(
+    formData.phone, 'phone',
+    () => formData.phone.replace(/\D/g, '').length >= 10,
+    setPhoneAvailable, setPhoneChecking
+  );
+
+  // İşletme adı kontrolü
+  useFieldCheck(
+    formData.businessName, 'businessName',
+    () => formData.businessName.trim().length >= 2,
+    setBusinessNameAvailable, setBusinessNameChecking
+  );
 
   // Ad Soyad'dan isim.soyisim formatında kullanıcı adı üret
   const generateUsername = (fullName: string): string => {
@@ -523,6 +564,11 @@ export default function RegisterPage() {
                       placeholder="Örn: Ayşe Güzellik Salonu"
                       required
                     />
+                    {formData.businessName.trim().length >= 2 && (
+                      <p className={`mt-1 text-xs ${businessNameChecking ? 'text-gray-500' : businessNameAvailable === true ? 'text-green-600' : businessNameAvailable === false ? 'text-red-600' : ''}`}>
+                        {businessNameChecking ? 'Kontrol ediliyor...' : businessNameAvailable === true ? '✓ İşletme adı müsait' : businessNameAvailable === false ? '✗ Bu işletme adı zaten kayıtlı' : ''}
+                      </p>
+                    )}
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">İşletme Türü *</label>
@@ -590,6 +636,11 @@ export default function RegisterPage() {
                       placeholder="email@ornek.com"
                       required
                     />
+                    {formData.ownerEmail.includes('@') && formData.ownerEmail.includes('.') && (
+                      <p className={`mt-1 text-xs ${emailChecking ? 'text-gray-500' : emailAvailable === true ? 'text-green-600' : emailAvailable === false ? 'text-red-600' : ''}`}>
+                        {emailChecking ? 'Kontrol ediliyor...' : emailAvailable === true ? '✓ E-posta müsait' : emailAvailable === false ? '✗ Bu e-posta zaten kayıtlı' : ''}
+                      </p>
+                    )}
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Telefon *</label>
@@ -605,6 +656,11 @@ export default function RegisterPage() {
                       maxLength={PHONE_MAX_LENGTH}
                       required
                     />
+                    {formData.phone.replace(/\D/g, '').length >= 10 && (
+                      <p className={`mt-1 text-xs ${phoneChecking ? 'text-gray-500' : phoneAvailable === true ? 'text-green-600' : phoneAvailable === false ? 'text-red-600' : ''}`}>
+                        {phoneChecking ? 'Kontrol ediliyor...' : phoneAvailable === true ? '✓ Telefon numarası müsait' : phoneAvailable === false ? '✗ Bu telefon numarası zaten kayıtlı' : ''}
+                      </p>
+                    )}
                   </div>
                 </div>
               </div>
