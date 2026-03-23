@@ -20,6 +20,7 @@ import { getAuthenticatedUser } from '../../lib/auth-utils';
 import { redirect } from 'next/navigation';
 import { prisma } from '../../lib/prisma';
 import AdminHeader from './admin-header';
+import OnboardingWrapper from '../../components/onboarding/OnboardingWrapper';
 
 // Server-side data fetching functions
 async function getDashboardData(tenantId: string, userType: string, staffId?: string) {
@@ -203,6 +204,9 @@ export default async function AdminDashboard() {
       <AdminHeader user={user} />
 
       <div className="max-w-7xl mx-auto p-6">
+        {/* Onboarding Wizard */}
+        <OnboardingWrapper tenantId={user.tenantId} userType={user.userType} />
+
         {/* Welcome Section */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900">Hoş Geldiniz, {user.ownerName}</h1>
