@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Button, Card, CardContent, CardHeader, CardTitle, Input, formatPhone, normalizePhone, PHONE_PLACEHOLDER, PHONE_MAX_LENGTH, Badge, Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '../../components/ui';
+import { Button, Card, CardContent, CardHeader, CardTitle, Input, formatPhone, normalizePhone, validatePhone, PHONE_PLACEHOLDER, PHONE_MAX_LENGTH, Badge, Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '../../components/ui';
 import { ArrowLeft, ArrowRight, Building2, User, Mail, Phone, MapPin, Lock, Check, CreditCard, Calendar, Star } from 'lucide-react';
 
 type Step = 'info' | 'package' | 'payment' | 'success';
@@ -110,8 +110,37 @@ export default function RegisterPage() {
   // Sözleşme onayı
   const [agreementsAccepted, setAgreementsAccepted] = useState(false);
 
+  // Kullanıcı adı manuel düzenleme takibi
+  const [usernameManuallyEdited, setUsernameManuallyEdited] = useState(false);
+
+  // Ad Soyad'dan isim.soyisim formatında kullanıcı adı üret
+  const generateUsername = (fullName: string): string => {
+    const turkishMap: Record<string, string> = {
+      'ç': 'c', 'ğ': 'g', 'ı': 'i', 'ö': 'o', 'ş': 's', 'ü': 'u',
+      'Ç': 'c', 'Ğ': 'g', 'İ': 'i', 'Ö': 'o', 'Ş': 's', 'Ü': 'u',
+    };
+    const ascii = fullName
+      .toLowerCase()
+      .replace(/[çğışöüÇĞİŞÖÜ]/g, (ch) => turkishMap[ch] || ch);
+    const parts = ascii.split(/\s+/).filter(Boolean).map(p => p.replace(/[^a-z0-9]/g, ''));
+    if (parts.length >= 2) return `${parts[0]}.${parts[1]}`;
+    if (parts.length === 1) return parts[0];
+    return '';
+  };
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
+
+    if (name === 'username') {
+      setUsernameManuallyEdited(true);
+    }
+
+    if (name === 'ownerName' && !usernameManuallyEdited) {
+      const suggested = generateUsername(value);
+      setFormData(prev => ({ ...prev, [name]: value, username: suggested }));
+      return;
+    }
+
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
@@ -128,8 +157,8 @@ export default function RegisterPage() {
       setError('Geçerli bir email adresi giriniz');
       return false;
     }
-    if (!formData.phone.trim()) {
-      setError('Telefon numarası gereklidir');
+    if (!formData.phone.trim() || !validatePhone(formData.phone)) {
+      setError('Geçerli bir telefon numarası giriniz (05XX XXX XX XX)');
       return false;
     }
     if (!formData.username.trim() || formData.username.length < 3) {
@@ -561,7 +590,7 @@ export default function RegisterPage() {
                       name="username"
                       value={formData.username}
                       onChange={handleInputChange}
-                      placeholder="Kullanıcı adınız (en az 3 karakter)"
+                      placeholder="isim.soyisim"
                       required
                     />
                   </div>

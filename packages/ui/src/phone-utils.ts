@@ -25,36 +25,34 @@ export function normalizePhone(phone: string): string {
 /**
  * Telefonu formatla (UI için)
  * Girdi: "5551234567"
- * Çıktı: "555 555 55 55"
+ * Çıktı: "0555 123 45 67"
  */
 export function formatPhone(phone: string): string {
   if (!phone) return '';
-  
+
   const normalized = normalizePhone(phone);
-  
-  // 555 555 55 55 formatı (3-3-2-2)
+  if (!normalized) return '';
+
+  // 0555 123 45 67 formatı (04-3-2-2)
   if (normalized.length >= 10) {
-    return `${normalized.slice(0, 3)} ${normalized.slice(3, 6)} ${normalized.slice(6, 8)} ${normalized.slice(8, 10)}`;
+    return `0${normalized.slice(0, 3)} ${normalized.slice(3, 6)} ${normalized.slice(6, 8)} ${normalized.slice(8, 10)}`;
   }
-  
+
   // Henüz tam girilmemiş - kademeli format
   if (normalized.length > 8) {
-    // 8+ karakter: "555 555 55 5"
-    return `${normalized.slice(0, 3)} ${normalized.slice(3, 6)} ${normalized.slice(6, 8)} ${normalized.slice(8)}`;
+    return `0${normalized.slice(0, 3)} ${normalized.slice(3, 6)} ${normalized.slice(6, 8)} ${normalized.slice(8)}`;
   }
-  
+
   if (normalized.length > 6) {
-    // 7-8 karakter: "555 555 55"
-    return `${normalized.slice(0, 3)} ${normalized.slice(3, 6)} ${normalized.slice(6)}`;
+    return `0${normalized.slice(0, 3)} ${normalized.slice(3, 6)} ${normalized.slice(6)}`;
   }
-  
+
   if (normalized.length > 3) {
-    // 4-6 karakter: "555 555"
-    return `${normalized.slice(0, 3)} ${normalized.slice(3)}`;
+    return `0${normalized.slice(0, 3)} ${normalized.slice(3)}`;
   }
-  
-  // 1-3 karakter: "555"
-  return normalized;
+
+  // 1-3 karakter: "0555"
+  return `0${normalized}`;
 }
 
 /**
@@ -77,10 +75,10 @@ export function validatePhone(phone: string): boolean {
 /**
  * Telefon için placeholder
  */
-export const PHONE_PLACEHOLDER = '555 555 55 55';
+export const PHONE_PLACEHOLDER = '0555 123 45 67';
 
 /**
- * Telefon için max length (formatlanmış hali: "555 555 55 55" = 13 karakter + buffer)
+ * Telefon için max length (formatlanmış hali: "0555 123 45 67" = 14 karakter)
  */
-export const PHONE_MAX_LENGTH = 15;
+export const PHONE_MAX_LENGTH = 14;
 
