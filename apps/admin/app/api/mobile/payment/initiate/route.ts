@@ -90,6 +90,26 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Kredi kartı ödemesi aktif mi kontrol et
+    const tenant = await prisma.tenant.findUnique({
+      where: { id: tenantId },
+      select: { cardPaymentEnabled: true },
+    });
+
+    if (!tenant) {
+      return NextResponse.json(
+        { success: false, message: 'İşletme bulunamadı' },
+        { status: 404 }
+      );
+    }
+
+    if (tenant.cardPaymentEnabled === false) {
+      return NextResponse.json(
+        { success: false, message: 'Bu işletme kredi kartı ile ödeme kabul etmiyor' },
+        { status: 403 }
+      );
+    }
+
     // Get customer info
     const customer = await prisma.customer.findUnique({
       where: { id: auth.customerId },

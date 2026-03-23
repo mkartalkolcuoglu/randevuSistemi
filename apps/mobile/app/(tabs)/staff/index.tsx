@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
 import {
   View,
   Text,
@@ -18,9 +18,12 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useAuthStore } from '../../../src/store/auth.store';
 import { appointmentService } from '../../../src/services/appointment.service';
 import { Appointment } from '../../../src/types';
+import { formatLocalDate } from '../../../src/utils/date';
 import DrawerMenu from '../../../src/components/DrawerMenu';
 import Header from '../../../src/components/Header';
 import PermissionGuard from '../../../src/components/PermissionGuard';
+import OnboardingWizard from '../../../src/components/OnboardingWizard';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import api from '../../../src/services/api';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -31,12 +34,12 @@ const IS_IOS = Platform.OS === 'ios';
 
 // Status configuration
 const STATUS_CONFIG: Record<string, { bg: string; text: string; label: string; icon: string }> = {
-  pending: { bg: '#FEF3C7', text: '#D97706', label: 'Bekliyor', icon: 'time-outline' },
+  pending: { bg: '#FEF3C7', text: '#D97706', label: 'Beklemede', icon: 'time-outline' },
   confirmed: { bg: '#DBEAFE', text: '#2563EB', label: 'Onaylandı', icon: 'checkmark-circle-outline' },
   scheduled: { bg: '#DBEAFE', text: '#2563EB', label: 'Onaylandı', icon: 'checkmark-circle-outline' },
   completed: { bg: '#D1FAE5', text: '#059669', label: 'Tamamlandı', icon: 'checkmark-done-outline' },
-  cancelled: { bg: '#FEE2E2', text: '#DC2626', label: 'İptal', icon: 'close-circle-outline' },
-  no_show: { bg: '#F3F4F6', text: '#6B7280', label: 'Gelmedi', icon: 'alert-circle-outline' },
+  cancelled: { bg: '#FEE2E2', text: '#DC2626', label: 'İptal Edildi', icon: 'close-circle-outline' },
+  no_show: { bg: '#F3F4F6', text: '#6B7280', label: 'Gelmedi ve Bilgi Vermedi', icon: 'alert-circle-outline' },
 };
 
 export default function StaffHomeScreen() {
@@ -48,8 +51,45 @@ export default function StaffHomeScreen() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [unreadNotifications, setUnreadNotifications] = useState(0);
 
+  // Onboarding state
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  const [onboardingDismissed, setOnboardingDismissed] = useState(false);
+  const [onboardingStatus, setOnboardingStatus] = useState<{ completedSteps: string[]; totalSteps: number } | null>(null);
+
+  useEffect(() => {
+    if (user?.userType !== 'owner') return;
+    const checkOnboarding = async () => {
+      try {
+        const dismissed = await AsyncStorage.getItem(`onboarding_dismissed_${selectedTenant?.id}`);
+        const res = await api.get('/api/mobile/onboarding/status');
+        if (res.data?.success && !res.data.completed) {
+          setOnboardingStatus({ completedSteps: res.data.completedSteps, totalSteps: res.data.totalSteps });
+          if (dismissed === 'true') {
+            setOnboardingDismissed(true);
+          } else {
+            setShowOnboarding(true);
+          }
+        }
+      } catch {}
+    };
+    checkOnboarding();
+  }, [user?.userType, selectedTenant?.id]);
+
+  const handleOnboardingDismiss = async () => {
+    setShowOnboarding(false);
+    setOnboardingDismissed(true);
+    await AsyncStorage.setItem(`onboarding_dismissed_${selectedTenant?.id}`, 'true');
+  };
+
+  const handleOnboardingComplete = async () => {
+    setShowOnboarding(false);
+    setOnboardingDismissed(false);
+    setOnboardingStatus(null);
+    await AsyncStorage.removeItem(`onboarding_dismissed_${selectedTenant?.id}`);
+  };
+
   // Today's date
-  const today = new Date().toISOString().split('T')[0];
+  const today = formatLocalDate(new Date());
 
   // Fetch data
   const fetchData = async (showRefresh = false) => {
@@ -235,6 +275,31 @@ export default function StaffHomeScreen() {
           ]}
         />
 
+        {/* Onboarding Banner */}
+        {onboardingDismissed && !showOnboarding && onboardingStatus && (
+          <View style={styles.section}>
+            <TouchableOpacity
+              onPress={() => { setShowOnboarding(true); setOnboardingDismissed(false); }}
+              style={{ backgroundColor: '#FEF3C7', borderRadius: 12, padding: 16, borderWidth: 1, borderColor: '#FDE68A' }}
+            >
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontSize: 14, fontWeight: '600', color: '#92400E' }}>
+                    Kurulum %{Math.round((onboardingStatus.completedSteps.length / onboardingStatus.totalSteps) * 100)} tamamlandı
+                  </Text>
+                  <Text style={{ fontSize: 12, color: '#A16207', marginTop: 2 }}>
+                    {onboardingStatus.completedSteps.length}/{onboardingStatus.totalSteps} adım. Devam etmek için dokunun.
+                  </Text>
+                </View>
+                <Ionicons name="arrow-forward-circle" size={28} color="#D97706" />
+              </View>
+              <View style={{ height: 4, backgroundColor: '#FDE68A', borderRadius: 2, marginTop: 10 }}>
+                <View style={{ height: 4, backgroundColor: '#D97706', borderRadius: 2, width: `${Math.round((onboardingStatus.completedSteps.length / onboardingStatus.totalSteps) * 100)}%` }} />
+              </View>
+            </TouchableOpacity>
+          </View>
+        )}
+
         {/* Revenue Card */}
         <View style={styles.section}>
           <LinearGradient
@@ -341,7 +406,7 @@ export default function StaffHomeScreen() {
           <View style={styles.quickActionsGrid}>
             <TouchableOpacity
               style={styles.quickAction}
-              onPress={() => Alert.alert('Yeni Randevu', 'Bu özellik yakında eklenecek')}
+              onPress={() => router.push('/appointment/new')}
               activeOpacity={0.7}
             >
               <View style={[styles.quickActionIcon, { backgroundColor: '#EFF6FF' }]}>
@@ -426,6 +491,16 @@ export default function StaffHomeScreen() {
 
       {/* Drawer Menu */}
       <DrawerMenu isOpen={drawerOpen} onClose={() => setDrawerOpen(false)} />
+
+      {/* Onboarding Wizard */}
+      {onboardingStatus && (
+        <OnboardingWizard
+          visible={showOnboarding}
+          completedSteps={onboardingStatus.completedSteps}
+          onDismiss={handleOnboardingDismiss}
+          onComplete={handleOnboardingComplete}
+        />
+      )}
     </SafeAreaView>
     </PermissionGuard>
   );
