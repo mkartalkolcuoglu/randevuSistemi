@@ -113,6 +113,38 @@ export default function RegisterPage() {
   // Kullanıcı adı manuel düzenleme takibi
   const [usernameManuallyEdited, setUsernameManuallyEdited] = useState(false);
 
+  // Anlık kullanıcı adı müsaitlik kontrolü
+  const [usernameAvailable, setUsernameAvailable] = useState<boolean | null>(null);
+  const [usernameChecking, setUsernameChecking] = useState(false);
+
+  useEffect(() => {
+    const username = formData.username.trim();
+    if (username.length < 3) {
+      setUsernameAvailable(null);
+      setUsernameChecking(false);
+      return;
+    }
+
+    setUsernameChecking(true);
+    setUsernameAvailable(null);
+
+    const timer = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/check-username?username=${encodeURIComponent(username)}`);
+        const data = await res.json();
+        if (res.ok && data.success) {
+          setUsernameAvailable(data.available);
+        }
+      } catch {
+        setUsernameAvailable(null);
+      } finally {
+        setUsernameChecking(false);
+      }
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [formData.username]);
+
   // Ad Soyad'dan isim.soyisim formatında kullanıcı adı üret
   const generateUsername = (fullName: string): string => {
     const turkishMap: Record<string, string> = {
@@ -593,6 +625,17 @@ export default function RegisterPage() {
                       placeholder="isim.soyisim"
                       required
                     />
+                    {formData.username.trim().length >= 3 && (
+                      <p className={`mt-1 text-xs ${usernameChecking ? 'text-gray-500' : usernameAvailable === true ? 'text-green-600' : usernameAvailable === false ? 'text-red-600' : ''}`}>
+                        {usernameChecking
+                          ? 'Kontrol ediliyor...'
+                          : usernameAvailable === true
+                            ? '✓ Kullanıcı adı müsait'
+                            : usernameAvailable === false
+                              ? '✗ Bu kullanıcı adı alınmış'
+                              : ''}
+                      </p>
+                    )}
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Şifre *</label>
