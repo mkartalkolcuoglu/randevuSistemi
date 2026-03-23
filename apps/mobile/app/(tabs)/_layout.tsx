@@ -19,10 +19,10 @@ export default function TabLayout() {
   const isOwner = user?.userType === 'owner';
   const permissions = user?.permissions as StaffPermissions | null | undefined;
   
-  // Check permissions for tab bar items (allow all if permissions not set)
-  const canSeeDashboard = isOwner || !permissions || canAccessPage(permissions, 'dashboard');
-  const canSeeAppointments = isOwner || !permissions || canAccessPage(permissions, 'appointments');
-  const canSeeCustomers = isOwner || !permissions || canAccessPage(permissions, 'customers');
+  // Check permissions for tab bar items (null permissions uses defaults via canAccessPage)
+  const canSeeDashboard = isOwner || canAccessPage(permissions, 'dashboard');
+  const canSeeAppointments = isOwner || canAccessPage(permissions, 'appointments');
+  const canSeeCustomers = isOwner || canAccessPage(permissions, 'customers');
 
   // Calculate tab bar height with safe area - both platforms need bottom inset
   const bottomInset = insets.bottom > 0 ? insets.bottom : (Platform.OS === 'android' ? 16 : 0);
@@ -121,10 +121,19 @@ export default function TabLayout() {
     );
   }
 
-  // Staff/Owner layout - 4 tabs: Takvim, Randevular, Müşteriler, Ana Sayfa
+  // Staff/Owner layout - 4 tabs: Ana Sayfa, Takvim, Randevular, Müşteriler
   return (
     <Tabs screenOptions={getScreenOptions(TAB_ACTIVE_COLOR)}>
-      {/* Visible tabs - Calendar first as default */}
+      {/* Visible tabs - Home first */}
+      <Tabs.Screen
+        name="staff/index"
+        options={{
+          title: 'Ana Sayfa',
+          tabBarIcon: ({ color }) => (
+            <Ionicons name="home" size={TAB_ICON_SIZE} color={color} />
+          ),
+        }}
+      />
       <Tabs.Screen
         name="staff/calendar"
         options={{
@@ -149,15 +158,6 @@ export default function TabLayout() {
           title: 'Müşteriler',
           tabBarIcon: ({ color }) => (
             <Ionicons name="people" size={TAB_ICON_SIZE} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="staff/index"
-        options={{
-          title: 'Ana Sayfa',
-          tabBarIcon: ({ color }) => (
-            <Ionicons name="home" size={TAB_ICON_SIZE} color={color} />
           ),
         }}
       />
