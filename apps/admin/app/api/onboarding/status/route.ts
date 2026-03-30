@@ -11,15 +11,6 @@ const BASE_STEPS = [
   'theme',
 ];
 
-const DEFAULT_WORKING_HOURS: Record<string, { start: string; end: string; closed: boolean }> = {
-  Pazartesi: { start: '09:00', end: '18:00', closed: false },
-  Sali: { start: '09:00', end: '18:00', closed: false },
-  Carsamba: { start: '09:00', end: '18:00', closed: false },
-  Persembe: { start: '09:00', end: '18:00', closed: false },
-  Cuma: { start: '09:00', end: '18:00', closed: false },
-  Cumartesi: { start: '09:00', end: '17:00', closed: false },
-  Pazar: { start: '09:00', end: '17:00', closed: true },
-};
 
 export async function GET() {
   try {
@@ -58,15 +49,9 @@ export async function GET() {
 
     const completedSteps: string[] = [];
 
-    // Step 1: Working hours - check if modified from default
-    if (settings?.workingHours) {
-      try {
-        const wh = JSON.parse(settings.workingHours);
-        const isDefault = JSON.stringify(wh) === JSON.stringify(DEFAULT_WORKING_HOURS);
-        if (!isDefault) completedSteps.push('workingHours');
-      } catch {
-        // not completed
-      }
+    // Step 1: Working hours - check if any working hours are saved
+    if (settings?.workingHours || tenant.workingHours) {
+      completedSteps.push('workingHours');
     }
 
     // Step 2: Services
@@ -82,7 +67,7 @@ export async function GET() {
     } catch {
       theme = {};
     }
-    if (theme.location?.latitude && theme.location?.longitude) {
+    if (tenant.address || theme.location?.latitude || settings?.businessAddress) {
       completedSteps.push('location');
     }
 
@@ -96,9 +81,11 @@ export async function GET() {
       }
     }
 
-    // Step 6: Theme/Logo
+    // Step 6: Theme/Logo - check if any theme customization was done
     const defaultLogo = 'https://ui-avatars.com/api/';
-    if (theme.logo && !theme.logo.startsWith(defaultLogo)) {
+    const hasCustomLogo = theme.logo && !theme.logo.startsWith(defaultLogo);
+    const hasCustomColor = theme.primaryColor && theme.primaryColor !== '#163974';
+    if (hasCustomLogo || hasCustomColor) {
       completedSteps.push('theme');
     }
 
