@@ -99,6 +99,7 @@ export default function EditStaffPage() {
         
         setFormData({
           ...staffData,
+          email: staffData.email?.includes('@placeholder.local') ? '' : staffData.email || '',
           specializations,
           workingHours,
           experience: staffData.experience?.toString() || '',

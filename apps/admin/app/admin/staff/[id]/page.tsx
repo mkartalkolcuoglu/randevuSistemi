@@ -274,10 +274,12 @@ export default function StaffDetailPage() {
               <div className="pt-4 border-t">
                 <h4 className="font-medium mb-3">İletişim Bilgileri</h4>
                 <div className="space-y-2">
+                  {staff.email && !staff.email.includes('@placeholder.local') && (
                   <div className="flex items-center">
                     <Mail className="w-4 h-4 mr-2 text-gray-500" />
                     <span>{staff.email}</span>
                   </div>
+                  )}
                   <div className="flex items-center">
                     <Phone className="w-4 h-4 mr-2 text-gray-500" />
                     <span>{staff.phone}</span>

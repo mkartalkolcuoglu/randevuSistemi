@@ -291,10 +291,12 @@ export default function StaffClient({ user }: StaffClientProps) {
 
                     {/* Contact Info */}
                     <div className="space-y-2 mb-4">
+                      {member.email && !member.email.includes('@placeholder.local') && (
                       <div className="flex items-center text-sm text-gray-600">
                         <Mail className="w-4 h-4 mr-2" />
                         <span className="truncate">{member.email}</span>
                       </div>
+                      )}
                       <div className="flex items-center text-sm text-gray-600">
                         <Phone className="w-4 h-4 mr-2" />
                         <span>{member.phone}</span>
