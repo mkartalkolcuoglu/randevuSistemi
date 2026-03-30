@@ -452,11 +452,11 @@ export default function StockClient({ initialProducts, tenantId, user }: StockCl
                             <span className="text-lg font-semibold">{product.quantity} adet</span>
                           </td>
                           <td className="py-3 px-4">
-                            <span className="text-green-600 font-semibold">₺{product.price.toFixed(2)}</span>
+                            <span className="text-green-600 font-semibold">{product.price.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}</span>
                           </td>
                           <td className="py-3 px-4">
                             <span className="text-blue-600 font-semibold">
-                              ₺{(product.quantity * product.price).toFixed(2)}
+                              {(product.quantity * product.price).toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}
                             </span>
                           </td>
                           <td className="py-3 px-4">
@@ -517,11 +517,11 @@ export default function StockClient({ initialProducts, tenantId, user }: StockCl
                           {searchTerm || statusFilter !== 'all' ? 'Filtrelenmiş Stok Değeri' : 'Toplam Stok Değeri'}
                         </h3>
                         <p className="text-2xl font-bold text-purple-600">
-                          ₺{filteredProducts.reduce((sum, product) => sum + (product.quantity * product.price), 0).toFixed(2)}
+                          {filteredProducts.reduce((sum, product) => sum + (product.quantity * product.price), 0).toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}
                         </p>
                         {(searchTerm || statusFilter !== 'all') && (
                           <p className="text-sm text-purple-700 mt-1">
-                            Toplam: ₺{products.reduce((sum, product) => sum + (product.quantity * product.price), 0).toFixed(2)}
+                            Toplam: {products.reduce((sum, product) => sum + (product.quantity * product.price), 0).toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}
                           </p>
                         )}
                       </div>
