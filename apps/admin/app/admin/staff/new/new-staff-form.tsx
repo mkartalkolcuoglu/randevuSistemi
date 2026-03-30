@@ -373,17 +373,6 @@ export default function NewStaffForm({ user }: NewStaffFormProps) {
                       </div>
 
                       <div className="grid gap-3">
-                        <Label htmlFor="salary">Maaş (₺)</Label>
-                        <Input
-                          id="salary"
-                          type="number"
-                          min="0"
-                          value={formData.salary}
-                          onChange={(e) => handleInputChange('salary', parseInt(e.target.value) || 0)}
-                        />
-                      </div>
-
-                      <div className="grid gap-3">
                         <Label htmlFor="hireDate">İşe Başlama Tarihi</Label>
                         <Input
                           id="hireDate"

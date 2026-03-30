@@ -119,14 +119,6 @@ export default function StaffClient({ user }: StaffClientProps) {
     return 'Kıdemli Uzman';
   };
 
-  const formatSalary = (salary?: number) => {
-    if (!salary) return 'Belirtilmemiş';
-    return new Intl.NumberFormat('tr-TR', {
-      style: 'currency',
-      currency: 'TRY'
-    }).format(salary);
-  };
-
   const renderStars = (rating?: number) => {
     if (!rating) return <span className="text-gray-400">Değerlendirilmemiş</span>;
     
@@ -304,17 +296,11 @@ export default function StaffClient({ user }: StaffClientProps) {
                     </div>
 
                     {/* Stats */}
-                    <div className="grid grid-cols-2 gap-4 mb-4 text-center">
+                    <div className="grid grid-cols-1 gap-4 mb-4 text-center">
                       <div className="bg-gray-50 rounded-lg p-3">
                         <p className="text-xs text-gray-500">Deneyim</p>
                         <p className="text-sm font-semibold text-gray-900">
                           {getExperienceLevel(member.experience)}
-                        </p>
-                      </div>
-                      <div className="bg-gray-50 rounded-lg p-3">
-                        <p className="text-xs text-gray-500">Maaş</p>
-                        <p className="text-sm font-semibold text-gray-900">
-                          {formatSalary(member.salary)}
                         </p>
                       </div>
                     </div>

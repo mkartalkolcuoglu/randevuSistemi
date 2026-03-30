@@ -380,11 +380,6 @@ export default function StaffDetailPage() {
                 <div className="text-sm text-gray-600">Toplam Gelir</div>
               </div>
               
-              <div className="text-center">
-                <div className="text-3xl font-bold text-purple-600">₺{staff.salary || 0}</div>
-                <div className="text-sm text-gray-600">Maaş</div>
-              </div>
-              
               <div className="pt-4 border-t">
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-gray-600">Toplam Deneyim</span>

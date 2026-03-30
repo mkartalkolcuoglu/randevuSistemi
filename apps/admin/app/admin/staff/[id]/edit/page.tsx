@@ -420,17 +420,6 @@ export default function EditStaffPage() {
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="salary">Maaş (₺)</Label>
-                <Input
-                  id="salary"
-                  name="salary"
-                  type="number"
-                  value={formData.salary}
-                  onChange={handleInputChange}
-                  min="0"
-                />
-              </div>
             </div>
 
             {/* Specializations */}
