@@ -35,7 +35,7 @@ interface Staff {
   position: string;
   status: string;
   avatar: string | null;
-  salary: number | null;
+  salary?: number | null;
   hireDate: string | null;
   specializations: string[];
   experience: number | null;
@@ -138,7 +138,6 @@ export default function StaffTeamScreen() {
     phone: '',
     position: '',
     status: 'active',
-    salary: '',
     hireDate: '',
     specializations: [] as string[],
     experience: '',
@@ -240,7 +239,6 @@ export default function StaffTeamScreen() {
       phone: '',
       position: '',
       status: 'active',
-      salary: '',
       hireDate: '',
       specializations: [],
       experience: '',
@@ -265,7 +263,6 @@ export default function StaffTeamScreen() {
       phone: selectedStaff.phone || '',
       position: selectedStaff.position || '',
       status: selectedStaff.status || 'active',
-      salary: selectedStaff.salary?.toString() || '',
       hireDate: selectedStaff.hireDate || '',
       specializations: selectedStaff.specializations || [],
       experience: selectedStaff.experience?.toString() || '',
@@ -298,7 +295,6 @@ export default function StaffTeamScreen() {
         phone: editStaff.phone?.trim() || null,
         position: editStaff.position.trim(),
         status: editStaff.status,
-        salary: editStaff.salary ? parseFloat(editStaff.salary) : null,
         hireDate: editStaff.hireDate || null,
         specializations: editStaff.specializations,
         experience: editStaff.experience ? parseInt(editStaff.experience) : null,
@@ -416,7 +412,6 @@ export default function StaffTeamScreen() {
         phone: newStaff.phone?.trim() || null,
         position: newStaff.position.trim(),
         status: newStaff.status,
-        salary: newStaff.salary ? parseFloat(newStaff.salary) : null,
         hireDate: newStaff.hireDate || null,
         specializations: newStaff.specializations,
         experience: newStaff.experience ? parseInt(newStaff.experience) : null,
@@ -450,17 +445,6 @@ export default function StaffTeamScreen() {
     } finally {
       setIsSubmitting(false);
     }
-  };
-
-  // Format salary
-  const formatSalary = (salary: number | null) => {
-    if (!salary) return 'Belirtilmemiş';
-    return new Intl.NumberFormat('tr-TR', {
-      style: 'currency',
-      currency: 'TRY',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(salary);
   };
 
   // Get experience level
@@ -1027,19 +1011,6 @@ export default function StaffTeamScreen() {
                           }
                         />
                       </View>
-                      <View style={styles.formGroupHalf}>
-                        <Text style={styles.formLabel}>Maaş (₺)</Text>
-                        <TextInput
-                          style={styles.formInput}
-                          placeholder="0"
-                          placeholderTextColor="#9CA3AF"
-                          value={editStaff.salary}
-                          onChangeText={(text) =>
-                            setEditStaff((prev) => prev ? { ...prev, salary: text } : null)
-                          }
-                          keyboardType="numeric"
-                        />
-                      </View>
                     </View>
                   </View>
 
@@ -1253,21 +1224,6 @@ export default function StaffTeamScreen() {
                               </View>
                             ))}
                           </View>
-                        </View>
-                      </View>
-                    </View>
-                  )}
-
-                  {/* Salary */}
-                  {selectedStaff.salary && (
-                    <View style={styles.infoSection}>
-                      <View style={styles.infoRow}>
-                        <View style={styles.infoIconWrapper}>
-                          <Ionicons name="cash" size={18} color="#3B82F6" />
-                        </View>
-                        <View>
-                          <Text style={styles.infoLabel}>Maaş</Text>
-                          <Text style={styles.infoValue}>{formatSalary(selectedStaff.salary)}</Text>
                         </View>
                       </View>
                     </View>
@@ -1559,19 +1515,6 @@ export default function StaffTeamScreen() {
                     value={newStaff.experience}
                     onChangeText={(text) =>
                       setNewStaff((prev) => ({ ...prev, experience: text }))
-                    }
-                    keyboardType="numeric"
-                  />
-                </View>
-                <View style={styles.formGroupHalf}>
-                  <Text style={styles.formLabel}>Maaş (₺)</Text>
-                  <TextInput
-                    style={styles.formInput}
-                    placeholder="0"
-                    placeholderTextColor="#9CA3AF"
-                    value={newStaff.salary}
-                    onChangeText={(text) =>
-                      setNewStaff((prev) => ({ ...prev, salary: text }))
                     }
                     keyboardType="numeric"
                   />
