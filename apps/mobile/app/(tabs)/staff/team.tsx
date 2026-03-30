@@ -447,14 +447,6 @@ export default function StaffTeamScreen() {
     }
   };
 
-  // Get experience level
-  const getExperienceLevel = (experience: number | null) => {
-    if (!experience) return 'Belirtilmemiş';
-    if (experience < 1) return 'Yeni Başlayan';
-    if (experience < 3) return `${experience} Yıl (Tecrübeli)`;
-    if (experience < 5) return `${experience} Yıl (Uzman)`;
-    return `${experience} Yıl (Kıdemli)`;
-  };
 
   // Render stars
   const renderStars = (rating: number | null) => {
@@ -620,20 +612,11 @@ export default function StaffTeamScreen() {
           {/* Bottom Row: Experience + Rating + Actions */}
           <View style={styles.cardBottomRow}>
             <View style={styles.staffStats}>
-              <View style={styles.statItem}>
-                <Ionicons name="briefcase-outline" size={14} color="#8B5CF6" />
-                <Text style={styles.statText}>
-                  {item.experience ? `${item.experience} Yıl` : 'Yeni'}
-                </Text>
-              </View>
               {item.rating && (
-                <>
-                  <View style={styles.statDivider} />
-                  <View style={styles.statItem}>
-                    <Ionicons name="star" size={14} color="#F59E0B" />
-                    <Text style={styles.statText}>{item.rating.toFixed(1)}</Text>
-                  </View>
-                </>
+                <View style={styles.statItem}>
+                  <Ionicons name="star" size={14} color="#F59E0B" />
+                  <Text style={styles.statText}>{item.rating.toFixed(1)}</Text>
+                </View>
               )}
             </View>
             <View style={styles.quickActions}>
@@ -966,19 +949,6 @@ export default function StaffTeamScreen() {
 
                     <View style={styles.formRow}>
                       <View style={styles.formGroupHalf}>
-                        <Text style={styles.formLabel}>Deneyim (Yıl)</Text>
-                        <TextInput
-                          style={styles.formInput}
-                          placeholder="0"
-                          placeholderTextColor="#9CA3AF"
-                          value={editStaff.experience}
-                          onChangeText={(text) =>
-                            setEditStaff((prev) => prev ? { ...prev, experience: text } : null)
-                          }
-                          keyboardType="numeric"
-                        />
-                      </View>
-                      <View style={styles.formGroupHalf}>
                         <Text style={styles.formLabel}>Değerlendirme (1-5)</Text>
                         <TextInput
                           style={styles.formInput}
@@ -1158,15 +1128,6 @@ export default function StaffTeamScreen() {
                   {/* Stats */}
                   <View style={styles.statsSection}>
                     <View style={styles.statsGrid}>
-                      <View style={styles.statBox}>
-                        <View style={[styles.statBoxIcon, { backgroundColor: '#F3E8FF' }]}>
-                          <Ionicons name="briefcase" size={24} color="#8B5CF6" />
-                        </View>
-                        <Text style={styles.statBoxValue}>
-                          {getExperienceLevel(selectedStaff.experience)}
-                        </Text>
-                        <Text style={styles.statBoxLabel}>Deneyim</Text>
-                      </View>
                       <View style={styles.statBox}>
                         <View style={[styles.statBoxIcon, { backgroundColor: '#FEF3C7' }]}>
                           <Ionicons name="star" size={24} color="#F59E0B" />
@@ -1505,21 +1466,6 @@ export default function StaffTeamScreen() {
                 )}
               </View>
 
-              <View style={styles.formRow}>
-                <View style={styles.formGroupHalf}>
-                  <Text style={styles.formLabel}>Deneyim (Yıl)</Text>
-                  <TextInput
-                    style={styles.formInput}
-                    placeholder="0"
-                    placeholderTextColor="#9CA3AF"
-                    value={newStaff.experience}
-                    onChangeText={(text) =>
-                      setNewStaff((prev) => ({ ...prev, experience: text }))
-                    }
-                    keyboardType="numeric"
-                  />
-                </View>
-              </View>
             </View>
 
             {/* Giriş Yetkisi */}

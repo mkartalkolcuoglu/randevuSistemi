@@ -383,19 +383,6 @@ export default function EditStaffPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="experience">Deneyim (Yıl)</Label>
-                <Input
-                  id="experience"
-                  name="experience"
-                  type="number"
-                  value={formData.experience}
-                  onChange={handleInputChange}
-                  min="0"
-                  max="50"
-                />
-              </div>
-
-              <div className="space-y-2">
                 <Label htmlFor="rating">Değerlendirme (1-5)</Label>
                 <Input
                   id="rating"

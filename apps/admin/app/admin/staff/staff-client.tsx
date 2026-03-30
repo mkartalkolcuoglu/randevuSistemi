@@ -111,14 +111,6 @@ export default function StaffClient({ user }: StaffClientProps) {
     );
   };
 
-  const getExperienceLevel = (experience?: number) => {
-    if (!experience) return 'Belirtilmemiş';
-    if (experience < 1) return 'Yeni Başlayan';
-    if (experience < 3) return 'Tecrübeli';
-    if (experience < 5) return 'Uzman';
-    return 'Kıdemli Uzman';
-  };
-
   const renderStars = (rating?: number) => {
     if (!rating) return <span className="text-gray-400">Değerlendirilmemiş</span>;
     
@@ -296,14 +288,6 @@ export default function StaffClient({ user }: StaffClientProps) {
                     </div>
 
                     {/* Stats */}
-                    <div className="grid grid-cols-1 gap-4 mb-4 text-center">
-                      <div className="bg-gray-50 rounded-lg p-3">
-                        <p className="text-xs text-gray-500">Deneyim</p>
-                        <p className="text-sm font-semibold text-gray-900">
-                          {getExperienceLevel(member.experience)}
-                        </p>
-                      </div>
-                    </div>
 
                     {/* Specializations */}
                     {member.specializations && member.specializations.length > 0 && (

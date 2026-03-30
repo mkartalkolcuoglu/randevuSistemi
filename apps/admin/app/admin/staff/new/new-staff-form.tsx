@@ -362,17 +362,6 @@ export default function NewStaffForm({ user }: NewStaffFormProps) {
                   <CardContent>
                     <div className="grid gap-6">
                       <div className="grid gap-3">
-                        <Label htmlFor="experience">Deneyim (yıl)</Label>
-                        <Input
-                          id="experience"
-                          type="number"
-                          min="0"
-                          value={formData.experience}
-                          onChange={(e) => handleInputChange('experience', parseInt(e.target.value) || 0)}
-                        />
-                      </div>
-
-                      <div className="grid gap-3">
                         <Label htmlFor="hireDate">İşe Başlama Tarihi</Label>
                         <Input
                           id="hireDate"

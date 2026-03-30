@@ -262,10 +262,6 @@ export default function StaffDetailPage() {
                   </div>
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-gray-600">Deneyim</label>
-                  <p>{staff.experience || 0} yıl</p>
-                </div>
-                <div>
                   <label className="text-sm font-medium text-gray-600">İşe Başlama</label>
                   <p>{staff.hireDate ? new Date(staff.hireDate).toLocaleDateString('tr-TR') : 'Belirtilmemiş'}</p>
                 </div>
@@ -381,10 +377,6 @@ export default function StaffDetailPage() {
               </div>
               
               <div className="pt-4 border-t">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">Toplam Deneyim</span>
-                  <span className="text-sm font-medium">{staff.experience || 0} yıl</span>
-                </div>
               </div>
             </CardContent>
           </Card>
