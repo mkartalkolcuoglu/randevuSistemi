@@ -57,7 +57,7 @@ export default function EditProfileScreen() {
           firstName: data.firstName || '',
           lastName: data.lastName || '',
           phone: data.phone || '',
-          email: data.email || '',
+          email: data.email?.includes('@placeholder.local') ? '' : data.email || '',
           birthDate: data.birthDate,
           gender: data.gender,
           address: data.address,

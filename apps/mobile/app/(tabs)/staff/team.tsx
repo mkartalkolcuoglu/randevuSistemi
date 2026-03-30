@@ -261,7 +261,7 @@ export default function StaffTeamScreen() {
     setEditStaff({
       firstName: selectedStaff.firstName || '',
       lastName: selectedStaff.lastName || '',
-      email: selectedStaff.email || '',
+      email: selectedStaff.email?.includes('@placeholder.local') ? '' : selectedStaff.email || '',
       phone: selectedStaff.phone || '',
       position: selectedStaff.position || '',
       status: selectedStaff.status || 'active',
@@ -284,8 +284,8 @@ export default function StaffTeamScreen() {
   // Handle update staff
   const handleUpdateStaff = async () => {
     if (!selectedStaff || !editStaff) return;
-    if (!editStaff.firstName.trim() || !editStaff.lastName.trim() || !editStaff.email.trim() || !editStaff.position.trim()) {
-      Alert.alert('Hata', 'Ad, soyad, e-posta ve pozisyon zorunludur');
+    if (!editStaff.firstName.trim() || !editStaff.lastName.trim() || !editStaff.position.trim()) {
+      Alert.alert('Hata', 'Ad, soyad ve pozisyon zorunludur');
       return;
     }
 
@@ -402,8 +402,8 @@ export default function StaffTeamScreen() {
 
   // Handle add staff
   const handleAddStaff = async () => {
-    if (!newStaff.firstName.trim() || !newStaff.lastName.trim() || !newStaff.email.trim() || !newStaff.position.trim()) {
-      Alert.alert('Hata', 'Ad, soyad, e-posta ve pozisyon zorunludur');
+    if (!newStaff.firstName.trim() || !newStaff.lastName.trim() || !newStaff.position.trim()) {
+      Alert.alert('Hata', 'Ad, soyad ve pozisyon zorunludur');
       return;
     }
 
@@ -625,7 +625,7 @@ export default function StaffTeamScreen() {
                 <Text style={styles.contactText}>{item.phone}</Text>
               </View>
             )}
-            {item.email && (
+            {item.email && !item.email.includes('@placeholder.local') && (
               <View style={styles.contactItem}>
                 <Ionicons name="mail-outline" size={12} color="#6B7280" />
                 <Text style={styles.contactText} numberOfLines={1}>{item.email}</Text>
@@ -1210,7 +1210,7 @@ export default function StaffTeamScreen() {
 
                   {/* Contact Info */}
                   <View style={styles.infoSection}>
-                    {selectedStaff.email && (
+                    {selectedStaff.email && !selectedStaff.email.includes('@placeholder.local') && (
                       <View style={styles.infoRow}>
                         <View style={styles.infoIconWrapper}>
                           <Ionicons name="mail" size={18} color="#3B82F6" />
