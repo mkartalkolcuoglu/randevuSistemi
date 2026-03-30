@@ -31,6 +31,29 @@ const DAY_NAMES: Record<number, string> = {
   6: 'saturday',
 };
 
+// Map Turkish day names to English for working hours normalization
+const turkishToEnglishDayMap: Record<string, string> = {
+  'Pazartesi': 'monday', 'pazartesi': 'monday',
+  'Sali': 'tuesday', 'sali': 'tuesday', 'Salı': 'tuesday', 'salı': 'tuesday',
+  'Carsamba': 'wednesday', 'carsamba': 'wednesday', 'Çarşamba': 'wednesday', 'çarşamba': 'wednesday',
+  'Persembe': 'thursday', 'persembe': 'thursday', 'Perşembe': 'thursday', 'perşembe': 'thursday',
+  'Cuma': 'friday', 'cuma': 'friday',
+  'Cumartesi': 'saturday', 'cumartesi': 'saturday',
+  'Pazar': 'sunday', 'pazar': 'sunday',
+};
+
+function normalizeWorkingHours(hours: Record<string, any>): Record<string, any> {
+  const englishDays = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+  const keys = Object.keys(hours);
+  if (keys.some(k => englishDays.includes(k))) return hours;
+  const normalized: Record<string, any> = {};
+  for (const [key, value] of Object.entries(hours)) {
+    const englishKey = turkishToEnglishDayMap[key];
+    if (englishKey) normalized[englishKey] = value;
+  }
+  return normalized;
+}
+
 interface BlockedDateInfo {
   id: string;
   title: string;
@@ -158,8 +181,9 @@ export default function NewAppointmentScreen() {
       setStaffList(staffRes.data || []);
 
       if (settingsRes.success && settingsRes.data) {
+        const rawHours = settingsRes.data.workingHours;
         setTenantSettings({
-          workingHours: settingsRes.data.workingHours,
+          workingHours: rawHours ? normalizeWorkingHours(typeof rawHours === 'string' ? JSON.parse(rawHours) : rawHours) : {},
           appointmentTimeInterval: settingsRes.data.appointmentTimeInterval,
           blockedDates: settingsRes.data.blockedDates || [],
         });

@@ -24,6 +24,7 @@ export default function NewAppointmentPage() {
   const [phoneError, setPhoneError] = useState<string | null>(null);
   const [blockedDates, setBlockedDates] = useState<{ title: string; startDate: string; endDate: string }[]>([]);
   const [blockedDateWarning, setBlockedDateWarning] = useState<string | null>(null);
+  const [bookedTimeSlots, setBookedTimeSlots] = useState<string[]>([]);
 
   // Form state
   const [formData, setFormData] = useState({
@@ -116,6 +117,47 @@ export default function NewAppointmentPage() {
     console.log('✅ Filtered slots:', filtered);
     setAvailableTimeSlots(filtered);
   }, [formData.date, workingHours, timeInterval, blockedDates]);
+
+  // Fetch booked time slots when date or staff changes
+  useEffect(() => {
+    const fetchBookedSlots = async () => {
+      if (!formData.date || !formData.staffId) {
+        setBookedTimeSlots([]);
+        return;
+      }
+
+      try {
+        const response = await fetch(`/api/appointments?date=${formData.date}&staffId=${formData.staffId}&limit=100`);
+        if (response.ok) {
+          const data = await response.json();
+          const appointments = data.data || [];
+          const booked: string[] = [];
+
+          appointments.forEach((apt: any) => {
+            if (apt.status === 'cancelled' || apt.status === 'completed') return;
+            const [aptH, aptM] = (apt.time || '').split(':').map(Number);
+            if (isNaN(aptH)) return;
+            const aptStart = aptH * 60 + aptM;
+            const aptDuration = apt.duration || 60;
+
+            // Mark all intervals during appointment as booked
+            for (let i = 0; i < aptDuration; i += (timeInterval || 30)) {
+              const t = aptStart + i;
+              const h = Math.floor(t / 60);
+              const m = t % 60;
+              booked.push(`${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`);
+            }
+          });
+
+          setBookedTimeSlots(booked);
+        }
+      } catch (error) {
+        console.error('Error fetching booked slots:', error);
+      }
+    };
+
+    fetchBookedSlots();
+  }, [formData.date, formData.staffId, timeInterval]);
 
   // Fetch settings and generate time slots on mount
   useEffect(() => {
@@ -485,11 +527,14 @@ export default function NewAppointmentPage() {
                   required
                 >
                   <option value="">Saat seçin</option>
-                  {availableTimeSlots.map((time) => (
-                    <option key={time} value={time}>
-                      {time}
-                    </option>
-                  ))}
+                  {availableTimeSlots.map((time) => {
+                    const isBooked = bookedTimeSlots.includes(time);
+                    return (
+                      <option key={time} value={time} disabled={isBooked} style={isBooked ? { color: '#9ca3af' } : {}}>
+                        {time}{isBooked ? ' (Dolu)' : ''}
+                      </option>
+                    );
+                  })}
                 </select>
               </div>
             </div>

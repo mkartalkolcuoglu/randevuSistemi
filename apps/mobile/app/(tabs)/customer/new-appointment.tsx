@@ -56,6 +56,29 @@ interface TenantSettings {
   blockedDates?: BlockedDateInfo[];
 }
 
+// Map Turkish day names to English for working hours normalization
+const turkishToEnglishDayMap: Record<string, string> = {
+  'Pazartesi': 'monday', 'pazartesi': 'monday',
+  'Sali': 'tuesday', 'sali': 'tuesday', 'Salı': 'tuesday', 'salı': 'tuesday',
+  'Carsamba': 'wednesday', 'carsamba': 'wednesday', 'Çarşamba': 'wednesday', 'çarşamba': 'wednesday',
+  'Persembe': 'thursday', 'persembe': 'thursday', 'Perşembe': 'thursday', 'perşembe': 'thursday',
+  'Cuma': 'friday', 'cuma': 'friday',
+  'Cumartesi': 'saturday', 'cumartesi': 'saturday',
+  'Pazar': 'sunday', 'pazar': 'sunday',
+};
+
+function normalizeWorkingHours(hours: Record<string, any>): WorkingHours {
+  const englishDays = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+  const keys = Object.keys(hours);
+  if (keys.some(k => englishDays.includes(k))) return hours;
+  const normalized: Record<string, any> = {};
+  for (const [key, value] of Object.entries(hours)) {
+    const englishKey = turkishToEnglishDayMap[key];
+    if (englishKey) normalized[englishKey] = value;
+  }
+  return normalized;
+}
+
 interface PackageInfo {
   packageId: string;
   packageName: string;
@@ -154,6 +177,10 @@ export default function NewAppointmentScreen() {
           businessName: settings.businessName,
           slug: '',
         });
+        if (settings.workingHours) {
+          const raw = typeof settings.workingHours === 'string' ? JSON.parse(settings.workingHours) : settings.workingHours;
+          settings.workingHours = normalizeWorkingHours(raw);
+        }
         setTenantSettings(settings);
         setStep('service');
       }
@@ -250,7 +277,12 @@ export default function NewAppointmentScreen() {
     try {
       const response = await api.get(`/api/mobile/tenants/${selectedTenant.id}/settings`);
       if (response.data.success) {
-        setTenantSettings(response.data.data);
+        const data = response.data.data;
+        if (data.workingHours) {
+          const raw = typeof data.workingHours === 'string' ? JSON.parse(data.workingHours) : data.workingHours;
+          data.workingHours = normalizeWorkingHours(raw);
+        }
+        setTenantSettings(data);
       }
     } catch (error) {
       console.error('Error fetching tenant settings:', error);

@@ -924,20 +924,22 @@ export default function RandevuPage({ params }: PageProps) {
           </p>
           {availableSlots ? (
             <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
-              {availableSlots.slots
-                .filter(slot => slot.available)
-                .map((slot) => (
+              {availableSlots.slots.map((slot) => (
                   <Button
                     key={slot.time}
                     variant={selectedTime === slot.time ? "default" : "outline"}
+                    disabled={!slot.available}
                     className={`p-3 text-sm transition-all duration-200 touch-manipulation ${
                       selectedTime === slot.time
                         ? 'bg-blue-600 text-white shadow-lg'
+                        : !slot.available
+                        ? 'opacity-50 cursor-not-allowed line-through text-gray-400 border-gray-200'
                         : 'active:bg-blue-50 active:border-blue-300'
                     }`}
-                    onClick={() => setSelectedTime(slot.time)}
+                    onClick={() => slot.available && setSelectedTime(slot.time)}
                   >
                     {slot.time}
+                    {!slot.available && <span className="block text-xs text-gray-400">Dolu</span>}
                   </Button>
                 ))}
             </div>
