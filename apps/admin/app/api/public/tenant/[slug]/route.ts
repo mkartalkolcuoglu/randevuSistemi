@@ -35,6 +35,7 @@ export async function GET(
         businessDescription: true,
         workingHours: true, // ⭐ Critical: workingHours from Admin DB
         cardPaymentEnabled: true, // ⭐ Critical: cardPaymentEnabled from Admin DB
+        subscriptionEnd: true, // ⭐ Critical: subscriptionEnd for active check
         theme: true,
         createdAt: true
         // Note: Tenant model doesn't have updatedAt field in Admin DB
@@ -64,6 +65,7 @@ export async function GET(
       businessDescription: tenant.businessDescription || '',
       workingHours: tenant.workingHours || null, // ⭐ This is the critical field
       cardPaymentEnabled: tenant.cardPaymentEnabled, // ⭐ Card payment toggle (undefined = true default)
+      subscriptionEnd: tenant.subscriptionEnd?.toISOString() || null, // ⭐ Subscription end date
       theme: tenant.theme || null,
       createdAt: tenant.createdAt?.toISOString() || new Date().toISOString()
     };

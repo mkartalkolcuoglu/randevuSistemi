@@ -41,6 +41,56 @@ export interface WorkingHours {
 }
 
 /**
+ * Maps Turkish day names to English day names
+ */
+const turkishToEnglishDayMap: Record<string, keyof WorkingHours> = {
+  'Pazartesi': 'monday',
+  'pazartesi': 'monday',
+  'Sali': 'tuesday',
+  'sali': 'tuesday',
+  'Salı': 'tuesday',
+  'salı': 'tuesday',
+  'Carsamba': 'wednesday',
+  'carsamba': 'wednesday',
+  'Çarşamba': 'wednesday',
+  'çarşamba': 'wednesday',
+  'Persembe': 'thursday',
+  'persembe': 'thursday',
+  'Perşembe': 'thursday',
+  'perşembe': 'thursday',
+  'Cuma': 'friday',
+  'cuma': 'friday',
+  'Cumartesi': 'saturday',
+  'cumartesi': 'saturday',
+  'Pazar': 'sunday',
+  'pazar': 'sunday',
+};
+
+/**
+ * Normalizes working hours keys from Turkish to English if needed
+ */
+function normalizeWorkingHours(hours: Record<string, any>): WorkingHours {
+  const englishDays = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+  const keys = Object.keys(hours);
+
+  // Check if already using English keys
+  if (keys.some(k => englishDays.includes(k))) {
+    return hours as WorkingHours;
+  }
+
+  // Convert Turkish keys to English
+  const normalized: Record<string, any> = {};
+  for (const [key, value] of Object.entries(hours)) {
+    const englishKey = turkishToEnglishDayMap[key];
+    if (englishKey) {
+      normalized[englishKey] = value;
+    }
+  }
+
+  return normalized as WorkingHours;
+}
+
+/**
  * Parses working hours from JSON string or object
  */
 export function parseWorkingHours(workingHours: string | WorkingHours | null | undefined): WorkingHours {
@@ -48,15 +98,19 @@ export function parseWorkingHours(workingHours: string | WorkingHours | null | u
     return getDefaultWorkingHours();
   }
 
+  let parsed: Record<string, any>;
+
   if (typeof workingHours === 'string') {
     try {
-      return JSON.parse(workingHours);
+      parsed = JSON.parse(workingHours);
     } catch {
       return getDefaultWorkingHours();
     }
+  } else {
+    parsed = workingHours;
   }
 
-  return workingHours;
+  return normalizeWorkingHours(parsed);
 }
 
 /**

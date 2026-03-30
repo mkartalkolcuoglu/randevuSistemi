@@ -48,6 +48,7 @@ export async function GET(
     // ✅ CRITICAL FIX: Fetch settings from Admin API for accurate data
     let finalWorkingHours = tenant?.workingHours;
     let finalCardPaymentEnabled = tenant?.cardPaymentEnabled;
+    let finalSubscriptionEnd = tenant?.subscriptionEnd;
 
     // Always fetch from Admin API to get the latest settings (especially cardPaymentEnabled)
     if (tenant) {
@@ -75,6 +76,11 @@ export async function GET(
             if (adminData.data.cardPaymentEnabled !== undefined) {
               finalCardPaymentEnabled = adminData.data.cardPaymentEnabled;
               console.log('✅ Got cardPaymentEnabled from Admin API:', finalCardPaymentEnabled);
+            }
+            // ✅ CRITICAL: Always use subscriptionEnd from Admin API (source of truth)
+            if (adminData.data.subscriptionEnd) {
+              finalSubscriptionEnd = new Date(adminData.data.subscriptionEnd);
+              console.log('✅ Got subscriptionEnd from Admin API:', finalSubscriptionEnd);
             }
           }
         } else {
@@ -116,7 +122,7 @@ export async function GET(
       cardPaymentEnabled: finalCardPaymentEnabled !== false, // ✅ Card payment toggle from Admin API (default: true)
       blockedDates,
       isActive: tenant.status === 'active',
-      subscriptionActive: !tenant.subscriptionEnd || new Date(tenant.subscriptionEnd) > new Date(),
+      subscriptionActive: !finalSubscriptionEnd || new Date(finalSubscriptionEnd) > new Date(),
       createdAt: tenant.createdAt?.toISOString() || new Date().toISOString(),
       updatedAt: tenant.updatedAt?.toISOString() || new Date().toISOString()
     };
