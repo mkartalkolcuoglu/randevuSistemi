@@ -553,6 +553,11 @@ export async function DELETE(
       return permissionCheck.error!;
     }
     
+    // Delete related transaction (kasa kaydı) first
+    await prisma.transaction.deleteMany({
+      where: { appointmentId: id }
+    });
+
     await prisma.appointment.delete({
       where: { id }
     });

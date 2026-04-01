@@ -751,6 +751,11 @@ export async function DELETE(
       }
     }
 
+    // Delete related transaction (kasa kaydı)
+    await prisma.transaction.deleteMany({
+      where: { appointmentId: id }
+    });
+
     // Cancel instead of delete
     await prisma.appointment.update({
       where: { id },
