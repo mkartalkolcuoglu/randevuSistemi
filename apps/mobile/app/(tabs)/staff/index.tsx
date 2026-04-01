@@ -223,35 +223,24 @@ export default function StaffHomeScreen() {
   return (
     <PermissionGuard permissionKey="dashboard" pageName="Ana Sayfa">
     <SafeAreaView style={styles.container} edges={[]}>
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl
-            refreshing={isRefreshing}
-            onRefresh={() => fetchData(true)}
-            tintColor={THEME_COLOR}
-            colors={[THEME_COLOR]}
-          />
-        }
-      >
-        {/* Header */}
-        <Header
-          title={`${getGreeting()}, ${user?.firstName || 'Personel'}`}
-          subtitle={selectedTenant?.businessName}
-          onMenuPress={() => setDrawerOpen(true)}
-          showNotification
-          notificationCount={unreadNotifications}
-          onNotificationPress={() => router.push('/(tabs)/staff/notifications')}
-          gradientColors={[THEME_COLOR, '#1e4a8f']}
-          stats={[
-            {
-              icon: 'calendar',
-              iconColor: '#3B82F6',
-              iconBg: '#EFF6FF',
-              value: stats.todayTotal,
-              label: 'Bugün',
-            },
-            {
+      {/* Header - Fixed */}
+      <Header
+        title={`${getGreeting()}, ${user?.firstName || 'Personel'}`}
+        subtitle={selectedTenant?.businessName}
+        onMenuPress={() => setDrawerOpen(true)}
+        showNotification
+        notificationCount={unreadNotifications}
+        onNotificationPress={() => router.push('/(tabs)/staff/notifications')}
+        gradientColors={[THEME_COLOR, '#1e4a8f']}
+        stats={[
+          {
+            icon: 'calendar',
+            iconColor: '#3B82F6',
+            iconBg: '#EFF6FF',
+            value: stats.todayTotal,
+            label: 'Bugün',
+          },
+          {
               icon: 'checkmark',
               iconColor: '#059669',
               iconBg: '#D1FAE5',
@@ -275,6 +264,17 @@ export default function StaffHomeScreen() {
           ]}
         />
 
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefreshing}
+            onRefresh={() => fetchData(true)}
+            tintColor={THEME_COLOR}
+            colors={[THEME_COLOR]}
+          />
+        }
+      >
         {/* Onboarding Banner */}
         {onboardingDismissed && !showOnboarding && onboardingStatus && (
           <View style={styles.section}>
@@ -299,106 +299,6 @@ export default function StaffHomeScreen() {
             </TouchableOpacity>
           </View>
         )}
-
-        {/* Revenue Card */}
-        <View style={styles.section}>
-          <LinearGradient
-            colors={[THEME_COLOR, '#1e4a8f']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.revenueCard}
-          >
-            <View style={styles.revenueHeader}>
-              <View style={styles.revenueIconContainer}>
-                <Ionicons name="wallet-outline" size={24} color="#fff" />
-              </View>
-              <Text style={styles.revenueLabel}>Bugünkü Gelir</Text>
-            </View>
-            <Text style={styles.revenueAmount}>{formatCurrency(stats.todayRevenue)}</Text>
-            <View style={styles.revenueFooter}>
-              <View style={styles.revenueSubItem}>
-                <Text style={styles.revenueSubLabel}>Bu Hafta</Text>
-                <Text style={styles.revenueSubValue}>{formatCurrency(stats.weekRevenue)}</Text>
-              </View>
-              <View style={styles.revenueDivider} />
-              <View style={styles.revenueSubItem}>
-                <Text style={styles.revenueSubLabel}>Tamamlanan</Text>
-                <Text style={styles.revenueSubValue}>{stats.todayCompleted} randevu</Text>
-              </View>
-            </View>
-          </LinearGradient>
-        </View>
-
-
-        {/* Upcoming Appointments */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Yaklaşan Randevular</Text>
-            <TouchableOpacity
-              style={styles.seeAllButton}
-              onPress={() => router.push('/(tabs)/staff/appointments')}
-            >
-              <Text style={styles.seeAllText}>Tümü</Text>
-              <Ionicons name="chevron-forward" size={16} color={THEME_COLOR} />
-            </TouchableOpacity>
-          </View>
-
-          {upcomingAppointments.length === 0 ? (
-            <View style={styles.emptyCard}>
-              <View style={styles.emptyIconWrapper}>
-                <Ionicons name="checkmark-done-circle-outline" size={40} color="#D1D5DB" />
-              </View>
-              <Text style={styles.emptyTitle}>Yaklaşan randevu yok</Text>
-              <Text style={styles.emptySubtitle}>Bugünkü tüm randevular tamamlandı</Text>
-            </View>
-          ) : (
-            upcomingAppointments.map((apt, index) => {
-              const status = STATUS_CONFIG[apt.status] || STATUS_CONFIG.pending;
-              return (
-                <TouchableOpacity
-                  key={apt.id}
-                  style={styles.appointmentCard}
-                  onPress={() => router.push('/(tabs)/staff/appointments')}
-                  activeOpacity={0.7}
-                >
-                  <View style={[styles.appointmentIndicator, { backgroundColor: status.text }]} />
-                  <View style={styles.appointmentContent}>
-                    <View style={styles.appointmentTop}>
-                      <View style={styles.appointmentTimeContainer}>
-                        <Text style={styles.appointmentTime}>{formatTime(apt.time)}</Text>
-                        <Text style={styles.appointmentDuration}>{apt.duration} dk</Text>
-                      </View>
-                      <View style={[styles.appointmentStatus, { backgroundColor: status.bg }]}>
-                        <Ionicons name={status.icon as any} size={12} color={status.text} />
-                        <Text style={[styles.appointmentStatusText, { color: status.text }]}>
-                          {status.label}
-                        </Text>
-                      </View>
-                    </View>
-                    <View style={styles.appointmentBottom}>
-                      <View style={styles.customerInfo}>
-                        <View style={styles.customerAvatar}>
-                          <Text style={styles.customerAvatarText}>
-                            {apt.customerName?.charAt(0)?.toUpperCase()}
-                          </Text>
-                        </View>
-                        <View style={styles.customerDetails}>
-                          <Text style={styles.customerName} numberOfLines={1}>
-                            {apt.customerName}
-                          </Text>
-                          <Text style={styles.serviceName} numberOfLines={1}>
-                            {apt.serviceName}
-                          </Text>
-                        </View>
-                      </View>
-                      <Text style={styles.appointmentPrice}>{formatCurrency(apt.price || 0)}</Text>
-                    </View>
-                  </View>
-                </TouchableOpacity>
-              );
-            })
-          )}
-        </View>
 
         {/* Quick Actions */}
         <View style={styles.section}>
