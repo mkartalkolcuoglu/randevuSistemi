@@ -96,19 +96,24 @@ export async function PUT(
     console.log('📦 Updated appointment packageInfo:', updatedAppointment.packageInfo);
 
     // If status changed to "confirmed" or "completed", deduct from package if applicable
-    const isCompleted = data.status === 'confirmed' || data.status === 'completed';
-    const wasCompleted = oldAppointment?.status === 'confirmed' || oldAppointment?.status === 'completed';
-    
-    if (isCompleted && !wasCompleted) {
+    const isConfirmedOrCompleted = data.status === 'confirmed' || data.status === 'completed';
+    const wasConfirmedOrCompleted = oldAppointment?.status === 'confirmed' || oldAppointment?.status === 'completed';
+
+    if (isConfirmedOrCompleted && !wasConfirmedOrCompleted) {
       console.log(`✅ Status changed to ${data.status} - checking for package deduction`);
       await deductFromPackage(updatedAppointment);
+    }
 
-      // Create transaction for cash register (kasa)
+    // Create transaction ONLY when status changes to "completed"
+    const isCompleted = data.status === 'completed';
+    const wasCompleted = oldAppointment?.status === 'completed';
+
+    if (isCompleted && !wasCompleted) {
       console.log(`💰 Creating transaction for completed appointment: ${updatedAppointment.id}`);
       await createAppointmentTransaction(updatedAppointment);
     }
 
-    // If appointment is already completed/confirmed and price changed, update existing transaction
+    // If appointment is already completed and price changed, update existing transaction
     if (wasCompleted && isCompleted) {
       const oldTotal = (oldAppointment?.price || 0) + (oldAppointment?.extraCharge || 0);
       const newTotal = (updatedAppointment.price || 0) + (updatedAppointment.extraCharge || 0);

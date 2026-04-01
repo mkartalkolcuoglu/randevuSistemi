@@ -308,8 +308,8 @@ export async function POST(request: NextRequest) {
 
       console.log('✅ Appointment created:', newAppointment.id, 'with package:', data.usePackageForService);
 
-      // 💰 Create transaction if status is completed or confirmed
-      if (newAppointment.status === 'completed' || newAppointment.status === 'confirmed') {
+      // 💰 Create transaction only when status is completed
+      if (newAppointment.status === 'completed') {
         console.log('💰 [APPOINTMENT] Creating transaction for kasa...');
         try {
           // Only create transaction if no package was used
@@ -542,8 +542,8 @@ export async function POST(request: NextRequest) {
 
     console.log('✅ Admin appointment created:', newAppointment.id);
 
-    // 💰 Create transaction if status is completed or confirmed
-    if (newAppointment.status === 'completed' || newAppointment.status === 'confirmed') {
+    // 💰 Create transaction only when status is completed
+    if (newAppointment.status === 'completed') {
       console.log('💰 [ADMIN-APPOINTMENT] Creating transaction for kasa...');
       try {
         // Only create transaction if no package was used
