@@ -18,6 +18,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useAuthStore } from '../../src/store/auth.store';
 import { appointmentService } from '../../src/services/appointment.service';
+import api from '../../src/services/api';
 import { Service, Staff, Customer, Appointment } from '../../src/types';
 
 // Day name mapping for working hours
@@ -115,6 +116,11 @@ export default function NewAppointmentScreen() {
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [searchTimeout, setSearchTimeout] = useState<ReturnType<typeof setTimeout> | null>(null);
   const [blacklistWarning, setBlacklistWarning] = useState<string | null>(null);
+
+  // Package states
+  const [customerPackages, setCustomerPackages] = useState<any[]>([]);
+  const [matchingPackageUsage, setMatchingPackageUsage] = useState<any>(null);
+  const [usePackage, setUsePackage] = useState<boolean | null>(null);
 
   const [step, setStep] = useState(1); // 1: Service, 2: Staff, 3: DateTime, 4: Customer
   // When coming from calendar with pre-filled staff/date/time, skip steps 2 & 3
@@ -403,12 +409,51 @@ export default function NewAppointmentScreen() {
     setSearchTimeout(timeout);
   };
 
+  // Fetch customer packages
+  const fetchCustomerPackages = async (phone: string) => {
+    try {
+      const response = await api.post('/api/customer-packages/check', { phone });
+      if (response.data?.success && response.data?.hasPackages) {
+        setCustomerPackages(response.data.packages || []);
+      } else {
+        setCustomerPackages([]);
+      }
+    } catch {
+      setCustomerPackages([]);
+    }
+  };
+
+  // Check if selected service matches a customer package
+  useEffect(() => {
+    if (!selectedService || customerPackages.length === 0) {
+      setMatchingPackageUsage(null);
+      setUsePackage(null);
+      return;
+    }
+    for (const pkg of customerPackages) {
+      const match = (pkg.usages || []).find((u: any) =>
+        u.itemType === 'service' && u.itemId === selectedService.id && u.remainingQuantity > 0
+      );
+      if (match) {
+        setMatchingPackageUsage({ ...match, packageName: pkg.package?.name, customerPackageId: pkg.id });
+        setUsePackage(null);
+        return;
+      }
+    }
+    setMatchingPackageUsage(null);
+    setUsePackage(null);
+  }, [selectedService, customerPackages]);
+
   const handleSelectCustomer = (customer: Customer) => {
     setSelectedCustomer(customer);
     setCustomerName(`${customer.firstName} ${customer.lastName}`);
     setCustomerPhone(customer.phone);
     setShowSuggestions(false);
     Keyboard.dismiss();
+
+    // Fetch packages
+    if (customer.phone) fetchCustomerPackages(customer.phone);
+    else setCustomerPackages([]);
 
     // Blacklist check
     if (customer.isBlacklisted) {
@@ -440,7 +485,7 @@ export default function NewAppointmentScreen() {
 
     setIsLoading(true);
     try {
-      const response = await appointmentService.createAppointmentForCustomer({
+      const appointmentData: any = {
         customerId: selectedCustomer?.id,
         serviceId: selectedService.id,
         staffId: selectedStaff.id,
@@ -449,7 +494,20 @@ export default function NewAppointmentScreen() {
         customerName,
         customerPhone,
         notes,
-      });
+      };
+
+      if (usePackage && matchingPackageUsage) {
+        appointmentData.usePackageForService = true;
+        appointmentData.packageInfo = {
+          customerPackageId: matchingPackageUsage.customerPackageId,
+          usageId: matchingPackageUsage.id,
+          packageName: matchingPackageUsage.packageName,
+          serviceId: selectedService.id,
+        };
+        appointmentData.paymentType = 'package';
+      }
+
+      const response = await appointmentService.createAppointmentForCustomer(appointmentData);
 
       if (response.success) {
         Alert.alert('Başarılı', 'Randevu oluşturuldu', [
@@ -848,11 +906,49 @@ export default function NewAppointmentScreen() {
               <View style={styles.summaryDivider} />
               <View style={styles.summaryRow}>
                 <Text style={styles.summaryLabel}>Ücret:</Text>
-                <Text style={styles.summaryValueBold}>{selectedService?.price} ₺</Text>
+                <Text style={styles.summaryValueBold}>
+                  {usePackage ? 'Paketten' : `${selectedService?.price} ₺`}
+                </Text>
               </View>
             </View>
+
+            {/* Package Usage Banner */}
+            {matchingPackageUsage && (
+              <View style={{ marginTop: 16, padding: 16, backgroundColor: '#F0FDF4', borderRadius: 12, borderWidth: 1, borderColor: '#BBF7D0' }}>
+                <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 10 }}>
+                  <Ionicons name="gift" size={20} color="#16A34A" style={{ marginTop: 2 }} />
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ fontWeight: '600', color: '#15803D', fontSize: 14 }}>
+                      Bu hizmet müşterinin paketinde mevcut!
+                    </Text>
+                    <Text style={{ color: '#166534', fontSize: 13, marginTop: 4 }}>
+                      {matchingPackageUsage.packageName} - {matchingPackageUsage.itemName} ({matchingPackageUsage.remainingQuantity} kullanım kaldı)
+                    </Text>
+                    <View style={{ flexDirection: 'row', gap: 10, marginTop: 12 }}>
+                      <TouchableOpacity
+                        onPress={() => setUsePackage(true)}
+                        style={{ flex: 1, paddingVertical: 10, borderRadius: 8, alignItems: 'center', backgroundColor: usePackage === true ? '#16A34A' : '#fff', borderWidth: 1, borderColor: '#16A34A' }}
+                      >
+                        <Text style={{ fontWeight: '600', fontSize: 13, color: usePackage === true ? '#fff' : '#16A34A' }}>
+                          Paketten Düş
+                        </Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        onPress={() => setUsePackage(false)}
+                        style={{ flex: 1, paddingVertical: 10, borderRadius: 8, alignItems: 'center', backgroundColor: usePackage === false ? '#4B5563' : '#fff', borderWidth: 1, borderColor: '#9CA3AF' }}
+                      >
+                        <Text style={{ fontWeight: '600', fontSize: 13, color: usePackage === false ? '#fff' : '#4B5563' }}>
+                          Paket Kullanma
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                </View>
+              </View>
+            )}
           </View>
         )}
+
 
         <View style={{ height: 100 }} />
       </KeyboardAwareScrollView>

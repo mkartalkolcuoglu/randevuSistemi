@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button, Input, Label, Textarea, Card, CardContent, CardHeader, CardTitle } from '@/components/ui';
-import { ArrowLeft, Save, Calendar, Clock, User, Search } from 'lucide-react';
+import { ArrowLeft, Save, Calendar, Clock, User, Search, Gift } from 'lucide-react';
 import Link from 'next/link';
 import { generateTimeSlots, parseWorkingHours, getWorkingHoursForDay, type WorkingHours } from '../../../../lib/time-slots';
 
@@ -25,6 +25,9 @@ export default function NewAppointmentPage() {
   const [blockedDates, setBlockedDates] = useState<{ title: string; startDate: string; endDate: string }[]>([]);
   const [blockedDateWarning, setBlockedDateWarning] = useState<string | null>(null);
   const [bookedTimeSlots, setBookedTimeSlots] = useState<string[]>([]);
+  const [customerPackages, setCustomerPackages] = useState<any[]>([]);
+  const [matchingPackageUsage, setMatchingPackageUsage] = useState<any>(null);
+  const [usePackage, setUsePackage] = useState<boolean | null>(null);
 
   // Form state
   const [formData, setFormData] = useState({
@@ -254,6 +257,51 @@ export default function NewAppointmentPage() {
     }));
   };
 
+  // Fetch customer packages
+  const fetchCustomerPackages = async (phone: string) => {
+    try {
+      const response = await fetch('/api/customer-packages/check', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone })
+      });
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success && data.hasPackages) {
+          setCustomerPackages(data.packages || []);
+        } else {
+          setCustomerPackages([]);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching customer packages:', error);
+      setCustomerPackages([]);
+    }
+  };
+
+  // Check if selected service matches a customer package
+  useEffect(() => {
+    if (!formData.serviceId || customerPackages.length === 0) {
+      setMatchingPackageUsage(null);
+      setUsePackage(null);
+      return;
+    }
+
+    for (const pkg of customerPackages) {
+      const usages = pkg.usages || [];
+      const match = usages.find((u: any) =>
+        u.itemType === 'service' && u.itemId === formData.serviceId && u.remainingQuantity > 0
+      );
+      if (match) {
+        setMatchingPackageUsage({ ...match, packageName: pkg.package?.name, customerPackageId: pkg.id });
+        setUsePackage(null); // Reset choice when service changes
+        return;
+      }
+    }
+    setMatchingPackageUsage(null);
+    setUsePackage(null);
+  }, [formData.serviceId, customerPackages]);
+
   const handleCustomerSelect = (customer: any) => {
     setFormData(prev => ({
       ...prev,
@@ -264,6 +312,13 @@ export default function NewAppointmentPage() {
     }));
     setCustomerSearch(`${customer.firstName} ${customer.lastName}`);
     setShowCustomerDropdown(false);
+
+    // Fetch packages for this customer
+    if (customer.phone) {
+      fetchCustomerPackages(customer.phone);
+    } else {
+      setCustomerPackages([]);
+    }
 
     // Check if customer is blacklisted
     if (customer.isBlacklisted) {
@@ -289,6 +344,9 @@ export default function NewAppointmentPage() {
       customerPhone: '',
       customerEmail: ''
     }));
+    setCustomerPackages([]);
+    setMatchingPackageUsage(null);
+    setUsePackage(null);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -309,12 +367,26 @@ export default function NewAppointmentPage() {
     setIsLoading(true);
 
     try {
+      const submitData: any = { ...formData };
+
+      // Add package info if user chose to use package
+      if (usePackage && matchingPackageUsage) {
+        submitData.usePackageForService = true;
+        submitData.packageInfo = {
+          customerPackageId: matchingPackageUsage.customerPackageId,
+          usageId: matchingPackageUsage.id,
+          packageName: matchingPackageUsage.packageName,
+          serviceId: formData.serviceId
+        };
+        submitData.paymentType = 'package';
+      }
+
       const response = await fetch('/api/appointments', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(formData)
+        body: JSON.stringify(submitData)
       });
 
       const result = await response.json();
@@ -479,6 +551,47 @@ export default function NewAppointmentPage() {
                 </select>
               </div>
             </div>
+
+            {/* Package Usage Banner */}
+            {matchingPackageUsage && (
+              <div className="p-4 bg-green-50 border border-green-200 rounded-xl">
+                <div className="flex items-start gap-3">
+                  <Gift className="w-5 h-5 text-green-600 mt-0.5 shrink-0" />
+                  <div className="flex-1">
+                    <p className="font-medium text-green-900">
+                      Bu hizmet müşterinin paketinde mevcut!
+                    </p>
+                    <p className="text-sm text-green-700 mt-1">
+                      <strong>{matchingPackageUsage.packageName}</strong> - {matchingPackageUsage.itemName} ({matchingPackageUsage.remainingQuantity} kullanım kaldı)
+                    </p>
+                    <div className="flex gap-3 mt-3">
+                      <button
+                        type="button"
+                        onClick={() => setUsePackage(true)}
+                        className={`px-4 py-2 text-sm font-medium rounded-lg transition ${
+                          usePackage === true
+                            ? 'bg-green-600 text-white'
+                            : 'bg-white text-green-700 border border-green-300 hover:bg-green-100'
+                        }`}
+                      >
+                        Paketten Düş
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setUsePackage(false)}
+                        className={`px-4 py-2 text-sm font-medium rounded-lg transition ${
+                          usePackage === false
+                            ? 'bg-gray-600 text-white'
+                            : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-100'
+                        }`}
+                      >
+                        Paket Kullanma
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div className="space-y-2">
