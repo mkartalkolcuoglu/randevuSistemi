@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import {
   View,
   Text,
@@ -9,7 +9,7 @@ import {
   Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { WebView } from 'react-native-webview';
 import api from '../../../src/services/api';
@@ -29,14 +29,21 @@ export default function PaymentScreen() {
   const serviceName = params.serviceName as string;
   const amount = parseFloat(params.amount as string);
 
-  useEffect(() => {
-    if (tenantId && serviceName && amount) {
-      initiatePayment();
-    } else {
-      setError('Ödeme bilgileri eksik');
-      setIsLoading(false);
-    }
-  }, []);
+  // Reset state and initiate payment every time screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      setPaymentUrl(null);
+      setError(null);
+      setIsLoading(true);
+
+      if (tenantId && serviceName && amount) {
+        initiatePayment();
+      } else {
+        setError('Ödeme bilgileri eksik');
+        setIsLoading(false);
+      }
+    }, [tenantId, serviceName, amount])
+  );
 
   const initiatePayment = async () => {
     try {
