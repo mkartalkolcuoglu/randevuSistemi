@@ -414,37 +414,45 @@ export default function NewAppointmentScreen() {
   // Fetch customer packages
   const fetchCustomerPackages = async (phone: string) => {
     try {
+      console.log('📦 Fetching packages for phone:', phone, 'tenantId:', selectedTenant?.id);
       const response = await api.post('/api/customer-packages/check', {
         phone,
         tenantId: selectedTenant?.id
       });
+      console.log('📦 Package check response:', JSON.stringify(response.data));
       if (response.data?.success && response.data?.hasPackages) {
         setCustomerPackages(response.data.packages || []);
       } else {
         setCustomerPackages([]);
       }
-    } catch {
+    } catch (err) {
+      console.error('📦 Package check error:', err);
       setCustomerPackages([]);
     }
   };
 
   // Check if selected service matches a customer package
   useEffect(() => {
+    console.log('📦 Package match check - service:', selectedService?.id, 'packages:', customerPackages.length);
     if (!selectedService || customerPackages.length === 0) {
       setMatchingPackageUsage(null);
       setUsePackage(null);
       return;
     }
     for (const pkg of customerPackages) {
-      const match = (pkg.usages || []).find((u: any) =>
+      const usages = pkg.usages || [];
+      console.log('📦 Checking package:', pkg.package?.name, 'usages:', usages.map((u: any) => ({ itemId: u.itemId, itemName: u.itemName, remaining: u.remainingQuantity })));
+      const match = usages.find((u: any) =>
         u.itemType === 'service' && u.itemId === selectedService.id && u.remainingQuantity > 0
       );
       if (match) {
+        console.log('📦 ✅ Match found!', match.itemName, 'remaining:', match.remainingQuantity);
         setMatchingPackageUsage({ ...match, packageName: pkg.package?.name, customerPackageId: pkg.id });
         setUsePackage(null);
         return;
       }
     }
+    console.log('📦 ❌ No matching package found for service:', selectedService.id);
     setMatchingPackageUsage(null);
     setUsePackage(null);
   }, [selectedService, customerPackages]);
