@@ -147,7 +147,7 @@ export default function SelectSubscriptionClient({ packages, tenantId, businessN
 
         {/* Packages Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {packages.map((pkg) => {
+          {packages.filter(pkg => !hasUsedTrial || pkg.price > 0).map((pkg) => {
             const features = parseFeatures(pkg.features);
             const isSelected = selectedPackage === pkg.id;
 

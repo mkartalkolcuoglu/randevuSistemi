@@ -34,7 +34,7 @@ async function getTenantInfo() {
   }
 }
 
-async function getActivePackages(hasUsedTrial: boolean) {
+async function getActivePackages(hasUsedTrial: boolean, subscriptionPlan: string | null) {
   try {
     const packages = await prisma.subscriptionPackage.findMany({
       where: {
@@ -45,9 +45,9 @@ async function getActivePackages(hasUsedTrial: boolean) {
       }
     });
 
-    // Eğer trial kullanılmışsa, trial paketini filtrele
-    if (hasUsedTrial) {
-      return packages.filter(pkg => pkg.slug !== 'deneme-paketi');
+    // Daha önce deneme kullandıysa veya herhangi bir paket satın aldıysa, ücretsiz paketleri gösterme
+    if (hasUsedTrial || subscriptionPlan) {
+      return packages.filter(pkg => pkg.price > 0);
     }
 
     return packages;
@@ -68,7 +68,7 @@ export default async function SelectSubscriptionPage() {
   // Eğer buraya geldiyse, subscription dolmuş demektir
   // Bu kontrolü kaldırmak redirect loop'u önler
 
-  const packages = await getActivePackages(tenant.hasUsedTrial);
+  const packages = await getActivePackages(tenant.hasUsedTrial, tenant.subscriptionPlan);
 
   return (
     <SelectSubscriptionClient
