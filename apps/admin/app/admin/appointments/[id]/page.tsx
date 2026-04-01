@@ -219,6 +219,9 @@ export default function AppointmentDetailPage() {
       case 'eft':
       case 'bank_transfer':
         return 'bg-purple-100 text-purple-800';
+      case 'package':
+      case 'package_used':
+        return 'bg-amber-100 text-amber-800';
       default:
         return 'bg-gray-100 text-gray-800';
     }
@@ -234,6 +237,9 @@ export default function AppointmentDetailPage() {
       case 'eft':
       case 'bank_transfer':
         return 'Havale';
+      case 'package':
+      case 'package_used':
+        return 'Paket';
       default:
         return 'Bilinmiyor';
     }
