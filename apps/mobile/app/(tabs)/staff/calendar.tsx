@@ -674,6 +674,28 @@ export default function CalendarScreen() {
       ? (displayStaff.find(s => s.id === newStaffId)?.name || apt.staffName)
       : apt.staffName;
 
+    // Check for overlap with existing appointments
+    const [dropH, dropM] = updatedTime.split(':').map(Number);
+    const dropStart = dropH * 60 + dropM;
+    const dropEnd = dropStart + (apt.duration || 60);
+
+    const hasConflict = appointments.some(a => {
+      if (a.id === apt.id) return false; // skip self
+      if (a.staffId !== updatedStaffId) return false; // different staff
+      if (a.date !== apt.date) return false; // different date
+      if (a.status === 'cancelled') return false;
+      const [aH, aM] = (a.time || '').split(':').map(Number);
+      if (isNaN(aH)) return false;
+      const aStart = aH * 60 + aM;
+      const aEnd = aStart + (a.duration || 60);
+      return dropStart < aEnd && dropEnd > aStart;
+    });
+
+    if (hasConflict) {
+      Alert.alert('Uyarı', 'Bu saatte seçili personelin başka bir randevusu var.');
+      return;
+    }
+
     // Optimistic update
     setAppointments(prev =>
       prev.map(a =>
