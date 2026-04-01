@@ -4,7 +4,7 @@ import { useState, useEffect, Suspense } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Button, Card, CardContent, Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '../../../components/ui';
-import { ArrowLeft, Calendar, Clock, User, Phone, Mail, X, CheckCircle, AlertCircle, Filter, Star, MessageSquare } from 'lucide-react';
+import { Calendar, Clock, User, X, CheckCircle, AlertCircle, Filter, Star, MessageSquare, LogOut, Home } from 'lucide-react';
 import { format, parseISO, isBefore, addHours, isAfter, startOfToday, differenceInDays } from 'date-fns';
 import { tr } from 'date-fns/locale';
 
@@ -48,6 +48,11 @@ function RandevularimContent() {
   const [hoverRating, setHoverRating] = useState(0);
   const [comment, setComment] = useState('');
   const [submittingFeedback, setSubmittingFeedback] = useState(false);
+
+  const handleLogout = () => {
+    document.cookie = 'customer-session=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+    router.push('/');
+  };
 
   useEffect(() => {
     fetchAppointments();
@@ -262,19 +267,36 @@ function RandevularimContent() {
           <div className="flex justify-between items-center py-4">
             <div className="flex items-center space-x-4">
               <Link href="/">
-                <img 
-                  src="https://i.hizliresim.com/4a00l8g.png" 
-                  alt="Net Randevu Logo" 
+                <img
+                  src="https://i.hizliresim.com/4a00l8g.png"
+                  alt="Net Randevu Logo"
                   className="h-10 w-auto"
                 />
               </Link>
             </div>
-            <Link href="/">
-              <Button variant="outline">
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Ana Sayfa
+            <nav className="flex items-center space-x-2 sm:space-x-3">
+              <Link href="/">
+                <Button variant="ghost" size="sm" className="text-gray-600 hover:text-gray-900">
+                  <Home className="w-4 h-4 sm:mr-2" />
+                  <span className="hidden sm:inline">Ana Sayfa</span>
+                </Button>
+              </Link>
+              <Link href="/randevularim/list">
+                <Button variant="ghost" size="sm" className="text-[#163974] bg-blue-50 font-semibold">
+                  <Calendar className="w-4 h-4 sm:mr-2" />
+                  <span className="hidden sm:inline">Randevularım</span>
+                </Button>
+              </Link>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                onClick={handleLogout}
+              >
+                <LogOut className="w-4 h-4 sm:mr-2" />
+                <span className="hidden sm:inline">Çıkış</span>
               </Button>
-            </Link>
+            </nav>
           </div>
         </div>
       </header>
@@ -287,7 +309,7 @@ function RandevularimContent() {
             Randevularım
           </h1>
           <p className="text-gray-600">
-            {phoneNumber} numarasına kayıtlı randevularınız
+            {phoneNumber ? `${phoneNumber.slice(0, 4)}****${phoneNumber.slice(-3)}` : ''} numarasına kayıtlı randevularınız
           </p>
         </div>
 
