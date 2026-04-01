@@ -4,7 +4,7 @@ import { useState, useEffect, Suspense } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Button, Card, CardContent, Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '../../../components/ui';
-import { Calendar, Clock, User, X, CheckCircle, AlertCircle, Filter, Star, MessageSquare, LogOut, Home, PlusCircle, Package, Search, MapPin, Scissors } from 'lucide-react';
+import { Calendar, Clock, User, X, CheckCircle, AlertCircle, Filter, Star, MessageSquare, LogOut, Home, PlusCircle, Package, Search, Scissors } from 'lucide-react';
 import { format, parseISO, isBefore, addHours, isAfter, startOfToday, differenceInDays } from 'date-fns';
 import { tr } from 'date-fns/locale';
 
@@ -98,7 +98,7 @@ function RandevularimContent() {
     }
   };
 
-  // Search businesses
+  // Search businesses (own API - no auth needed)
   const handleBusinessSearch = async (query: string) => {
     setBusinessSearch(query);
     if (query.length < 2) {
@@ -107,7 +107,7 @@ function RandevularimContent() {
     }
     setSearchingBusiness(true);
     try {
-      const response = await fetch(`https://admin.netrandevu.com/api/mobile/tenants/search?search=${encodeURIComponent(query)}`);
+      const response = await fetch(`/api/tenants/search?q=${encodeURIComponent(query)}`);
       const data = await response.json();
       if (data.success) {
         setBusinesses(data.data || []);
@@ -119,16 +119,11 @@ function RandevularimContent() {
     }
   };
 
-  // Fetch customer packages
+  // Fetch customer packages (own API - uses session cookie)
   const fetchPackages = async () => {
-    if (!phoneNumber) return;
     setPackagesLoading(true);
     try {
-      const response = await fetch('https://admin.netrandevu.com/api/customer-packages/check', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone: phoneNumber })
-      });
+      const response = await fetch('/api/customer-packages');
       const data = await response.json();
       if (data.success && data.packages) {
         setCustomerPackages(data.packages);
@@ -140,12 +135,12 @@ function RandevularimContent() {
     }
   };
 
-  // Fetch packages when tab changes
+  // Fetch packages when packages or profile tab is active
   useEffect(() => {
-    if (activeTab === 'packages' && phoneNumber && customerPackages.length === 0) {
+    if ((activeTab === 'packages' || activeTab === 'profile') && customerPackages.length === 0) {
       fetchPackages();
     }
-  }, [activeTab, phoneNumber]);
+  }, [activeTab]);
 
   const canCancelAppointment = (appointment: Appointment): boolean => {
     // İptal edilmiş veya tamamlanmış randevular iptal edilemez
@@ -711,11 +706,9 @@ function RandevularimContent() {
                           <Scissors className="w-6 h-6 text-[#163974]" />
                         </div>
                         <div>
-                          <h3 className="font-semibold text-gray-900">{biz.businessName || biz.name}</h3>
-                          {biz.address && (
-                            <p className="text-sm text-gray-500 flex items-center gap-1 mt-0.5">
-                              <MapPin className="w-3 h-3" /> {biz.address}
-                            </p>
+                          <h3 className="font-semibold text-gray-900">{biz.name || biz.businessName}</h3>
+                          {biz.description && (
+                            <p className="text-sm text-gray-500 mt-0.5">{biz.description}</p>
                           )}
                         </div>
                       </div>
