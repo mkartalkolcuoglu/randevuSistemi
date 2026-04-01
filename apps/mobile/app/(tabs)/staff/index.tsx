@@ -349,40 +349,51 @@ export default function StaffHomeScreen() {
               </View>
             </View>
 
-            <View style={styles.scheduleCard}>
-              {todayAppointments.map((apt, index) => {
-                const status = STATUS_CONFIG[apt.status] || STATUS_CONFIG.pending;
-                const isLast = index === todayAppointments.length - 1;
-
-                return (
-                  <View key={apt.id} style={styles.scheduleItem}>
-                    <View style={styles.scheduleTimeColumn}>
-                      <Text style={styles.scheduleTime}>{formatTime(apt.time)}</Text>
-                      {!isLast && <View style={styles.scheduleLine} />}
-                    </View>
-                    <TouchableOpacity
-                      style={[styles.scheduleContent, { borderLeftColor: status.text }]}
-                      onPress={() => router.push('/(tabs)/staff/appointments')}
-                      activeOpacity={0.7}
-                    >
-                      <View style={styles.scheduleHeader}>
-                        <Text style={styles.scheduleCustomer} numberOfLines={1}>
-                          {apt.customerName}
+            {todayAppointments.map((apt, index) => {
+              const status = STATUS_CONFIG[apt.status] || STATUS_CONFIG.pending;
+              return (
+                <TouchableOpacity
+                  key={apt.id}
+                  style={styles.scheduleCard}
+                  onPress={() => router.push('/(tabs)/staff/calendar')}
+                  activeOpacity={0.7}
+                >
+                  <View style={[styles.scheduleIndicator, { backgroundColor: status.text }]} />
+                  <View style={styles.scheduleBody}>
+                    <View style={styles.scheduleRow}>
+                      <View style={styles.scheduleAvatar}>
+                        <Text style={styles.scheduleAvatarText}>
+                          {apt.customerName?.charAt(0)?.toUpperCase()}
                         </Text>
-                        <View style={[styles.scheduleStatusBadge, { backgroundColor: status.bg }]}>
-                          <Text style={[styles.scheduleStatusText, { color: status.text }]}>
-                            {status.label}
-                          </Text>
-                        </View>
                       </View>
-                      <Text style={styles.scheduleService} numberOfLines={1}>
-                        {apt.serviceName} • {apt.duration} dk
-                      </Text>
-                    </TouchableOpacity>
+                      <View style={styles.scheduleInfo}>
+                        <Text style={styles.scheduleCustomer} numberOfLines={1}>{apt.customerName}</Text>
+                        <Text style={styles.scheduleService} numberOfLines={1}>{apt.serviceName}</Text>
+                      </View>
+                      <View style={[styles.scheduleStatusBadge, { backgroundColor: status.bg }]}>
+                        <Text style={[styles.scheduleStatusText, { color: status.text }]}>{status.label}</Text>
+                      </View>
+                    </View>
+                    <View style={styles.scheduleMeta}>
+                      <View style={styles.scheduleMetaItem}>
+                        <Ionicons name="time-outline" size={13} color="#9CA3AF" />
+                        <Text style={styles.scheduleMetaText}>{formatTime(apt.time)}</Text>
+                      </View>
+                      <View style={styles.scheduleMetaItem}>
+                        <Ionicons name="hourglass-outline" size={13} color="#9CA3AF" />
+                        <Text style={styles.scheduleMetaText}>{apt.duration} dk</Text>
+                      </View>
+                      {apt.staffName && (
+                        <View style={styles.scheduleMetaItem}>
+                          <Ionicons name="person-outline" size={13} color="#9CA3AF" />
+                          <Text style={styles.scheduleMetaText}>{apt.staffName}</Text>
+                        </View>
+                      )}
+                    </View>
                   </View>
-                );
-              })}
-            </View>
+                </TouchableOpacity>
+              );
+            })}
           </View>
         )}
 
@@ -687,64 +698,79 @@ const styles = StyleSheet.create({
   // Schedule
   scheduleCard: {
     backgroundColor: '#fff',
-    borderRadius: 16,
-    padding: 16,
+    borderRadius: 14,
+    marginBottom: 10,
+    flexDirection: 'row',
+    overflow: 'hidden',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06,
+    shadowRadius: 4,
     elevation: 2,
   },
-  scheduleItem: {
-    flexDirection: 'row',
-    marginBottom: 12,
+  scheduleIndicator: {
+    width: 4,
   },
-  scheduleTimeColumn: {
-    width: 50,
+  scheduleBody: {
+    flex: 1,
+    padding: 14,
+  },
+  scheduleRow: {
+    flexDirection: 'row',
     alignItems: 'center',
   },
-  scheduleTime: {
-    fontSize: 13,
-    fontWeight: '600',
+  scheduleAvatar: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: '#EFF6FF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 10,
+  },
+  scheduleAvatarText: {
+    fontSize: 15,
+    fontWeight: '700',
     color: THEME_COLOR,
   },
-  scheduleLine: {
-    width: 2,
+  scheduleInfo: {
     flex: 1,
-    backgroundColor: '#E5E7EB',
-    marginTop: 8,
-  },
-  scheduleContent: {
-    flex: 1,
-    backgroundColor: '#F9FAFB',
-    borderRadius: 12,
-    padding: 12,
-    marginLeft: 12,
-    borderLeftWidth: 3,
-  },
-  scheduleHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 4,
   },
   scheduleCustomer: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#1F2937',
-    flex: 1,
+    color: '#111827',
+  },
+  scheduleService: {
+    fontSize: 12,
+    color: '#6B7280',
+    marginTop: 1,
   },
   scheduleStatusBadge: {
     paddingHorizontal: 8,
-    paddingVertical: 2,
+    paddingVertical: 3,
     borderRadius: 8,
+    marginLeft: 8,
   },
   scheduleStatusText: {
     fontSize: 10,
     fontWeight: '600',
   },
-  scheduleService: {
+  scheduleMeta: {
+    flexDirection: 'row',
+    marginTop: 10,
+    paddingTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: '#F3F4F6',
+    gap: 16,
+  },
+  scheduleMetaItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  scheduleMetaText: {
     fontSize: 12,
-    color: '#6B7280',
+    color: '#9CA3AF',
   },
 });
