@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, Linking } from 'react-native';
+import { View, Text, StyleSheet, Linking, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../store/auth.store';
 
@@ -13,6 +13,10 @@ export default function SubscriptionBanner() {
   const now = new Date();
   const daysLeft = Math.ceil((endDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
 
+  const handleRenew = () => {
+    Linking.openURL('https://admin.netrandevu.com/admin/select-subscription');
+  };
+
   // Expired
   if (daysLeft <= 0) {
     return (
@@ -20,8 +24,11 @@ export default function SubscriptionBanner() {
         <Ionicons name="warning" size={18} color="#DC2626" />
         <View style={styles.textContainer}>
           <Text style={[styles.title, { color: '#DC2626' }]}>Abonelik Süresi Doldu</Text>
-          <Text style={styles.subtitle}>Hizmete devam etmek için web panelden paket yenileyin.</Text>
+          <Text style={styles.subtitle}>Hizmete devam etmek için paketinizi yenileyin.</Text>
         </View>
+        <TouchableOpacity onPress={handleRenew} style={[styles.renewButton, { backgroundColor: '#DC2626' }]}>
+          <Text style={styles.renewText}>Yenile</Text>
+        </TouchableOpacity>
       </View>
     );
   }
@@ -35,6 +42,9 @@ export default function SubscriptionBanner() {
           <Text style={[styles.title, { color: '#D97706' }]}>Abonelik {daysLeft} gün sonra bitiyor</Text>
           <Text style={styles.subtitle}>Kesintisiz hizmet için paketinizi yenileyin.</Text>
         </View>
+        <TouchableOpacity onPress={handleRenew} style={[styles.renewButton, { backgroundColor: '#D97706' }]}>
+          <Text style={styles.renewText}>Yenile</Text>
+        </TouchableOpacity>
       </View>
     );
   }
@@ -71,5 +81,15 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: '#6B7280',
     marginTop: 1,
+  },
+  renewButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 6,
+  },
+  renewText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '600',
   },
 });

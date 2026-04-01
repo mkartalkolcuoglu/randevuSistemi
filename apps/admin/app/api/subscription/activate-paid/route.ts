@@ -20,6 +20,7 @@ export async function POST(request: NextRequest) {
       select: {
         id: true,
         hasUsedTrial: true,
+        subscriptionEnd: true,
       }
     });
 
@@ -28,8 +29,11 @@ export async function POST(request: NextRequest) {
     }
 
     // Subscription tarihlerini hesapla
+    // Mevcut abonelik hala aktifse, bitiş tarihinin üzerine ekle (kalan gün kaybolmasın)
     const now = new Date();
-    const subscriptionEnd = new Date(now);
+    const currentEnd = tenant.subscriptionEnd ? new Date(tenant.subscriptionEnd) : null;
+    const startFrom = (currentEnd && currentEnd > now) ? currentEnd : now;
+    const subscriptionEnd = new Date(startFrom);
     subscriptionEnd.setDate(subscriptionEnd.getDate() + durationDays);
 
     // Tenant'ı güncelle
