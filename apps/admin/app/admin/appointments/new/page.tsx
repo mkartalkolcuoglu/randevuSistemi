@@ -378,8 +378,8 @@ export default function NewAppointmentPage() {
     try {
       const submitData: any = { ...formData };
 
-      // Add package info if user chose to use package
-      if (usePackage && matchingPackageUsage) {
+      // Add package info if user chose to use package (via banner or dropdown)
+      if ((usePackage || formData.paymentType === 'package') && matchingPackageUsage) {
         submitData.usePackageForService = true;
         submitData.packageInfo = {
           customerPackageId: matchingPackageUsage.customerPackageId,
@@ -686,7 +686,11 @@ export default function NewAppointmentPage() {
                   className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="cash">Nakit</option>
+                  <option value="credit_card">Kredi Kartı</option>
                   <option value="bank_transfer">Havale</option>
+                  {matchingPackageUsage && (
+                    <option value="package">Paket ({matchingPackageUsage.packageName} - {matchingPackageUsage.remainingQuantity} kalan)</option>
+                  )}
                 </select>
               </div>
 
