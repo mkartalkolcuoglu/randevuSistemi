@@ -85,6 +85,8 @@ const PAYMENT_LABELS: Record<string, string> = {
   cash: 'Nakit',
   card: 'Kart',
   transfer: 'Havale',
+  package: 'Paket',
+  package_used: 'Paket',
 };
 
 export default function CashierScreen() {
