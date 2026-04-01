@@ -527,6 +527,48 @@ export default function NewAppointmentPage() {
               </div>
             </div>
 
+            {/* Customer Packages Section */}
+            {customerPackages.length > 0 && (
+              <div className="p-4 bg-purple-50 border border-purple-200 rounded-xl">
+                <div className="flex items-start gap-3">
+                  <Gift className="w-5 h-5 text-purple-600 mt-0.5 shrink-0" />
+                  <div className="flex-1">
+                    <p className="font-medium text-purple-900 mb-2">
+                      Müşterinin Aktif Paketleri
+                    </p>
+                    <div className="space-y-2">
+                      {customerPackages.map((pkg: any) => (
+                        <div key={pkg.id} className="bg-white rounded-lg p-3 border border-purple-100">
+                          <div className="flex items-center justify-between">
+                            <span className="font-medium text-purple-800">{pkg.package?.name}</span>
+                            {pkg.expiresAt && (
+                              <span className="text-xs text-purple-500">
+                                Son: {new Date(pkg.expiresAt).toLocaleDateString('tr-TR')}
+                              </span>
+                            )}
+                          </div>
+                          <div className="mt-1 flex flex-wrap gap-2">
+                            {(pkg.usages || []).map((usage: any) => (
+                              <span
+                                key={usage.id}
+                                className={`inline-flex items-center text-xs px-2 py-1 rounded-full ${
+                                  formData.serviceId && usage.itemId === formData.serviceId
+                                    ? 'bg-green-100 text-green-800 font-semibold ring-1 ring-green-400'
+                                    : 'bg-purple-100 text-purple-700'
+                                }`}
+                              >
+                                {usage.itemName}: {usage.remainingQuantity}/{usage.totalQuantity} kalan
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
                 <Label htmlFor="customerEmail">Müşteri Email</Label>
