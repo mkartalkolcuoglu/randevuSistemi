@@ -59,9 +59,9 @@ export default function NewCustomerPage() {
       
       alert('Müşteri başarıyla eklendi!');
       router.push('/admin/customers');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error creating customer:', error);
-      alert('Müşteri eklenirken bir hata oluştu.');
+      alert(error?.message || 'Müşteri eklenirken bir hata oluştu.');
     } finally {
       setIsLoading(false);
     }
