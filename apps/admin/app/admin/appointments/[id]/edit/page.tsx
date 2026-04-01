@@ -455,27 +455,20 @@ export default function EditAppointmentPage() {
 
               <div className="space-y-2">
                 <Label htmlFor="paymentType">Ödeme Tipi</Label>
-                {formData.packageInfo ? (
-                  <div className="flex items-center h-10 px-3 py-2 border border-green-300 bg-green-50 rounded-md">
-                    <span className="text-green-700 font-semibold flex items-center">
-                      🎁 Paket Kullanımı
-                    </span>
-                  </div>
-                ) : (
-                  <select
-                    id="paymentType"
-                    name="paymentType"
-                    value={formData.paymentType}
-                    onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="cash">Nakit</option>
-                    {cardPaymentEnabled && (
-                      <option value="credit_card">Kredi Kartı</option>
-                    )}
-                    <option value="bank_transfer">Havale</option>
-                  </select>
-                )}
+                <select
+                  id="paymentType"
+                  name="paymentType"
+                  value={formData.paymentType}
+                  onChange={handleInputChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="cash">Nakit</option>
+                  {cardPaymentEnabled && (
+                    <option value="credit_card">Kredi Kartı</option>
+                  )}
+                  <option value="bank_transfer">Havale</option>
+                  <option value="package">Paket</option>
+                </select>
               </div>
             </div>
 

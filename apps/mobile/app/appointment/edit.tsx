@@ -46,6 +46,7 @@ export default function EditAppointmentScreen() {
   const [extraCharge, setExtraCharge] = useState('0');
   const [extraChargeNote, setExtraChargeNote] = useState('');
   const [selectedStatus, setSelectedStatus] = useState('pending');
+  const [selectedPaymentType, setSelectedPaymentType] = useState('cash');
 
   const [activeSection, setActiveSection] = useState<string | null>(null);
 
@@ -77,6 +78,7 @@ export default function EditAppointmentScreen() {
         setSelectedDate(new Date(apt.date));
         setSelectedTime(apt.time?.substring(0, 5) || '');
         setSelectedStatus(apt.status || 'pending');
+        setSelectedPaymentType(apt.paymentType || 'cash');
 
         // Set service — find by ID, or fallback from appointment's denormalized data
         let service = serviceList.find((s: Service) => s.id === apt.serviceId);
@@ -148,6 +150,7 @@ export default function EditAppointmentScreen() {
         notes,
         extraCharge: parseFloat(extraCharge) || 0,
         extraChargeNote: extraChargeNote || null,
+        paymentType: selectedPaymentType,
       });
 
       // Update status if changed
@@ -480,6 +483,62 @@ export default function EditAppointmentScreen() {
                   <Text style={styles.optionTitle}>{status.label}</Text>
                 </View>
                 {selectedStatus === status.key && (
+                  <Ionicons name="checkmark-circle" size={24} color="#3B82F6" />
+                )}
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
+
+        {/* Payment Type Section */}
+        <TouchableOpacity
+          style={styles.section}
+          onPress={() => setActiveSection(activeSection === 'paymentType' ? null : 'paymentType')}
+        >
+          <View style={styles.sectionHeader}>
+            <View style={[styles.sectionIcon, { backgroundColor: '#E0E7FF' }]}>
+              <Ionicons name="card" size={20} color="#4F46E5" />
+            </View>
+            <View style={styles.sectionInfo}>
+              <Text style={styles.sectionLabel}>Ödeme Tipi</Text>
+              <Text style={styles.sectionValue}>
+                {{ cash: 'Nakit', credit_card: 'Kredi Kartı', card: 'Kredi Kartı', bank_transfer: 'Havale', package: 'Paket', package_used: 'Paket' }[selectedPaymentType] || 'Nakit'}
+              </Text>
+            </View>
+            <Ionicons
+              name={activeSection === 'paymentType' ? 'chevron-up' : 'chevron-down'}
+              size={20}
+              color="#6B7280"
+            />
+          </View>
+        </TouchableOpacity>
+
+        {activeSection === 'paymentType' && (
+          <View style={styles.expandedSection}>
+            {[
+              { key: 'cash', label: 'Nakit', icon: 'cash', color: '#059669', bg: '#D1FAE5' },
+              { key: 'credit_card', label: 'Kredi Kartı', icon: 'card', color: '#2563EB', bg: '#DBEAFE' },
+              { key: 'bank_transfer', label: 'Havale', icon: 'swap-horizontal', color: '#7C3AED', bg: '#F3E8FF' },
+              { key: 'package', label: 'Paket', icon: 'gift', color: '#D97706', bg: '#FEF3C7' },
+            ].map((pt) => (
+              <TouchableOpacity
+                key={pt.key}
+                style={[
+                  styles.optionCard,
+                  selectedPaymentType === pt.key && styles.optionCardSelected,
+                ]}
+                onPress={() => {
+                  setSelectedPaymentType(pt.key);
+                  setActiveSection(null);
+                }}
+              >
+                <View style={[styles.statusIcon, { backgroundColor: pt.bg }]}>
+                  <Ionicons name={pt.icon as any} size={22} color={pt.color} />
+                </View>
+                <View style={styles.optionInfo}>
+                  <Text style={styles.optionTitle}>{pt.label}</Text>
+                </View>
+                {selectedPaymentType === pt.key && (
                   <Ionicons name="checkmark-circle" size={24} color="#3B82F6" />
                 )}
               </TouchableOpacity>
