@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, Button, Badge } from '@/components/ui';
-import { Check, Crown, Zap, TrendingUp } from 'lucide-react';
+import { Check, Crown, Zap, TrendingUp, LogOut } from 'lucide-react';
 
 interface Package {
   id: string;
@@ -107,6 +107,20 @@ export default function SelectSubscriptionClient({ packages, tenantId, businessN
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
       <div className="max-w-6xl w-full">
+        {/* Logout Button */}
+        <div className="flex justify-end mb-4">
+          <button
+            onClick={async () => {
+              await fetch('/api/auth/logout', { method: 'POST' });
+              window.location.href = '/login';
+            }}
+            className="flex items-center gap-2 px-4 py-2 text-sm text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition"
+          >
+            <LogOut className="w-4 h-4" />
+            Çıkış Yap
+          </button>
+        </div>
+
         {/* Header */}
         <div className="text-center mb-12">
           <h1 className="text-4xl font-bold text-gray-900 mb-4">
