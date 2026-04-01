@@ -180,15 +180,6 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="staff/appointments"
-        options={{
-          title: 'Randevular',
-          tabBarIcon: ({ color }) => (
-            <Ionicons name="list" size={TAB_ICON_SIZE} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
         name="staff/customers"
         options={{
           title: 'Müşteriler',
@@ -199,6 +190,7 @@ export default function TabLayout() {
       />
 
       {/* Hidden staff tabs - accessible via navigation but not shown in tab bar */}
+      <Tabs.Screen name="staff/appointments" options={{ href: null }} />
       <Tabs.Screen name="staff/settings" options={{ href: null }} />
       <Tabs.Screen name="staff/business-settings" options={{ href: null }} />
       <Tabs.Screen name="staff/cashier" options={{ href: null }} />
