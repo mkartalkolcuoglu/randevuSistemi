@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, use } from 'react';
+import { useState, useEffect, use } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button, Card, CardContent, CardHeader, CardTitle, formatPhone, normalizePhone, PHONE_PLACEHOLDER, PHONE_MAX_LENGTH, Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '../../../components/ui';
 import { 
@@ -57,6 +57,10 @@ export default function RandevuPage({ params }: PageProps) {
     time: string;
     serviceName: string;
   } | null>(null);
+
+  // Session-based auto-login
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [sessionChecked, setSessionChecked] = useState(false);
 
   // Sözleşme onayı
   const [agreementsAccepted, setAgreementsAccepted] = useState(false);
@@ -140,6 +144,47 @@ export default function RandevuPage({ params }: PageProps) {
   };
 
   const servicePackageInfo = selectedService ? checkServiceInPackage(selectedService) : null;
+
+  // Auto-login: check customer-session cookie on mount
+  useEffect(() => {
+    if (sessionChecked) return;
+    try {
+      const cookies = document.cookie.split(';');
+      const sessionCookie = cookies.find(c => c.trim().startsWith('customer-session='));
+      if (sessionCookie) {
+        const token = sessionCookie.split('=').slice(1).join('=').trim();
+        const payloadB64 = token.split('.')[0];
+        if (payloadB64) {
+          const payload = JSON.parse(atob(payloadB64));
+          if (payload.phone && payload.exp > Date.now()) {
+            // Session is valid - auto-fill phone and check packages
+            const phone = payload.phone;
+            // Normalize: remove 90 prefix if present
+            let normalizedPhone = phone;
+            if (normalizedPhone.startsWith('90') && normalizedPhone.length > 10) {
+              normalizedPhone = '0' + normalizedPhone.slice(2);
+            }
+            setPhoneNumber(normalizedPhone);
+            setIsLoggedIn(true);
+            setSessionChecked(true);
+            return;
+          }
+        }
+      }
+    } catch {}
+    setSessionChecked(true);
+  }, [sessionChecked]);
+
+  // When logged in and phone is set, auto-check packages and skip phone step
+  useEffect(() => {
+    if (isLoggedIn && phoneNumber && currentStep === 'phone' && !phoneChecked) {
+      (async () => {
+        await checkCustomerPackages();
+        setPhoneChecked(true);
+        setCurrentStep('service');
+      })();
+    }
+  }, [isLoggedIn, phoneNumber, currentStep]);
 
   const steps = [
     { id: 'phone', title: 'Telefon Doğrulama', icon: '📱' },
@@ -288,8 +333,14 @@ export default function RandevuPage({ params }: PageProps) {
 
   const handlePrev = () => {
     const prevStepIndex = currentStepIndex - 1;
+    // If logged in, don't go back to phone step
     if (prevStepIndex >= 0) {
-      setCurrentStep(steps[prevStepIndex].id as StepType);
+      const prevStep = steps[prevStepIndex].id as StepType;
+      if (isLoggedIn && prevStep === 'phone') {
+        router.back();
+        return;
+      }
+      setCurrentStep(prevStep);
     }
   };
 
@@ -973,12 +1024,22 @@ export default function RandevuPage({ params }: PageProps) {
     </div>
   );
 
-  const renderCustomerInfo = () => (
+  const renderCustomerInfo = () => {
+    const hasPrefilledData = isLoggedIn && existingCustomer;
+    return (
     <div className="space-y-6">
       <div className="text-center">
         <h2 className="text-2xl font-bold text-gray-900 mb-2">İletişim Bilgileri</h2>
-        <p className="text-gray-600">Randevu için gerekli bilgileri girin</p>
+        <p className="text-gray-600">
+          {hasPrefilledData ? 'Bilgileriniz otomatik dolduruldu' : 'Randevu için gerekli bilgileri girin'}
+        </p>
       </div>
+
+      {hasPrefilledData && (
+        <div className="bg-green-50 border border-green-200 rounded-lg p-3 text-center">
+          <p className="text-sm text-green-700">Giriş yaptığınız hesap bilgileri kullanılıyor</p>
+        </div>
+      )}
 
       <div className="space-y-4">
         <div>
@@ -990,7 +1051,8 @@ export default function RandevuPage({ params }: PageProps) {
             type="text"
             value={customerInfo.name}
             onChange={(e) => setCustomerInfo(prev => ({ ...prev, name: e.target.value }))}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none transition-all duration-200 hover:border-blue-300"
+            readOnly={!!hasPrefilledData}
+            className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none transition-all duration-200 hover:border-blue-300 ${hasPrefilledData ? 'bg-gray-50 text-gray-600' : 'bg-white'}`}
             placeholder="Adınız ve soyadınız"
           />
         </div>
@@ -1004,7 +1066,8 @@ export default function RandevuPage({ params }: PageProps) {
             type="email"
             value={customerInfo.email}
             onChange={(e) => setCustomerInfo(prev => ({ ...prev, email: e.target.value }))}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none transition-all duration-200 hover:border-blue-300"
+            readOnly={!!hasPrefilledData}
+            className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none transition-all duration-200 hover:border-blue-300 ${hasPrefilledData ? 'bg-gray-50 text-gray-600' : 'bg-white'}`}
             placeholder="ornek@email.com"
           />
         </div>
@@ -1021,7 +1084,8 @@ export default function RandevuPage({ params }: PageProps) {
               const normalized = normalizePhone(e.target.value);
               setCustomerInfo(prev => ({ ...prev, phone: normalized }));
             }}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none transition-all duration-200 hover:border-blue-300"
+            readOnly={!!hasPrefilledData}
+            className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none transition-all duration-200 hover:border-blue-300 ${hasPrefilledData ? 'bg-gray-50 text-gray-600' : 'bg-white'}`}
             placeholder={PHONE_PLACEHOLDER}
             maxLength={PHONE_MAX_LENGTH}
           />
@@ -1035,13 +1099,14 @@ export default function RandevuPage({ params }: PageProps) {
             value={customerInfo.notes}
             onChange={(e) => setCustomerInfo(prev => ({ ...prev, notes: e.target.value }))}
             rows={3}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none transition-all duration-200 hover:border-blue-300 resize-none"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none transition-all duration-200 hover:border-blue-300 resize-none"
             placeholder="Özel istekleriniz varsa belirtebilirsiniz..."
           />
         </div>
       </div>
     </div>
-  );
+    );
+  };
 
   const renderConfirmation = () => (
     <div className="space-y-6">
