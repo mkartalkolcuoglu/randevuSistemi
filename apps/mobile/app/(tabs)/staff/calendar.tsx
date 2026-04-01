@@ -264,18 +264,18 @@ export default function CalendarScreen() {
 
   // Auto-scroll to current time when viewing today in day view
   useEffect(() => {
-    if (viewType === 'day' && isToday(currentDate)) {
+    if (viewType === 'day' && isToday(currentDate) && !isLoading) {
       const pos = getCurrentTimePosition();
       if (pos !== null) {
         setTimeout(() => {
           verticalScrollRef.current?.scrollTo({
-            y: Math.max(0, pos - 200),
+            y: Math.max(0, pos - 150),
             animated: true,
           });
-        }, 400);
+        }, 500);
       }
     }
-  }, [currentDate, viewType]);
+  }, [currentDate, viewType, isLoading]);
 
   // Fetch appointments and tenant settings
   const lastAppointmentsHashRef = useRef<string>('');
