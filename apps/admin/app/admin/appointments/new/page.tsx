@@ -661,7 +661,7 @@ export default function NewAppointmentPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div className="space-y-2">
                 <Label htmlFor="duration">Süre (Dakika)</Label>
                 <Input
@@ -674,6 +674,20 @@ export default function NewAppointmentPage() {
                   max="300"
                   step="1"
                 />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="paymentType">Ödeme Tipi</Label>
+                <select
+                  id="paymentType"
+                  name="paymentType"
+                  value={formData.paymentType}
+                  onChange={handleInputChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="cash">Nakit</option>
+                  <option value="bank_transfer">Havale</option>
+                </select>
               </div>
 
               <div className="space-y-2">
