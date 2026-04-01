@@ -93,7 +93,7 @@ export async function GET() {
     // Step 7: Documents (only if card payment enabled)
     if (cardPaymentEnabled && theme.documents) {
       const docs = theme.documents;
-      if (docs.iban || docs.taxDocument || docs.identityDocument) {
+      if (docs.completed || docs.iban || docs.taxDocument || docs.identityDocument) {
         completedSteps.push('documents');
       }
     }

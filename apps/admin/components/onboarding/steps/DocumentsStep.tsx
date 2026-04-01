@@ -24,9 +24,10 @@ export default function DocumentsStep({ onComplete, onNext, saving, setSaving }:
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           documents: {
-            iban: iban.trim() || undefined,
-            identityDocument: identityDocument.trim() || undefined,
-            taxDocument: taxDocument.trim() || undefined,
+            iban: iban.trim() || '',
+            identityDocument: identityDocument.trim() || '',
+            taxDocument: taxDocument.trim() || '',
+            completed: true,
           },
         }),
       });
