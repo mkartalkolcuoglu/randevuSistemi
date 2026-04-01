@@ -128,13 +128,18 @@ export async function POST(request: NextRequest) {
     const data = await request.json();
     
     try {
+      // Email unique constraint - generate placeholder if empty
+      const email = data.email && data.email.trim() !== ''
+        ? data.email.trim()
+        : `noemail_${Date.now()}_${Math.random().toString(36).substring(7)}@placeholder.local`;
+
       // Müşteri oluştur
       const newCustomer = await prisma.customer.create({
         data: {
           tenantId,
           firstName: data.firstName || '',
           lastName: data.lastName || '',
-          email: data.email || '',
+          email,
           phone: data.phone || '',
           birthDate: data.birthDate ? new Date(data.birthDate) : null,
           gender: data.gender || null,
@@ -154,9 +159,15 @@ export async function POST(request: NextRequest) {
 
       // Prisma unique constraint error
       if (error?.code === 'P2002') {
-        const field = error?.meta?.target?.[0] || 'alan';
+        const targets = error?.meta?.target || [];
+        if (targets.includes('email') || targets.includes('tenantId')) {
+          return NextResponse.json(
+            { success: false, error: 'Bu e-posta adresi ile kayıtlı müşteri zaten mevcut' },
+            { status: 400 }
+          );
+        }
         return NextResponse.json(
-          { success: false, error: `Bu ${field} ile kayıtlı müşteri zaten mevcut` },
+          { success: false, error: 'Bu bilgilerle kayıtlı müşteri zaten mevcut' },
           { status: 400 }
         );
       }
