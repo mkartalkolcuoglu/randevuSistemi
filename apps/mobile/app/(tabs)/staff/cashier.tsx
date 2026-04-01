@@ -790,7 +790,7 @@ export default function CashierScreen() {
 
             {/* Package Banner */}
             {matchingUsage && (
-              <View style={{ padding: 12, backgroundColor: '#F0FDF4', borderRadius: 10, borderWidth: 1, borderColor: '#BBF7D0' }}>
+              <View style={{ padding: 12, backgroundColor: '#F0FDF4', borderRadius: 10, borderWidth: 1, borderColor: '#BBF7D0', marginTop: 8, marginBottom: 8 }}>
                 <Text style={{ fontSize: 13, fontWeight: '600', color: '#15803D' }}>
                   🎁 Bu ürün müşterinin paketinde mevcut!
                 </Text>
