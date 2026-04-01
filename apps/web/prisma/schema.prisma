@@ -90,7 +90,7 @@ model Appointment {
   packageInfo  String?  @db.Text // JSON string containing package usage info
 
   // Payment fields
-  paymentStatus String  @default("pending") // pending, paid, package_used, failed
+  paymentStatus String? @default("pending") // pending, paid, package_used, failed
   paymentId     String? // Link to Payment record
 
   extraCharge      Float?    @default(0) @map("extra_charge")
