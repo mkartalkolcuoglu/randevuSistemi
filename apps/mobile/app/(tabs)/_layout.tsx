@@ -1,7 +1,8 @@
 import { Tabs } from 'expo-router';
-import { Platform } from 'react-native';
+import { Platform, View, Text, StyleSheet, TouchableOpacity, Linking } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuthStore } from '../../src/store/auth.store';
 import { canAccessPage, StaffPermissions } from '../../src/types';
 
@@ -13,10 +14,45 @@ const TAB_ACTIVE_COLOR = '#163974';
 const TAB_INACTIVE_COLOR = Platform.OS === 'ios' ? '#8E8E93' : '#49454F'; // iOS: systemGray, Android: onSurfaceVariant
 
 export default function TabLayout() {
-  const { user } = useAuthStore();
+  const { user, logout } = useAuthStore();
   const insets = useSafeAreaInsets();
   const isCustomer = user?.userType === 'customer';
   const isOwner = user?.userType === 'owner';
+
+  // Subscription check for staff/owner
+  const isSubscriptionExpired = !isCustomer && user?.subscriptionEnd
+    ? new Date(user.subscriptionEnd) < new Date()
+    : false;
+
+  if (isSubscriptionExpired) {
+    return (
+      <SafeAreaView style={{ flex: 1, backgroundColor: '#F9FAFB' }}>
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24 }}>
+          <View style={{ width: 80, height: 80, borderRadius: 40, backgroundColor: '#FEF2F2', justifyContent: 'center', alignItems: 'center', marginBottom: 24 }}>
+            <Ionicons name="warning" size={40} color="#DC2626" />
+          </View>
+          <Text style={{ fontSize: 22, fontWeight: '700', color: '#111827', textAlign: 'center', marginBottom: 8 }}>
+            Abonelik Süresi Doldu
+          </Text>
+          <Text style={{ fontSize: 15, color: '#6B7280', textAlign: 'center', lineHeight: 22, marginBottom: 32 }}>
+            Hizmete devam etmek için web panelden abonelik paketinizi yenileyin.
+          </Text>
+          <TouchableOpacity
+            onPress={() => Linking.openURL('https://admin.netrandevu.com/admin/select-subscription')}
+            style={{ backgroundColor: '#163974', paddingHorizontal: 32, paddingVertical: 14, borderRadius: 12, marginBottom: 12, width: '100%', alignItems: 'center' }}
+          >
+            <Text style={{ color: '#fff', fontSize: 16, fontWeight: '600' }}>Paket Yenile</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => logout()}
+            style={{ paddingHorizontal: 32, paddingVertical: 14, borderRadius: 12, width: '100%', alignItems: 'center' }}
+          >
+            <Text style={{ color: '#DC2626', fontSize: 15, fontWeight: '500' }}>Çıkış Yap</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
   const permissions = user?.permissions as StaffPermissions | null | undefined;
   
   // Check permissions for tab bar items (null permissions uses defaults via canAccessPage)
