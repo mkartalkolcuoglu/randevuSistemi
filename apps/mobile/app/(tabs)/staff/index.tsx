@@ -310,28 +310,9 @@ export default function StaffHomeScreen() {
               activeOpacity={0.7}
             >
               <View style={[styles.quickActionIcon, { backgroundColor: '#EFF6FF' }]}>
-                <Ionicons name="add-circle" size={26} color={THEME_COLOR} />
+                <Ionicons name="add-circle" size={28} color={THEME_COLOR} />
               </View>
-              <View style={styles.quickActionTextContainer}>
-                <Text style={styles.quickActionLabel}>Yeni Randevu</Text>
-                <Text style={styles.quickActionDesc}>Hızlıca randevu oluştur</Text>
-              </View>
-              <Ionicons name="chevron-forward" size={18} color="#D1D5DB" />
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.quickAction}
-              onPress={() => router.push('/(tabs)/staff/customers')}
-              activeOpacity={0.7}
-            >
-              <View style={[styles.quickActionIcon, { backgroundColor: '#D1FAE5' }]}>
-                <Ionicons name="people" size={26} color="#059669" />
-              </View>
-              <View style={styles.quickActionTextContainer}>
-                <Text style={styles.quickActionLabel}>Müşteriler</Text>
-                <Text style={styles.quickActionDesc}>Müşteri listesini görüntüle</Text>
-              </View>
-              <Ionicons name="chevron-forward" size={18} color="#D1D5DB" />
+              <Text style={styles.quickActionLabel}>Yeni Randevu</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -340,43 +321,20 @@ export default function StaffHomeScreen() {
               activeOpacity={0.7}
             >
               <View style={[styles.quickActionIcon, { backgroundColor: '#FEF3C7' }]}>
-                <Ionicons name="calendar" size={26} color="#D97706" />
+                <Ionicons name="calendar" size={28} color="#D97706" />
               </View>
-              <View style={styles.quickActionTextContainer}>
-                <Text style={styles.quickActionLabel}>Randevular</Text>
-                <Text style={styles.quickActionDesc}>Takvimi görüntüle</Text>
-              </View>
-              <Ionicons name="chevron-forward" size={18} color="#D1D5DB" />
+              <Text style={styles.quickActionLabel}>Takvim</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
               style={styles.quickAction}
-              onPress={() => router.push('/(tabs)/staff/cashier')}
+              onPress={() => router.push('/(tabs)/staff/customers')}
               activeOpacity={0.7}
             >
-              <View style={[styles.quickActionIcon, { backgroundColor: '#F3E8FF' }]}>
-                <Ionicons name="cash" size={26} color="#7C3AED" />
+              <View style={[styles.quickActionIcon, { backgroundColor: '#D1FAE5' }]}>
+                <Ionicons name="people" size={28} color="#059669" />
               </View>
-              <View style={styles.quickActionTextContainer}>
-                <Text style={styles.quickActionLabel}>Kasa</Text>
-                <Text style={styles.quickActionDesc}>Gelir ve giderleri yönet</Text>
-              </View>
-              <Ionicons name="chevron-forward" size={18} color="#D1D5DB" />
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.quickAction}
-              onPress={() => router.push('/(tabs)/staff/services')}
-              activeOpacity={0.7}
-            >
-              <View style={[styles.quickActionIcon, { backgroundColor: '#FCE7F3' }]}>
-                <Ionicons name="cut" size={26} color="#DB2777" />
-              </View>
-              <View style={styles.quickActionTextContainer}>
-                <Text style={styles.quickActionLabel}>Hizmetler</Text>
-                <Text style={styles.quickActionDesc}>Hizmet listesini düzenle</Text>
-              </View>
-              <Ionicons name="chevron-forward" size={18} color="#D1D5DB" />
+              <Text style={styles.quickActionLabel}>Müşteriler</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -693,41 +651,37 @@ const styles = StyleSheet.create({
 
   // Quick Actions
   quickActionsGrid: {
-    marginTop: 8,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 12,
     gap: 10,
   },
   quickAction: {
-    flexDirection: 'row',
+    flex: 1,
     alignItems: 'center',
     backgroundColor: '#fff',
     borderRadius: 14,
-    padding: 14,
+    paddingVertical: 16,
+    paddingHorizontal: 8,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 3,
+    shadowOpacity: 0.06,
+    shadowRadius: 4,
     elevation: 2,
   },
   quickActionIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 12,
+    width: 52,
+    height: 52,
+    borderRadius: 14,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 14,
-  },
-  quickActionTextContainer: {
-    flex: 1,
+    marginBottom: 10,
   },
   quickActionLabel: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#111827',
-  },
-  quickActionDesc: {
     fontSize: 12,
-    color: '#9CA3AF',
-    marginTop: 2,
+    fontWeight: '600',
+    color: '#374151',
+    textAlign: 'center',
   },
 
   // Schedule
