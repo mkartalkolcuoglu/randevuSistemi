@@ -173,7 +173,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="staff/calendar"
         options={{
-          title: 'Takvim',
+          title: 'Randevular',
           tabBarIcon: ({ color }) => (
             <Ionicons name="calendar" size={TAB_ICON_SIZE} color={color} />
           ),
