@@ -87,9 +87,12 @@ export async function PUT(
         price: data.price || 0,
         duration: data.duration || 60,
         paymentType: data.paymentType || 'cash',
+        // Clear packageInfo if payment type changed away from package
+        ...(data.paymentType && data.paymentType !== 'package' && data.paymentType !== 'package_used'
+          ? { packageInfo: null, paymentStatus: null }
+          : {}),
         ...(data.extraCharge !== undefined && { extraCharge: parseFloat(data.extraCharge) || 0 }),
         ...(data.extraChargeNote !== undefined && { extraChargeNote: data.extraChargeNote || null })
-        // Note: packageInfo is NOT updated - it's set only at creation
       }
     });
 
@@ -430,8 +433,8 @@ async function createAppointmentTransaction(appointment: any) {
       packageInfo: appointment.packageInfo ? 'HAS_PACKAGE' : 'NO_PACKAGE'
     });
 
-    // 🎁 PAKET KULLANIMI KONTROLÜ - Eğer paket kullanıldıysa Transaction oluşturma!
-    if (appointment.packageInfo) {
+    // 🎁 PAKET KULLANIMI KONTROLÜ - Eğer paket kullanıldıysa VE ödeme tipi hala paketse Transaction oluşturma!
+    if (appointment.packageInfo && (appointment.paymentType === 'package' || appointment.paymentType === 'package_used')) {
       console.log('⚠️ [TRANSACTION] Skipping - Package used for this appointment');
       console.log('📦 Package info:', appointment.packageInfo);
       return;
