@@ -153,19 +153,31 @@ export async function PUT(request: Request) {
     
     // Combine themeSettings, location, and documents into theme field
     if (data.themeSettings || data.location || data.documents) {
-      const themeData: any = {};
+      // Read existing theme to preserve data (location, documents, etc.)
+      let themeData: any = {};
+      const existingTenant = await prisma.tenant.findUnique({
+        where: { id: tenantId },
+        select: { theme: true }
+      });
+      if (existingTenant?.theme) {
+        try {
+          themeData = typeof existingTenant.theme === 'string'
+            ? JSON.parse(existingTenant.theme)
+            : existingTenant.theme;
+        } catch {}
+      }
 
-      // Add theme settings
+      // Merge theme settings
       if (data.themeSettings) {
         Object.assign(themeData, data.themeSettings);
       }
 
-      // Add location to theme
+      // Merge location
       if (data.location) {
         themeData.location = data.location;
       }
 
-      // Add documents to theme
+      // Merge documents
       if (data.documents) {
         themeData.documents = data.documents;
       }
