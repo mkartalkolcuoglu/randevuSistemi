@@ -139,7 +139,9 @@ export async function POST(request: NextRequest) {
     const merchantOid = `MAPT${Date.now()}${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
 
     // Customer email - fallback to phone-based email
-    const customerEmail = customer.email && !customer.email.includes('@temp.com')
+    const customerEmail = customer.email
+      && !customer.email.includes('@temp.com')
+      && !customer.email.includes('@placeholder.local')
       ? customer.email
       : `${customer.phone}@customer.netrandevu.com`;
 
