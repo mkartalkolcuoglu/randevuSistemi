@@ -437,6 +437,8 @@ export default function NewAppointmentScreen() {
         appointmentData.usePackage = true;
         appointmentData.customerPackageId = packageInfo.customerPackageId;
         appointmentData.packageUsageId = packageInfo.usageId;
+      } else if (paymentOption === 'later') {
+        appointmentData.paymentType = 'cash';
       }
 
       await appointmentService.createAppointment(appointmentData);
