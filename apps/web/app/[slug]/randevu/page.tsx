@@ -145,34 +145,24 @@ export default function RandevuPage({ params }: PageProps) {
 
   const servicePackageInfo = selectedService ? checkServiceInPackage(selectedService) : null;
 
-  // Auto-login: check customer-session cookie on mount
+  // Auto-login: check session via server API (cookie is HttpOnly)
   useEffect(() => {
     if (sessionChecked) return;
-    try {
-      const cookies = document.cookie.split(';');
-      const sessionCookie = cookies.find(c => c.trim().startsWith('customer-session='));
-      if (sessionCookie) {
-        const token = sessionCookie.split('=').slice(1).join('=').trim();
-        const payloadB64 = token.split('.')[0];
-        if (payloadB64) {
-          const payload = JSON.parse(atob(payloadB64));
-          if (payload.phone && payload.exp > Date.now()) {
-            // Session is valid - auto-fill phone and check packages
-            const phone = payload.phone;
-            // Normalize: remove 90 prefix if present
-            let normalizedPhone = phone;
-            if (normalizedPhone.startsWith('90') && normalizedPhone.length > 10) {
-              normalizedPhone = '0' + normalizedPhone.slice(2);
-            }
-            setPhoneNumber(normalizedPhone);
-            setIsLoggedIn(true);
-            setSessionChecked(true);
-            return;
+    (async () => {
+      try {
+        const res = await fetch('/api/auth/session');
+        const data = await res.json();
+        if (data.loggedIn && data.phone) {
+          let normalizedPhone = data.phone;
+          if (normalizedPhone.startsWith('90') && normalizedPhone.length > 10) {
+            normalizedPhone = '0' + normalizedPhone.slice(2);
           }
+          setPhoneNumber(normalizedPhone);
+          setIsLoggedIn(true);
         }
-      }
-    } catch {}
-    setSessionChecked(true);
+      } catch {}
+      setSessionChecked(true);
+    })();
   }, [sessionChecked]);
 
   // When logged in and phone is set, auto-check packages and skip phone step

@@ -58,9 +58,10 @@ export default function Home() {
   useEffect(() => {
     fetchData();
 
-    // Check if customer is logged in
-    const hasSession = document.cookie.split(';').some(c => c.trim().startsWith('customer-session='));
-    setIsLoggedIn(hasSession);
+    // Check if customer is logged in (cookie is HttpOnly, use API)
+    fetch('/api/auth/session').then(r => r.json()).then(data => {
+      setIsLoggedIn(data.loggedIn === true);
+    }).catch(() => {});
 
     // iOS tespit et
     const isIOSDevice = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
