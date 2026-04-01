@@ -375,17 +375,25 @@ export async function PATCH(
     });
 
     // Handle status change side effects
-    const isCompleted = status === 'confirmed' || status === 'completed';
-    const wasCompleted = oldStatus === 'confirmed' || oldStatus === 'completed';
+    const isConfirmedOrCompleted = status === 'confirmed' || status === 'completed';
+    const wasConfirmedOrCompleted = oldStatus === 'confirmed' || oldStatus === 'completed';
 
-    // If status changed to "confirmed" or "completed", handle package and transaction
-    if (isCompleted && !wasCompleted) {
-      console.log(`✅ [MOBILE] Status changed to ${status} - processing package and transaction`);
+    // If status changed to "confirmed" or "completed", deduct from package
+    if (isConfirmedOrCompleted && !wasConfirmedOrCompleted) {
+      console.log(`✅ [MOBILE] Status changed to ${status} - checking for package deduction`);
       await deductFromPackage(updatedAppointment);
+    }
+
+    // Create transaction ONLY when status changes to "completed"
+    const isCompleted = status === 'completed';
+    const wasCompleted = oldStatus === 'completed';
+
+    if (isCompleted && !wasCompleted) {
+      console.log(`💰 [MOBILE] Creating transaction for completed appointment`);
       await createAppointmentTransaction(updatedAppointment);
     }
 
-    // If appointment is already completed/confirmed and price changed, update existing transaction
+    // If appointment is already completed and price changed, update existing transaction
     if (wasCompleted && isCompleted) {
       const oldTotal = (appointment.price || 0) + (appointment.extraCharge || 0);
       const newTotal = (updatedAppointment.price || 0) + (updatedAppointment.extraCharge || 0);
@@ -415,7 +423,7 @@ export async function PATCH(
     }
 
     // If status changed to "cancelled" from completed/confirmed, refund package
-    if (status === 'cancelled' && oldStatus !== 'cancelled' && wasCompleted) {
+    if (status === 'cancelled' && oldStatus !== 'cancelled' && wasConfirmedOrCompleted) {
       console.log(`🔄 [MOBILE] Status changed to cancelled - refunding package usage`);
       await refundPackageUsage(updatedAppointment);
     }
