@@ -1597,11 +1597,11 @@ export default function RandevuPage({ params }: PageProps) {
               onClick={() => {
                 setShowSuccessModal(false);
                 setSuccessAppointment(null);
-                router.push(`/${slug}`);
+                router.push(isLoggedIn ? '/randevularim/list' : `/${slug}`);
               }}
               className="w-full"
             >
-              Tamam
+              {isLoggedIn ? 'Randevularıma Git' : 'Tamam'}
             </Button>
           </DialogFooter>
         </DialogContent>
