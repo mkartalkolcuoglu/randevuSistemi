@@ -126,7 +126,20 @@ export async function POST(request: NextRequest) {
     }
 
     const data = await request.json();
-    
+
+    // Check for duplicate phone (same tenant)
+    if (data.phone && data.phone.trim()) {
+      const existingByPhone = await prisma.customer.findFirst({
+        where: { tenantId, phone: data.phone.trim() }
+      });
+      if (existingByPhone) {
+        return NextResponse.json(
+          { success: false, error: 'Bu telefon numarası ile kayıtlı müşteri zaten mevcut' },
+          { status: 400 }
+        );
+      }
+    }
+
     try {
       // Email unique constraint - generate placeholder if empty
       const email = data.email && data.email.trim() !== ''

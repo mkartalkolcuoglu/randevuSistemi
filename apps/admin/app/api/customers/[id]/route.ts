@@ -145,7 +145,42 @@ export async function PUT(
 
     const { id } = await params;
     const data = await request.json();
-    
+
+    // Check for duplicate phone (same tenant, different customer)
+    if (data.phone && data.phone.trim()) {
+      const phoneDigits = data.phone.replace(/\D/g, '');
+      const existingByPhone = await prisma.customer.findFirst({
+        where: {
+          tenantId,
+          phone: data.phone,
+          id: { not: id }
+        }
+      });
+      if (existingByPhone) {
+        return NextResponse.json(
+          { success: false, error: 'Bu telefon numarası ile kayıtlı başka bir müşteri zaten mevcut' },
+          { status: 400 }
+        );
+      }
+    }
+
+    // Check for duplicate email (same tenant, different customer)
+    if (data.email && data.email.trim() && !data.email.includes('@placeholder.local')) {
+      const existingByEmail = await prisma.customer.findFirst({
+        where: {
+          tenantId,
+          email: data.email.trim(),
+          id: { not: id }
+        }
+      });
+      if (existingByEmail) {
+        return NextResponse.json(
+          { success: false, error: 'Bu e-posta adresi ile kayıtlı başka bir müşteri zaten mevcut' },
+          { status: 400 }
+        );
+      }
+    }
+
     try {
       const updatedCustomer = await prisma.customer.update({
         where: {
