@@ -59,6 +59,25 @@ export async function POST(request: NextRequest) {
       } catch {}
     }
 
+    // Fallback: get tenantId from X-Tenant-ID header (mobile app)
+    if (!actualTenantId) {
+      actualTenantId = request.headers.get('X-Tenant-ID') || request.headers.get('x-tenant-id');
+      if (actualTenantId) console.log('✅ Tenant found from X-Tenant-ID header:', actualTenantId);
+    }
+
+    // Fallback: get tenantId from JWT token (mobile app)
+    if (!actualTenantId) {
+      try {
+        const authHeader = request.headers.get('Authorization');
+        if (authHeader?.startsWith('Bearer ')) {
+          const jwt = await import('jsonwebtoken');
+          const decoded: any = jwt.default.verify(authHeader.split(' ')[1], process.env.JWT_SECRET || 'your-secret-key');
+          actualTenantId = decoded.tenantId;
+          if (actualTenantId) console.log('✅ Tenant found from JWT:', actualTenantId);
+        }
+      } catch {}
+    }
+
     if (!actualTenantId) {
       return NextResponse.json(
         { success: false, error: 'Tenant bilgisi bulunamadı' },
