@@ -140,6 +140,19 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Check for duplicate email (same tenant)
+    if (data.email && data.email.trim() && !data.email.includes('@placeholder.local')) {
+      const existingByEmail = await prisma.customer.findFirst({
+        where: { tenantId, email: data.email.trim() }
+      });
+      if (existingByEmail) {
+        return NextResponse.json(
+          { success: false, error: 'Bu e-posta adresi ile kayıtlı müşteri zaten mevcut' },
+          { status: 400 }
+        );
+      }
+    }
+
     try {
       // Email unique constraint - generate placeholder if empty
       const email = data.email && data.email.trim() !== ''

@@ -155,6 +155,22 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Check if customer with same email exists
+    if (email && email.trim() && !email.includes('@placeholder.local') && !email.includes('@temp.')) {
+      const existingByEmail = await prisma.customer.findFirst({
+        where: {
+          tenantId: auth.tenantId,
+          email: email.trim(),
+        },
+      });
+      if (existingByEmail) {
+        return NextResponse.json(
+          { success: false, message: 'Bu e-posta adresi ile kayıtlı müşteri var' },
+          { status: 400 }
+        );
+      }
+    }
+
     // Parse birthDate if provided
     let parsedBirthDate = null;
     if (birthDate) {
