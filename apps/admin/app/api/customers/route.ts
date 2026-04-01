@@ -149,10 +149,20 @@ export async function POST(request: NextRequest) {
         data: newCustomer
       });
 
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error creating customer:', error);
+
+      // Prisma unique constraint error
+      if (error?.code === 'P2002') {
+        const field = error?.meta?.target?.[0] || 'alan';
+        return NextResponse.json(
+          { success: false, error: `Bu ${field} ile kayıtlı müşteri zaten mevcut` },
+          { status: 400 }
+        );
+      }
+
       return NextResponse.json(
-        { success: false, error: 'Failed to create customer' },
+        { success: false, error: error?.message || 'Müşteri oluşturulurken hata oluştu' },
         { status: 400 }
       );
     }
