@@ -4,7 +4,7 @@ import { useState, useEffect, Suspense } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Button, Card, CardContent, Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '../../../components/ui';
-import { Calendar, Clock, User, X, CheckCircle, AlertCircle, Filter, Star, MessageSquare, LogOut, Home } from 'lucide-react';
+import { Calendar, Clock, User, X, CheckCircle, AlertCircle, Filter, Star, MessageSquare, LogOut, Home, PlusCircle, Package, Search, MapPin, Scissors } from 'lucide-react';
 import { format, parseISO, isBefore, addHours, isAfter, startOfToday, differenceInDays } from 'date-fns';
 import { tr } from 'date-fns/locale';
 
@@ -30,6 +30,7 @@ interface Appointment {
 function RandevularimContent() {
   const router = useRouter();
   const [phoneNumber, setPhoneNumber] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<'appointments' | 'new' | 'packages' | 'profile'>('appointments');
 
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
@@ -49,6 +50,18 @@ function RandevularimContent() {
   const [comment, setComment] = useState('');
   const [submittingFeedback, setSubmittingFeedback] = useState(false);
 
+  // New appointment - business search
+  const [businessSearch, setBusinessSearch] = useState('');
+  const [businesses, setBusinesses] = useState<any[]>([]);
+  const [searchingBusiness, setSearchingBusiness] = useState(false);
+
+  // Packages
+  const [customerPackages, setCustomerPackages] = useState<any[]>([]);
+  const [packagesLoading, setPackagesLoading] = useState(false);
+
+  // Profile
+  const [customerName, setCustomerName] = useState('');
+
   const handleLogout = () => {
     document.cookie = 'customer-session=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
     router.push('/');
@@ -67,9 +80,9 @@ function RandevularimContent() {
 
       if (data.success) {
         setAppointments(data.data);
-        // İlk randevudan telefon numarasını al (UI gösterimi için)
         if (data.data.length > 0 && !phoneNumber) {
           setPhoneNumber(data.data[0].customerPhone);
+          setCustomerName(data.data[0].customerName || '');
         }
       } else if (data.code === 'NO_SESSION' || data.code === 'SESSION_EXPIRED') {
         // Oturum yok veya süresi dolmuş — doğrulama sayfasına yönlendir
@@ -84,6 +97,55 @@ function RandevularimContent() {
       setLoading(false);
     }
   };
+
+  // Search businesses
+  const handleBusinessSearch = async (query: string) => {
+    setBusinessSearch(query);
+    if (query.length < 2) {
+      setBusinesses([]);
+      return;
+    }
+    setSearchingBusiness(true);
+    try {
+      const response = await fetch(`https://admin.netrandevu.com/api/mobile/tenants/search?search=${encodeURIComponent(query)}`);
+      const data = await response.json();
+      if (data.success) {
+        setBusinesses(data.data || []);
+      }
+    } catch {
+      setBusinesses([]);
+    } finally {
+      setSearchingBusiness(false);
+    }
+  };
+
+  // Fetch customer packages
+  const fetchPackages = async () => {
+    if (!phoneNumber) return;
+    setPackagesLoading(true);
+    try {
+      const response = await fetch('https://admin.netrandevu.com/api/customer-packages/check', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone: phoneNumber })
+      });
+      const data = await response.json();
+      if (data.success && data.packages) {
+        setCustomerPackages(data.packages);
+      }
+    } catch {
+      setCustomerPackages([]);
+    } finally {
+      setPackagesLoading(false);
+    }
+  };
+
+  // Fetch packages when tab changes
+  useEffect(() => {
+    if (activeTab === 'packages' && phoneNumber && customerPackages.length === 0) {
+      fetchPackages();
+    }
+  }, [activeTab, phoneNumber]);
 
   const canCancelAppointment = (appointment: Appointment): boolean => {
     // İptal edilmiş veya tamamlanmış randevular iptal edilemez
@@ -262,53 +324,77 @@ function RandevularimContent() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50">
       {/* Header */}
-      <header className="bg-white shadow-sm border-b">
+      <header className="bg-white shadow-sm border-b sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-4">
+          <div className="flex justify-between items-center py-3">
             <div className="flex items-center space-x-4">
               <Link href="/">
                 <img
                   src="https://i.hizliresim.com/4a00l8g.png"
                   alt="Net Randevu Logo"
-                  className="h-10 w-auto"
+                  className="h-8 sm:h-10 w-auto"
                 />
               </Link>
+              {customerName && (
+                <span className="hidden sm:inline text-sm text-gray-500">
+                  Merhaba, <strong className="text-gray-800">{customerName.split(' ')[0]}</strong>
+                </span>
+              )}
             </div>
-            <nav className="flex items-center space-x-2 sm:space-x-3">
+            <div className="flex items-center space-x-2">
               <Link href="/">
-                <Button variant="ghost" size="sm" className="text-gray-600 hover:text-gray-900">
-                  <Home className="w-4 h-4 sm:mr-2" />
-                  <span className="hidden sm:inline">Ana Sayfa</span>
-                </Button>
-              </Link>
-              <Link href="/randevularim/list">
-                <Button variant="ghost" size="sm" className="text-[#163974] bg-blue-50 font-semibold">
-                  <Calendar className="w-4 h-4 sm:mr-2" />
-                  <span className="hidden sm:inline">Randevularım</span>
+                <Button variant="ghost" size="sm" className="text-gray-500 hover:text-gray-700">
+                  <Home className="w-4 h-4" />
                 </Button>
               </Link>
               <Button
                 variant="ghost"
                 size="sm"
-                className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                className="text-red-500 hover:text-red-700 hover:bg-red-50"
                 onClick={handleLogout}
               >
-                <LogOut className="w-4 h-4 sm:mr-2" />
-                <span className="hidden sm:inline">Çıkış</span>
+                <LogOut className="w-4 h-4 sm:mr-1" />
+                <span className="hidden sm:inline text-sm">Çıkış</span>
               </Button>
-            </nav>
+            </div>
           </div>
+        </div>
+        {/* Tab Navigation */}
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <nav className="flex space-x-1 overflow-x-auto pb-0 -mb-px">
+            {[
+              { key: 'appointments' as const, label: 'Randevularım', icon: Calendar },
+              { key: 'new' as const, label: 'Yeni Randevu', icon: PlusCircle },
+              { key: 'packages' as const, label: 'Paketlerim', icon: Package },
+              { key: 'profile' as const, label: 'Profil', icon: User },
+            ].map((tab) => (
+              <button
+                key={tab.key}
+                onClick={() => setActiveTab(tab.key)}
+                className={`flex items-center gap-1.5 px-4 py-3 text-sm font-medium border-b-2 transition whitespace-nowrap ${
+                  activeTab === tab.key
+                    ? 'border-[#163974] text-[#163974]'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                <tab.icon className="w-4 h-4" />
+                <span className="hidden sm:inline">{tab.label}</span>
+                <span className="sm:hidden">{tab.label.split(' ')[0]}</span>
+              </button>
+            ))}
+          </nav>
         </div>
       </header>
 
       {/* Main Content */}
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Page Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            Randevularım
-          </h1>
-          <p className="text-gray-600">
+
+        {/* ==================== APPOINTMENTS TAB ==================== */}
+        {activeTab === 'appointments' && (
+        <div>
+        <div className="mb-6">
+          <h1 className="text-2xl font-bold text-gray-900 mb-1">Randevularım</h1>
+          <p className="text-sm text-gray-500">
             {phoneNumber ? `${phoneNumber.slice(0, 4)}****${phoneNumber.slice(-3)}` : ''} numarasına kayıtlı randevularınız
           </p>
         </div>
@@ -581,6 +667,255 @@ function RandevularimContent() {
             )}
           </>
         )}
+      </div>
+      )}
+
+      {/* ==================== NEW APPOINTMENT TAB ==================== */}
+      {activeTab === 'new' && (
+        <div>
+          <div className="mb-6">
+            <h1 className="text-2xl font-bold text-gray-900 mb-1">Yeni Randevu</h1>
+            <p className="text-sm text-gray-500">Randevu almak istediğiniz işletmeyi arayın</p>
+          </div>
+
+          <Card className="mb-6">
+            <CardContent className="p-6">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                <input
+                  type="text"
+                  value={businessSearch}
+                  onChange={(e) => handleBusinessSearch(e.target.value)}
+                  placeholder="İşletme adı yazın... (en az 2 karakter)"
+                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#163974] focus:border-[#163974] focus:outline-none text-base"
+                />
+              </div>
+            </CardContent>
+          </Card>
+
+          {searchingBusiness && (
+            <div className="text-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#163974] mx-auto mb-3"></div>
+              <p className="text-gray-500 text-sm">Aranıyor...</p>
+            </div>
+          )}
+
+          {!searchingBusiness && businesses.length > 0 && (
+            <div className="space-y-3">
+              {businesses.map((biz: any) => (
+                <Card key={biz.id || biz.slug} className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => router.push(`/${biz.slug}/randevu`)}>
+                  <CardContent className="p-5">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 rounded-xl bg-[#163974]/10 flex items-center justify-center">
+                          <Scissors className="w-6 h-6 text-[#163974]" />
+                        </div>
+                        <div>
+                          <h3 className="font-semibold text-gray-900">{biz.businessName || biz.name}</h3>
+                          {biz.address && (
+                            <p className="text-sm text-gray-500 flex items-center gap-1 mt-0.5">
+                              <MapPin className="w-3 h-3" /> {biz.address}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                      <Button size="sm" className="bg-[#163974] hover:bg-[#0F2A52] text-white">
+                        Randevu Al
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+
+          {!searchingBusiness && businessSearch.length >= 2 && businesses.length === 0 && (
+            <Card>
+              <CardContent className="p-12 text-center">
+                <Search className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                <p className="text-gray-500">İşletme bulunamadı</p>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Son randevu alınan işletmeler */}
+          {businessSearch.length < 2 && appointments.length > 0 && (
+            <div>
+              <h3 className="text-sm font-medium text-gray-500 mb-3 uppercase tracking-wide">Son Randevu Aldığınız İşletmeler</h3>
+              <div className="space-y-3">
+                {Array.from(new Map(appointments.map(a => [a.tenantSlug, a])).values()).slice(0, 5).map((apt) => (
+                  <Card key={apt.tenantSlug} className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => router.push(`/${apt.tenantSlug}/randevu`)}>
+                    <CardContent className="p-5">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-4">
+                          <div className="w-12 h-12 rounded-xl bg-green-50 flex items-center justify-center">
+                            <Scissors className="w-6 h-6 text-green-600" />
+                          </div>
+                          <div>
+                            <h3 className="font-semibold text-gray-900">{apt.tenantName}</h3>
+                            <p className="text-xs text-gray-400">Son randevu: {format(parseISO(apt.date), 'dd MMM yyyy', { locale: tr })}</p>
+                          </div>
+                        </div>
+                        <Button size="sm" variant="outline" className="border-green-300 text-green-700 hover:bg-green-50">
+                          Tekrar Al
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ==================== PACKAGES TAB ==================== */}
+      {activeTab === 'packages' && (
+        <div>
+          <div className="mb-6">
+            <h1 className="text-2xl font-bold text-gray-900 mb-1">Paketlerim</h1>
+            <p className="text-sm text-gray-500">Satın aldığınız hizmet paketleri</p>
+          </div>
+
+          {packagesLoading ? (
+            <div className="text-center py-12">
+              <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#163974] mx-auto mb-3"></div>
+              <p className="text-gray-500">Paketler yükleniyor...</p>
+            </div>
+          ) : customerPackages.length === 0 ? (
+            <Card>
+              <CardContent className="p-12 text-center">
+                <Package className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">Henüz Paketiniz Yok</h3>
+                <p className="text-gray-500 mb-6">Randevu aldığınız işletmelerden paket satın alabilirsiniz.</p>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="space-y-4">
+              {customerPackages.map((pkg: any) => (
+                <Card key={pkg.id} className="overflow-hidden">
+                  <div className="bg-gradient-to-r from-[#163974] to-[#1e4a8f] px-6 py-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h3 className="text-lg font-bold text-white">{pkg.package?.name || 'Paket'}</h3>
+                        <p className="text-blue-200 text-sm">{pkg.package?.description || ''}</p>
+                      </div>
+                      {pkg.expiresAt && (
+                        <div className="text-right">
+                          <p className="text-xs text-blue-200">Son Kullanma</p>
+                          <p className="text-sm font-semibold text-white">
+                            {format(new Date(pkg.expiresAt), 'dd MMM yyyy', { locale: tr })}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  <CardContent className="p-6">
+                    <div className="space-y-3">
+                      {(pkg.usages || []).map((usage: any) => {
+                        const percent = usage.totalQuantity > 0 ? ((usage.totalQuantity - usage.remainingQuantity) / usage.totalQuantity) * 100 : 0;
+                        return (
+                          <div key={usage.id}>
+                            <div className="flex justify-between items-center mb-1.5">
+                              <span className="text-sm font-medium text-gray-700">{usage.itemName}</span>
+                              <span className="text-sm text-gray-500">
+                                <strong className="text-[#163974]">{usage.remainingQuantity}</strong> / {usage.totalQuantity} kalan
+                              </span>
+                            </div>
+                            <div className="h-2.5 bg-gray-100 rounded-full overflow-hidden">
+                              <div
+                                className="h-full rounded-full bg-gradient-to-r from-[#163974] to-blue-500 transition-all"
+                                style={{ width: `${100 - percent}%` }}
+                              />
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ==================== PROFILE TAB ==================== */}
+      {activeTab === 'profile' && (
+        <div>
+          <div className="mb-6">
+            <h1 className="text-2xl font-bold text-gray-900 mb-1">Profil</h1>
+            <p className="text-sm text-gray-500">Hesap bilgileriniz</p>
+          </div>
+
+          <Card className="mb-6">
+            <CardContent className="p-6">
+              <div className="flex items-center gap-4 mb-6">
+                <div className="w-16 h-16 rounded-full bg-[#163974] flex items-center justify-center">
+                  <span className="text-2xl font-bold text-white">
+                    {customerName ? customerName.charAt(0).toUpperCase() : '?'}
+                  </span>
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold text-gray-900">{customerName || 'Müşteri'}</h2>
+                  <p className="text-gray-500 text-sm">
+                    {phoneNumber ? `${phoneNumber.slice(0, 4)}****${phoneNumber.slice(-3)}` : ''}
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="bg-blue-50 rounded-xl p-4 text-center">
+                  <p className="text-2xl font-bold text-[#163974]">{appointments.length}</p>
+                  <p className="text-sm text-gray-600">Toplam Randevu</p>
+                </div>
+                <div className="bg-green-50 rounded-xl p-4 text-center">
+                  <p className="text-2xl font-bold text-green-600">
+                    {appointments.filter(a => a.status === 'completed').length}
+                  </p>
+                  <p className="text-sm text-gray-600">Tamamlanan</p>
+                </div>
+                <div className="bg-purple-50 rounded-xl p-4 text-center">
+                  <p className="text-2xl font-bold text-purple-600">{customerPackages.length}</p>
+                  <p className="text-sm text-gray-600">Aktif Paket</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="mb-6">
+            <CardContent className="p-6">
+              <h3 className="font-semibold text-gray-900 mb-4">Randevu Aldığım İşletmeler</h3>
+              {Array.from(new Map(appointments.map(a => [a.tenantSlug, a])).values()).length === 0 ? (
+                <p className="text-gray-500 text-sm">Henüz randevu almadınız.</p>
+              ) : (
+                <div className="space-y-3">
+                  {Array.from(new Map(appointments.map(a => [a.tenantSlug, { name: a.tenantName, slug: a.tenantSlug, count: appointments.filter(x => x.tenantSlug === a.tenantSlug).length }])).values()).map((tenant: any) => (
+                    <div key={tenant.slug} className="flex items-center justify-between py-2 border-b last:border-0">
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-lg bg-gray-100 flex items-center justify-center">
+                          <Scissors className="w-4 h-4 text-gray-500" />
+                        </div>
+                        <span className="font-medium text-gray-800">{tenant.name}</span>
+                      </div>
+                      <span className="text-sm text-gray-400">{tenant.count} randevu</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          <Button
+            variant="outline"
+            className="w-full border-red-300 text-red-600 hover:bg-red-50"
+            onClick={handleLogout}
+          >
+            <LogOut className="w-4 h-4 mr-2" />
+            Çıkış Yap
+          </Button>
+        </div>
+      )}
       </div>
 
       {/* Feedback Modal */}

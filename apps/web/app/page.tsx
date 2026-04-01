@@ -47,6 +47,9 @@ export default function Home() {
   const [timeLeft, setTimeLeft] = useState(120);
   const [canResend, setCanResend] = useState(false);
 
+  // Customer session
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
   // PWA Install
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [showInstallButton, setShowInstallButton] = useState(false);
@@ -54,6 +57,10 @@ export default function Home() {
 
   useEffect(() => {
     fetchData();
+
+    // Check if customer is logged in
+    const hasSession = document.cookie.split(';').some(c => c.trim().startsWith('customer-session='));
+    setIsLoggedIn(hasSession);
 
     // iOS tespit et
     const isIOSDevice = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
@@ -315,6 +322,20 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-white">
+      {/* Logged-in Customer Top Bar */}
+      {isLoggedIn && (
+        <div className="bg-[#163974] text-white py-2.5 px-4 flex items-center justify-center gap-3 sticky top-0 z-[70]">
+          <User className="w-4 h-4" />
+          <span className="text-sm font-medium">Hoş geldiniz! Müşteri panelinize dönmek ister misiniz?</span>
+          <button
+            onClick={() => router.push('/randevularim/list')}
+            className="bg-white text-[#163974] px-4 py-1 rounded-full text-sm font-bold hover:bg-blue-50 transition"
+          >
+            Panelime Git
+          </button>
+        </div>
+      )}
+
       {/* App Install Top Bar - Sadece mobilde */}
       {showInstallButton && (
         <div className="bg-gradient-to-r from-green-500 to-emerald-600 text-white py-2.5 px-4 flex items-center justify-center gap-3 sticky top-0 z-[60]">
@@ -330,7 +351,7 @@ export default function Home() {
       )}
 
       {/* Header */}
-      <header className={`sticky ${showInstallButton ? 'top-[44px]' : 'top-0'} bg-white/80 backdrop-blur-md shadow-sm z-50`}>
+      <header className={`sticky ${isLoggedIn && showInstallButton ? 'top-[88px]' : isLoggedIn ? 'top-[44px]' : showInstallButton ? 'top-[44px]' : 'top-0'} bg-white/80 backdrop-blur-md shadow-sm z-50`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-4">
             <div className="flex items-center">
