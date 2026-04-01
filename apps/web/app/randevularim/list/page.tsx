@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, Suspense } from 'react';
-import { useSearchParams, useRouter } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Button, Card, CardContent, Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '../../../components/ui';
 import { ArrowLeft, Calendar, Clock, User, Phone, Mail, X, CheckCircle, AlertCircle, Filter, Star, MessageSquare } from 'lucide-react';
@@ -28,11 +28,8 @@ interface Appointment {
 }
 
 function RandevularimContent() {
-  const searchParams = useSearchParams();
   const router = useRouter();
-  // Geriye uyumluluk: URL'de phone varsa kullan, yoksa session cookie'den gelir
-  const phoneFromUrl = searchParams.get('phone');
-  const [phoneNumber, setPhoneNumber] = useState<string | null>(phoneFromUrl);
+  const [phoneNumber, setPhoneNumber] = useState<string | null>(null);
 
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);

@@ -189,7 +189,7 @@ export default function Home() {
       if (data.success) {
         setOtpSuccess('Doğrulama başarılı! Yönlendiriliyorsunuz...');
         setTimeout(() => {
-          router.push(`/randevularim/list?phone=${encodeURIComponent(phoneNumber)}`);
+          router.push('/randevularim/list');
         }, 1000);
       } else {
         setOtpError(data.error || 'Hatalı doğrulama kodu');
