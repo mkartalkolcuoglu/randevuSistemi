@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -62,6 +62,7 @@ interface Customer {
   id: string;
   firstName: string;
   lastName: string;
+  phone?: string;
 }
 
 // Type configuration
@@ -123,6 +124,8 @@ export default function CashierScreen() {
   const [showCustomerPicker, setShowCustomerPicker] = useState(false);
   const [productSearch, setProductSearch] = useState('');
   const [customerSearch, setCustomerSearch] = useState('');
+  const [customerPackages, setCustomerPackages] = useState<any[]>([]);
+  const [matchingUsage, setMatchingUsage] = useState<any>(null);
 
   // Fetch transactions
   const fetchTransactions = async (showRefresh = false) => {
@@ -179,7 +182,42 @@ export default function CashierScreen() {
     setSaleQuantity('1');
     setProductSearch('');
     setCustomerSearch('');
+    setCustomerPackages([]);
+    setMatchingUsage(null);
   };
+
+  // Fetch customer packages when customer changes
+  useEffect(() => {
+    if (!selectedCustomer?.phone) {
+      setCustomerPackages([]);
+      setMatchingUsage(null);
+      return;
+    }
+    api.post('/api/customer-packages/check', { phone: selectedCustomer.phone })
+      .then(res => {
+        if (res.data?.success && res.data?.hasPackages) setCustomerPackages(res.data.packages || []);
+        else setCustomerPackages([]);
+      })
+      .catch(() => setCustomerPackages([]));
+  }, [selectedCustomer?.id]);
+
+  // Check if selected product matches a customer package
+  useEffect(() => {
+    if (!selectedProduct || customerPackages.length === 0) {
+      setMatchingUsage(null);
+      return;
+    }
+    for (const pkg of customerPackages) {
+      const match = (pkg.usages || []).find((u: any) =>
+        u.itemType === 'product' && u.itemId === selectedProduct.id && u.remainingQuantity > 0
+      );
+      if (match) {
+        setMatchingUsage({ ...match, packageName: pkg.package?.name, customerPackageId: pkg.id });
+        return;
+      }
+    }
+    setMatchingUsage(null);
+  }, [selectedProduct?.id, customerPackages]);
 
   // Handle add income
   const handleAddIncome = async () => {
@@ -262,11 +300,15 @@ export default function CashierScreen() {
 
     setIsSubmitting(true);
     try {
-      const totalAmount = (selectedProduct.price || 0) * qty;
-      const response = await api.post('/api/mobile/transactions', {
+      const isPackage = formPaymentType === 'package' && matchingUsage;
+      const totalAmount = isPackage ? 0 : (selectedProduct.price || 0) * qty;
+
+      const payload: any = {
         type: 'sale',
         amount: totalAmount,
-        description: `${selectedProduct.name} satışı`,
+        description: isPackage
+          ? `${selectedProduct.name} satışı (Paketten - ${matchingUsage.packageName})`
+          : `${selectedProduct.name} satışı`,
         paymentType: formPaymentType,
         productId: selectedProduct.id,
         productName: selectedProduct.name,
@@ -274,7 +316,18 @@ export default function CashierScreen() {
         customerId: selectedCustomer?.id || null,
         customerName: selectedCustomer ? `${selectedCustomer.firstName} ${selectedCustomer.lastName}` : null,
         date: formDate,
-      });
+      };
+
+      if (isPackage) {
+        payload.packageInfo = {
+          customerPackageId: matchingUsage.customerPackageId,
+          usageId: matchingUsage.id,
+          packageName: matchingUsage.packageName,
+          productId: selectedProduct.id,
+        };
+      }
+
+      const response = await api.post('/api/mobile/transactions', payload);
 
       if (response.data.success) {
         Alert.alert('Başarılı', 'Satış eklendi');
@@ -735,21 +788,34 @@ export default function CashierScreen() {
               />
             </View>
 
+            {/* Package Banner */}
+            {matchingUsage && (
+              <View style={{ padding: 12, backgroundColor: '#F0FDF4', borderRadius: 10, borderWidth: 1, borderColor: '#BBF7D0' }}>
+                <Text style={{ fontSize: 13, fontWeight: '600', color: '#15803D' }}>
+                  🎁 Bu ürün müşterinin paketinde mevcut!
+                </Text>
+                <Text style={{ fontSize: 12, color: '#166534', marginTop: 2 }}>
+                  {matchingUsage.packageName} - {matchingUsage.itemName} ({matchingUsage.remainingQuantity} kalan)
+                </Text>
+              </View>
+            )}
+
             {/* Payment Type */}
             <View style={styles.formGroup}>
               <Text style={styles.formLabel}>Ödeme Tipi</Text>
               <View style={styles.paymentSelector}>
-                {['cash', 'card', 'transfer'].map((type) => (
+                {['cash', 'card', 'transfer', ...(matchingUsage ? ['package'] : [])].map((type) => (
                   <TouchableOpacity
                     key={type}
                     style={[
                       styles.paymentOption,
                       formPaymentType === type && styles.paymentOptionActive,
+                      type === 'package' && formPaymentType === type && { backgroundColor: '#D97706' },
                     ]}
                     onPress={() => setFormPaymentType(type)}
                   >
                     <Ionicons
-                      name={type === 'cash' ? 'cash' : type === 'card' ? 'card' : 'swap-horizontal'}
+                      name={type === 'cash' ? 'cash' : type === 'card' ? 'card' : type === 'package' ? 'gift' : 'swap-horizontal'}
                       size={18}
                       color={formPaymentType === type ? '#fff' : '#6B7280'}
                     />
@@ -759,7 +825,7 @@ export default function CashierScreen() {
                         formPaymentType === type && styles.paymentOptionTextActive,
                       ]}
                     >
-                      {PAYMENT_LABELS[type]}
+                      {PAYMENT_LABELS[type] || type}
                     </Text>
                   </TouchableOpacity>
                 ))}
@@ -781,7 +847,7 @@ export default function CashierScreen() {
                 <View style={[styles.saleSummaryRow, styles.saleSummaryTotal]}>
                   <Text style={styles.saleSummaryTotalLabel}>Toplam:</Text>
                   <Text style={styles.saleSummaryTotalValue}>
-                    {formatCurrency(selectedProduct.price * (parseInt(saleQuantity) || 1))}
+                    {formPaymentType === 'package' && matchingUsage ? '🎁 Paketten' : formatCurrency(selectedProduct.price * (parseInt(saleQuantity) || 1))}
                   </Text>
                 </View>
               </View>

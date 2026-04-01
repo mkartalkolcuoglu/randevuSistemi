@@ -255,6 +255,28 @@ export async function POST(request: NextRequest) {
       },
     });
 
+    // Deduct from package if payment type is package
+    if (paymentType === 'package' && body.packageInfo?.usageId) {
+      try {
+        const usage = await prisma.customerPackageUsage.findUnique({
+          where: { id: body.packageInfo.usageId }
+        });
+        if (usage && usage.remainingQuantity > 0) {
+          const qty = quantity ? parseInt(quantity) : 1;
+          await prisma.customerPackageUsage.update({
+            where: { id: usage.id },
+            data: {
+              usedQuantity: usage.usedQuantity + qty,
+              remainingQuantity: Math.max(0, usage.remainingQuantity - qty)
+            }
+          });
+          console.log('🎁 [MOBILE] Package deducted for sale:', body.packageInfo.usageId);
+        }
+      } catch (err) {
+        console.error('🎁 [MOBILE] Error deducting package for sale:', err);
+      }
+    }
+
     return NextResponse.json({
       success: true,
       message: 'İşlem eklendi',
