@@ -497,9 +497,9 @@ export default function EditAppointmentScreen() {
               <Ionicons name="add-circle" size={20} color="#D97706" />
             </View>
             <View style={styles.sectionInfo}>
-              <Text style={styles.sectionLabel}>Ek Ucret</Text>
+              <Text style={styles.sectionLabel}>Ek Ücret</Text>
               <Text style={styles.sectionValue}>
-                {parseFloat(extraCharge) > 0 ? `${extraCharge} TL` : 'Ek ucret yok'}
+                {parseFloat(extraCharge) > 0 ? `${extraCharge} TL` : 'Ek ücret yok'}
                 {extraChargeNote ? ` - ${extraChargeNote}` : ''}
               </Text>
             </View>
@@ -513,7 +513,7 @@ export default function EditAppointmentScreen() {
 
         {activeSection === 'extraCharge' && (
           <View style={styles.expandedSection}>
-            <Text style={styles.inputLabel}>Ek Ucret (TL)</Text>
+            <Text style={styles.inputLabel}>Ek Ücret (TL)</Text>
             <TextInput
               style={styles.input}
               placeholder="0"
@@ -521,10 +521,10 @@ export default function EditAppointmentScreen() {
               value={extraCharge}
               onChangeText={setExtraCharge}
             />
-            <Text style={styles.inputLabel}>Ek Ucret Notu</Text>
+            <Text style={styles.inputLabel}>Ek Ücret Notu</Text>
             <TextInput
               style={styles.input}
-              placeholder="Ek ucret aciklamasi (orn: ek malzeme, uzatma)"
+              placeholder="Ek ücret açıklaması (örn: ek malzeme, uzatma)"
               value={extraChargeNote}
               onChangeText={setExtraChargeNote}
             />
