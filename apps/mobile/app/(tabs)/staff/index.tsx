@@ -50,6 +50,7 @@ export default function StaffHomeScreen() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [unreadNotifications, setUnreadNotifications] = useState(0);
+  const [selectedApt, setSelectedApt] = useState<Appointment | null>(null);
 
   // Onboarding state
   const [showOnboarding, setShowOnboarding] = useState(false);
@@ -355,17 +356,12 @@ export default function StaffHomeScreen() {
                 <TouchableOpacity
                   key={apt.id}
                   style={styles.scheduleCard}
-                  onPress={() => router.push('/(tabs)/staff/calendar')}
+                  onPress={() => setSelectedApt(apt)}
                   activeOpacity={0.7}
                 >
                   <View style={[styles.scheduleIndicator, { backgroundColor: status.text }]} />
                   <View style={styles.scheduleBody}>
                     <View style={styles.scheduleRow}>
-                      <View style={styles.scheduleAvatar}>
-                        <Text style={styles.scheduleAvatarText}>
-                          {apt.customerName?.charAt(0)?.toUpperCase()}
-                        </Text>
-                      </View>
                       <View style={styles.scheduleInfo}>
                         <Text style={styles.scheduleCustomer} numberOfLines={1}>{apt.customerName}</Text>
                         <Text style={styles.scheduleService} numberOfLines={1}>{apt.serviceName}</Text>
@@ -399,6 +395,83 @@ export default function StaffHomeScreen() {
 
         <View style={{ height: 100 }} />
       </ScrollView>
+
+      {/* Appointment Detail Bottom Sheet */}
+      {selectedApt && (() => {
+        const s = STATUS_CONFIG[selectedApt.status] || STATUS_CONFIG.pending;
+        return (
+          <TouchableOpacity
+            style={styles.sheetOverlay}
+            activeOpacity={1}
+            onPress={() => setSelectedApt(null)}
+          >
+            <TouchableOpacity activeOpacity={1} style={styles.sheetContainer}>
+              <View style={styles.sheetHandle} />
+              <View style={[styles.sheetHeader, { backgroundColor: s.text }]}>
+                <View>
+                  <Text style={styles.sheetHeaderLabel}>{s.label}</Text>
+                  <Text style={styles.sheetHeaderTime}>{formatTime(selectedApt.time)} • {selectedApt.duration} dk</Text>
+                </View>
+                <TouchableOpacity onPress={() => setSelectedApt(null)} style={styles.sheetClose}>
+                  <Ionicons name="close" size={22} color="#fff" />
+                </TouchableOpacity>
+              </View>
+              <View style={styles.sheetBody}>
+                <View style={styles.sheetRow}>
+                  <View style={[styles.sheetIcon, { backgroundColor: '#EFF6FF' }]}>
+                    <Ionicons name="calendar" size={20} color="#3B82F6" />
+                  </View>
+                  <View>
+                    <Text style={styles.sheetLabel}>Tarih</Text>
+                    <Text style={styles.sheetValue}>
+                      {new Date(selectedApt.date + 'T00:00:00').toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', weekday: 'long' })}
+                    </Text>
+                  </View>
+                </View>
+                <View style={styles.sheetRow}>
+                  <View style={[styles.sheetIcon, { backgroundColor: '#FEF3C7' }]}>
+                    <Ionicons name="person" size={20} color="#D97706" />
+                  </View>
+                  <View>
+                    <Text style={styles.sheetLabel}>Müşteri</Text>
+                    <Text style={styles.sheetValue}>{selectedApt.customerName}</Text>
+                  </View>
+                </View>
+                <View style={styles.sheetRow}>
+                  <View style={[styles.sheetIcon, { backgroundColor: '#D1FAE5' }]}>
+                    <Ionicons name="cut" size={20} color="#059669" />
+                  </View>
+                  <View>
+                    <Text style={styles.sheetLabel}>Hizmet</Text>
+                    <Text style={styles.sheetValue}>{selectedApt.serviceName}</Text>
+                    {selectedApt.price > 0 && <Text style={{ fontSize: 13, color: '#059669', fontWeight: '600', marginTop: 2 }}>{selectedApt.price.toLocaleString('tr-TR')} ₺</Text>}
+                  </View>
+                </View>
+                {selectedApt.staffName && (
+                  <View style={styles.sheetRow}>
+                    <View style={[styles.sheetIcon, { backgroundColor: '#F3E8FF' }]}>
+                      <Ionicons name="people" size={20} color="#7C3AED" />
+                    </View>
+                    <View>
+                      <Text style={styles.sheetLabel}>Personel</Text>
+                      <Text style={styles.sheetValue}>{selectedApt.staffName}</Text>
+                    </View>
+                  </View>
+                )}
+              </View>
+              <View style={{ paddingHorizontal: 20, paddingBottom: 30 }}>
+                <TouchableOpacity
+                  style={styles.sheetButton}
+                  onPress={() => { setSelectedApt(null); router.push(`/appointment/${selectedApt.id}`); }}
+                >
+                  <Ionicons name="create-outline" size={18} color="#fff" />
+                  <Text style={styles.sheetButtonText}>Düzenle</Text>
+                </TouchableOpacity>
+              </View>
+            </TouchableOpacity>
+          </TouchableOpacity>
+        );
+      })()}
 
       {/* Drawer Menu */}
       <DrawerMenu isOpen={drawerOpen} onClose={() => setDrawerOpen(false)} />
@@ -772,5 +845,93 @@ const styles = StyleSheet.create({
   scheduleMetaText: {
     fontSize: 12,
     color: '#9CA3AF',
+  },
+  sheetOverlay: {
+    position: 'absolute',
+    top: 0, left: 0, right: 0, bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    justifyContent: 'flex-end',
+  },
+  sheetContainer: {
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+  },
+  sheetHandle: {
+    width: 36,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: '#D1D5DB',
+    alignSelf: 'center',
+    marginTop: 10,
+    marginBottom: 6,
+  },
+  sheetHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+  },
+  sheetHeaderLabel: {
+    fontSize: 14,
+    color: 'rgba(255,255,255,0.8)',
+    fontWeight: '500',
+  },
+  sheetHeaderTime: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: '#fff',
+    marginTop: 2,
+  },
+  sheetClose: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  sheetBody: {
+    padding: 20,
+    gap: 18,
+  },
+  sheetRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+  },
+  sheetIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  sheetLabel: {
+    fontSize: 12,
+    color: '#9CA3AF',
+  },
+  sheetValue: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#111827',
+    marginTop: 1,
+  },
+  sheetButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: '#3B82F6',
+    paddingVertical: 14,
+    borderRadius: 12,
+  },
+  sheetButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
   },
 });
