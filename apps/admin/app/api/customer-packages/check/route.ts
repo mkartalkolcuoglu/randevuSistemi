@@ -45,6 +45,20 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Fallback: get tenantId from session cookie (admin panel)
+    if (!actualTenantId) {
+      try {
+        const { cookies } = await import('next/headers');
+        const cookieStore = await cookies();
+        const sessionCookie = cookieStore.get('tenant-session');
+        if (sessionCookie) {
+          const session = JSON.parse(sessionCookie.value);
+          actualTenantId = session.tenantId;
+          console.log('✅ Tenant found from session:', actualTenantId);
+        }
+      } catch {}
+    }
+
     if (!actualTenantId) {
       return NextResponse.json(
         { success: false, error: 'Tenant bilgisi bulunamadı' },
