@@ -87,11 +87,8 @@ export async function GET(request: NextRequest) {
       } catch {}
     }
 
-    // Step 6: Theme/Logo - check if any theme customization was done
-    const defaultLogo = 'https://ui-avatars.com/api/';
-    const hasCustomLogo = theme.logo && !theme.logo.startsWith(defaultLogo);
-    const hasCustomColor = theme.primaryColor && theme.primaryColor !== '#163974';
-    if (hasCustomLogo || hasCustomColor) {
+    // Step 6: Theme/Logo - check if any theme data was saved
+    if (theme.primaryColor || (theme.logo && !theme.logo.startsWith('https://ui-avatars.com/api/'))) {
       completedSteps.push('theme');
     }
 
