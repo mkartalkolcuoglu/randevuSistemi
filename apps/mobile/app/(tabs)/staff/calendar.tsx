@@ -44,7 +44,7 @@ const DAY_WIDTH = (SCREEN_WIDTH - 48) / 7;
 
 // Time-grid constants
 const TIME_LABEL_WIDTH = 50;
-const HOUR_HEIGHT = 120; // pixels per hour (fixed)
+const HOUR_HEIGHT = 60; // pixels per hour (fixed)
 const STAFF_HEADER_HEIGHT = 40;
 const DEFAULT_INTERVAL = 30; // default appointment interval in minutes
 const DEFAULT_START_HOUR = 8;
