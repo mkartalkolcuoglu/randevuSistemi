@@ -200,7 +200,7 @@ export default function OnboardingWizard({ visible, completedSteps: initialCompl
     setSaving(true);
     try {
       await api.put('/api/mobile/settings', {
-        themeSettings: { primaryColor },
+        theme: { primaryColor },
       });
       markComplete('theme');
       goNext();
