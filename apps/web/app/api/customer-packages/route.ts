@@ -43,15 +43,15 @@ export async function GET(request: NextRequest) {
 
     const customerIds = customers.map(c => c.id);
 
-    // Use raw query to get packages since web schema may not have CustomerPackage model
+    // Use raw query with actual snake_case table names
     const packages = await prisma.$queryRawUnsafe(`
       SELECT
         cp.id, cp."customerId", cp."packageId", cp."tenantId", cp."assignedAt", cp."expiresAt", cp.status,
         p.name as "packageName", p.description as "packageDescription",
         t."businessName" as "tenantName"
-      FROM "CustomerPackage" cp
-      JOIN "Package" p ON p.id = cp."packageId"
-      JOIN "Tenant" t ON t.id = cp."tenantId"
+      FROM customer_packages cp
+      JOIN packages p ON p.id = cp."packageId"
+      JOIN tenants t ON t.id = cp."tenantId"
       WHERE cp."customerId" = ANY($1::text[]) AND cp.status = 'active'
       ORDER BY cp."assignedAt" DESC
     `, customerIds);
@@ -61,7 +61,7 @@ export async function GET(request: NextRequest) {
     const usages = packageIds.length > 0 ? await prisma.$queryRawUnsafe(`
       SELECT id, "customerPackageId", "itemType", "itemId", "itemName",
              "totalQuantity", "usedQuantity", "remainingQuantity"
-      FROM "CustomerPackageUsage"
+      FROM customer_package_usage
       WHERE "customerPackageId" = ANY($1::text[]) AND "remainingQuantity" > 0
     `, packageIds) : [];
 
