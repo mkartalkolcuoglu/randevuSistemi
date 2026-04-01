@@ -462,7 +462,7 @@ export default function StaffHomeScreen() {
               <View style={{ paddingHorizontal: 20, paddingBottom: 30 }}>
                 <TouchableOpacity
                   style={styles.sheetButton}
-                  onPress={() => { setSelectedApt(null); router.push(`/appointment/${selectedApt.id}`); }}
+                  onPress={() => { setSelectedApt(null); router.push({ pathname: '/appointment/edit', params: { id: selectedApt.id } }); }}
                 >
                   <Ionicons name="create-outline" size={18} color="#fff" />
                   <Text style={styles.sheetButtonText}>Düzenle</Text>
