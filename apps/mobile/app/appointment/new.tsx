@@ -144,6 +144,8 @@ export default function NewAppointmentScreen() {
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       });
+      // Fetch packages for pre-selected customer
+      fetchCustomerPackages(params.customerPhone);
     }
   }, [params.customerId]);
 
@@ -412,7 +414,10 @@ export default function NewAppointmentScreen() {
   // Fetch customer packages
   const fetchCustomerPackages = async (phone: string) => {
     try {
-      const response = await api.post('/api/customer-packages/check', { phone });
+      const response = await api.post('/api/customer-packages/check', {
+        phone,
+        tenantId: selectedTenant?.id
+      });
       if (response.data?.success && response.data?.hasPackages) {
         setCustomerPackages(response.data.packages || []);
       } else {
