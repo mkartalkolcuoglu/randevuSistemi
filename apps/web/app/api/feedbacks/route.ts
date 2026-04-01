@@ -90,6 +90,46 @@ export async function POST(request: NextRequest) {
 
     console.log(`✅ Feedback created for appointment ${appointmentId}`);
 
+    // Bildirim oluştur (DB - web ve mobilde görünür)
+    prisma.notification.create({
+      data: {
+        tenantId: appointment.tenantId,
+        type: 'new_feedback',
+        title: 'Yeni Değerlendirme',
+        message: `${customerName} - ${'⭐'.repeat(rating)} (${staffName}, ${serviceName})`,
+        link: '/admin/feedbacks'
+      }
+    }).then(n => {
+      console.log('🔔 Feedback notification created:', n.id);
+    }).catch(err => {
+      console.error('🔔 Failed to create feedback notification:', err);
+    });
+
+    // WhatsApp ile işletmeye bildirim gönder
+    try {
+      const tenant = await prisma.tenant.findUnique({
+        where: { id: appointment.tenantId },
+        select: { phone: true, businessName: true }
+      });
+
+      if (tenant?.phone) {
+        const stars = '⭐'.repeat(rating);
+        const whatsappMessage = `📋 Yeni Değerlendirme!\n\n${stars} (${rating}/5)\n👤 Müşteri: ${customerName}\n✂️ Hizmet: ${serviceName}\n👩‍💼 Personel: ${staffName}${comment ? `\n💬 Yorum: ${comment}` : ''}\n\n${tenant.businessName} - Net Randevu`;
+
+        fetch('https://admin.netrandevu.com/api/whapi/send-message', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ to: tenant.phone, message: whatsappMessage })
+        }).then(res => {
+          console.log('📱 Feedback WhatsApp notification sent, status:', res.status);
+        }).catch(err => {
+          console.error('📱 Failed to send feedback WhatsApp:', err);
+        });
+      }
+    } catch (err) {
+      console.error('📱 Error sending feedback notification:', err);
+    }
+
     return NextResponse.json({
       success: true,
       data: feedback,
