@@ -158,6 +158,23 @@ export async function PUT(
       );
     }
 
+    // Check if email is used by another customer
+    if (email && email.trim() && !email.includes('@placeholder.local') && !email.includes('@temp.local')) {
+      const emailInUse = await prisma.customer.findFirst({
+        where: {
+          tenantId: auth.tenantId,
+          email: email.trim(),
+          id: { not: id },
+        },
+      });
+      if (emailInUse) {
+        return NextResponse.json(
+          { success: false, message: 'Bu e-posta adresi başka bir müşteriye ait' },
+          { status: 400 }
+        );
+      }
+    }
+
     // Parse birthDate if provided
     let parsedBirthDate = existingCustomer.birthDate;
     if (birthDate) {
