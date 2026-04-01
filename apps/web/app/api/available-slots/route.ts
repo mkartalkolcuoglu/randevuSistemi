@@ -110,21 +110,20 @@ export async function GET(request: NextRequest) {
       }
     });
     
-    // Rezerve edilmiş saatleri hesapla
-    const bookedTimes = new Set();
-    existingAppointments.forEach(appointment => {
-      const [hours, minutes] = appointment.time.split(':').map(Number);
-      const startTime = hours * 60 + minutes; // dakika cinsinden
-      const duration = appointment.duration || 60; // varsayılan 60 dakika
-      
-      // Randevu süresince tüm interval'luk dilimleri rezerve et
-      for (let i = 0; i < duration; i += appointmentTimeInterval) {
-        const timeInMinutes = startTime + i;
-        const h = Math.floor(timeInMinutes / 60);
-        const m = timeInMinutes % 60;
-        const timeString = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
-        bookedTimes.add(timeString);
-      }
+    // Get selected service duration for overlap check
+    let serviceDuration = 60; // default
+    try {
+      const service = await prisma.service.findUnique({
+        where: { id: serviceId },
+        select: { duration: true }
+      });
+      if (service?.duration) serviceDuration = service.duration;
+    } catch {}
+
+    // Prepare existing appointments for overlap check
+    const parsedAppointments = existingAppointments.map(apt => {
+      const [h, m] = apt.time.split(':').map(Number);
+      return { start: h * 60 + m, end: h * 60 + m + (apt.duration || 60) };
     });
     
     // Get current time in Turkey timezone (UTC+3)
@@ -151,9 +150,10 @@ export async function GET(request: NextRequest) {
       // If today, check if time slot is in the past
       const isPast = isToday && slotTimeInMinutes <= currentTimeInMinutes;
       
-      // Bu saat rezerve edilmiş mi kontrol et
-      const isBooked = bookedTimes.has(timeString);
-      
+      // Check overlap: if new appointment starts at this slot, does it clash with existing?
+      const slotEnd = slotTimeInMinutes + serviceDuration;
+      const isBooked = parsedAppointments.some(apt => slotTimeInMinutes < apt.end && slotEnd > apt.start);
+
       // Available only if not booked AND not in the past
       const isAvailable = !isBooked && !isPast;
       

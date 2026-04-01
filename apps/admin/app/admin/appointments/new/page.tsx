@@ -121,7 +121,7 @@ export default function NewAppointmentPage() {
     setAvailableTimeSlots(filtered);
   }, [formData.date, workingHours, timeInterval, blockedDates]);
 
-  // Fetch booked time slots when date or staff changes
+  // Fetch booked time slots when date, staff, or service duration changes
   useEffect(() => {
     const fetchBookedSlots = async () => {
       if (!formData.date || !formData.staffId) {
@@ -133,22 +133,31 @@ export default function NewAppointmentPage() {
         const response = await fetch(`/api/appointments?date=${formData.date}&staffId=${formData.staffId}&limit=100`);
         if (response.ok) {
           const data = await response.json();
-          const appointments = data.data || [];
+          const appointments = (data.data || []).filter((apt: any) => apt.status !== 'cancelled');
+          const newDuration = formData.duration || 60;
+          const interval = timeInterval || 30;
+
+          // Generate all possible slot times
+          const allSlots = availableTimeSlots.length > 0 ? availableTimeSlots : allTimeSlots;
           const booked: string[] = [];
 
-          appointments.forEach((apt: any) => {
-            if (apt.status === 'cancelled' || apt.status === 'completed') return;
-            const [aptH, aptM] = (apt.time || '').split(':').map(Number);
-            if (isNaN(aptH)) return;
-            const aptStart = aptH * 60 + aptM;
-            const aptDuration = apt.duration || 60;
+          allSlots.forEach((slotTime) => {
+            const [slotH, slotM] = slotTime.split(':').map(Number);
+            const slotStart = slotH * 60 + slotM;
+            const slotEnd = slotStart + newDuration;
 
-            // Mark all intervals during appointment as booked
-            for (let i = 0; i < aptDuration; i += (timeInterval || 30)) {
-              const t = aptStart + i;
-              const h = Math.floor(t / 60);
-              const m = t % 60;
-              booked.push(`${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`);
+            // Check overlap with each existing appointment
+            for (const apt of appointments) {
+              const [aptH, aptM] = (apt.time || '').split(':').map(Number);
+              if (isNaN(aptH)) continue;
+              const aptStart = aptH * 60 + aptM;
+              const aptEnd = aptStart + (apt.duration || 60);
+
+              // Overlap: new appointment would clash with existing one
+              if (slotStart < aptEnd && slotEnd > aptStart) {
+                booked.push(slotTime);
+                break;
+              }
             }
           });
 
@@ -160,7 +169,7 @@ export default function NewAppointmentPage() {
     };
 
     fetchBookedSlots();
-  }, [formData.date, formData.staffId, timeInterval]);
+  }, [formData.date, formData.staffId, formData.duration, timeInterval, availableTimeSlots]);
 
   // Fetch settings and generate time slots on mount
   useEffect(() => {
