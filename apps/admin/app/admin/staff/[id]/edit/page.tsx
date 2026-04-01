@@ -478,8 +478,8 @@ export default function EditStaffPage() {
             {/* Authentication & Permissions Section */}
             <div className="mt-8">
               {!loading && (
-                <StaffAuthForm 
-                  key={authData?.username || 'new'}
+                <StaffAuthForm
+                  key={String(params.id) || 'new'}
                   onAuthDataChange={setAuthData}
                   initialAuthData={authData || {
                     username: '',
