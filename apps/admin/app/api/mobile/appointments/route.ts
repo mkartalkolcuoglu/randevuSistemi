@@ -440,6 +440,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Package usage handling
+    const usePackage = body.usePackageForService && body.packageInfo;
+    const appointmentStatus = usePackage ? 'confirmed' : 'pending';
+    const paymentType = usePackage ? 'package' : (body.paymentType || 'cash');
+
     // Create appointment
     const appointment = await prisma.appointment.create({
       data: {
@@ -457,8 +462,10 @@ export async function POST(request: NextRequest) {
         duration: service.duration,
         price: service.price,
         notes,
-        status: 'pending',
-        paymentType: 'cash',
+        status: appointmentStatus,
+        paymentType: paymentType,
+        packageInfo: usePackage ? JSON.stringify(body.packageInfo) : null,
+        paymentStatus: usePackage ? 'package_used' : null,
       },
       include: {
         customer: {
@@ -483,6 +490,27 @@ export async function POST(request: NextRequest) {
         },
       },
     });
+
+    // 🎁 Deduct from package if package was used
+    if (usePackage && appointment.packageInfo) {
+      try {
+        const pkgInfo = typeof appointment.packageInfo === 'string'
+          ? JSON.parse(appointment.packageInfo)
+          : appointment.packageInfo;
+        if (pkgInfo.usageId) {
+          const usage = await prisma.customerPackageUsage.findUnique({ where: { id: pkgInfo.usageId } });
+          if (usage && usage.remainingQuantity > 0) {
+            await prisma.customerPackageUsage.update({
+              where: { id: usage.id },
+              data: { usedQuantity: usage.usedQuantity + 1, remainingQuantity: usage.remainingQuantity - 1 }
+            });
+            console.log('🎁 [MOBILE] Package deducted on creation:', pkgInfo.usageId);
+          }
+        }
+      } catch (err) {
+        console.error('🎁 [MOBILE] Error deducting package:', err);
+      }
+    }
 
     // Auto-send confirmation if enabled
     try {

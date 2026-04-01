@@ -518,6 +518,11 @@ export async function POST(request: NextRequest) {
       );
     }
     
+    // Package usage handling
+    const usePackage = data.usePackageForService && data.packageInfo;
+    const appointmentStatus = usePackage ? 'confirmed' : (data.status || 'scheduled');
+    const paymentType = usePackage ? 'package' : (data.paymentType || 'cash');
+
     const newAppointment = await prisma.appointment.create({
       data: {
         tenantId: tenantId,
@@ -532,15 +537,46 @@ export async function POST(request: NextRequest) {
         staffName: `${staff.firstName} ${staff.lastName}`,
         date: data.date,
         time: data.time,
-        status: data.status || 'scheduled',
+        status: appointmentStatus,
         notes: data.notes || '',
         price: service.price,
         duration: service.duration,
-        paymentType: data.paymentType || 'cash',
+        paymentType: paymentType,
+        packageInfo: usePackage ? JSON.stringify(data.packageInfo) : null,
+        paymentStatus: usePackage ? 'package_used' : null,
       }
     });
 
     console.log('✅ Admin appointment created:', newAppointment.id);
+
+    // 🎁 Deduct from package if package was used (status is confirmed on creation)
+    if (usePackage && newAppointment.packageInfo) {
+      try {
+        const pkgInfo = typeof newAppointment.packageInfo === 'string'
+          ? JSON.parse(newAppointment.packageInfo)
+          : newAppointment.packageInfo;
+        if (pkgInfo.usageId) {
+          const usage = await prisma.customerPackageUsage.findUnique({ where: { id: pkgInfo.usageId } });
+          if (usage && usage.remainingQuantity > 0) {
+            await prisma.customerPackageUsage.update({
+              where: { id: usage.id },
+              data: { usedQuantity: usage.usedQuantity + 1, remainingQuantity: usage.remainingQuantity - 1 }
+            });
+            console.log('🎁 Package deducted on creation:', pkgInfo.usageId);
+            // Check if all usages depleted
+            if (usage.remainingQuantity - 1 <= 0) {
+              const allUsages = await prisma.customerPackageUsage.findMany({ where: { customerPackageId: pkgInfo.customerPackageId } });
+              const allDepleted = allUsages.every(u => u.id === usage.id ? true : u.remainingQuantity <= 0);
+              if (allDepleted) {
+                await prisma.customerPackage.update({ where: { id: pkgInfo.customerPackageId }, data: { status: 'completed' } });
+              }
+            }
+          }
+        }
+      } catch (err) {
+        console.error('🎁 Error deducting package on creation:', err);
+      }
+    }
 
     // 💰 Create transaction only when status is completed
     if (newAppointment.status === 'completed') {
