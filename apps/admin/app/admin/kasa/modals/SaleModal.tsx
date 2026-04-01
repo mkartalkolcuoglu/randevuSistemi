@@ -16,6 +16,7 @@ interface Customer {
   id: string;
   firstName: string;
   lastName: string;
+  phone?: string;
 }
 
 interface SaleModalProps {
@@ -36,6 +37,9 @@ export default function SaleModal({ isOpen, onClose, onSuccess, tenantId, editin
   const [customerSearch, setCustomerSearch] = useState('');
   const [showProductList, setShowProductList] = useState(false);
   const [showCustomerList, setShowCustomerList] = useState(false);
+
+  const [customerPackages, setCustomerPackages] = useState<any[]>([]);
+  const [matchingUsage, setMatchingUsage] = useState<any>(null);
 
   const [formData, setFormData] = useState({
     productId: '',
@@ -89,6 +93,44 @@ export default function SaleModal({ isOpen, onClose, onSuccess, tenantId, editin
   const selectedProduct = products.find(p => p.id === formData.productId);
   const selectedCustomer = customers.find(c => c.id === formData.customerId);
 
+  // Fetch customer packages when customer changes
+  useEffect(() => {
+    if (!formData.customerId || !selectedCustomer?.phone) {
+      setCustomerPackages([]);
+      setMatchingUsage(null);
+      return;
+    }
+    fetch('/api/customer-packages/check', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ phone: selectedCustomer.phone })
+    })
+      .then(r => r.json())
+      .then(data => {
+        if (data.success && data.hasPackages) setCustomerPackages(data.packages || []);
+        else setCustomerPackages([]);
+      })
+      .catch(() => setCustomerPackages([]));
+  }, [formData.customerId]);
+
+  // Check if selected product matches a customer package
+  useEffect(() => {
+    if (!formData.productId || customerPackages.length === 0) {
+      setMatchingUsage(null);
+      return;
+    }
+    for (const pkg of customerPackages) {
+      const match = (pkg.usages || []).find((u: any) =>
+        u.itemType === 'product' && u.itemId === formData.productId && u.remainingQuantity > 0
+      );
+      if (match) {
+        setMatchingUsage({ ...match, packageName: pkg.package?.name, customerPackageId: pkg.id });
+        return;
+      }
+    }
+    setMatchingUsage(null);
+  }, [formData.productId, customerPackages]);
+
   const totalAmount = selectedProduct ? selectedProduct.price * formData.quantity : 0;
   const totalCost = selectedProduct ? selectedProduct.cost * formData.quantity : 0;
   const profit = totalAmount - totalCost;
@@ -109,11 +151,15 @@ export default function SaleModal({ isOpen, onClose, onSuccess, tenantId, editin
     setLoading(true);
 
     try {
-      const payload = {
+      const isPackage = formData.paymentType === 'package' && matchingUsage;
+
+      const payload: any = {
         tenantId,
         type: 'sale',
-        amount: totalAmount,
-        description: `${selectedProduct.name} satışı`,
+        amount: isPackage ? 0 : totalAmount,
+        description: isPackage
+          ? `${selectedProduct.name} satışı (Paketten - ${matchingUsage.packageName})`
+          : `${selectedProduct.name} satışı`,
         paymentType: formData.paymentType,
         customerId: formData.customerId,
         customerName: `${selectedCustomer?.firstName} ${selectedCustomer?.lastName}`,
@@ -122,6 +168,16 @@ export default function SaleModal({ isOpen, onClose, onSuccess, tenantId, editin
         quantity: formData.quantity,
         date: formData.date
       };
+
+      // Add package info for deduction
+      if (isPackage) {
+        payload.packageInfo = {
+          customerPackageId: matchingUsage.customerPackageId,
+          usageId: matchingUsage.id,
+          packageName: matchingUsage.packageName,
+          productId: formData.productId,
+        };
+      }
 
       const url = editingTransaction 
         ? `/api/transactions/${editingTransaction.id}`
@@ -287,6 +343,18 @@ export default function SaleModal({ isOpen, onClose, onSuccess, tenantId, editin
             )}
           </div>
 
+          {/* Package Banner */}
+          {matchingUsage && (
+            <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
+              <p className="text-sm font-medium text-green-800">
+                🎁 Bu ürün müşterinin paketinde mevcut!
+              </p>
+              <p className="text-xs text-green-600 mt-1">
+                {matchingUsage.packageName} - {matchingUsage.itemName} ({matchingUsage.remainingQuantity} kalan)
+              </p>
+            </div>
+          )}
+
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Ödeme Tipi *
@@ -300,6 +368,9 @@ export default function SaleModal({ isOpen, onClose, onSuccess, tenantId, editin
               <option value="cash">Nakit</option>
               <option value="card">Kart</option>
               <option value="transfer">Havale</option>
+              {matchingUsage && (
+                <option value="package">Paket ({matchingUsage.packageName} - {matchingUsage.remainingQuantity} kalan)</option>
+              )}
             </select>
           </div>
 
@@ -329,7 +400,9 @@ export default function SaleModal({ isOpen, onClose, onSuccess, tenantId, editin
               </div>
               <div className="border-t border-gray-200 pt-2 mt-2 flex justify-between">
                 <span className="font-semibold text-gray-900">Toplam:</span>
-                <span className="font-bold text-2xl text-green-600">₺{totalAmount.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}</span>
+                <span className="font-bold text-2xl text-green-600">
+                  {formData.paymentType === 'package' && matchingUsage ? '🎁 Paketten' : `₺${totalAmount.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}`}
+                </span>
               </div>
             </div>
           )}

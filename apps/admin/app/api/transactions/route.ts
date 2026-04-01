@@ -96,8 +96,8 @@ export async function POST(request: NextRequest) {
 
     const data = await request.json();
 
-    // Validate required fields
-    if (!data.tenantId || !data.type || !data.amount || !data.description || !data.date) {
+    // Validate required fields (amount can be 0 for package usage)
+    if (!data.tenantId || !data.type || (data.amount === undefined && data.amount === null) || !data.description || !data.date) {
       return NextResponse.json(
         { success: false, error: 'Missing required fields' },
         { status: 400 }
@@ -140,7 +140,7 @@ export async function POST(request: NextRequest) {
       data: {
         tenantId: data.tenantId,
         type: data.type,
-        amount: data.amount,
+        amount: data.amount || 0,
         description: data.description,
         paymentType: data.paymentType,
         customerId: data.customerId,
@@ -154,6 +154,28 @@ export async function POST(request: NextRequest) {
         date: data.date
       }
     });
+
+    // Deduct from package if payment type is package
+    if (data.paymentType === 'package' && data.packageInfo?.usageId) {
+      try {
+        const usage = await prisma.customerPackageUsage.findUnique({
+          where: { id: data.packageInfo.usageId }
+        });
+        if (usage && usage.remainingQuantity > 0) {
+          const qty = data.quantity || 1;
+          await prisma.customerPackageUsage.update({
+            where: { id: usage.id },
+            data: {
+              usedQuantity: usage.usedQuantity + qty,
+              remainingQuantity: Math.max(0, usage.remainingQuantity - qty)
+            }
+          });
+          console.log('🎁 Package deducted for sale:', data.packageInfo.usageId, 'qty:', qty);
+        }
+      } catch (err) {
+        console.error('🎁 Error deducting package for sale:', err);
+      }
+    }
 
     return NextResponse.json({
       success: true,
