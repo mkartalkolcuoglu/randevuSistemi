@@ -1,4 +1,5 @@
 import { useState, useCallback, useMemo, useRef, useEffect } from 'react';
+import PermissionGuard from '../../../src/components/PermissionGuard';
 import {
   View,
   Text,
@@ -1556,6 +1557,7 @@ export default function CalendarScreen() {
   };
 
   return (
+    <PermissionGuard permissionKey="appointments" pageName="Takvim">
     <SafeAreaView style={styles.container} edges={[]}>
       {/* Header - Using shared Header component */}
       <Header
@@ -1622,6 +1624,7 @@ export default function CalendarScreen() {
       {/* Drawer Menu */}
       <DrawerMenu isOpen={drawerOpen} onClose={() => setDrawerOpen(false)} />
     </SafeAreaView>
+    </PermissionGuard>
   );
 }
 

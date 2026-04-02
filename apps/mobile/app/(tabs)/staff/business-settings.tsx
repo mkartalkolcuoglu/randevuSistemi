@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import PermissionGuard from '../../../src/components/PermissionGuard';
 import {
   View,
   Text,
@@ -479,6 +480,7 @@ export default function BusinessSettingsScreen() {
   }
 
   return (
+    <PermissionGuard permissionKey="settings" pageName="İşletme Ayarları">
     <SafeAreaView style={styles.container} edges={[]}>
       <KeyboardAvoidingView
         style={{ flex: 1 }}
@@ -1773,6 +1775,7 @@ export default function BusinessSettingsScreen() {
         </View>
       </Modal>
     </SafeAreaView>
+    </PermissionGuard>
   );
 }
 
