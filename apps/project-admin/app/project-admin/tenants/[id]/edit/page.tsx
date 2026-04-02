@@ -1,55 +1,33 @@
 "use client";
 
 import Link from 'next/link';
-import { Button, Card, CardContent, CardHeader, CardTitle } from '@repo/ui';
-import { ArrowLeft, Building2, Save, Trash2 } from 'lucide-react';
+import { Button, Card, CardContent } from '@repo/ui';
+import { ArrowLeft, Save, Trash2, Building2, UserCircle, CreditCard, Palette, Clock } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
 interface SubscriptionPackage {
-  id: string;
-  name: string;
-  slug: string;
-  durationDays: number;
-  price: number;
-  description: string | null;
-  isActive: boolean;
-  isFeatured: boolean;
-  displayOrder: number;
-  features: string | null;
+  id: string; name: string; slug: string; durationDays: number; price: number;
+  isActive: boolean; isFeatured: boolean;
 }
 
-interface EditTenantPageProps {
-  params: Promise<{ id: string }>;
-}
+interface EditTenantPageProps { params: Promise<{ id: string }>; }
 
 export default function EditTenantPage({ params }: EditTenantPageProps) {
   const router = useRouter();
-  const [tenantId, setTenantId] = useState<string>('');
+  const [tenantId, setTenantId] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
-  const [logoPreview, setLogoPreview] = useState<string>('');
-  const [headerPreview, setHeaderPreview] = useState<string>('');
   const [packages, setPackages] = useState<SubscriptionPackage[]>([]);
-  const [packagesLoading, setPackagesLoading] = useState(true);
-  
+  const [activeTab, setActiveTab] = useState<'business' | 'owner' | 'subscription' | 'theme' | 'hours'>('business');
+
   const [formData, setFormData] = useState({
-    businessName: '',
-    slug: '',
-    username: '',
-    password: '',
-    ownerName: '',
-    ownerEmail: '',
-    phone: '',
-    plan: 'Standard',
-    status: 'active',
-    address: '',
-    businessType: 'salon',
-    businessDescription: '',
-    subscriptionPlan: '',
-    subscriptionStart: '',
-    subscriptionEnd: '',
+    businessName: '', slug: '', username: '', password: '',
+    ownerName: '', ownerEmail: '', phone: '',
+    plan: 'Standard', status: 'active', address: '',
+    businessType: 'salon', businessDescription: '',
+    subscriptionPlan: '', subscriptionStart: '', subscriptionEnd: '',
     workingHours: {
       monday: { start: '09:00', end: '18:00', closed: false },
       tuesday: { start: '09:00', end: '18:00', closed: false },
@@ -57,757 +35,348 @@ export default function EditTenantPage({ params }: EditTenantPageProps) {
       thursday: { start: '09:00', end: '18:00', closed: false },
       friday: { start: '09:00', end: '18:00', closed: false },
       saturday: { start: '09:00', end: '17:00', closed: false },
-      sunday: { start: '10:00', end: '16:00', closed: true }
+      sunday: { start: '10:00', end: '16:00', closed: true },
     },
-    theme: {
-      primaryColor: '#163974',
-      secondaryColor: '#f3f4f6',
-      logo: '',
-      headerImage: ''
-    }
+    theme: { primaryColor: '#163974', secondaryColor: '#f3f4f6', logo: '', headerImage: '' },
   });
 
   useEffect(() => {
-    async function loadParams() {
-      const resolvedParams = await params;
-      setTenantId(resolvedParams.id);
-      fetchTenant(resolvedParams.id);
-    }
-    loadParams();
+    params.then(p => { setTenantId(p.id); fetchTenant(p.id); });
     fetchPackages();
   }, [params]);
 
   const fetchPackages = async () => {
     try {
-      setPackagesLoading(true);
-      const response = await fetch('/api/packages');
-      
-      if (response.ok) {
-        const data = await response.json();
-        const activePackages = data.data.filter((pkg: SubscriptionPackage) => pkg.isActive);
-        setPackages(activePackages);
-      } else {
-        console.error('Failed to fetch packages');
-      }
-    } catch (error) {
-      console.error('Error fetching packages:', error);
-    } finally {
-      setPackagesLoading(false);
-    }
+      const res = await fetch('/api/packages');
+      if (res.ok) { const d = await res.json(); setPackages((d.data || []).filter((p: any) => p.isActive)); }
+    } catch {}
   };
 
   const fetchTenant = async (id: string) => {
     try {
-      setLoading(true);
-      const response = await fetch(`/api/tenants/${id}`);
-      const data = await response.json();
-      
-      if (data.success) {
-        console.log('📦 Loaded tenant data:', {
-          subscriptionPlan: data.data.subscriptionPlan,
-          subscriptionStart: data.data.subscriptionStart,
-          subscriptionEnd: data.data.subscriptionEnd
-        });
-        
+      const res = await fetch(`/api/tenants/${id}`);
+      const d = await res.json();
+      if (d.success) {
+        const t = d.data;
+        const wh = typeof t.workingHours === 'string' ? JSON.parse(t.workingHours) : t.workingHours || formData.workingHours;
+        const th = typeof t.theme === 'string' ? JSON.parse(t.theme) : t.theme || formData.theme;
         setFormData({
-          businessName: data.data.businessName || '',
-          slug: data.data.slug || '',
-          username: data.data.username || '',
-          password: data.data.password || '',
-          ownerName: data.data.ownerName || '',
-          ownerEmail: data.data.ownerEmail || '',
-          phone: data.data.phone || '',
-          plan: data.data.plan || 'Standard',
-          status: data.data.status || 'active',
-          address: data.data.address || '',
-          businessType: data.data.businessType || 'salon',
-          businessDescription: data.data.businessDescription || '',
-          subscriptionPlan: data.data.subscriptionPlan || 'trial',
-          subscriptionStart: data.data.subscriptionStart || '',
-          subscriptionEnd: data.data.subscriptionEnd || '',
-          workingHours: (() => {
-            try {
-              // If workingHours is a string, parse it
-              if (typeof data.data.workingHours === 'string') {
-                return JSON.parse(data.data.workingHours);
-              }
-              // If workingHours is already an object, use it
-              if (data.data.workingHours && typeof data.data.workingHours === 'object') {
-                return data.data.workingHours;
-              }
-              // Default working hours
-              return {
-                monday: { start: '09:00', end: '18:00', closed: false },
-                tuesday: { start: '09:00', end: '18:00', closed: false },
-                wednesday: { start: '09:00', end: '18:00', closed: false },
-                thursday: { start: '09:00', end: '18:00', closed: false },
-                friday: { start: '09:00', end: '18:00', closed: false },
-                saturday: { start: '09:00', end: '17:00', closed: false },
-                sunday: { start: '10:00', end: '16:00', closed: true }
-              };
-            } catch (error) {
-              console.error('Error parsing workingHours:', error);
-              return {
-                monday: { start: '09:00', end: '18:00', closed: false },
-                tuesday: { start: '09:00', end: '18:00', closed: false },
-                wednesday: { start: '09:00', end: '18:00', closed: false },
-                thursday: { start: '09:00', end: '18:00', closed: false },
-                friday: { start: '09:00', end: '18:00', closed: false },
-                saturday: { start: '09:00', end: '17:00', closed: false },
-                sunday: { start: '10:00', end: '16:00', closed: true }
-              };
-            }
-          })(),
-          theme: (() => {
-            try {
-              // If theme is a string, parse it
-              if (typeof data.data.theme === 'string') {
-                return JSON.parse(data.data.theme);
-              }
-              // If theme is already an object, use it
-              if (data.data.theme && typeof data.data.theme === 'object') {
-                return data.data.theme;
-              }
-              // Default theme
-              return {
-                primaryColor: '#163974',
-                secondaryColor: '#f3f4f6',
-                logo: '',
-                headerImage: ''
-              };
-            } catch (error) {
-              console.error('Error parsing theme:', error);
-              return {
-                primaryColor: '#163974',
-                secondaryColor: '#f3f4f6',
-                logo: '',
-                headerImage: ''
-              };
-            }
-          })()
+          businessName: t.businessName || '', slug: t.slug || '', username: t.username || '', password: t.password || '',
+          ownerName: t.ownerName || '', ownerEmail: t.ownerEmail || '', phone: t.phone || '',
+          plan: t.plan || 'Standard', status: t.status || 'active', address: t.address || '',
+          businessType: t.businessType || 'salon', businessDescription: t.businessDescription || '',
+          subscriptionPlan: t.subscriptionPlan || '', subscriptionStart: t.subscriptionStart || '', subscriptionEnd: t.subscriptionEnd || '',
+          workingHours: wh, theme: th,
         });
-        
-        // Set existing image previews
-        const theme = data.data.theme;
-        let parsedTheme;
-        try {
-          parsedTheme = typeof theme === 'string' ? JSON.parse(theme) : theme;
-        } catch {
-          parsedTheme = {};
-        }
-        
-        if (parsedTheme?.logo) {
-          setLogoPreview(parsedTheme.logo);
-        }
-        if (parsedTheme?.headerImage) {
-          setHeaderPreview(parsedTheme.headerImage);
-        }
-      } else {
-        alert('Abone bulunamadı');
-        router.push('/project-admin/tenants');
-      }
-    } catch (error) {
-      console.error('Error fetching tenant:', error);
-      alert('Abone bilgileri yüklenirken hata oluştu');
-    } finally {
-      setLoading(false);
-    }
+      } else { alert('Abone bulunamadı'); router.push('/project-admin/tenants'); }
+    } catch { alert('Yükleme hatası'); } finally { setLoading(false); }
   };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    
-    // If subscription plan changes, recalculate end date
     if (name === 'subscriptionPlan') {
-      const selectedPackage = packages.find(pkg => pkg.slug === value);
-      
-      if (selectedPackage) {
+      const pkg = packages.find(p => p.slug === value);
+      if (pkg) {
         const now = new Date();
-        const endDate = new Date(now.getTime() + selectedPackage.durationDays * 24 * 60 * 60 * 1000);
-        
-        console.log('Subscription plan changed to:', value);
-        console.log('Package duration:', selectedPackage.durationDays, 'days');
-        console.log('New end date:', endDate.toISOString());
-        
-        setFormData(prev => ({
-          ...prev,
-          subscriptionPlan: value,
-          subscriptionStart: now.toISOString(),
-          subscriptionEnd: endDate.toISOString()
-        }));
+        const end = new Date(now.getTime() + pkg.durationDays * 86400000);
+        setFormData(prev => ({ ...prev, subscriptionPlan: value, subscriptionStart: now.toISOString(), subscriptionEnd: end.toISOString() }));
+        return;
       }
-    } else {
-      setFormData(prev => ({
-        ...prev,
-        [name]: value
-      }));
     }
-  };
-
-  // Handle image file upload and convert to base64
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>, type: 'logo' | 'headerImage') => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    // Check file size (max 3MB)
-    const maxSize = 3 * 1024 * 1024; // 3MB in bytes
-    if (file.size > maxSize) {
-      alert('Dosya boyutu 3MB\'dan küçük olmalıdır.');
-      e.target.value = ''; // Clear input
-      return;
-    }
-
-    // Check file type
-    if (!file.type.startsWith('image/')) {
-      alert('Lütfen bir resim dosyası seçin.');
-      e.target.value = '';
-      return;
-    }
-
-    // Convert to base64
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      const base64String = reader.result as string;
-      
-      // Update form data
-      setFormData((prev) => ({
-        ...prev,
-        theme: {
-          ...prev.theme,
-          [type]: base64String,
-        },
-      }));
-
-      // Update preview
-      if (type === 'logo') {
-        setLogoPreview(base64String);
-      } else {
-        setHeaderPreview(base64String);
-      }
-    };
-
-    reader.onerror = () => {
-      alert('Dosya yüklenirken bir hata oluştu.');
-    };
-
-    reader.readAsDataURL(file);
+    setFormData(prev => ({ ...prev, [name]: value }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
-
-    console.log('📤 Submitting form data:', {
-      subscriptionPlan: formData.subscriptionPlan,
-      subscriptionStart: formData.subscriptionStart,
-      subscriptionEnd: formData.subscriptionEnd
-    });
-
     try {
-      const response = await fetch(`/api/tenants/${tenantId}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(formData),
-      });
-
-      const data = await response.json();
-      console.log('📥 API Response:', data);
-
-      if (data.success) {
-        // Regenerate landing page with updated data
-        await regenerateLandingPage();
+      const res = await fetch(`/api/tenants/${tenantId}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(formData) });
+      const d = await res.json();
+      if (d.success) {
+        fetch('/api/tenants/generate-landing', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ tenantId }) }).catch(() => {});
         router.push('/project-admin/tenants');
-      } else {
-        alert('Abone güncellenirken hata oluştu: ' + data.error);
-      }
-    } catch (error) {
-      console.error('Error updating tenant:', error);
-      alert('Bir hata oluştu');
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const regenerateLandingPage = async () => {
-    try {
-      await fetch('/api/tenants/generate-landing', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ tenantId }),
-      });
-    } catch (error) {
-      console.error('Error regenerating landing page:', error);
-    }
+      } else { alert('Hata: ' + d.error); }
+    } catch { alert('Bir hata oluştu'); } finally { setSaving(false); }
   };
 
   const handleDelete = async () => {
-    if (!confirm('Bu aboneyi silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.')) {
-      return;
-    }
-
+    if (!confirm('Bu aboneyi silmek istediğinizden emin misiniz?')) return;
     setDeleting(true);
-
     try {
-      const response = await fetch(`/api/tenants/${tenantId}`, {
-        method: 'DELETE',
-      });
-
-      const data = await response.json();
-
-      if (data.success) {
-        alert('Abone başarıyla silindi');
-        router.push('/project-admin/tenants');
-      } else {
-        alert('Abone silinirken hata oluştu: ' + data.error);
-      }
-    } catch (error) {
-      console.error('Error deleting tenant:', error);
-      alert('Bir hata oluştu');
-    } finally {
-      setDeleting(false);
-    }
+      const res = await fetch(`/api/tenants/${tenantId}`, { method: 'DELETE' });
+      const d = await res.json();
+      if (d.success) { router.push('/project-admin/tenants'); } else { alert('Hata: ' + d.error); }
+    } catch { alert('Bir hata oluştu'); } finally { setDeleting(false); }
   };
+
+  const DAYS = [
+    { key: 'monday', label: 'Pazartesi' }, { key: 'tuesday', label: 'Salı' },
+    { key: 'wednesday', label: 'Çarşamba' }, { key: 'thursday', label: 'Perşembe' },
+    { key: 'friday', label: 'Cuma' }, { key: 'saturday', label: 'Cumartesi' },
+    { key: 'sunday', label: 'Pazar' },
+  ];
+
+  const TABS = [
+    { id: 'business' as const, label: 'İşletme', icon: Building2 },
+    { id: 'owner' as const, label: 'Sahip', icon: UserCircle },
+    { id: 'subscription' as const, label: 'Abonelik', icon: CreditCard },
+    { id: 'hours' as const, label: 'Çalışma', icon: Clock },
+    { id: 'theme' as const, label: 'Tema', icon: Palette },
+  ];
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 p-6">
-        <div className="max-w-4xl mx-auto">
-          <div className="flex items-center justify-center min-h-[400px]">
-            <div className="text-center">
-              <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900"></div>
-              <p className="mt-4 text-gray-600">Abone bilgileri yükleniyor...</p>
-            </div>
-          </div>
-        </div>
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="animate-spin rounded-full h-10 w-10 border-2 border-gray-300 border-t-blue-600"></div>
       </div>
     );
   }
 
+  const remainingDays = formData.subscriptionEnd
+    ? Math.ceil((new Date(formData.subscriptionEnd).getTime() - Date.now()) / 86400000)
+    : null;
+
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-4xl mx-auto">
-        {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center space-x-4 mb-4">
-            <Link href="/project-admin/tenants">
-              <Button variant="ghost" size="sm">
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Geri Dön
-              </Button>
-            </Link>
-          </div>
-          <div className="flex justify-between items-start">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">Abone Düzenle</h1>
-              <p className="text-gray-600">Abone bilgilerini güncelleyin ve landing sayfası otomatik olarak yenilensin</p>
-            </div>
-            <Button
-              onClick={handleDelete}
-              disabled={deleting}
-              variant="outline"
-              className="border-red-300 text-red-600 hover:bg-red-50"
-            >
-              {deleting ? (
-                <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-red-600 mr-2"></div>
-                  Siliniyor...
-                </>
-              ) : (
-                <>
-                  <Trash2 className="w-4 h-4 mr-2" />
-                  Aboneyi Sil
-                </>
-              )}
-            </Button>
+    <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center gap-3">
+          <Link href="/project-admin/tenants">
+            <button className="w-9 h-9 bg-gray-100 hover:bg-gray-200 rounded-lg flex items-center justify-center transition">
+              <ArrowLeft className="w-4 h-4 text-gray-600" />
+            </button>
+          </Link>
+          <div>
+            <h1 className="text-xl font-bold text-gray-900">{formData.businessName || 'Abone Düzenle'}</h1>
+            <p className="text-xs text-gray-500">{formData.slug} · {formData.ownerName}</p>
           </div>
         </div>
+        <Button onClick={handleDelete} disabled={deleting} variant="outline" className="text-red-500 border-red-200 hover:bg-red-50 text-sm">
+          <Trash2 className="w-3.5 h-3.5 mr-1.5" />
+          {deleting ? 'Siliniyor...' : 'Sil'}
+        </Button>
+      </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Business Information */}
+      {/* Tabs */}
+      <div className="flex gap-1 mb-5 border-b border-gray-200 overflow-x-auto">
+        {TABS.map(tab => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id)}
+            className={`flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium border-b-2 transition whitespace-nowrap ${
+              activeTab === tab.id
+                ? 'border-blue-600 text-blue-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            <tab.icon className="w-4 h-4" />
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      <form onSubmit={handleSubmit}>
+        {/* İşletme */}
+        {activeTab === 'business' && (
           <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <Building2 className="w-5 h-5 mr-2" />
-                İşletme Bilgileri
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    İşletme Adı *
-                  </label>
-                  <input
-                    type="text"
-                    name="businessName"
-                    value={formData.businessName}
-                    onChange={handleInputChange}
-                    required
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    URL Slug *
-                  </label>
-                  <input
-                    type="text"
-                    name="slug"
-                    value={formData.slug}
-                    onChange={handleInputChange}
-                    required
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                  <p className="text-xs text-gray-500 mt-1">
-                    Landing sayfası URL'i: {formData.slug}.randevu.com
-                  </p>
-                </div>
+            <CardContent className="p-5 space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <Field label="İşletme Adı *" name="businessName" value={formData.businessName} onChange={handleChange} required />
+                <Field label="URL Slug *" name="slug" value={formData.slug} onChange={handleChange} required hint={`netrandevu.com/${formData.slug}`} />
               </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Kullanıcı Adı *
-                  </label>
-                  <input
-                    type="text"
-                    name="username"
-                    value={formData.username}
-                    onChange={handleInputChange}
-                    required
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                  <p className="text-xs text-gray-500 mt-1">
-                    Abone bu kullanıcı adı ile admin paneline giriş yapar
-                  </p>
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Şifre *
-                  </label>
-                  <input
-                    type="text"
-                    name="password"
-                    value={formData.password}
-                    onChange={handleInputChange}
-                    required
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                  <p className="text-xs text-gray-500 mt-1">
-                    Abone şifresi (düz metin olarak görünür)
-                  </p>
-                </div>
+              <div className="grid grid-cols-2 gap-4">
+                <Field label="Kullanıcı Adı *" name="username" value={formData.username} onChange={handleChange} required />
+                <Field label="Şifre *" name="password" value={formData.password} onChange={handleChange} required />
               </div>
-
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  İşletme Türü
-                </label>
-                <select
-                  name="businessType"
-                  value={formData.businessType}
-                  onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
+                <label className="block text-sm font-medium text-gray-700 mb-1">İşletme Türü</label>
+                <select name="businessType" value={formData.businessType} onChange={handleChange} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-blue-500">
                   <option value="salon">Güzellik Salonu</option>
                   <option value="barber">Berber</option>
-                  <option value="clinic">Klinik/Doktor</option>
-                  <option value="spa">SPA & Wellness</option>
-                  <option value="fitness">Fitness & Spor</option>
+                  <option value="clinic">Klinik</option>
+                  <option value="spa">SPA</option>
+                  <option value="fitness">Fitness</option>
                   <option value="other">Diğer</option>
                 </select>
               </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  İşletme Açıklaması
-                </label>
-                <textarea
-                  name="businessDescription"
-                  value={formData.businessDescription}
-                  onChange={handleInputChange}
-                  rows={3}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Adres
-                </label>
-                <textarea
-                  name="address"
-                  value={formData.address}
-                  onChange={handleInputChange}
-                  rows={2}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
+              <Field label="Açıklama" name="businessDescription" value={formData.businessDescription} onChange={handleChange} textarea />
+              <Field label="Adres" name="address" value={formData.address} onChange={handleChange} textarea />
             </CardContent>
           </Card>
+        )}
 
-          {/* Owner Information */}
+        {/* Sahip */}
+        {activeTab === 'owner' && (
           <Card>
-            <CardHeader>
-              <CardTitle>Sahip Bilgileri</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Sahip Adı *
-                  </label>
-                  <input
-                    type="text"
-                    name="ownerName"
-                    value={formData.ownerName}
-                    onChange={handleInputChange}
-                    required
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    E-posta *
-                  </label>
-                  <input
-                    type="email"
-                    name="ownerEmail"
-                    value={formData.ownerEmail}
-                    onChange={handleInputChange}
-                    required
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
+            <CardContent className="p-5 space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <Field label="Sahip Adı *" name="ownerName" value={formData.ownerName} onChange={handleChange} required />
+                <Field label="E-posta *" name="ownerEmail" value={formData.ownerEmail} onChange={handleChange} required type="email" />
               </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Telefon
-                </label>
-                <input
-                  type="tel"
-                  name="phone"
-                  value={formData.phone}
-                  onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
+              <Field label="Telefon" name="phone" value={formData.phone} onChange={handleChange} type="tel" />
             </CardContent>
           </Card>
+        )}
 
-          {/* Plan & Status */}
+        {/* Abonelik */}
+        {activeTab === 'subscription' && (
           <Card>
-            <CardHeader>
-              <CardTitle>Abonelik ve Durum</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <CardContent className="p-5 space-y-4">
+              <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Abonelik Paketi
-                  </label>
-                  {packagesLoading ? (
-                    <div className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-500">
-                      Paketler yükleniyor...
-                    </div>
-                  ) : packages.length === 0 ? (
-                    <div className="w-full px-3 py-2 border border-red-300 rounded-md bg-red-50 text-red-600 text-sm">
-                      Aktif paket bulunamadı. Lütfen önce paket oluşturun.
-                    </div>
-                  ) : (
-                    <select
-                      name="subscriptionPlan"
-                      value={formData.subscriptionPlan}
-                      onChange={handleInputChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    >
-                      {packages.map((pkg) => (
-                        <option key={pkg.id} value={pkg.slug}>
-                          {pkg.name} ({pkg.durationDays} gün) - {pkg.price === 0 ? 'Ücretsiz' : `₺${pkg.price}`}
-                        </option>
-                      ))}
-                    </select>
-                  )}
-                  {formData.subscriptionStart && (
-                    <p className="mt-2 text-xs text-gray-600">
-                      Başlangıç: {new Date(formData.subscriptionStart).toLocaleDateString('tr-TR')}
-                      {formData.subscriptionEnd && (
-                        <> • Bitiş: {new Date(formData.subscriptionEnd).toLocaleDateString('tr-TR')}</>
-                      )}
-                    </p>
-                  )}
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Abonelik Paketi</label>
+                  <select name="subscriptionPlan" value={formData.subscriptionPlan} onChange={handleChange} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-blue-500">
+                    <option value="">Seçin</option>
+                    {packages.map(pkg => (
+                      <option key={pkg.slug} value={pkg.slug}>
+                        {pkg.name} ({pkg.durationDays} gün) — {pkg.price === 0 ? 'Ücretsiz' : `₺${pkg.price}`}
+                      </option>
+                    ))}
+                  </select>
                 </div>
-                
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Durum
-                  </label>
-                  <select
-                    name="status"
-                    value={formData.status}
-                    onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Durum</label>
+                  <select name="status" value={formData.status} onChange={handleChange} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-blue-500">
                     <option value="active">Aktif</option>
                     <option value="suspended">Askıda</option>
                     <option value="inactive">Pasif</option>
                   </select>
                 </div>
               </div>
-            </CardContent>
-          </Card>
 
-          {/* Theme Settings */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Tema Ayarları</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Ana Renk
-                  </label>
-                  <input
-                    type="color"
-                    name="primaryColor"
-                    value={formData.theme?.primaryColor || '#EC4899'}
-                    onChange={(e) => setFormData(prev => ({
-                      ...prev,
-                      theme: { ...prev.theme, primaryColor: e.target.value }
-                    }))}
-                    className="w-full h-10 border border-gray-300 rounded-md bg-white"
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    İkincil Renk
-                  </label>
-                  <input
-                    type="color"
-                    name="secondaryColor"
-                    value={formData.theme?.secondaryColor || '#f3f4f6'}
-                    onChange={(e) => setFormData(prev => ({
-                      ...prev,
-                      theme: { ...prev.theme, secondaryColor: e.target.value }
-                    }))}
-                    className="w-full h-10 border border-gray-300 rounded-md bg-white"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Logo (Max 3MB)
-                </label>
-                <input
-                  type="file"
-                  name="logo"
-                  accept="image/*"
-                  onChange={(e) => handleImageUpload(e, 'logo')}
-                  className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer bg-white border border-gray-300 rounded-md"
-                />
-                {logoPreview && (
-                  <div className="mt-2 space-y-2">
-                    <img src={logoPreview} alt="Logo preview" className="h-20 w-20 object-contain border border-gray-200 rounded" />
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        setLogoPreview('');
-                        setFormData((prev) => ({
-                          ...prev,
-                          theme: {
-                            ...prev.theme,
-                            logo: ''
-                          }
-                        }));
-                      }}
-                      className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-300"
-                    >
-                      Logoyu Kaldır
-                    </Button>
+              {/* Subscription Info */}
+              {formData.subscriptionStart && (
+                <div className="flex items-center gap-4 p-3 bg-gray-50 rounded-lg text-sm">
+                  <div>
+                    <span className="text-gray-500">Başlangıç:</span>{' '}
+                    <span className="font-medium">{new Date(formData.subscriptionStart).toLocaleDateString('tr-TR')}</span>
                   </div>
-                )}
-                <p className="mt-1 text-xs text-gray-500">PNG, JPG, GIF formatları destekleniyor</p>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Header Görseli (Max 3MB)
-                </label>
-                <input
-                  type="file"
-                  name="headerImage"
-                  accept="image/*"
-                  onChange={(e) => handleImageUpload(e, 'headerImage')}
-                  className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer bg-white border border-gray-300 rounded-md"
-                />
-                {headerPreview && (
-                  <div className="mt-2 space-y-2">
-                    <img src={headerPreview} alt="Header preview" className="h-32 w-full object-cover border border-gray-200 rounded" />
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        setHeaderPreview('');
-                        setFormData((prev) => ({
-                          ...prev,
-                          theme: {
-                            ...prev.theme,
-                            headerImage: ''
-                          }
-                        }));
-                      }}
-                      className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-300"
-                    >
-                      Header Görselini Kaldır
-                    </Button>
-                  </div>
-                )}
-                <p className="mt-1 text-xs text-gray-500">PNG, JPG, GIF formatları destekleniyor</p>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Submit Button */}
-          <div className="flex justify-end space-x-4">
-            <Link href="/project-admin/tenants">
-              <Button type="button" variant="outline">
-                İptal
-              </Button>
-            </Link>
-            <Button 
-              type="submit" 
-              disabled={saving}
-              className="bg-blue-600 hover:bg-blue-700"
-            >
-              {saving ? (
-                <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                  Güncelleniyor...
-                </>
-              ) : (
-                <>
-                  <Save className="w-4 h-4 mr-2" />
-                  Değişiklikleri Kaydet
-                </>
+                  {formData.subscriptionEnd && (
+                    <div>
+                      <span className="text-gray-500">Bitiş:</span>{' '}
+                      <span className="font-medium">{new Date(formData.subscriptionEnd).toLocaleDateString('tr-TR')}</span>
+                    </div>
+                  )}
+                  {remainingDays !== null && (
+                    <span className={`ml-auto px-2.5 py-0.5 rounded-full text-xs font-bold ${
+                      remainingDays <= 0 ? 'bg-red-100 text-red-700' : remainingDays <= 7 ? 'bg-orange-100 text-orange-700' : 'bg-green-100 text-green-700'
+                    }`}>
+                      {remainingDays <= 0 ? 'Süresi Doldu' : `${remainingDays} gün kaldı`}
+                    </span>
+                  )}
+                </div>
               )}
-            </Button>
-          </div>
-        </form>
-      </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Çalışma Saatleri */}
+        {activeTab === 'hours' && (
+          <Card>
+            <CardContent className="p-5">
+              <div className="space-y-2">
+                {DAYS.map(day => {
+                  const hours = (formData.workingHours as any)[day.key] || { start: '09:00', end: '18:00', closed: false };
+                  return (
+                    <div key={day.key} className="flex items-center gap-3 py-2">
+                      <label className="flex items-center gap-2 w-28">
+                        <input
+                          type="checkbox"
+                          checked={!hours.closed}
+                          onChange={() => {
+                            setFormData(prev => ({
+                              ...prev,
+                              workingHours: { ...prev.workingHours, [day.key]: { ...hours, closed: !hours.closed } }
+                            }));
+                          }}
+                          className="rounded border-gray-300"
+                        />
+                        <span className={`text-sm font-medium ${hours.closed ? 'text-gray-400' : 'text-gray-700'}`}>{day.label}</span>
+                      </label>
+                      {!hours.closed ? (
+                        <div className="flex items-center gap-2">
+                          <input type="time" value={hours.start} onChange={(e) => {
+                            setFormData(prev => ({ ...prev, workingHours: { ...prev.workingHours, [day.key]: { ...hours, start: e.target.value } } }));
+                          }} className="px-2 py-1.5 border border-gray-200 rounded-lg text-sm" />
+                          <span className="text-gray-400">—</span>
+                          <input type="time" value={hours.end} onChange={(e) => {
+                            setFormData(prev => ({ ...prev, workingHours: { ...prev.workingHours, [day.key]: { ...hours, end: e.target.value } } }));
+                          }} className="px-2 py-1.5 border border-gray-200 rounded-lg text-sm" />
+                        </div>
+                      ) : (
+                        <span className="text-sm text-gray-400">Kapalı</span>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Tema */}
+        {activeTab === 'theme' && (
+          <Card>
+            <CardContent className="p-5 space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Ana Renk</label>
+                  <div className="flex items-center gap-2">
+                    <input type="color" value={formData.theme.primaryColor} onChange={(e) => setFormData(prev => ({ ...prev, theme: { ...prev.theme, primaryColor: e.target.value } }))} className="w-10 h-10 rounded border border-gray-200 cursor-pointer" />
+                    <span className="text-sm text-gray-500 font-mono">{formData.theme.primaryColor}</span>
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">İkincil Renk</label>
+                  <div className="flex items-center gap-2">
+                    <input type="color" value={formData.theme.secondaryColor} onChange={(e) => setFormData(prev => ({ ...prev, theme: { ...prev.theme, secondaryColor: e.target.value } }))} className="w-10 h-10 rounded border border-gray-200 cursor-pointer" />
+                    <span className="text-sm text-gray-500 font-mono">{formData.theme.secondaryColor}</span>
+                  </div>
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Logo URL</label>
+                <input type="text" value={formData.theme.logo} onChange={(e) => setFormData(prev => ({ ...prev, theme: { ...prev.theme, logo: e.target.value } }))} placeholder="https://..." className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm" />
+                {formData.theme.logo && <img src={formData.theme.logo} alt="Logo" className="mt-2 h-16 object-contain rounded border border-gray-100" />}
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Header Görsel URL</label>
+                <input type="text" value={formData.theme.headerImage} onChange={(e) => setFormData(prev => ({ ...prev, theme: { ...prev.theme, headerImage: e.target.value } }))} placeholder="https://..." className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm" />
+                {formData.theme.headerImage && <img src={formData.theme.headerImage} alt="Header" className="mt-2 h-24 w-full object-cover rounded border border-gray-100" />}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Actions */}
+        <div className="flex justify-end gap-3 mt-5">
+          <Link href="/project-admin/tenants">
+            <Button type="button" variant="outline">İptal</Button>
+          </Link>
+          <Button type="submit" disabled={saving} className="bg-blue-600 hover:bg-blue-700 text-white">
+            <Save className="w-4 h-4 mr-1.5" />
+            {saving ? 'Kaydediliyor...' : 'Kaydet'}
+          </Button>
+        </div>
+      </form>
+    </div>
+  );
+}
+
+function Field({ label, name, value, onChange, required, type, hint, textarea }: {
+  label: string; name: string; value: string; onChange: any;
+  required?: boolean; type?: string; hint?: string; textarea?: boolean;
+}) {
+  const cls = "w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent";
+  return (
+    <div>
+      <label className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
+      {textarea ? (
+        <textarea name={name} value={value} onChange={onChange} rows={2} className={cls} />
+      ) : (
+        <input type={type || 'text'} name={name} value={value} onChange={onChange} required={required} className={cls} />
+      )}
+      {hint && <p className="text-xs text-gray-400 mt-0.5">{hint}</p>}
     </div>
   );
 }
