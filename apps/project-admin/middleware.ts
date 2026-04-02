@@ -22,9 +22,9 @@ export function middleware(request: NextRequest) {
   const isAuthenticated = !!authCookie;
 
   // Root path - redirect based on auth status
-  if (pathname === '/' || pathname === '/project-admin') {
+  if (pathname === '/') {
     if (isAuthenticated) {
-      return NextResponse.redirect(new URL('/project-admin/tenants', request.url));
+      return NextResponse.redirect(new URL('/project-admin', request.url));
     } else {
       return NextResponse.redirect(new URL('/login', request.url));
     }
@@ -37,7 +37,7 @@ export function middleware(request: NextRequest) {
 
   // Redirect to dashboard if already authenticated and trying to access login
   if (isAuthenticated && pathname === '/login') {
-    return NextResponse.redirect(new URL('/project-admin/tenants', request.url));
+    return NextResponse.redirect(new URL('/project-admin', request.url));
   }
 
   return NextResponse.next();
