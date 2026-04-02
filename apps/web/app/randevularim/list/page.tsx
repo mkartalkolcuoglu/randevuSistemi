@@ -643,11 +643,9 @@ function RandevularimContent() {
                           </Button>
                         )}
                         
-                        {!canCancel && (appointment.status === 'pending' || appointment.status === 'confirmed') && (
+                        {!canCancel && (appointment.status === 'pending' || appointment.status === 'confirmed') && (appointment as any).allowCancellation !== false && (
                           <div className="text-xs text-gray-500 text-center">
-                            {(appointment as any).allowCancellation === false
-                              ? 'İşletme randevu iptaline izin vermiyor'
-                              : 'İptal süresi geçti'}
+                            İptal süresi geçti
                           </div>
                         )}
                         
