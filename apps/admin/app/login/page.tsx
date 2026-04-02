@@ -29,8 +29,29 @@ export default function LoginPage() {
       const result = await response.json();
 
       if (result.success) {
-        // Kullan window.location.href instead of router.push to ensure cookie is included
-        window.location.href = '/admin';
+        // Staff kullanıcılar için yetkili ilk sayfaya yönlendir
+        if (result.userType === 'staff' && result.staff?.permissions) {
+          const perms = result.staff.permissions;
+          const permToPage: Record<string, string> = {
+            dashboard: '/admin',
+            appointments: '/admin/appointments',
+            customers: '/admin/customers',
+            services: '/admin/services',
+            staff: '/admin/staff',
+            packages: '/admin/packages',
+            kasa: '/admin/kasa',
+            stock: '/admin/stock',
+            reports: '/admin/reports',
+            settings: '/admin/settings',
+          };
+          let target = '/admin/appointments'; // fallback
+          for (const [perm, page] of Object.entries(permToPage)) {
+            if (perms[perm]?.read) { target = page; break; }
+          }
+          window.location.href = target;
+        } else {
+          window.location.href = '/admin';
+        }
       } else {
         setError(result.error || 'Giriş başarısız');
       }

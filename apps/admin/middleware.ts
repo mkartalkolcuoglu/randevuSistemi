@@ -128,10 +128,35 @@ export function middleware(request: NextRequest) {
         // Check if user has read permission for this page
         if (!permissions[requiredPermission]?.read) {
           console.log(`🚫 Access denied: ${sessionData.ownerName} tried to access ${pathname}`);
-          console.log(`Required permission: ${requiredPermission}, Has read: ${permissions[requiredPermission]?.read}`);
-          
-          // Redirect to dashboard with error
-          const redirectUrl = new URL('/admin', request.url);
+
+          // Find the first page the user HAS permission to access
+          const permissionToPage: Record<string, string> = {
+            dashboard: '/admin',
+            appointments: '/admin/appointments',
+            customers: '/admin/customers',
+            services: '/admin/services',
+            staff: '/admin/staff',
+            packages: '/admin/packages',
+            kasa: '/admin/kasa',
+            stock: '/admin/stock',
+            reports: '/admin/reports',
+            settings: '/admin/settings',
+          };
+
+          let firstAllowedPage = '/admin/appointments'; // fallback
+          for (const [perm, page] of Object.entries(permissionToPage)) {
+            if (permissions[perm]?.read) {
+              firstAllowedPage = page;
+              break;
+            }
+          }
+
+          // Prevent infinite loop: if already on the allowed page, just continue
+          if (pathname === firstAllowedPage || pathname.startsWith(firstAllowedPage + '/')) {
+            return NextResponse.next();
+          }
+
+          const redirectUrl = new URL(firstAllowedPage, request.url);
           redirectUrl.searchParams.set('error', 'permission_denied');
           return NextResponse.redirect(redirectUrl);
         }
