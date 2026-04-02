@@ -62,8 +62,8 @@ function RandevularimContent() {
   // Profile
   const [customerName, setCustomerName] = useState('');
 
-  const handleLogout = () => {
-    document.cookie = 'customer-session=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+  const handleLogout = async () => {
+    await fetch('/api/auth/logout', { method: 'POST' });
     router.push('/');
   };
 
