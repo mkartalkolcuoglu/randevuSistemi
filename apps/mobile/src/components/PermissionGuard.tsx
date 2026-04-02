@@ -1,14 +1,10 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useAuthStore } from '../store/auth.store';
 import { canAccessPage, StaffPermissions } from '../types';
-import Header from './Header';
-import DrawerMenu from './DrawerMenu';
-
-const THEME_COLOR = '#163974';
 
 interface PermissionGuardProps {
   children: React.ReactNode;
@@ -19,49 +15,39 @@ interface PermissionGuardProps {
 export default function PermissionGuard({ children, permissionKey, pageName }: PermissionGuardProps) {
   const router = useRouter();
   const { user } = useAuthStore();
-  const [drawerOpen, setDrawerOpen] = React.useState(false);
 
   const isOwner = user?.userType === 'owner';
   const permissions = user?.permissions as StaffPermissions | null | undefined;
 
-  // Owner always has access
   if (isOwner) {
     return <>{children}</>;
   }
 
-  // If permissions are set, check if user has access
-  if (permissions && !canAccessPage(permissions, permissionKey)) {
+  if (!canAccessPage(permissions, permissionKey)) {
     return (
-      <SafeAreaView style={styles.container} edges={['top']}>
-        <Header
-          title={pageName}
-          subtitle="Erişim Kısıtlı"
-          onMenuPress={() => setDrawerOpen(true)}
-          gradientColors={['#163974', '#1e4a8f']}
-        />
-        <View style={styles.accessDeniedContainer}>
-          <View style={styles.accessDeniedIcon}>
-            <Ionicons name="lock-closed" size={48} color="#9CA3AF" />
+      <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+        <View style={styles.content}>
+          <View style={styles.iconCircle}>
+            <Ionicons name="lock-closed-outline" size={36} color="#9CA3AF" />
           </View>
-          <Text style={styles.accessDeniedTitle}>Erişim Yetkisi Yok</Text>
-          <Text style={styles.accessDeniedText}>
-            Bu sayfayı görüntüleme yetkiniz bulunmamaktadır.{'\n'}
-            Yetki için işletme sahibinize başvurun.
+          <Text style={styles.title}>Erişim Yetkisi Yok</Text>
+          <Text style={styles.subtitle}>
+            <Text style={styles.pageName}>{pageName}</Text> sayfasını görüntüleme yetkiniz bulunmamaktadır.
           </Text>
+          <Text style={styles.hint}>Yetki için işletme sahibinize başvurun.</Text>
           <TouchableOpacity
-            style={styles.accessDeniedButton}
+            style={styles.button}
             onPress={() => router.replace('/(tabs)/staff')}
+            activeOpacity={0.8}
           >
-            <Ionicons name="home" size={20} color="#fff" />
-            <Text style={styles.accessDeniedButtonText}>Ana Sayfaya Dön</Text>
+            <Ionicons name="arrow-back" size={18} color="#fff" />
+            <Text style={styles.buttonText}>Ana Sayfaya Dön</Text>
           </TouchableOpacity>
         </View>
-        <DrawerMenu isOpen={drawerOpen} onClose={() => setDrawerOpen(false)} />
       </SafeAreaView>
     );
   }
 
-  // If no permissions set (null) or user has access, show children
   return <>{children}</>;
 }
 
@@ -70,44 +56,53 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#F9FAFB',
   },
-  accessDeniedContainer: {
+  content: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 40,
   },
-  accessDeniedIcon: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
+  iconCircle: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
     backgroundColor: '#F3F4F6',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 24,
+    marginBottom: 20,
   },
-  accessDeniedTitle: {
-    fontSize: 20,
-    fontWeight: '600',
+  title: {
+    fontSize: 18,
+    fontWeight: '700',
     color: '#1F2937',
     marginBottom: 8,
   },
-  accessDeniedText: {
+  subtitle: {
     fontSize: 14,
     color: '#6B7280',
     textAlign: 'center',
-    lineHeight: 22,
+    lineHeight: 20,
+  },
+  pageName: {
+    fontWeight: '600',
+    color: '#374151',
+  },
+  hint: {
+    fontSize: 13,
+    color: '#9CA3AF',
+    marginTop: 4,
     marginBottom: 24,
   },
-  accessDeniedButton: {
+  button: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: THEME_COLOR,
+    backgroundColor: '#163974',
     paddingHorizontal: 20,
     paddingVertical: 12,
     borderRadius: 12,
     gap: 8,
   },
-  accessDeniedButtonText: {
+  buttonText: {
     fontSize: 15,
     fontWeight: '600',
     color: '#fff',
