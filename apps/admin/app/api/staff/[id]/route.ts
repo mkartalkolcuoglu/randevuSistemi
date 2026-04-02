@@ -49,11 +49,16 @@ export async function PUT(
     const { id } = await params;
     const data = await request.json();
     
+    // If email is empty, generate unique placeholder (email is unique in schema)
+    const email = data.email && data.email.trim() !== ''
+      ? data.email
+      : `staff-${id}-${Date.now()}@placeholder.local`;
+
     // Prepare update data
     const updateData: any = {
       firstName: data.firstName,
       lastName: data.lastName,
-      email: data.email,
+      email,
       phone: data.phone,
       position: data.position,
       status: data.status,
