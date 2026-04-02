@@ -107,10 +107,13 @@ export async function PUT(
       message: 'Staff member updated successfully',
       data: updatedStaff
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error updating staff member:', error);
+    const message = error?.code === 'P2002'
+      ? 'Bu e-posta adresi başka bir personelde kullanılıyor'
+      : error?.message || 'Personel güncellenirken bir hata oluştu';
     return NextResponse.json(
-      { success: false, error: 'Failed to update staff member' },
+      { success: false, error: message },
       { status: 400 }
     );
   }

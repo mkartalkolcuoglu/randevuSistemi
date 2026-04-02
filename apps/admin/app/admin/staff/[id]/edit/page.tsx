@@ -218,13 +218,15 @@ export default function EditStaffPage() {
         body: JSON.stringify(submitData)
       });
 
+      const result = await response.json();
+
       if (!response.ok) {
-        throw new Error('Network response was not ok');
+        alert(result.error || 'Personel güncellenirken bir hata oluştu.');
+        return;
       }
 
-      const result = await response.json();
       console.log('Staff updated:', result);
-      
+
       alert('Personel başarıyla güncellendi!');
       router.push(`/admin/staff/${params.id}`);
     } catch (error) {
