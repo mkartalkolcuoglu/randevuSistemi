@@ -68,9 +68,9 @@ export async function PUT(
         businessType: data.businessType || 'other',
         businessDescription: data.businessDescription || '',
         status: data.status || 'active',
-        subscriptionPlan: data.subscriptionPlan,
-        subscriptionStart: data.subscriptionStart ? new Date(data.subscriptionStart) : undefined,
-        subscriptionEnd: data.subscriptionEnd ? new Date(data.subscriptionEnd) : undefined,
+        subscriptionPlan: data.subscriptionPlan || undefined,
+        subscriptionStart: data.subscriptionStart && data.subscriptionStart !== '' ? new Date(data.subscriptionStart) : undefined,
+        subscriptionEnd: data.subscriptionEnd && data.subscriptionEnd !== '' ? new Date(data.subscriptionEnd) : undefined,
         workingHours: JSON.stringify(data.workingHours || {}),
         theme: JSON.stringify(data.theme || {})
       }
@@ -102,10 +102,10 @@ export async function PUT(
       data: updatedTenant,
       message: 'Tenant updated successfully'
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error updating tenant:', error);
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { success: false, error: error?.message || 'Güncelleme sırasında hata oluştu' },
       { status: 500 }
     );
   }
