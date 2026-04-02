@@ -30,7 +30,8 @@ async function getPayments() {
         status: true,
         paidAt: true,
         createdAt: true,
-        userBasket: true
+        userBasket: true,
+        productName: true,
       }
     });
 
@@ -38,9 +39,7 @@ async function getPayments() {
     const paymentsWithDetails = await Promise.all(
       payments.map(async (payment) => {
         let tenantName = 'Bilinmiyor';
-        let serviceName = null;
-        let packageName = null;
-        let productName = null;
+        let itemName: string | null = null;
 
         // Tenant bilgisi
         if (payment.tenantId) {
@@ -48,49 +47,42 @@ async function getPayments() {
             where: { id: payment.tenantId },
             select: { businessName: true }
           });
-          if (tenant) {
-            tenantName = tenant.businessName;
-          }
+          if (tenant) tenantName = tenant.businessName;
         }
 
-        // Appointment bilgisi
-        if (payment.appointmentId) {
+        // 1. Doğrudan Payment.productName alanı
+        if (payment.productName) {
+          itemName = payment.productName;
+        }
+
+        // 2. Appointment'tan serviceName
+        if (!itemName && payment.appointmentId) {
           const appointment = await prisma.appointment.findUnique({
             where: { id: payment.appointmentId },
             select: { serviceName: true }
           });
-          if (appointment) {
-            serviceName = appointment.serviceName;
-          }
+          if (appointment?.serviceName) itemName = appointment.serviceName;
         }
 
-        // userBasket'ten paket veya ürün bilgisi çıkar
-        if (payment.userBasket) {
+        // 3. userBasket'ten parse et
+        if (!itemName && payment.userBasket) {
           try {
             const basket = JSON.parse(payment.userBasket);
-            // Basket formatı: "Ürün Adı 1, Miktar 1, Fiyat 1"
-            const parts = basket.split(',');
-            if (parts.length > 0) {
-              const itemName = parts[0].trim();
-              // Eğer "Paket" kelimesi içeriyorsa paket, değilse ürün olarak kabul et
-              if (itemName.toLowerCase().includes('paket') || itemName.toLowerCase().includes('package')) {
-                packageName = itemName;
-              } else if (!serviceName) {
-                // Sadece servis yoksa ürün olarak kabul et
-                productName = itemName;
-              }
+            if (typeof basket === 'string') {
+              const parts = basket.split(',');
+              if (parts.length > 0 && parts[0].trim()) itemName = parts[0].trim();
+            } else if (Array.isArray(basket) && basket.length > 0) {
+              itemName = basket[0]?.name || basket[0] || null;
             }
-          } catch (e) {
-            // JSON parse hatası, devam et
-          }
+          } catch {}
         }
 
         return {
           ...payment,
           tenantName,
-          serviceName,
-          packageName,
-          productName,
+          serviceName: itemName,
+          packageName: null,
+          productName: null,
           paidAt: payment.paidAt ? payment.paidAt.toISOString() : null,
           createdAt: payment.createdAt.toISOString()
         };
