@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '../../../../lib/prisma';
 import { checkApiPermission } from '../../../../lib/api-auth';
+import { createAuditLog, getIpFromRequest } from '../../../../lib/audit';
 
 export async function GET(
   request: NextRequest,
@@ -46,7 +47,10 @@ export async function PUT(
 
     const { id } = await params;
     const data = await request.json();
-    
+
+    // Fetch old service for audit comparison
+    const oldService = await prisma.service.findUnique({ where: { id } });
+
     const updatedService = await prisma.service.update({
       where: { id },
       data: {
@@ -59,6 +63,28 @@ export async function PUT(
         color: data.color || null
       }
     });
+
+    // Audit log
+    try {
+      const sessionCookie = request.cookies.get('tenant-session')?.value;
+      const session = sessionCookie ? JSON.parse(sessionCookie) : null;
+      await createAuditLog({
+        tenantId: session?.tenantId || updatedService.tenantId,
+        userId: session?.tenantId,
+        userName: session?.ownerName,
+        userType: 'owner',
+        action: 'update',
+        entity: 'service',
+        entityId: id,
+        summary: `Hizmet güncellendi: ${updatedService.name}`,
+        oldValues: oldService ? { name: oldService.name, price: oldService.price, duration: oldService.duration, status: oldService.status } : undefined,
+        newValues: { name: updatedService.name, price: updatedService.price, duration: updatedService.duration, status: updatedService.status },
+        ipAddress: getIpFromRequest(request),
+        source: 'admin',
+      });
+    } catch (auditError) {
+      console.error('Audit log error:', auditError);
+    }
 
     return NextResponse.json({
       success: true,

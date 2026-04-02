@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '../../../../../lib/prisma';
+import { createAuditLog, getIpFromRequest } from '../../../../../lib/audit';
 import jwt from 'jsonwebtoken';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
@@ -290,6 +291,11 @@ export async function PATCH(
 
     const appointment = await prisma.appointment.findUnique({
       where: { id },
+      include: {
+        customer: {
+          select: { firstName: true, lastName: true },
+        },
+      },
     });
 
     if (!appointment) {
@@ -483,6 +489,42 @@ export async function PATCH(
       } catch (err) {
         console.error('Auto-send survey check failed:', err);
       }
+    }
+
+    // Audit log for status change
+    if (status && status !== oldStatus) {
+      const statusLabels: Record<string, string> = {
+        pending: 'Beklemede',
+        confirmed: 'Onaylandı',
+        completed: 'Tamamlandı',
+        cancelled: 'İptal',
+        no_show: 'Gelmedi',
+      };
+      const customerName = `${appointment.customer.firstName} ${appointment.customer.lastName}`.trim();
+      const isCancellation = status === 'cancelled';
+      const summary = isCancellation
+        ? `Randevu iptal edildi: ${customerName} - ${appointment.date} ${appointment.time}`
+        : `Randevu durumu değiştirildi: ${statusLabels[oldStatus] || oldStatus}→${statusLabels[status] || status} (${customerName})`;
+
+      const userId = auth.userType === 'customer'
+        ? auth.customerId
+        : auth.userType === 'staff'
+          ? auth.staffId
+          : auth.ownerId;
+
+      createAuditLog({
+        tenantId: auth.tenantId,
+        userId,
+        userType: auth.userType,
+        action: isCancellation ? 'cancel' : 'status_change',
+        entity: 'appointment',
+        entityId: id,
+        summary,
+        oldValues: { status: oldStatus },
+        newValues: { status },
+        ipAddress: getIpFromRequest(request),
+        source: 'mobile',
+      });
     }
 
     return NextResponse.json({

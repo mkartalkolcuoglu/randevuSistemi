@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 import { checkApiPermission } from '../../../../lib/api-auth';
+import { createAuditLog, getIpFromRequest } from '../../../../lib/audit';
 
 const prisma = new PrismaClient();
 
@@ -196,6 +197,63 @@ export async function PUT(
       } catch (err) {
         console.error('Auto-send survey check failed:', err);
       }
+    }
+
+    // Audit log for appointment update
+    try {
+      const { cookies: auditCookies } = await import('next/headers');
+      const auditCookieStore = await auditCookies();
+      const auditSessionCookie = auditCookieStore.get('tenant-session');
+      const auditSession = auditSessionCookie ? JSON.parse(auditSessionCookie.value) : {};
+
+      // Build change summary
+      const changes: string[] = [];
+      if (oldAppointment?.time !== updatedAppointment.time) changes.push(`saat ${oldAppointment?.time}→${updatedAppointment.time}`);
+      if (oldAppointment?.date !== updatedAppointment.date) changes.push(`tarih ${oldAppointment?.date}→${updatedAppointment.date}`);
+      if (oldAppointment?.status !== updatedAppointment.status) changes.push(`durum ${oldAppointment?.status}→${updatedAppointment.status}`);
+      if (oldAppointment?.price !== updatedAppointment.price) changes.push(`fiyat ${oldAppointment?.price}→${updatedAppointment.price}`);
+      if (oldAppointment?.staffName !== updatedAppointment.staffName) changes.push(`personel ${oldAppointment?.staffName}→${updatedAppointment.staffName}`);
+      if (oldAppointment?.serviceName !== updatedAppointment.serviceName) changes.push(`hizmet ${oldAppointment?.serviceName}→${updatedAppointment.serviceName}`);
+      if (oldAppointment?.customerName !== updatedAppointment.customerName) changes.push(`müşteri ${oldAppointment?.customerName}→${updatedAppointment.customerName}`);
+
+      const summary = changes.length > 0
+        ? `Randevu güncellendi: ${changes.join(', ')}`
+        : `Randevu güncellendi: ${updatedAppointment.customerName} - ${updatedAppointment.date} ${updatedAppointment.time}`;
+
+      await createAuditLog({
+        tenantId: updatedAppointment.tenantId,
+        userId: auditSession.staffId || auditSession.tenantId,
+        userName: auditSession.ownerName || auditSession.staffName || 'Admin',
+        userType: auditSession.userType || 'owner',
+        action: 'update',
+        entity: 'appointment',
+        entityId: id,
+        summary,
+        oldValues: oldAppointment ? {
+          customerName: oldAppointment.customerName,
+          serviceName: oldAppointment.serviceName,
+          staffName: oldAppointment.staffName,
+          date: oldAppointment.date,
+          time: oldAppointment.time,
+          status: oldAppointment.status,
+          price: oldAppointment.price,
+          paymentType: oldAppointment.paymentType,
+        } : undefined,
+        newValues: {
+          customerName: updatedAppointment.customerName,
+          serviceName: updatedAppointment.serviceName,
+          staffName: updatedAppointment.staffName,
+          date: updatedAppointment.date,
+          time: updatedAppointment.time,
+          status: updatedAppointment.status,
+          price: updatedAppointment.price,
+          paymentType: updatedAppointment.paymentType,
+        },
+        ipAddress: getIpFromRequest(request),
+        source: 'admin',
+      });
+    } catch (auditError) {
+      console.error('Audit log error (appointment update):', auditError);
     }
 
     return NextResponse.json({
@@ -556,6 +614,11 @@ export async function DELETE(
       return permissionCheck.error!;
     }
     
+    // Fetch appointment details before deletion for audit log
+    const appointmentToDelete = await prisma.appointment.findUnique({
+      where: { id }
+    });
+
     // Delete related transaction (kasa kaydı) first
     await prisma.transaction.deleteMany({
       where: { appointmentId: id }
@@ -564,6 +627,38 @@ export async function DELETE(
     await prisma.appointment.delete({
       where: { id }
     });
+
+    // Audit log for appointment deletion
+    try {
+      const { cookies: auditCookies } = await import('next/headers');
+      const auditCookieStore = await auditCookies();
+      const auditSessionCookie = auditCookieStore.get('tenant-session');
+      const auditSession = auditSessionCookie ? JSON.parse(auditSessionCookie.value) : {};
+
+      await createAuditLog({
+        tenantId: appointmentToDelete?.tenantId || auditSession.tenantId || '',
+        userId: auditSession.staffId || auditSession.tenantId,
+        userName: auditSession.ownerName || auditSession.staffName || 'Admin',
+        userType: auditSession.userType || 'owner',
+        action: 'delete',
+        entity: 'appointment',
+        entityId: id,
+        summary: `Randevu silindi: ${appointmentToDelete?.customerName || 'Bilinmeyen'} - ${appointmentToDelete?.date || ''} ${appointmentToDelete?.time || ''}`,
+        oldValues: appointmentToDelete ? {
+          customerName: appointmentToDelete.customerName,
+          serviceName: appointmentToDelete.serviceName,
+          staffName: appointmentToDelete.staffName,
+          date: appointmentToDelete.date,
+          time: appointmentToDelete.time,
+          status: appointmentToDelete.status,
+          price: appointmentToDelete.price,
+        } : undefined,
+        ipAddress: getIpFromRequest(request),
+        source: 'admin',
+      });
+    } catch (auditError) {
+      console.error('Audit log error (appointment delete):', auditError);
+    }
 
     return NextResponse.json({
       success: true,

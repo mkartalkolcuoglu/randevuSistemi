@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 import { checkApiPermission } from '../../../lib/api-auth';
+import { createAuditLog, getIpFromRequest } from '../../../lib/audit';
 
 const prisma = new PrismaClient();
 
@@ -175,6 +176,46 @@ export async function POST(request: NextRequest) {
       } catch (err) {
         console.error('🎁 Error deducting package for sale:', err);
       }
+    }
+
+    // Audit log
+    try {
+      const { cookies } = await import('next/headers');
+      const cookieStore = await cookies();
+      const sessionCookie = cookieStore.get('tenant-session');
+      let userName = undefined;
+      let userType = 'owner';
+      let userId = undefined;
+      if (sessionCookie) {
+        try {
+          const sessionData = JSON.parse(sessionCookie.value);
+          userName = sessionData.ownerName;
+          userType = sessionData.userType || 'owner';
+          userId = sessionData.staffId;
+        } catch {}
+      }
+      const typeLabels: Record<string, string> = {
+        appointment: 'Randevu',
+        income: 'Gelir',
+        expense: 'Gider',
+        sale: 'Satış',
+      };
+      const typeLabel = typeLabels[data.type] || data.type;
+      await createAuditLog({
+        tenantId: data.tenantId,
+        userId,
+        userName,
+        userType,
+        action: 'create',
+        entity: 'transaction',
+        entityId: transaction.id,
+        summary: `Yeni ${typeLabel}: ${data.description} ${data.amount}₺`,
+        newValues: transaction,
+        ipAddress: getIpFromRequest(request),
+        source: 'admin',
+      });
+    } catch (auditError) {
+      console.error('Audit log error (transaction create):', auditError);
     }
 
     return NextResponse.json({

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 import { checkApiPermission } from '../../../../lib/api-auth';
+import { createAuditLog, getIpFromRequest } from '../../../../lib/audit';
 
 const prisma = new PrismaClient();
 
@@ -127,6 +128,58 @@ export async function PUT(
       }
     });
 
+    // Audit log
+    try {
+      const { cookies } = await import('next/headers');
+      const cookieStore = await cookies();
+      const sessionCookie = cookieStore.get('tenant-session');
+      let userName = undefined;
+      let userType = 'owner';
+      let userId = undefined;
+      let tenantId = oldTransaction.tenantId;
+      if (sessionCookie) {
+        try {
+          const sessionData = JSON.parse(sessionCookie.value);
+          userName = sessionData.ownerName;
+          userType = sessionData.userType || 'owner';
+          userId = sessionData.staffId;
+          tenantId = sessionData.tenantId || tenantId;
+        } catch {}
+      }
+      const changes: string[] = [];
+      if (oldTransaction.amount !== transaction.amount) {
+        changes.push(`tutar ${oldTransaction.amount}→${transaction.amount}₺`);
+      }
+      if (oldTransaction.description !== transaction.description) {
+        changes.push(`açıklama "${oldTransaction.description}"→"${transaction.description}"`);
+      }
+      if (oldTransaction.type !== transaction.type) {
+        changes.push(`tür ${oldTransaction.type}→${transaction.type}`);
+      }
+      if (oldTransaction.paymentType !== transaction.paymentType) {
+        changes.push(`ödeme türü ${oldTransaction.paymentType}→${transaction.paymentType}`);
+      }
+      const summary = changes.length > 0
+        ? `İşlem güncellendi: ${changes.join(', ')}`
+        : `İşlem güncellendi: ${transaction.description}`;
+      await createAuditLog({
+        tenantId,
+        userId,
+        userName,
+        userType,
+        action: 'update',
+        entity: 'transaction',
+        entityId: id,
+        summary,
+        oldValues: oldTransaction,
+        newValues: transaction,
+        ipAddress: getIpFromRequest(request),
+        source: 'admin',
+      });
+    } catch (auditError) {
+      console.error('Audit log error (transaction update):', auditError);
+    }
+
     return NextResponse.json({
       success: true,
       data: transaction
@@ -184,6 +237,41 @@ export async function DELETE(
     await prisma.transaction.delete({
       where: { id }
     });
+
+    // Audit log
+    try {
+      const { cookies } = await import('next/headers');
+      const cookieStore = await cookies();
+      const sessionCookie = cookieStore.get('tenant-session');
+      let userName = undefined;
+      let userType = 'owner';
+      let userId = undefined;
+      let tenantId = transaction.tenantId;
+      if (sessionCookie) {
+        try {
+          const sessionData = JSON.parse(sessionCookie.value);
+          userName = sessionData.ownerName;
+          userType = sessionData.userType || 'owner';
+          userId = sessionData.staffId;
+          tenantId = sessionData.tenantId || tenantId;
+        } catch {}
+      }
+      await createAuditLog({
+        tenantId,
+        userId,
+        userName,
+        userType,
+        action: 'delete',
+        entity: 'transaction',
+        entityId: id,
+        summary: `İşlem silindi: ${transaction.description} ${transaction.amount}₺`,
+        oldValues: transaction,
+        ipAddress: getIpFromRequest(request),
+        source: 'admin',
+      });
+    } catch (auditError) {
+      console.error('Audit log error (transaction delete):', auditError);
+    }
 
     return NextResponse.json({
       success: true,

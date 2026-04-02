@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { prisma } from '../../../lib/prisma';
 import { checkApiPermission } from '../../../lib/api-auth';
+import { createAuditLog, getIpFromRequest } from '../../../lib/audit';
 
 export async function GET(request: NextRequest) {
   try {
@@ -173,6 +174,25 @@ export async function POST(request: NextRequest) {
           notes: data.notes || '',
           status: data.status || 'active'
         }
+      });
+
+      // Audit log
+      let ownerName = 'Bilinmiyor';
+      try {
+        const sd = JSON.parse(tenantSession.value);
+        ownerName = sd.ownerName || ownerName;
+      } catch {}
+      await createAuditLog({
+        tenantId,
+        userName: ownerName,
+        userType: 'owner',
+        action: 'create',
+        entity: 'customer',
+        entityId: newCustomer.id,
+        summary: `Yeni müşteri: ${newCustomer.firstName} ${newCustomer.lastName}`,
+        newValues: { firstName: newCustomer.firstName, lastName: newCustomer.lastName, email: newCustomer.email, phone: newCustomer.phone },
+        ipAddress: getIpFromRequest(request),
+        source: 'admin',
       });
 
       return NextResponse.json({

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { checkApiPermission } from '../../../lib/api-auth';
 import { prisma } from '../../../lib/prisma';
 import { getBlockingDate } from '../../../lib/blocked-dates';
+import { createAuditLog, getIpFromRequest } from '../../../lib/audit';
 
 // CORS headers
 const corsHeaders = {
@@ -308,6 +309,30 @@ export async function POST(request: NextRequest) {
 
       console.log('✅ Appointment created:', newAppointment.id, 'with package:', data.usePackageForService);
 
+      // Audit log for web appointment creation
+      try {
+        await createAuditLog({
+          tenantId: tenant.id,
+          action: 'create',
+          entity: 'appointment',
+          entityId: newAppointment.id,
+          summary: `Yeni randevu: ${data.customerName} - ${data.serviceName} ${data.date} ${data.time}`,
+          newValues: {
+            customerName: data.customerName,
+            serviceName: data.serviceName,
+            staffName: staffName,
+            date: data.date,
+            time: data.time,
+            status: newAppointment.status,
+            price: newAppointment.price,
+          },
+          ipAddress: getIpFromRequest(request),
+          source: 'admin',
+        });
+      } catch (auditError) {
+        console.error('Audit log error (web appointment create):', auditError);
+      }
+
       // 💰 Create transaction only when status is completed
       if (newAppointment.status === 'completed') {
         console.log('💰 [APPOINTMENT] Creating transaction for kasa...');
@@ -548,6 +573,38 @@ export async function POST(request: NextRequest) {
     });
 
     console.log('✅ Admin appointment created:', newAppointment.id);
+
+    // Audit log for admin appointment creation
+    try {
+      // Get session info for audit
+      const { cookies: auditCookies } = await import('next/headers');
+      const auditCookieStore = await auditCookies();
+      const auditSessionCookie = auditCookieStore.get('tenant-session');
+      const auditSession = auditSessionCookie ? JSON.parse(auditSessionCookie.value) : {};
+      await createAuditLog({
+        tenantId: tenantId,
+        userId: auditSession.staffId || auditSession.tenantId,
+        userName: auditSession.ownerName || auditSession.staffName || 'Admin',
+        userType: auditSession.userType || 'owner',
+        action: 'create',
+        entity: 'appointment',
+        entityId: newAppointment.id,
+        summary: `Yeni randevu: ${customer.firstName} ${customer.lastName} - ${service.name} ${data.date} ${data.time}`,
+        newValues: {
+          customerName: `${customer.firstName} ${customer.lastName}`,
+          serviceName: service.name,
+          staffName: `${staff.firstName} ${staff.lastName}`,
+          date: data.date,
+          time: data.time,
+          status: newAppointment.status,
+          price: newAppointment.price,
+        },
+        ipAddress: getIpFromRequest(request),
+        source: 'admin',
+      });
+    } catch (auditError) {
+      console.error('Audit log error (admin appointment create):', auditError);
+    }
 
     // 🎁 Deduct from package if package was used (status is confirmed on creation)
     if (usePackage && newAppointment.packageInfo) {

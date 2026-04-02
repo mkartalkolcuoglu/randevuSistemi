@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { prisma } from '../../../../lib/prisma';
 import { checkApiPermission } from '../../../../lib/api-auth';
+import { createAuditLog, getIpFromRequest } from '../../../../lib/audit';
 
 export async function GET(
   request: NextRequest,
@@ -182,6 +183,11 @@ export async function PUT(
     }
 
     try {
+      // Read old customer for audit log
+      const oldCustomer = await prisma.customer.findFirst({
+        where: { id, tenantId }
+      });
+
       const updatedCustomer = await prisma.customer.update({
         where: {
           id,
@@ -198,6 +204,26 @@ export async function PUT(
           notes: data.notes,
           status: data.status
         }
+      });
+
+      // Audit log
+      let ownerName = 'Bilinmiyor';
+      try {
+        const sd = JSON.parse(tenantSession!.value);
+        ownerName = sd.ownerName || ownerName;
+      } catch {}
+      await createAuditLog({
+        tenantId,
+        userName: ownerName,
+        userType: 'owner',
+        action: 'update',
+        entity: 'customer',
+        entityId: id,
+        summary: `Müşteri güncellendi: ${updatedCustomer.firstName} ${updatedCustomer.lastName}`,
+        oldValues: oldCustomer ? { firstName: oldCustomer.firstName, lastName: oldCustomer.lastName, email: oldCustomer.email, phone: oldCustomer.phone, status: oldCustomer.status } : undefined,
+        newValues: { firstName: updatedCustomer.firstName, lastName: updatedCustomer.lastName, email: updatedCustomer.email, phone: updatedCustomer.phone, status: updatedCustomer.status },
+        ipAddress: getIpFromRequest(request),
+        source: 'admin',
       });
 
       return NextResponse.json({
@@ -276,11 +302,35 @@ export async function DELETE(
         );
       }
 
+      // Read customer before delete for audit log
+      const customerToDelete = await prisma.customer.findFirst({
+        where: { id, tenantId }
+      });
+
       await prisma.customer.delete({
         where: {
           id,
           tenantId
         }
+      });
+
+      // Audit log
+      let ownerName = 'Bilinmiyor';
+      try {
+        const sd = JSON.parse(tenantSession!.value);
+        ownerName = sd.ownerName || ownerName;
+      } catch {}
+      await createAuditLog({
+        tenantId,
+        userName: ownerName,
+        userType: 'owner',
+        action: 'delete',
+        entity: 'customer',
+        entityId: id,
+        summary: `Müşteri silindi: ${customerToDelete?.firstName || ''} ${customerToDelete?.lastName || ''}`,
+        oldValues: customerToDelete ? { firstName: customerToDelete.firstName, lastName: customerToDelete.lastName, email: customerToDelete.email, phone: customerToDelete.phone } : undefined,
+        ipAddress: getIpFromRequest(request),
+        source: 'admin',
       });
 
       return NextResponse.json({

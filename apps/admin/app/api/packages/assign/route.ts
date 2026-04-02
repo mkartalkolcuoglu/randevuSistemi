@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 import { checkApiPermission } from '../../../../lib/api-auth';
+import { createAuditLog, getIpFromRequest } from '../../../../lib/audit';
 
 const prisma = new PrismaClient();
 
@@ -148,6 +149,27 @@ export async function POST(request: NextRequest) {
         date: today
       }
     });
+
+    // Audit log
+    try {
+      const sessionCookie = request.cookies.get('tenant-session')?.value;
+      const session = sessionCookie ? JSON.parse(sessionCookie) : null;
+      await createAuditLog({
+        tenantId: session?.tenantId || tenantId,
+        userId: session?.tenantId,
+        userName: session?.ownerName,
+        userType: 'owner',
+        action: 'create',
+        entity: 'package',
+        entityId: customerPackage.id,
+        summary: `Paket atandı: ${customer.firstName} ${customer.lastName} - ${packageData.name}`,
+        newValues: { customerId, packageId, staffId, paymentType, price: packageData.price },
+        ipAddress: getIpFromRequest(request),
+        source: 'admin',
+      });
+    } catch (auditError) {
+      console.error('Audit log error:', auditError);
+    }
 
     return NextResponse.json({
       success: true,
@@ -298,6 +320,17 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
+    // Fetch customer package details for audit log before deletion
+    const cpToDelete = await prisma.customerPackage.findUnique({ where: { id: customerPackageId } });
+    let customerName = '';
+    let packageName = '';
+    if (cpToDelete) {
+      const cust = await prisma.customer.findUnique({ where: { id: cpToDelete.customerId }, select: { firstName: true, lastName: true } });
+      const pkg = await prisma.package.findUnique({ where: { id: cpToDelete.packageId }, select: { name: true } });
+      customerName = cust ? `${cust.firstName} ${cust.lastName}` : '';
+      packageName = pkg?.name || '';
+    }
+
     // First, delete all usages
     await prisma.customerPackageUsage.deleteMany({
       where: { customerPackageId }
@@ -307,6 +340,27 @@ export async function DELETE(request: NextRequest) {
     await prisma.customerPackage.delete({
       where: { id: customerPackageId }
     });
+
+    // Audit log
+    try {
+      const sessionCookie = request.cookies.get('tenant-session')?.value;
+      const session = sessionCookie ? JSON.parse(sessionCookie) : null;
+      await createAuditLog({
+        tenantId: session?.tenantId || cpToDelete?.tenantId || '',
+        userId: session?.tenantId,
+        userName: session?.ownerName,
+        userType: 'owner',
+        action: 'delete',
+        entity: 'package',
+        entityId: customerPackageId,
+        summary: `Paket kaldırıldı: ${customerName} - ${packageName}`,
+        oldValues: cpToDelete ? { customerId: cpToDelete.customerId, packageId: cpToDelete.packageId } : undefined,
+        ipAddress: getIpFromRequest(request),
+        source: 'admin',
+      });
+    } catch (auditError) {
+      console.error('Audit log error:', auditError);
+    }
 
     return NextResponse.json({
       success: true,

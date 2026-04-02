@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '../../../../lib/prisma';
 import bcrypt from 'bcryptjs';
 import { checkApiPermission } from '../../../../lib/api-auth';
+import { createAuditLog, getIpFromRequest } from '../../../../lib/audit';
 
 export async function GET(
   request: NextRequest,
@@ -79,6 +80,28 @@ export async function PUT(
       data: updateData
     });
 
+    // Audit log
+    try {
+      const sessionCookie = request.cookies.get('tenant-session')?.value;
+      const session = sessionCookie ? JSON.parse(sessionCookie) : null;
+      await createAuditLog({
+        tenantId: session?.tenantId || updatedStaff.tenantId,
+        userId: session?.tenantId,
+        userName: session?.ownerName,
+        userType: 'owner',
+        action: 'update',
+        entity: 'staff',
+        entityId: id,
+        summary: `Personel güncellendi: ${updatedStaff.firstName} ${updatedStaff.lastName}`,
+        oldValues: undefined,
+        newValues: { firstName: updatedStaff.firstName, lastName: updatedStaff.lastName, position: updatedStaff.position, status: updatedStaff.status },
+        ipAddress: getIpFromRequest(request),
+        source: 'admin',
+      });
+    } catch (auditError) {
+      console.error('Audit log error:', auditError);
+    }
+
     return NextResponse.json({
       success: true,
       message: 'Staff member updated successfully',
@@ -105,7 +128,10 @@ export async function DELETE(
     }
 
     const { id } = await params;
-    
+
+    // Fetch staff for audit log before deletion
+    const staffToDelete = await prisma.staff.findUnique({ where: { id } });
+
     // Check if staff has any appointments
     const appointmentCount = await prisma.appointment.count({
       where: { staffId: id }
@@ -118,6 +144,26 @@ export async function DELETE(
         data: { status: 'inactive' }
       });
 
+      // Audit log
+      try {
+        const sessionCookie = request.cookies.get('tenant-session')?.value;
+        const session = sessionCookie ? JSON.parse(sessionCookie) : null;
+        await createAuditLog({
+          tenantId: session?.tenantId || staffToDelete?.tenantId || '',
+          userId: session?.tenantId,
+          userName: session?.ownerName,
+          userType: 'owner',
+          action: 'delete',
+          entity: 'staff',
+          entityId: id,
+          summary: `Personel silindi: ${staffToDelete?.firstName || ''} ${staffToDelete?.lastName || ''}`,
+          ipAddress: getIpFromRequest(request),
+          source: 'admin',
+        });
+      } catch (auditError) {
+        console.error('Audit log error:', auditError);
+      }
+
       return NextResponse.json({
         success: true,
         message: `Personel deaktif edildi. ${appointmentCount} randevusu olduğu için tamamen silinemedi.`,
@@ -128,6 +174,26 @@ export async function DELETE(
       await prisma.staff.delete({
         where: { id }
       });
+
+      // Audit log
+      try {
+        const sessionCookie = request.cookies.get('tenant-session')?.value;
+        const session = sessionCookie ? JSON.parse(sessionCookie) : null;
+        await createAuditLog({
+          tenantId: session?.tenantId || staffToDelete?.tenantId || '',
+          userId: session?.tenantId,
+          userName: session?.ownerName,
+          userType: 'owner',
+          action: 'delete',
+          entity: 'staff',
+          entityId: id,
+          summary: `Personel silindi: ${staffToDelete?.firstName || ''} ${staffToDelete?.lastName || ''}`,
+          ipAddress: getIpFromRequest(request),
+          source: 'admin',
+        });
+      } catch (auditError) {
+        console.error('Audit log error:', auditError);
+      }
 
       return NextResponse.json({
         success: true,
