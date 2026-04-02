@@ -51,8 +51,14 @@ export default function EditAppointmentPage() {
     
     if (!dayHours) {
       console.log('❌ Selected date is not a working day (closed)');
-      setAvailableTimeSlots([]);
-      setAllTimeSlots([]);
+      // Düzenleme sayfasında mevcut saati yine de göster
+      if (formData.time) {
+        setAvailableTimeSlots([formData.time]);
+        setAllTimeSlots([formData.time]);
+      } else {
+        setAvailableTimeSlots([]);
+        setAllTimeSlots([]);
+      }
       return;
     }
 
@@ -87,12 +93,17 @@ export default function EditAppointmentPage() {
       const [hour, minute] = timeSlot.split(':').map(Number);
       const slotTime = hour * 60 + minute;
       const currentTime = currentHour * 60 + currentMinute;
-      
+
       return slotTime > currentTime;
     });
 
+    // Mevcut randevunun saatini her zaman listeye dahil et (düzenleme sırasında kaybolmasın)
+    if (formData.time && !filtered.includes(formData.time)) {
+      filtered.unshift(formData.time);
+    }
+
     setAvailableTimeSlots(filtered);
-  }, [formData.date, workingHours, timeInterval]);
+  }, [formData.date, formData.time, workingHours, timeInterval]);
 
   useEffect(() => {
     const fetchSettings = async () => {
