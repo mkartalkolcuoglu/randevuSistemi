@@ -85,7 +85,7 @@ export default function ProjectAdminReportsPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-6">
             <div className="flex items-center space-x-4">
-              <Link href="/project-admin">
+              <Link href="/project-admin/tenants">
                 <Button variant="ghost" size="sm">
                   <ChevronLeft className="w-4 h-4 mr-2" />
                   Project Admin

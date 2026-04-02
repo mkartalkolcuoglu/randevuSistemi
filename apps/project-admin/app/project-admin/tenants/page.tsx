@@ -257,7 +257,7 @@ export default function TenantsManagement() {
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center space-x-4 mb-4">
-            <Link href="/project-admin">
+            <Link href="/project-admin/tenants">
               <Button variant="ghost" size="sm">
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 Geri Dön

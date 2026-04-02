@@ -22,7 +22,7 @@ export function middleware(request: NextRequest) {
   const isAuthenticated = !!authCookie;
 
   // Root path - redirect based on auth status
-  if (pathname === '/') {
+  if (pathname === '/' || pathname === '/project-admin') {
     if (isAuthenticated) {
       return NextResponse.redirect(new URL('/project-admin/tenants', request.url));
     } else {
