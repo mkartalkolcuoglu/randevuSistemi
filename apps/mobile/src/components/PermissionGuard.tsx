@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, StatusBar } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -42,7 +42,11 @@ export default function PermissionGuard({ children, permissionKey, pageName }: P
     );
 
     return (
-      <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+      <View style={styles.outerContainer}>
+        <StatusBar barStyle="light-content" backgroundColor="#163974" />
+        <SafeAreaView style={styles.topBar} edges={['top']}>
+          <View style={styles.topBarInner} />
+        </SafeAreaView>
         <View style={styles.content}>
           <View style={styles.iconCircle}>
             <Ionicons name="lock-closed-outline" size={36} color="#9CA3AF" />
@@ -72,7 +76,7 @@ export default function PermissionGuard({ children, permissionKey, pageName }: P
             </View>
           )}
         </View>
-      </SafeAreaView>
+      </View>
     );
   }
 
@@ -80,9 +84,15 @@ export default function PermissionGuard({ children, permissionKey, pageName }: P
 }
 
 const styles = StyleSheet.create({
-  container: {
+  outerContainer: {
     flex: 1,
     backgroundColor: '#F9FAFB',
+  },
+  topBar: {
+    backgroundColor: '#163974',
+  },
+  topBarInner: {
+    height: 0,
   },
   content: {
     flex: 1,
