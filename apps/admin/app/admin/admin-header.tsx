@@ -9,6 +9,18 @@ import type { ClientUser } from '../../lib/client-permissions';
 import { canAccessPage } from '../../lib/client-permissions';
 import type { StaffPermissions } from '../../lib/permissions';
 
+function NavLink({ href, icon, label }: { href: string; icon: React.ReactNode; label: string }) {
+  return (
+    <Link
+      href={href}
+      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-colors"
+    >
+      {icon}
+      {label}
+    </Link>
+  );
+}
+
 interface AdminHeaderProps {
   user: ClientUser;
 }
@@ -400,103 +412,55 @@ export default function AdminHeader({ user }: AdminHeaderProps) {
           </div>
         
         {/* Desktop Navigation Menu */}
-        <nav className="mt-4 hidden sm:block">
-          <div className="flex space-x-1 flex-wrap gap-y-2">
+        <nav className="mt-3 hidden sm:block border-t border-gray-100 pt-3">
+          <div className="flex items-center gap-1 flex-wrap">
             {canAccessPage(user, 'dashboard') && (
-              <Link href="/admin">
-                <Button variant="ghost" size="sm" className="text-gray-600 hover:text-gray-900">
-                  <Home className="w-4 h-4 mr-2" />
-                  Dashboard
-                </Button>
-              </Link>
+              <NavLink href="/admin" icon={<Home className="w-4 h-4" />} label="Dashboard" />
             )}
             {canAccessPage(user, 'appointments') && (
-              <Link href="/admin/appointments">
-                <Button variant="ghost" size="sm" className="text-gray-600 hover:text-gray-900">
-                  <Calendar className="w-4 h-4 mr-2" />
-                  Randevular
-                </Button>
-              </Link>
+              <NavLink href="/admin/appointments" icon={<Calendar className="w-4 h-4" />} label="Randevular" />
             )}
             {canAccessPage(user, 'customers') && (
-              <Link href="/admin/customers">
-                <Button variant="ghost" size="sm" className="text-gray-600 hover:text-gray-900">
-                  <Users className="w-4 h-4 mr-2" />
-                  Müşteriler
-                </Button>
-              </Link>
+              <NavLink href="/admin/customers" icon={<Users className="w-4 h-4" />} label="Müşteriler" />
             )}
             {canAccessPage(user, 'services') && (
-              <Link href="/admin/services">
-                <Button variant="ghost" size="sm" className="text-gray-600 hover:text-gray-900">
-                  <Briefcase className="w-4 h-4 mr-2" />
-                  Hizmetler
-                </Button>
-              </Link>
+              <NavLink href="/admin/services" icon={<Briefcase className="w-4 h-4" />} label="Hizmetler" />
             )}
             {canAccessPage(user, 'staff') && (
-              <Link href="/admin/staff">
-                <Button variant="ghost" size="sm" className="text-gray-600 hover:text-gray-900">
-                  <User className="w-4 h-4 mr-2" />
-                  Personel
-                </Button>
-              </Link>
+              <NavLink href="/admin/staff" icon={<User className="w-4 h-4" />} label="Personel" />
             )}
+
+            {/* Separator */}
+            {(canAccessPage(user, 'stock') || canAccessPage(user, 'packages') || canAccessPage(user, 'kasa')) && (
+              <div className="w-px h-5 bg-gray-200 mx-1" />
+            )}
+
             {canAccessPage(user, 'stock') && (
-              <Link href="/admin/stock">
-                <Button variant="ghost" size="sm" className="text-gray-600 hover:text-gray-900">
-                  <Package className="w-4 h-4 mr-2" />
-                  Stok
-                </Button>
-              </Link>
+              <NavLink href="/admin/stock" icon={<Package className="w-4 h-4" />} label="Stok" />
             )}
             {canAccessPage(user, 'packages') && (
-              <Link href="/admin/packages">
-                <Button variant="ghost" size="sm" className="text-gray-600 hover:text-gray-900">
-                  <Gift className="w-4 h-4 mr-2" />
-                  Paketler
-                </Button>
-              </Link>
+              <NavLink href="/admin/packages" icon={<Gift className="w-4 h-4" />} label="Paketler" />
             )}
             {canAccessPage(user, 'kasa') && (
-              <Link href="/admin/kasa">
-                <Button variant="ghost" size="sm" className="text-gray-600 hover:text-gray-900">
-                  <Wallet className="w-4 h-4 mr-2" />
-                  Kasa
-                </Button>
-              </Link>
+              <NavLink href="/admin/kasa" icon={<Wallet className="w-4 h-4" />} label="Kasa" />
+            )}
+
+            {/* Separator */}
+            {(canAccessPage(user, 'reports') || canAccessPage(user, 'settings')) && (
+              <div className="w-px h-5 bg-gray-200 mx-1" />
+            )}
+
+            {canAccessPage(user, 'reports') && (
+              <NavLink href="/admin/reports" icon={<BarChart3 className="w-4 h-4" />} label="Raporlar" />
             )}
             {canAccessPage(user, 'reports') && (
-              <Link href="/admin/reports">
-                <Button variant="ghost" size="sm" className="text-gray-600 hover:text-gray-900">
-                  <BarChart3 className="w-4 h-4 mr-2" />
-                  Raporlar
-                </Button>
-              </Link>
-            )}
-            {canAccessPage(user, 'reports') && (
-            <Link href="/admin/performans">
-              <Button variant="ghost" size="sm" className="text-gray-600 hover:text-gray-900">
-                <Star className="w-4 h-4 mr-2" />
-                Performans
-              </Button>
-            </Link>
+              <NavLink href="/admin/performans" icon={<Star className="w-4 h-4" />} label="Performans" />
             )}
             {canAccessPage(user, 'settings') && (
-              <Link href="/admin/audit-log">
-                <Button variant="ghost" size="sm" className="text-gray-600 hover:text-gray-900">
-                  <Shield className="w-4 h-4 mr-2" />
-                  İşlem Geçmişi
-                </Button>
-              </Link>
+              <NavLink href="/admin/audit-log" icon={<Shield className="w-4 h-4" />} label="İşlem Geçmişi" />
             )}
             {canAccessPage(user, 'settings') && (
-              <Link href="/admin/settings">
-                <Button variant="ghost" size="sm" className="text-gray-600 hover:text-gray-900">
-                  <Settings className="w-4 h-4 mr-2" />
-                  Ayarlar
-                </Button>
-              </Link>
+              <NavLink href="/admin/settings" icon={<Settings className="w-4 h-4" />} label="Ayarlar" />
             )}
           </div>
         </nav>
