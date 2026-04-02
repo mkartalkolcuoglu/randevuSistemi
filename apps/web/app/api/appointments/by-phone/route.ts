@@ -64,14 +64,27 @@ export async function GET(request: NextRequest) {
 
     console.log(`✅ Found ${appointments.length} appointments for phone ${phone}`);
 
+    // Tenant ve settings bilgilerini toplu çek
+    const tenantIds = [...new Set(appointments.map(apt => apt.tenantId))];
+    const [tenants, settingsList] = await Promise.all([
+      prisma.tenant.findMany({
+        where: { id: { in: tenantIds } },
+        select: { id: true, businessName: true, slug: true },
+      }),
+      prisma.settings.findMany({
+        where: { tenantId: { in: tenantIds } },
+        select: { tenantId: true, allowCancellation: true, cancellationHours: true },
+      }),
+    ]);
+    const tenantMap = new Map(tenants.map(t => [t.id, t]));
+    const settingsMap = new Map(settingsList.map(s => [s.tenantId, s]));
+
     // Her randevu için tenant bilgisini ve feedback durumunu ekle
     const appointmentsWithTenant = await Promise.all(
       appointments.map(async (appointment) => {
         try {
-          const tenant = await prisma.tenant.findUnique({
-            where: { id: appointment.tenantId },
-            select: { businessName: true, slug: true }
-          });
+          const tenant = tenantMap.get(appointment.tenantId);
+          const tenantSettings = settingsMap.get(appointment.tenantId);
 
           // Feedback kontrolü
           const feedback = await prisma.feedback.findUnique({
@@ -82,7 +95,9 @@ export async function GET(request: NextRequest) {
             ...appointment,
             tenantName: tenant?.businessName || 'Bilinmeyen İşletme',
             tenantSlug: tenant?.slug || '',
-            hasFeedback: !!feedback // Feedback verilmiş mi?
+            hasFeedback: !!feedback,
+            allowCancellation: tenantSettings?.allowCancellation ?? true,
+            cancellationHours: tenantSettings?.cancellationHours ?? 2,
           };
         } catch (error) {
           console.error('Error fetching tenant:', error);
@@ -90,7 +105,9 @@ export async function GET(request: NextRequest) {
             ...appointment,
             tenantName: 'Bilinmeyen İşletme',
             tenantSlug: '',
-            hasFeedback: false
+            hasFeedback: false,
+            allowCancellation: true,
+            cancellationHours: 2,
           };
         }
       })

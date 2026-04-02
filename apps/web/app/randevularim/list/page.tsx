@@ -143,12 +143,19 @@ function RandevularimContent() {
   }, [activeTab]);
 
   const canCancelAppointment = (appointment: Appointment): boolean => {
+    // İşletme iptal izni kontrolü
+    if ((appointment as any).allowCancellation === false) return false;
+
     // İptal edilmiş veya tamamlanmış randevular iptal edilemez
     if (appointment.status === 'cancelled' || appointment.status === 'completed') return false;
 
-    // Randevu saati geçmiş mi kontrol et
+    // Randevu saatine yeterli süre kaldı mı kontrol et
     const appointmentDateTime = parseISO(`${appointment.date}T${appointment.time}`);
-    return isBefore(new Date(), appointmentDateTime);
+    const now = new Date();
+    const hoursUntil = (appointmentDateTime.getTime() - now.getTime()) / (1000 * 60 * 60);
+    const cancelHoursLimit = (appointment as any).cancellationHours ?? 2;
+
+    return hoursUntil >= cancelHoursLimit;
   };
 
   const canLeaveFeedback = (appointment: Appointment): boolean => {
@@ -638,7 +645,9 @@ function RandevularimContent() {
                         
                         {!canCancel && (appointment.status === 'pending' || appointment.status === 'confirmed') && (
                           <div className="text-xs text-gray-500 text-center">
-                            Randevu saati geçmiş
+                            {(appointment as any).allowCancellation === false
+                              ? 'İşletme randevu iptaline izin vermiyor'
+                              : 'İptal süresi geçti'}
                           </div>
                         )}
                         

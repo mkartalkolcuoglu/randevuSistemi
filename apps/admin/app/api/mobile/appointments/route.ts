@@ -145,7 +145,7 @@ export async function GET(request: NextRequest) {
 
     console.log('📋 [APPOINTMENTS] Found appointments:', appointments.length);
 
-    // Get tenant info separately to handle deleted tenants
+    // Get tenant info and cancellation settings separately to handle deleted tenants
     const tenantIds = [...new Set(appointments.map(apt => apt.tenantId))];
     const tenants = await prisma.tenant.findMany({
       where: { id: { in: tenantIds } },
@@ -153,8 +153,15 @@ export async function GET(request: NextRequest) {
     });
     const tenantMap = new Map(tenants.map(t => [t.id, t]));
 
+    const settingsList = await prisma.settings.findMany({
+      where: { tenantId: { in: tenantIds } },
+      select: { tenantId: true, allowCancellation: true, cancellationHours: true },
+    });
+    const settingsMap = new Map(settingsList.map(s => [s.tenantId, s]));
+
     const formattedAppointments = appointments.map((apt: any) => {
       const tenant = tenantMap.get(apt.tenantId);
+      const tenantSettings = settingsMap.get(apt.tenantId);
 
       // Determine tenant status for UI display
       let tenantStatus = 'active';
@@ -189,6 +196,8 @@ export async function GET(request: NextRequest) {
         notes: apt.notes,
         price: apt.price || 0,
         paymentType: apt.paymentType,
+        allowCancellation: tenantSettings?.allowCancellation ?? true,
+        cancellationHours: tenantSettings?.cancellationHours ?? 2,
         createdAt: apt.createdAt?.toISOString() || new Date().toISOString(),
         updatedAt: apt.updatedAt?.toISOString() || new Date().toISOString(),
       };

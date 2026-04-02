@@ -199,7 +199,12 @@ export default function CustomerAppointmentsScreen() {
     const status = STATUS_CONFIG[item.status] || STATUS_CONFIG.pending;
     const tenantStatus = TENANT_STATUS_CONFIG[item.tenantStatus || 'active'];
     const aptDate = new Date(`${item.date}T${item.time}`);
-    const canCancel = aptDate > new Date() && ['pending', 'confirmed'].includes(item.status) && item.tenantStatus === 'active';
+    const hoursUntil = (aptDate.getTime() - Date.now()) / (1000 * 60 * 60);
+    const cancelHoursLimit = item.cancellationHours ?? 2;
+    const canCancel = item.allowCancellation !== false
+      && hoursUntil >= cancelHoursLimit
+      && ['pending', 'confirmed'].includes(item.status)
+      && item.tenantStatus === 'active';
     const isInactiveTenant = item.tenantStatus === 'inactive' || item.tenantStatus === 'deleted';
     const relativeDay = getRelativeDay(item.date);
 
