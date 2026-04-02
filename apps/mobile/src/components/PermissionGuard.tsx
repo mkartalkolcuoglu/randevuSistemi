@@ -6,6 +6,19 @@ import { useRouter } from 'expo-router';
 import { useAuthStore } from '../store/auth.store';
 import { canAccessPage, StaffPermissions } from '../types';
 
+const PAGE_MAP: { key: keyof StaffPermissions; label: string; route: string; icon: keyof typeof Ionicons.glyphMap }[] = [
+  { key: 'dashboard', label: 'Ana Sayfa', route: '/(tabs)/staff', icon: 'home-outline' },
+  { key: 'appointments', label: 'Randevular', route: '/(tabs)/staff/calendar', icon: 'calendar-outline' },
+  { key: 'customers', label: 'Müşteriler', route: '/(tabs)/staff/customers', icon: 'people-outline' },
+  { key: 'services', label: 'Hizmetler', route: '/(tabs)/staff/services', icon: 'cut-outline' },
+  { key: 'staff', label: 'Personel', route: '/(tabs)/staff/team', icon: 'person-outline' },
+  { key: 'packages', label: 'Paketler', route: '/(tabs)/staff/packages', icon: 'gift-outline' },
+  { key: 'kasa', label: 'Kasa', route: '/(tabs)/staff/cashier', icon: 'wallet-outline' },
+  { key: 'stock', label: 'Stok', route: '/(tabs)/staff/stock', icon: 'cube-outline' },
+  { key: 'reports', label: 'Raporlar', route: '/(tabs)/staff/reports', icon: 'bar-chart-outline' },
+  { key: 'settings', label: 'Ayarlar', route: '/(tabs)/staff/business-settings', icon: 'settings-outline' },
+];
+
 interface PermissionGuardProps {
   children: React.ReactNode;
   permissionKey: keyof StaffPermissions;
@@ -24,6 +37,10 @@ export default function PermissionGuard({ children, permissionKey, pageName }: P
   }
 
   if (!canAccessPage(permissions, permissionKey)) {
+    const allowedPages = PAGE_MAP.filter(
+      (p) => p.key !== permissionKey && canAccessPage(permissions, p.key)
+    );
+
     return (
       <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
         <View style={styles.content}>
@@ -35,14 +52,25 @@ export default function PermissionGuard({ children, permissionKey, pageName }: P
             <Text style={styles.pageName}>{pageName}</Text> sayfasını görüntüleme yetkiniz bulunmamaktadır.
           </Text>
           <Text style={styles.hint}>Yetki için işletme sahibinize başvurun.</Text>
-          <TouchableOpacity
-            style={styles.button}
-            onPress={() => router.replace('/(tabs)/staff')}
-            activeOpacity={0.8}
-          >
-            <Ionicons name="arrow-back" size={18} color="#fff" />
-            <Text style={styles.buttonText}>Ana Sayfaya Dön</Text>
-          </TouchableOpacity>
+
+          {allowedPages.length > 0 && (
+            <View style={styles.allowedSection}>
+              <Text style={styles.allowedTitle}>Erişebileceğiniz sayfalar:</Text>
+              <View style={styles.allowedGrid}>
+                {allowedPages.map((page) => (
+                  <TouchableOpacity
+                    key={page.key}
+                    style={styles.allowedButton}
+                    onPress={() => router.replace(page.route as any)}
+                    activeOpacity={0.7}
+                  >
+                    <Ionicons name={page.icon} size={20} color="#163974" />
+                    <Text style={styles.allowedButtonText}>{page.label}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+          )}
         </View>
       </SafeAreaView>
     );
@@ -60,7 +88,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 40,
+    paddingHorizontal: 32,
   },
   iconCircle: {
     width: 80,
@@ -93,18 +121,34 @@ const styles = StyleSheet.create({
     marginTop: 4,
     marginBottom: 24,
   },
-  button: {
-    flexDirection: 'row',
+  allowedSection: {
+    width: '100%',
     alignItems: 'center',
-    backgroundColor: '#163974',
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderRadius: 12,
+  },
+  allowedTitle: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#6B7280',
+    marginBottom: 12,
+  },
+  allowedGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
     gap: 8,
   },
-  buttonText: {
-    fontSize: 15,
+  allowedButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#EEF2FF',
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 10,
+    gap: 6,
+  },
+  allowedButtonText: {
+    fontSize: 13,
     fontWeight: '600',
-    color: '#fff',
+    color: '#163974',
   },
 });
