@@ -27,7 +27,7 @@ export default function LoginPage() {
       const data = await response.json();
 
       if (data.success) {
-        router.push('/project-admin/tenants');
+        router.push('/project-admin');
         router.refresh();
       } else {
         setError(data.error || 'Giriş başarısız');
