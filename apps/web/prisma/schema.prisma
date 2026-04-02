@@ -135,7 +135,9 @@ model Settings {
   paymentSettings  String?  // JSON string
   themeSettings    String?  // JSON string for colors, fonts, etc.
   updatedAt        DateTime @updatedAt
-  
+  cancellationHours Int?    @default(2) @map("cancellation_hours")
+  allowCancellation Boolean? @default(true) @map("allow_cancellation")
+
   @@map("settings")
 }
 

@@ -68,6 +68,8 @@ export async function GET() {
       appointmentTimeInterval: settings?.appointmentTimeInterval || 30,
       blacklistThreshold: settings?.blacklistThreshold || 3,
       reminderMinutes: settings?.reminderMinutes || 120,
+      cancellationHours: settings?.cancellationHours ?? 2,
+      allowCancellation: settings?.allowCancellation ?? true,
       messageTemplates: settings?.messageTemplates ? JSON.parse(settings.messageTemplates) : null,
       notificationSettings: settings?.notificationSettings ? JSON.parse(settings.notificationSettings) : null,
       blockedDates,
@@ -216,6 +218,12 @@ export async function PUT(request: Request) {
     }
     if (data.reminderMinutes !== undefined) {
       settingsData.reminderMinutes = parseInt(data.reminderMinutes);
+    }
+    if (data.cancellationHours !== undefined) {
+      settingsData.cancellationHours = parseInt(data.cancellationHours);
+    }
+    if (data.allowCancellation !== undefined) {
+      settingsData.allowCancellation = data.allowCancellation;
     }
     if (data.messageTemplates !== undefined) {
       settingsData.messageTemplates = data.messageTemplates ? JSON.stringify(data.messageTemplates) : null;

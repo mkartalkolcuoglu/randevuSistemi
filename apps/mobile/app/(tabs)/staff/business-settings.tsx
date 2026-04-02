@@ -20,6 +20,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import * as ExpoLocation from 'expo-location';
 import api from '../../../src/services/api';
 
 const THEME_COLOR = '#163974';
@@ -61,6 +62,25 @@ interface Documents {
   signatureDocument: string | null;
 }
 
+interface NotificationSettings {
+  defaultChannel: string;
+  confirmationChannel: string;
+  reminderChannel: string;
+  staffDailyChannel: string;
+  ownerDailyChannel: string;
+  autoSendConfirmation: boolean;
+  surveyChannel: string;
+  autoSendSurvey: boolean;
+  surveyDelayMinutes: number;
+}
+
+interface BlockedDate {
+  id: string;
+  title: string;
+  startDate: string;
+  endDate: string;
+}
+
 interface SettingsData {
   businessName: string;
   businessType: string;
@@ -78,9 +98,13 @@ interface SettingsData {
   appointmentTimeInterval: number;
   blacklistThreshold: number;
   reminderMinutes: number;
+  allowCancellation: boolean;
+  cancellationHours: number;
   cardPaymentEnabled: boolean;
   plan: string;
   status: string;
+  notificationSettings?: NotificationSettings;
+  messageTemplates?: Record<string, string>;
 }
 
 const DAYS = [
@@ -115,6 +139,16 @@ const REMINDER_OPTIONS = [
   { value: 1440, label: '1 gün önce' },
 ];
 
+const CANCELLATION_HOUR_OPTIONS = [
+  { value: 1, label: '1 saat önce' },
+  { value: 2, label: '2 saat önce' },
+  { value: 3, label: '3 saat önce' },
+  { value: 6, label: '6 saat önce' },
+  { value: 12, label: '12 saat önce' },
+  { value: 24, label: '24 saat önce' },
+  { value: 48, label: '48 saat önce' },
+];
+
 const BUSINESS_TYPES = [
   { value: 'salon', label: 'Güzellik Salonu' },
   { value: 'barbershop', label: 'Berber' },
@@ -133,9 +167,26 @@ const TABS = [
   { id: 'location', label: 'Konum', icon: 'location-outline' },
   { id: 'working', label: 'Çalışma', icon: 'time-outline' },
   { id: 'documents', label: 'Belgeler', icon: 'document-outline' },
+  { id: 'blocked-dates', label: 'Tatiller', icon: 'calendar-outline' },
+  { id: 'messages', label: 'Mesajlar', icon: 'chatbubbles-outline' },
 ];
 
-type TabId = 'theme' | 'business' | 'owner' | 'login' | 'location' | 'working' | 'documents';
+type TabId = 'theme' | 'business' | 'owner' | 'login' | 'location' | 'working' | 'documents' | 'blocked-dates' | 'messages';
+
+const CHANNEL_OPTIONS = [
+  { value: 'default', label: 'Varsayılan' },
+  { value: 'whatsapp', label: 'WhatsApp' },
+  { value: 'sms', label: 'SMS' },
+  { value: 'both', label: 'Her ikisi' },
+  { value: 'off', label: 'Kapalı' },
+];
+
+const SURVEY_DELAY_OPTIONS = [
+  { value: 0, label: 'Hemen' },
+  { value: 60, label: '1 saat sonra' },
+  { value: 120, label: '2 saat sonra' },
+  { value: 1440, label: '1 gün sonra' },
+];
 
 export default function BusinessSettingsScreen() {
   const router = useRouter();
@@ -155,6 +206,17 @@ export default function BusinessSettingsScreen() {
   const [showReminderPicker, setShowReminderPicker] = useState(false);
   const [showBusinessTypePicker, setShowBusinessTypePicker] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState<{ day: string; field: 'start' | 'end' } | null>(null);
+  const [showChannelPicker, setShowChannelPicker] = useState<string | null>(null);
+  const [showSurveyDelayPicker, setShowSurveyDelayPicker] = useState(false);
+  const [showCancellationHoursPicker, setShowCancellationHoursPicker] = useState(false);
+
+  // Tatiller state
+  const [blockedDates, setBlockedDates] = useState<BlockedDate[]>([]);
+  const [newBlockedDate, setNewBlockedDate] = useState({ title: '', startDate: '', endDate: '' });
+  const [blockedDateSaving, setBlockedDateSaving] = useState(false);
+
+  // Mesajlar state
+  const [openAccordion, setOpenAccordion] = useState<string | null>(null);
 
   const fetchSettings = async () => {
     try {
@@ -172,13 +234,99 @@ export default function BusinessSettingsScreen() {
     }
   };
 
+  const fetchBlockedDates = async () => {
+    try {
+      const response = await api.get('/api/mobile/blocked-dates');
+      if (response.data.success) {
+        setBlockedDates(response.data.data);
+      }
+    } catch (error: any) {
+      console.error('Error fetching blocked dates:', error?.response?.data || error.message);
+    }
+  };
+
+  const addBlockedDate = async () => {
+    if (!newBlockedDate.title.trim() || !newBlockedDate.startDate || !newBlockedDate.endDate) {
+      Alert.alert('Hata', 'Tüm alanları doldurun');
+      return;
+    }
+    setBlockedDateSaving(true);
+    try {
+      const response = await api.post('/api/mobile/blocked-dates', newBlockedDate);
+      if (response.data.success) {
+        setBlockedDates(prev => [...prev, response.data.data].sort((a, b) => a.startDate.localeCompare(b.startDate)));
+        setNewBlockedDate({ title: '', startDate: '', endDate: '' });
+      } else {
+        Alert.alert('Hata', response.data.message || 'Eklenemedi');
+      }
+    } catch (error: any) {
+      Alert.alert('Hata', 'Bir hata oluştu');
+    } finally {
+      setBlockedDateSaving(false);
+    }
+  };
+
+  const deleteBlockedDate = async (id: string, title: string) => {
+    Alert.alert('Onay', `"${title}" tatilini silmek istediğinize emin misiniz?`, [
+      { text: 'İptal', style: 'cancel' },
+      {
+        text: 'Sil', style: 'destructive', onPress: async () => {
+          try {
+            const response = await api.delete(`/api/mobile/blocked-dates?id=${id}`);
+            if (response.data.success) {
+              setBlockedDates(prev => prev.filter(d => d.id !== id));
+            } else {
+              Alert.alert('Hata', response.data.message || 'Silinemedi');
+            }
+          } catch {
+            Alert.alert('Hata', 'Bir hata oluştu');
+          }
+        }
+      }
+    ]);
+  };
+
+  const updateNotificationSettings = (key: string, value: any) => {
+    setFormData(prev => ({
+      ...prev,
+      notificationSettings: {
+        ...(prev.notificationSettings || {
+          defaultChannel: 'smart', confirmationChannel: 'default', reminderChannel: 'default',
+          staffDailyChannel: 'whatsapp', ownerDailyChannel: 'whatsapp',
+          autoSendConfirmation: true, surveyChannel: 'default', autoSendSurvey: true, surveyDelayMinutes: 60,
+        }),
+        [key]: value,
+      },
+    }));
+    setHasChanges(true);
+  };
+
+  const getEffectiveChannel = (channel: string): string => {
+    if (channel === 'default') {
+      return formData.notificationSettings?.defaultChannel || 'smart';
+    }
+    return channel;
+  };
+
+  const channelLabel = (channel: string): string => {
+    if (channel === 'default') {
+      const def = formData.notificationSettings?.defaultChannel || 'smart';
+      const labels: Record<string, string> = { whatsapp: 'WhatsApp', sms: 'SMS', smart: 'Akıllı', both: 'Her ikisi', off: 'Kapalı' };
+      return `Varsayılan (${labels[def] || def})`;
+    }
+    const labels: Record<string, string> = { whatsapp: 'WhatsApp', sms: 'SMS', smart: 'Akıllı', both: 'Her ikisi', off: 'Kapalı' };
+    return labels[channel] || channel;
+  };
+
   useEffect(() => {
     fetchSettings();
+    fetchBlockedDates();
   }, []);
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
     fetchSettings();
+    fetchBlockedDates();
   }, []);
 
   const updateFormData = (key: string, value: any) => {
@@ -260,6 +408,49 @@ export default function BusinessSettingsScreen() {
   const formatIBAN = (text: string) => {
     const cleaned = text.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
     return cleaned.slice(0, 26);
+  };
+
+  const [gettingLocation, setGettingLocation] = useState(false);
+
+  const getCurrentLocation = async () => {
+    setGettingLocation(true);
+    try {
+      const { status } = await ExpoLocation.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('İzin Gerekli', 'Konum bilgisi almak için konum iznini açmanız gerekiyor.');
+        return;
+      }
+
+      const location = await ExpoLocation.getCurrentPositionAsync({ accuracy: ExpoLocation.Accuracy.High });
+      const lat = location.coords.latitude.toString();
+      const lng = location.coords.longitude.toString();
+
+      updateNestedFormData('location', 'latitude', lat);
+      updateNestedFormData('location', 'longitude', lng);
+
+      // Koordinattan adres çevirme
+      try {
+        const [geocode] = await ExpoLocation.reverseGeocodeAsync({
+          latitude: location.coords.latitude,
+          longitude: location.coords.longitude,
+        });
+        if (geocode) {
+          const parts = [geocode.street, geocode.district, geocode.subregion, geocode.city, geocode.country].filter(Boolean);
+          const address = parts.join(', ');
+          if (address) {
+            updateNestedFormData('location', 'address', address);
+          }
+        }
+      } catch {
+        // Adres çevrilemedi, sadece koordinatları kaydet
+      }
+
+      Alert.alert('Başarılı', 'Konum bilgileri güncellendi');
+    } catch (error: any) {
+      Alert.alert('Hata', 'Konum alınamadı. Lütfen GPS\'in açık olduğundan emin olun.');
+    } finally {
+      setGettingLocation(false);
+    }
   };
 
   if (loading) {
@@ -641,6 +832,21 @@ export default function BusinessSettingsScreen() {
                     numberOfLines={2}
                   />
                 </View>
+
+                <TouchableOpacity
+                  style={[styles.getLocationButton, gettingLocation && { opacity: 0.6 }]}
+                  onPress={getCurrentLocation}
+                  disabled={gettingLocation}
+                >
+                  {gettingLocation ? (
+                    <ActivityIndicator size="small" color="#fff" />
+                  ) : (
+                    <Ionicons name="navigate" size={18} color="#fff" />
+                  )}
+                  <Text style={styles.getLocationButtonText}>
+                    {gettingLocation ? 'Konum alınıyor...' : 'Mevcut Konumumu Al'}
+                  </Text>
+                </TouchableOpacity>
               </View>
             </View>
           )}
@@ -783,6 +989,49 @@ export default function BusinessSettingsScreen() {
                     <Ionicons name="chevron-forward" size={18} color="#9CA3AF" />
                   </TouchableOpacity>
                 </View>
+
+                {/* Randevu İptali */}
+                <View style={styles.settingRow}>
+                  <View style={styles.settingInfo}>
+                    <View style={[styles.settingIcon, { backgroundColor: '#FEE2E2' }]}>
+                      <Ionicons name="close-circle-outline" size={20} color="#DC2626" />
+                    </View>
+                    <View style={styles.settingTextContainer}>
+                      <Text style={styles.settingLabel}>Randevu İptali</Text>
+                      <Text style={styles.settingDescription}>Müşteriler randevu iptal edebilir</Text>
+                    </View>
+                  </View>
+                  <Switch
+                    value={formData.allowCancellation !== false}
+                    onValueChange={(value) => updateFormData('allowCancellation', value)}
+                    trackColor={{ false: '#E5E7EB', true: '#93C5FD' }}
+                    thumbColor={formData.allowCancellation !== false ? THEME_COLOR : '#fff'}
+                  />
+                </View>
+
+                {/* İptal Süresi */}
+                {formData.allowCancellation !== false && (
+                  <View style={styles.settingRow}>
+                    <View style={styles.settingInfo}>
+                      <View style={[styles.settingIcon, { backgroundColor: '#FEF3C7' }]}>
+                        <Ionicons name="time-outline" size={20} color="#D97706" />
+                      </View>
+                      <View style={styles.settingTextContainer}>
+                        <Text style={styles.settingLabel}>İptal Süresi</Text>
+                        <Text style={styles.settingDescription}>Randevudan en az kaç saat önce</Text>
+                      </View>
+                    </View>
+                    <TouchableOpacity
+                      style={styles.settingButton}
+                      onPress={() => setShowCancellationHoursPicker(true)}
+                    >
+                      <Text style={styles.settingValue}>
+                        {CANCELLATION_HOUR_OPTIONS.find(o => o.value === formData.cancellationHours)?.label || '2 saat önce'}
+                      </Text>
+                      <Ionicons name="chevron-forward" size={18} color="#9CA3AF" />
+                    </TouchableOpacity>
+                  </View>
+                )}
 
                 {/* Kredi Kartı ile Ödeme */}
                 <View style={[styles.settingRow, styles.settingRowLast]}>
@@ -950,6 +1199,296 @@ export default function BusinessSettingsScreen() {
             </View>
           )}
 
+          {/* Tatiller Tab */}
+          {activeTab === 'blocked-dates' && (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Tatil Günleri / Kapalı Tarihler</Text>
+              <Text style={styles.sectionDescription}>Bayram, tatil veya özel günlerde randevu almayı kapatın.</Text>
+
+              {/* Yeni tatil ekleme formu */}
+              <View style={styles.card}>
+                <Text style={[styles.inputLabel, { marginBottom: 12, fontWeight: '600' }]}>Yeni Tatil Ekle</Text>
+                <View style={styles.inputGroup}>
+                  <Text style={styles.inputLabel}>Başlık</Text>
+                  <TextInput
+                    style={styles.input}
+                    value={newBlockedDate.title}
+                    onChangeText={(text) => setNewBlockedDate(prev => ({ ...prev, title: text }))}
+                    placeholder="Ramazan Bayramı"
+                    placeholderTextColor="#9CA3AF"
+                  />
+                </View>
+                <View style={styles.inputGroup}>
+                  <Text style={styles.inputLabel}>Başlangıç Tarihi (YYYY-MM-DD)</Text>
+                  <TextInput
+                    style={styles.input}
+                    value={newBlockedDate.startDate}
+                    onChangeText={(text) => setNewBlockedDate(prev => ({ ...prev, startDate: text }))}
+                    placeholder="2026-04-01"
+                    placeholderTextColor="#9CA3AF"
+                  />
+                </View>
+                <View style={styles.inputGroup}>
+                  <Text style={styles.inputLabel}>Bitiş Tarihi (YYYY-MM-DD)</Text>
+                  <TextInput
+                    style={styles.input}
+                    value={newBlockedDate.endDate}
+                    onChangeText={(text) => setNewBlockedDate(prev => ({ ...prev, endDate: text }))}
+                    placeholder="2026-04-03"
+                    placeholderTextColor="#9CA3AF"
+                  />
+                </View>
+                <TouchableOpacity
+                  style={[styles.addButton, blockedDateSaving && { opacity: 0.6 }]}
+                  onPress={addBlockedDate}
+                  disabled={blockedDateSaving}
+                >
+                  <Ionicons name="add-circle-outline" size={20} color="#fff" />
+                  <Text style={styles.addButtonText}>{blockedDateSaving ? 'Ekleniyor...' : 'Tatil Ekle'}</Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* Mevcut tatil listesi */}
+              {blockedDates.length === 0 ? (
+                <View style={styles.emptyState}>
+                  <Ionicons name="calendar-outline" size={48} color="#D1D5DB" />
+                  <Text style={styles.emptyStateText}>Henüz tatil günü eklenmemiş</Text>
+                </View>
+              ) : (
+                <View style={styles.card}>
+                  {blockedDates.map((bd, index) => (
+                    <View key={bd.id} style={[styles.blockedDateRow, index < blockedDates.length - 1 && { borderBottomWidth: 1, borderBottomColor: '#FEE2E2' }]}>
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.blockedDateTitle}>{bd.title}</Text>
+                        <Text style={styles.blockedDateRange}>{bd.startDate} — {bd.endDate}</Text>
+                      </View>
+                      <TouchableOpacity onPress={() => deleteBlockedDate(bd.id, bd.title)} style={styles.deleteButton}>
+                        <Ionicons name="trash-outline" size={18} color="#EF4444" />
+                      </TouchableOpacity>
+                    </View>
+                  ))}
+                </View>
+              )}
+
+              {/* Bilgi notu */}
+              <View style={styles.infoBox}>
+                <Ionicons name="information-circle-outline" size={18} color="#92400E" />
+                <Text style={styles.infoBoxText}>Tatil günü eklemek mevcut randevuları otomatik olarak iptal etmez. Sadece yeni randevu oluşturmayı engeller.</Text>
+              </View>
+            </View>
+          )}
+
+          {/* Mesajlar Tab */}
+          {activeTab === 'messages' && (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Mesaj Ayarları</Text>
+              <Text style={styles.sectionDescription}>Bildirim kanallarını ve mesaj tercihlerini yönetin.</Text>
+
+              {/* Varsayılan Kanal Seçimi */}
+              <View style={styles.card}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                  <Ionicons name="flash-outline" size={20} color={THEME_COLOR} />
+                  <Text style={[styles.inputLabel, { fontWeight: '700', fontSize: 15 }]}>Varsayılan Gönderim Kanalı</Text>
+                </View>
+                <Text style={[styles.sectionDescription, { marginBottom: 12 }]}>Tüm mesaj türleri için varsayılan kanal.</Text>
+                <View style={{ flexDirection: 'row', gap: 8 }}>
+                  {[
+                    { value: 'smart', label: 'Akıllı Mod', icon: 'flash' as const, color: '#7C3AED' },
+                    { value: 'whatsapp', label: 'WhatsApp', icon: 'logo-whatsapp' as const, color: '#25D366' },
+                    { value: 'sms', label: 'SMS', icon: 'chatbubble' as const, color: '#3B82F6' },
+                  ].map(opt => (
+                    <TouchableOpacity
+                      key={opt.value}
+                      style={[
+                        styles.channelButton,
+                        (formData.notificationSettings?.defaultChannel || 'smart') === opt.value && { borderColor: opt.color, backgroundColor: opt.color + '15' },
+                      ]}
+                      onPress={() => updateNotificationSettings('defaultChannel', opt.value)}
+                    >
+                      <Ionicons name={opt.icon} size={18} color={(formData.notificationSettings?.defaultChannel || 'smart') === opt.value ? opt.color : '#9CA3AF'} />
+                      <Text style={[styles.channelButtonText, (formData.notificationSettings?.defaultChannel || 'smart') === opt.value && { color: opt.color, fontWeight: '600' }]}>{opt.label}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+                {(formData.notificationSettings?.defaultChannel || 'smart') === 'smart' && (
+                  <View style={[styles.infoBox, { backgroundColor: '#F5F3FF', borderColor: '#DDD6FE', marginTop: 12 }]}>
+                    <Ionicons name="flash" size={16} color="#7C3AED" />
+                    <Text style={[styles.infoBoxText, { color: '#6D28D9' }]}>Mobil uygulama yüklü müşterilere bildirim (push), diğer müşterilere WhatsApp veya SMS ile gönderilir.</Text>
+                  </View>
+                )}
+              </View>
+
+              {/* Müşteri Mesajları */}
+              <Text style={styles.messageSectionHeader}>Müşteri Mesajları</Text>
+
+              {/* Randevu Onay */}
+              <View style={styles.card}>
+                <TouchableOpacity style={styles.accordionHeader} onPress={() => setOpenAccordion(openAccordion === 'confirmation' ? null : 'confirmation')}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 }}>
+                    <View style={[styles.accordionIcon, { backgroundColor: '#D1FAE5' }]}>
+                      <Ionicons name="send-outline" size={18} color="#059669" />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.accordionTitle}>Randevu Onay Mesajı</Text>
+                      <Text style={styles.accordionSubtitle}>Randevu oluşturulduğunda gönderilir</Text>
+                    </View>
+                  </View>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                    <Switch
+                      value={formData.notificationSettings?.autoSendConfirmation !== false}
+                      onValueChange={(val) => updateNotificationSettings('autoSendConfirmation', val)}
+                      trackColor={{ false: '#D1D5DB', true: '#34D399' }}
+                      thumbColor="#fff"
+                    />
+                    <Ionicons name={openAccordion === 'confirmation' ? 'chevron-up' : 'chevron-down'} size={20} color="#9CA3AF" />
+                  </View>
+                </TouchableOpacity>
+                {openAccordion === 'confirmation' && (
+                  <View style={styles.accordionContent}>
+                    <Text style={styles.inputLabel}>Kanal</Text>
+                    <TouchableOpacity style={styles.pickerButton} onPress={() => setShowChannelPicker('confirmationChannel')}>
+                      <Text style={styles.pickerButtonText}>{channelLabel(formData.notificationSettings?.confirmationChannel || 'default')}</Text>
+                      <Ionicons name="chevron-down" size={18} color="#6B7280" />
+                    </TouchableOpacity>
+                    <View style={styles.templateNote}>
+                      <Ionicons name="desktop-outline" size={16} color="#6B7280" />
+                      <Text style={styles.templateNoteText}>Mesaj şablonlarını web panelinden düzenleyebilirsiniz.</Text>
+                    </View>
+                  </View>
+                )}
+              </View>
+
+              {/* Randevu Hatırlatma */}
+              <View style={styles.card}>
+                <TouchableOpacity style={styles.accordionHeader} onPress={() => setOpenAccordion(openAccordion === 'reminder' ? null : 'reminder')}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 }}>
+                    <View style={[styles.accordionIcon, { backgroundColor: '#FEF3C7' }]}>
+                      <Ionicons name="notifications-outline" size={18} color="#D97706" />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.accordionTitle}>Randevu Hatırlatma</Text>
+                      <Text style={styles.accordionSubtitle}>Randevudan önce gönderilir</Text>
+                    </View>
+                  </View>
+                  <Ionicons name={openAccordion === 'reminder' ? 'chevron-up' : 'chevron-down'} size={20} color="#9CA3AF" />
+                </TouchableOpacity>
+                {openAccordion === 'reminder' && (
+                  <View style={styles.accordionContent}>
+                    <Text style={styles.inputLabel}>Hatırlatma Süresi</Text>
+                    <TouchableOpacity style={styles.pickerButton} onPress={() => setShowReminderPicker(true)}>
+                      <Text style={styles.pickerButtonText}>{REMINDER_OPTIONS.find(o => o.value === (formData.reminderMinutes || 120))?.label || '2 saat önce'}</Text>
+                      <Ionicons name="chevron-down" size={18} color="#6B7280" />
+                    </TouchableOpacity>
+                    <Text style={[styles.inputLabel, { marginTop: 12 }]}>Kanal</Text>
+                    <TouchableOpacity style={styles.pickerButton} onPress={() => setShowChannelPicker('reminderChannel')}>
+                      <Text style={styles.pickerButtonText}>{channelLabel(formData.notificationSettings?.reminderChannel || 'default')}</Text>
+                      <Ionicons name="chevron-down" size={18} color="#6B7280" />
+                    </TouchableOpacity>
+                    <View style={styles.templateNote}>
+                      <Ionicons name="desktop-outline" size={16} color="#6B7280" />
+                      <Text style={styles.templateNoteText}>Mesaj şablonlarını web panelinden düzenleyebilirsiniz.</Text>
+                    </View>
+                  </View>
+                )}
+              </View>
+
+              {/* Memnuniyet Anketi */}
+              <View style={styles.card}>
+                <TouchableOpacity style={styles.accordionHeader} onPress={() => setOpenAccordion(openAccordion === 'survey' ? null : 'survey')}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 }}>
+                    <View style={[styles.accordionIcon, { backgroundColor: '#FEF9C3' }]}>
+                      <Ionicons name="star-outline" size={18} color="#CA8A04" />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.accordionTitle}>Memnuniyet Anketi</Text>
+                      <Text style={styles.accordionSubtitle}>Randevu sonrası gönderilir</Text>
+                    </View>
+                  </View>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                    <Switch
+                      value={formData.notificationSettings?.autoSendSurvey !== false}
+                      onValueChange={(val) => updateNotificationSettings('autoSendSurvey', val)}
+                      trackColor={{ false: '#D1D5DB', true: '#FBBF24' }}
+                      thumbColor="#fff"
+                    />
+                    <Ionicons name={openAccordion === 'survey' ? 'chevron-up' : 'chevron-down'} size={20} color="#9CA3AF" />
+                  </View>
+                </TouchableOpacity>
+                {openAccordion === 'survey' && (
+                  <View style={styles.accordionContent}>
+                    <Text style={styles.inputLabel}>Gecikme</Text>
+                    <TouchableOpacity style={styles.pickerButton} onPress={() => setShowSurveyDelayPicker(true)}>
+                      <Text style={styles.pickerButtonText}>{SURVEY_DELAY_OPTIONS.find(o => o.value === (formData.notificationSettings?.surveyDelayMinutes ?? 60))?.label || '1 saat sonra'}</Text>
+                      <Ionicons name="chevron-down" size={18} color="#6B7280" />
+                    </TouchableOpacity>
+                    <Text style={[styles.inputLabel, { marginTop: 12 }]}>Kanal</Text>
+                    <TouchableOpacity style={styles.pickerButton} onPress={() => setShowChannelPicker('surveyChannel')}>
+                      <Text style={styles.pickerButtonText}>{channelLabel(formData.notificationSettings?.surveyChannel || 'default')}</Text>
+                      <Ionicons name="chevron-down" size={18} color="#6B7280" />
+                    </TouchableOpacity>
+                    <View style={styles.templateNote}>
+                      <Ionicons name="desktop-outline" size={16} color="#6B7280" />
+                      <Text style={styles.templateNoteText}>Mesaj şablonlarını web panelinden düzenleyebilirsiniz.</Text>
+                    </View>
+                  </View>
+                )}
+              </View>
+
+              {/* İşletme & Personel Mesajları */}
+              <Text style={styles.messageSectionHeader}>İşletme & Personel Mesajları</Text>
+
+              {/* Personel Günlük Özet */}
+              <View style={styles.card}>
+                <TouchableOpacity style={styles.accordionHeader} onPress={() => setOpenAccordion(openAccordion === 'staffDaily' ? null : 'staffDaily')}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 }}>
+                    <View style={[styles.accordionIcon, { backgroundColor: '#DBEAFE' }]}>
+                      <Ionicons name="people-outline" size={18} color="#2563EB" />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.accordionTitle}>Personel Günlük Özet</Text>
+                      <Text style={styles.accordionSubtitle}>Her sabah 08:30'da gönderilir</Text>
+                    </View>
+                  </View>
+                  <Ionicons name={openAccordion === 'staffDaily' ? 'chevron-up' : 'chevron-down'} size={20} color="#9CA3AF" />
+                </TouchableOpacity>
+                {openAccordion === 'staffDaily' && (
+                  <View style={styles.accordionContent}>
+                    <Text style={styles.inputLabel}>Kanal</Text>
+                    <TouchableOpacity style={styles.pickerButton} onPress={() => setShowChannelPicker('staffDailyChannel')}>
+                      <Text style={styles.pickerButtonText}>{channelLabel(formData.notificationSettings?.staffDailyChannel || 'whatsapp')}</Text>
+                      <Ionicons name="chevron-down" size={18} color="#6B7280" />
+                    </TouchableOpacity>
+                  </View>
+                )}
+              </View>
+
+              {/* İşletme Sahibi Günlük Özet */}
+              <View style={styles.card}>
+                <TouchableOpacity style={styles.accordionHeader} onPress={() => setOpenAccordion(openAccordion === 'ownerDaily' ? null : 'ownerDaily')}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 }}>
+                    <View style={[styles.accordionIcon, { backgroundColor: '#E0E7FF' }]}>
+                      <Ionicons name="briefcase-outline" size={18} color="#4F46E5" />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.accordionTitle}>İşletme Sahibi Günlük Özet</Text>
+                      <Text style={styles.accordionSubtitle}>Her akşam 21:00'de gönderilir</Text>
+                    </View>
+                  </View>
+                  <Ionicons name={openAccordion === 'ownerDaily' ? 'chevron-up' : 'chevron-down'} size={20} color="#9CA3AF" />
+                </TouchableOpacity>
+                {openAccordion === 'ownerDaily' && (
+                  <View style={styles.accordionContent}>
+                    <Text style={styles.inputLabel}>Kanal</Text>
+                    <TouchableOpacity style={styles.pickerButton} onPress={() => setShowChannelPicker('ownerDailyChannel')}>
+                      <Text style={styles.pickerButtonText}>{channelLabel(formData.notificationSettings?.ownerDailyChannel || 'whatsapp')}</Text>
+                      <Ionicons name="chevron-down" size={18} color="#6B7280" />
+                    </TouchableOpacity>
+                  </View>
+                )}
+              </View>
+            </View>
+          )}
+
           {/* Bottom Spacing */}
           <View style={{ height: 100 }} />
         </ScrollView>
@@ -1038,6 +1577,47 @@ export default function BusinessSettingsScreen() {
         </View>
       </Modal>
 
+      {/* Cancellation Hours Picker Modal */}
+      <Modal visible={showCancellationHoursPicker} transparent animationType="slide">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>İptal Süresi</Text>
+              <TouchableOpacity onPress={() => setShowCancellationHoursPicker(false)}>
+                <Ionicons name="close" size={24} color="#6B7280" />
+              </TouchableOpacity>
+            </View>
+            <ScrollView style={styles.modalScroll}>
+              {CANCELLATION_HOUR_OPTIONS.map((option) => (
+                <TouchableOpacity
+                  key={option.value}
+                  style={[
+                    styles.modalOption,
+                    formData.cancellationHours === option.value && styles.modalOptionSelected,
+                  ]}
+                  onPress={() => {
+                    updateFormData('cancellationHours', option.value);
+                    setShowCancellationHoursPicker(false);
+                  }}
+                >
+                  <Text
+                    style={[
+                      styles.modalOptionText,
+                      formData.cancellationHours === option.value && styles.modalOptionTextSelected,
+                    ]}
+                  >
+                    {option.label}
+                  </Text>
+                  {formData.cancellationHours === option.value && (
+                    <Ionicons name="checkmark" size={20} color={THEME_COLOR} />
+                  )}
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
       {/* Business Type Picker Modal */}
       <Modal visible={showBusinessTypePicker} transparent animationType="slide">
         <View style={styles.modalOverlay}>
@@ -1112,6 +1692,79 @@ export default function BusinessSettingsScreen() {
                       {time}
                     </Text>
                     {currentValue === time && <Ionicons name="checkmark" size={20} color={THEME_COLOR} />}
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Channel Picker Modal */}
+      <Modal visible={!!showChannelPicker} transparent animationType="slide">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Kanal Seçin</Text>
+              <TouchableOpacity onPress={() => setShowChannelPicker(null)}>
+                <Ionicons name="close" size={24} color="#6B7280" />
+              </TouchableOpacity>
+            </View>
+            <ScrollView style={styles.modalScroll}>
+              {(showChannelPicker === 'staffDailyChannel' || showChannelPicker === 'ownerDailyChannel'
+                ? [{ value: 'whatsapp', label: 'WhatsApp' }, { value: 'sms', label: 'SMS' }, { value: 'off', label: 'Kapalı' }]
+                : CHANNEL_OPTIONS
+              ).map((option) => {
+                const currentValue = showChannelPicker ? (formData.notificationSettings as any)?.[showChannelPicker] || 'default' : '';
+                return (
+                  <TouchableOpacity
+                    key={option.value}
+                    style={[styles.modalOption, currentValue === option.value && styles.modalOptionSelected]}
+                    onPress={() => {
+                      if (showChannelPicker) {
+                        updateNotificationSettings(showChannelPicker, option.value);
+                        setShowChannelPicker(null);
+                      }
+                    }}
+                  >
+                    <Text style={[styles.modalOptionText, currentValue === option.value && styles.modalOptionTextSelected]}>
+                      {option.value === 'default' ? channelLabel('default') : option.label}
+                    </Text>
+                    {currentValue === option.value && <Ionicons name="checkmark" size={20} color={THEME_COLOR} />}
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Survey Delay Picker Modal */}
+      <Modal visible={showSurveyDelayPicker} transparent animationType="slide">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Anket Gecikme Süresi</Text>
+              <TouchableOpacity onPress={() => setShowSurveyDelayPicker(false)}>
+                <Ionicons name="close" size={24} color="#6B7280" />
+              </TouchableOpacity>
+            </View>
+            <ScrollView style={styles.modalScroll}>
+              {SURVEY_DELAY_OPTIONS.map((option) => {
+                const currentValue = formData.notificationSettings?.surveyDelayMinutes ?? 60;
+                return (
+                  <TouchableOpacity
+                    key={option.value}
+                    style={[styles.modalOption, currentValue === option.value && styles.modalOptionSelected]}
+                    onPress={() => {
+                      updateNotificationSettings('surveyDelayMinutes', option.value);
+                      setShowSurveyDelayPicker(false);
+                    }}
+                  >
+                    <Text style={[styles.modalOptionText, currentValue === option.value && styles.modalOptionTextSelected]}>
+                      {option.label}
+                    </Text>
+                    {currentValue === option.value && <Ionicons name="checkmark" size={20} color={THEME_COLOR} />}
                   </TouchableOpacity>
                 );
               })}
@@ -1717,5 +2370,178 @@ const styles = StyleSheet.create({
   modalOptionTextSelected: {
     color: THEME_COLOR,
     fontWeight: '600',
+  },
+
+  // Tatiller & Mesajlar styles
+  sectionDescription: {
+    fontSize: 13,
+    color: '#6B7280',
+    marginBottom: 16,
+    lineHeight: 18,
+  },
+  addButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: '#DC2626',
+    paddingVertical: 12,
+    borderRadius: 12,
+    marginTop: 8,
+  },
+  addButtonText: {
+    color: '#fff',
+    fontWeight: '600',
+    fontSize: 14,
+  },
+  emptyState: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 32,
+  },
+  emptyStateText: {
+    fontSize: 13,
+    color: '#9CA3AF',
+    marginTop: 8,
+  },
+  blockedDateRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+  },
+  blockedDateTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#991B1B',
+  },
+  blockedDateRange: {
+    fontSize: 12,
+    color: '#DC2626',
+    marginTop: 2,
+  },
+  deleteButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: '#FEE2E2',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  infoBox: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    padding: 12,
+    backgroundColor: '#FFFBEB',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+    marginTop: 12,
+  },
+  infoBoxText: {
+    fontSize: 12,
+    color: '#92400E',
+    flex: 1,
+    lineHeight: 18,
+  },
+  messageSectionHeader: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#6B7280',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+    marginTop: 20,
+    marginBottom: 8,
+  },
+  channelButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 10,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: '#E5E7EB',
+    backgroundColor: '#fff',
+  },
+  channelButtonText: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: '#6B7280',
+  },
+  accordionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 4,
+  },
+  accordionIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  accordionTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1F2937',
+  },
+  accordionSubtitle: {
+    fontSize: 11,
+    color: '#9CA3AF',
+    marginTop: 1,
+  },
+  accordionContent: {
+    paddingTop: 12,
+    marginTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#F3F4F6',
+  },
+  pickerButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    backgroundColor: '#F9FAFB',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    marginTop: 6,
+  },
+  pickerButtonText: {
+    fontSize: 14,
+    color: '#374151',
+  },
+  templateNote: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 14,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#F3F4F6',
+  },
+  templateNoteText: {
+    fontSize: 12,
+    color: '#6B7280',
+    flex: 1,
+  },
+  getLocationButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: '#3B82F6',
+    paddingVertical: 14,
+    borderRadius: 12,
+    marginTop: 16,
+  },
+  getLocationButtonText: {
+    color: '#fff',
+    fontWeight: '600',
+    fontSize: 14,
   },
 });

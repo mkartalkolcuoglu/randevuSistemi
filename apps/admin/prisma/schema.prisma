@@ -179,6 +179,8 @@ model Settings {
   blacklistThreshold      Int?     @default(3) @map("blacklist_threshold")
   reminderMinutes         Int?     @default(120) @map("reminder_minutes")
   messageTemplates        String?  @map("message_templates") @db.Text
+  cancellationHours       Int?     @default(2) @map("cancellation_hours")
+  allowCancellation       Boolean? @default(true) @map("allow_cancellation")
 
   @@map("settings")
 }

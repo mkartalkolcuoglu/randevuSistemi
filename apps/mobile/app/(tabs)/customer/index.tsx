@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef, useMemo } from 'react';
 import {
   View,
   Text,
@@ -9,23 +9,26 @@ import {
   ActivityIndicator,
   Alert,
   Platform,
+  TextInput,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { useAuthStore } from '../../../src/store/auth.store';
 import { appointmentService } from '../../../src/services/appointment.service';
+import { notificationService } from '../../../src/services/notification.service';
 import { Appointment } from '../../../src/types';
 
 const IS_IOS = Platform.OS === 'ios';
 
 const STATUS_CONFIG: Record<string, { bg: string; text: string; label: string; icon: keyof typeof Ionicons.glyphMap }> = {
-  pending: { bg: '#FEF3C7', text: '#D97706', label: 'Bekliyor', icon: 'time-outline' },
+  pending: { bg: '#FEF3C7', text: '#D97706', label: 'Beklemede', icon: 'time-outline' },
   confirmed: { bg: '#DBEAFE', text: '#2563EB', label: 'Onaylandı', icon: 'checkmark-circle-outline' },
   completed: { bg: '#D1FAE5', text: '#059669', label: 'Tamamlandı', icon: 'checkmark-done-outline' },
-  cancelled: { bg: '#FEE2E2', text: '#DC2626', label: 'İptal', icon: 'close-circle-outline' },
-  no_show: { bg: '#F3F4F6', text: '#6B7280', label: 'Gelmedi', icon: 'alert-circle-outline' },
+  cancelled: { bg: '#FEE2E2', text: '#DC2626', label: 'İptal Edildi', icon: 'close-circle-outline' },
+  no_show: { bg: '#F3F4F6', text: '#6B7280', label: 'Gelmedi ve Bilgi Vermedi', icon: 'alert-circle-outline' },
 };
 
 const TENANT_STATUS_CONFIG: Record<string, { bg: string; text: string; label: string }> = {
@@ -41,36 +44,112 @@ export default function CustomerAppointmentsScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [filter, setFilter] = useState<'upcoming' | 'past'>('upcoming');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [sortBy, setSortBy] = useState<'date_asc' | 'date_desc'>('date_asc');
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const lastAppointmentsHashRef = useRef<string>('');
+  const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const fetchAppointments = async (showRefresh = false) => {
+  const fetchAppointments = async (silent = false, showRefresh = false) => {
     if (showRefresh) setIsRefreshing(true);
-    else setIsLoading(true);
+    else if (!silent) setIsLoading(true);
 
     try {
       const response = await appointmentService.getMyAppointments();
-      setAppointments(response.data || []);
+      const appts = response.data || [];
+
+      const newHash = JSON.stringify(appts.map(a => `${a.id}_${a.status}_${a.time}_${a.date}`));
+      if (silent && newHash === lastAppointmentsHashRef.current) {
+        return;
+      }
+
+      // Yeni veya değişen randevu bildirimi
+      if (silent && lastAppointmentsHashRef.current) {
+        const oldIds = new Set(
+          lastAppointmentsHashRef.current.match(/([a-z0-9]+)_/g)?.map(s => s.replace('_', '')) || []
+        );
+        const newAppts = appts.filter(a => !oldIds.has(a.id));
+        if (newAppts.length > 0) {
+          const apt = newAppts[0];
+          notificationService.scheduleLocalNotification(
+            'Yeni Randevu',
+            `${apt.serviceName} - ${apt.date} ${apt.time}`,
+            { appointmentId: apt.id },
+          );
+        }
+      }
+
+      lastAppointmentsHashRef.current = newHash;
+      setAppointments(appts);
     } catch (error) {
       console.error('Error fetching appointments:', error);
     } finally {
-      setIsLoading(false);
-      setIsRefreshing(false);
+      if (!silent) {
+        setIsLoading(false);
+        setIsRefreshing(false);
+      }
     }
   };
 
   useFocusEffect(
     useCallback(() => {
       fetchAppointments();
+      pollingRef.current = setInterval(() => {
+        fetchAppointments(true);
+      }, 30000);
+      return () => {
+        if (pollingRef.current) clearInterval(pollingRef.current);
+      };
     }, [])
   );
 
-  const filteredAppointments = appointments.filter((apt) => {
-    const aptDate = new Date(`${apt.date}T${apt.time}`);
-    const now = new Date();
-    if (filter === 'upcoming') {
-      return aptDate >= now && !['cancelled', 'completed', 'no_show'].includes(apt.status);
-    }
-    return aptDate < now || ['cancelled', 'completed', 'no_show'].includes(apt.status);
-  });
+  const handleDateChange = (_event: DateTimePickerEvent, date?: Date) => {
+    setShowDatePicker(IS_IOS ? true : false);
+    if (date) setSelectedDate(date);
+  };
+
+  const clearDateFilter = () => {
+    setSelectedDate(null);
+    setShowDatePicker(false);
+  };
+
+  const formatSelectedDate = (date: Date) => {
+    return date.toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' });
+  };
+
+  const filteredAppointments = useMemo(() => {
+    const query = searchQuery.toLowerCase().trim();
+    const filtered = appointments.filter((apt) => {
+      const aptDate = new Date(`${apt.date}T${apt.time}`);
+      const now = new Date();
+      const matchesFilter = filter === 'upcoming'
+        ? aptDate >= now && !['cancelled', 'completed', 'no_show'].includes(apt.status)
+        : aptDate < now || ['cancelled', 'completed', 'no_show'].includes(apt.status);
+      if (!matchesFilter) return false;
+
+      if (selectedDate) {
+        const selected = selectedDate.toISOString().split('T')[0];
+        if (apt.date !== selected) return false;
+      }
+
+      if (!query) return true;
+      return (
+        (apt.tenantName || '').toLowerCase().includes(query) ||
+        (apt.serviceName || '').toLowerCase().includes(query) ||
+        (apt.staffName || '').toLowerCase().includes(query)
+      );
+    });
+
+    filtered.sort((a, b) => {
+      if (sortBy === 'date_desc') {
+        return new Date(`${b.date}T${b.time}`).getTime() - new Date(`${a.date}T${a.time}`).getTime();
+      }
+      return new Date(`${a.date}T${a.time}`).getTime() - new Date(`${b.date}T${b.time}`).getTime();
+    });
+
+    return filtered;
+  }, [appointments, filter, searchQuery, sortBy, selectedDate]);
 
   const handleCancelAppointment = async (id: string) => {
     Alert.alert(
@@ -131,7 +210,7 @@ export default function CustomerAppointmentsScreen() {
           <View style={[styles.tenantBadge, { backgroundColor: tenantStatus.bg }]}>
             <Ionicons
               name={item.tenantStatus === 'deleted' ? 'close-circle' : 'pause-circle'}
-              size={14}
+              size={12}
               color={tenantStatus.text}
             />
             <Text style={[styles.tenantBadgeText, { color: tenantStatus.text }]}>
@@ -140,19 +219,26 @@ export default function CustomerAppointmentsScreen() {
           </View>
         )}
 
-        {/* Tenant Name */}
+        {/* Row 1: Tenant Name + Status Badge */}
         <View style={styles.tenantNameRow}>
-          <View style={styles.tenantIconContainer}>
-            <Ionicons name="storefront" size={16} color="#059669" />
+          <View style={styles.tenantRowLeft}>
+            <View style={styles.tenantIconContainer}>
+              <Ionicons name="storefront" size={13} color="#059669" />
+            </View>
+            <Text style={[styles.tenantName, isInactiveTenant && styles.tenantNameInactive]} numberOfLines={1}>
+              {item.tenantName || 'Bilinmiyor'}
+            </Text>
           </View>
-          <Text style={[styles.tenantName, isInactiveTenant && styles.tenantNameInactive]}>
-            {item.tenantName || 'Bilinmiyor'}
-          </Text>
+          <View style={[styles.statusBadge, { backgroundColor: status.bg }]}>
+            <Ionicons name={status.icon} size={12} color={status.text} />
+            <Text style={[styles.statusText, { color: status.text }]}>{status.label}</Text>
+          </View>
         </View>
 
-        {/* Date & Time Section */}
+        {/* Row 2: Date & Time */}
         <View style={styles.dateTimeSection}>
           <View style={styles.dateContainer}>
+            <Ionicons name="calendar-outline" size={14} color="#6B7280" />
             {relativeDay && (
               <View style={styles.relativeDayBadge}>
                 <Text style={styles.relativeDayText}>{relativeDay}</Text>
@@ -161,63 +247,36 @@ export default function CustomerAppointmentsScreen() {
             <Text style={styles.dateText}>{formatDate(item.date)}</Text>
           </View>
           <View style={styles.timeContainer}>
-            <Ionicons name="time" size={20} color="#059669" />
+            <Ionicons name="time-outline" size={14} color="#059669" />
             <Text style={styles.timeText}>{item.time}</Text>
           </View>
         </View>
 
-        {/* Status Badge */}
-        <View style={[styles.statusBadge, { backgroundColor: status.bg }]}>
-          <Ionicons name={status.icon} size={16} color={status.text} />
-          <Text style={[styles.statusText, { color: status.text }]}>{status.label}</Text>
+        {/* Row 3: Service • Staff • Duration */}
+        <View style={styles.serviceRow}>
+          <Text style={styles.serviceText} numberOfLines={1}>
+            <Text style={styles.serviceHighlight}>{item.serviceName}</Text>
+            <Text style={styles.serviceDot}>  ·  </Text>
+            <Text>{item.staffName}</Text>
+            <Text style={styles.serviceDot}>  ·  </Text>
+            <Text>{item.duration} dk</Text>
+          </Text>
         </View>
 
-        {/* Service Details */}
-        <View style={styles.cardBody}>
-          <View style={styles.detailRow}>
-            <View style={styles.detailIconContainer}>
-              <Ionicons name="cut" size={16} color="#059669" />
-            </View>
-            <View style={styles.detailContent}>
-              <Text style={styles.detailLabel}>Hizmet</Text>
-              <Text style={styles.detailValue}>{item.serviceName}</Text>
-            </View>
-          </View>
-
-          <View style={styles.detailRow}>
-            <View style={styles.detailIconContainer}>
-              <Ionicons name="person" size={16} color="#059669" />
-            </View>
-            <View style={styles.detailContent}>
-              <Text style={styles.detailLabel}>Uzman</Text>
-              <Text style={styles.detailValue}>{item.staffName}</Text>
-            </View>
-          </View>
-
-          <View style={styles.detailsFooter}>
-            <View style={styles.footerItem}>
-              <Ionicons name="hourglass-outline" size={16} color="#6B7280" />
-              <Text style={styles.footerText}>{item.duration} dk</Text>
-            </View>
-            <View style={styles.footerDivider} />
-            <View style={styles.footerItem}>
-              <Ionicons name="wallet-outline" size={16} color="#059669" />
-              <Text style={styles.footerPrice}>{item.price} ₺</Text>
-            </View>
-          </View>
+        {/* Row 4: Price + Cancel */}
+        <View style={styles.footerRow}>
+          <Text style={styles.footerPrice}>{item.price} ₺</Text>
+          {canCancel && (
+            <TouchableOpacity
+              style={styles.cancelButton}
+              onPress={() => handleCancelAppointment(item.id)}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="close-circle-outline" size={14} color="#DC2626" />
+              <Text style={styles.cancelButtonText}>İptal Et</Text>
+            </TouchableOpacity>
+          )}
         </View>
-
-        {/* Cancel Button */}
-        {canCancel && (
-          <TouchableOpacity
-            style={styles.cancelButton}
-            onPress={() => handleCancelAppointment(item.id)}
-            activeOpacity={0.7}
-          >
-            <Ionicons name="close-circle-outline" size={18} color="#DC2626" />
-            <Text style={styles.cancelButtonText}>Randevuyu İptal Et</Text>
-          </TouchableOpacity>
-        )}
       </View>
     );
   };
@@ -294,6 +353,72 @@ export default function CustomerAppointmentsScreen() {
             </Text>
           </TouchableOpacity>
         </View>
+
+        {/* Search + Sort Row */}
+        <View style={styles.searchSortRow}>
+          <View style={styles.searchContainer}>
+            <Ionicons name="search-outline" size={15} color="rgba(255,255,255,0.6)" />
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Ara..."
+              placeholderTextColor="rgba(255,255,255,0.5)"
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              returnKeyType="search"
+            />
+            {searchQuery.length > 0 && (
+              <TouchableOpacity onPress={() => setSearchQuery('')} activeOpacity={0.7}>
+                <Ionicons name="close-circle" size={14} color="rgba(255,255,255,0.6)" />
+              </TouchableOpacity>
+            )}
+          </View>
+          <TouchableOpacity
+            style={[styles.sortChip, sortBy === 'date_desc' && styles.sortChipActive]}
+            onPress={() => setSortBy(sortBy === 'date_asc' ? 'date_desc' : 'date_asc')}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="swap-vertical-outline" size={13} color={sortBy === 'date_desc' ? '#fff' : 'rgba(255,255,255,0.6)'} />
+            <Text style={[styles.sortChipText, sortBy === 'date_desc' && styles.sortChipTextActive]}>
+              {sortBy === 'date_asc' ? '↑' : '↓'}
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.sortChip, selectedDate !== null && styles.sortChipActive]}
+            onPress={() => setShowDatePicker(true)}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="calendar-outline" size={13} color={selectedDate ? '#fff' : 'rgba(255,255,255,0.6)'} />
+            {selectedDate ? (
+              <Text style={[styles.sortChipText, styles.sortChipTextActive]}>
+                {formatSelectedDate(selectedDate)}
+              </Text>
+            ) : null}
+          </TouchableOpacity>
+          {selectedDate && (
+            <TouchableOpacity onPress={clearDateFilter} activeOpacity={0.7}>
+              <Ionicons name="close-circle" size={18} color="rgba(255,255,255,0.7)" />
+            </TouchableOpacity>
+          )}
+        </View>
+
+        {/* Date Picker */}
+        {showDatePicker && (
+          <View style={styles.datePickerContainer}>
+            <DateTimePicker
+              value={selectedDate || new Date()}
+              mode="date"
+              display={IS_IOS ? 'compact' : 'default'}
+              onChange={handleDateChange}
+              locale="tr-TR"
+              themeVariant="dark"
+            />
+            {IS_IOS && (
+              <TouchableOpacity onPress={() => setShowDatePicker(false)} style={styles.datePickerDone}>
+                <Text style={styles.datePickerDoneText}>Tamam</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        )}
       </LinearGradient>
 
       {/* Content */}
@@ -312,7 +437,7 @@ export default function CustomerAppointmentsScreen() {
           refreshControl={
             <RefreshControl
               refreshing={isRefreshing}
-              onRefresh={() => fetchAppointments(true)}
+              onRefresh={() => fetchAppointments(false, true)}
               tintColor="#059669"
               colors={['#059669']}
             />
@@ -396,6 +521,66 @@ const styles = StyleSheet.create({
   filterTextActive: {
     color: '#059669',
   },
+  searchSortRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 10,
+    gap: 6,
+  },
+  searchContainer: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    gap: 6,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 13,
+    color: '#fff',
+    fontWeight: '500',
+    padding: 0,
+  },
+  sortChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    borderRadius: 10,
+    backgroundColor: 'rgba(255, 255, 255, 0.12)',
+    gap: 3,
+  },
+  sortChipActive: {
+    backgroundColor: 'rgba(255, 255, 255, 0.25)',
+  },
+  sortChipText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: 'rgba(255, 255, 255, 0.6)',
+  },
+  sortChipTextActive: {
+    color: '#fff',
+  },
+  datePickerContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 8,
+    gap: 8,
+  },
+  datePickerDone: {
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  datePickerDoneText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#fff',
+  },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -412,14 +597,14 @@ const styles = StyleSheet.create({
   },
   appointmentCard: {
     backgroundColor: '#fff',
-    borderRadius: 20,
-    padding: 18,
-    marginBottom: 14,
+    borderRadius: 16,
+    padding: 14,
+    marginBottom: 10,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    elevation: 4,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 3,
   },
   appointmentCardInactive: {
     opacity: 0.85,
@@ -430,66 +615,86 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     alignSelf: 'flex-start',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 12,
-    marginBottom: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+    marginBottom: 8,
     gap: 4,
   },
   tenantBadgeText: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '600',
   },
   tenantNameRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 14,
-    paddingBottom: 14,
+    justifyContent: 'space-between',
+    marginBottom: 8,
+    paddingBottom: 8,
     borderBottomWidth: 1,
     borderBottomColor: '#F3F4F6',
   },
+  tenantRowLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+    marginRight: 8,
+  },
   tenantIconContainer: {
-    width: 32,
-    height: 32,
-    borderRadius: 10,
+    width: 26,
+    height: 26,
+    borderRadius: 8,
     backgroundColor: '#ECFDF5',
     justifyContent: 'center',
     alignItems: 'center',
   },
   tenantName: {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '600',
     color: '#1F2937',
-    marginLeft: 10,
+    marginLeft: 8,
     flex: 1,
   },
   tenantNameInactive: {
     color: '#9CA3AF',
   },
+  statusBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    gap: 4,
+  },
+  statusText: {
+    fontSize: 11,
+    fontWeight: '600',
+  },
   dateTimeSection: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 6,
   },
   dateContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
     flex: 1,
+    gap: 6,
   },
   relativeDayBadge: {
     backgroundColor: '#ECFDF5',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 8,
-    alignSelf: 'flex-start',
-    marginBottom: 4,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
   },
   relativeDayText: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '700',
     color: '#059669',
   },
   dateText: {
-    fontSize: 15,
+    fontSize: 13,
     fontWeight: '600',
     color: '#374151',
   },
@@ -497,87 +702,36 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#ECFDF5',
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 12,
-    gap: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+    gap: 4,
   },
   timeText: {
-    fontSize: 18,
+    fontSize: 14,
     fontWeight: '700',
     color: '#059669',
   },
-  statusBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    alignSelf: 'flex-start',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
-    marginBottom: 14,
-    gap: 6,
+  serviceRow: {
+    marginBottom: 6,
   },
-  statusText: {
+  serviceText: {
     fontSize: 13,
-    fontWeight: '600',
-  },
-  cardBody: {
-    borderTopWidth: 1,
-    borderTopColor: '#F3F4F6',
-    paddingTop: 14,
-  },
-  detailRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  detailIconContainer: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    backgroundColor: '#ECFDF5',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  detailContent: {
-    marginLeft: 12,
-    flex: 1,
-  },
-  detailLabel: {
-    fontSize: 12,
-    color: '#9CA3AF',
-    fontWeight: '500',
-  },
-  detailValue: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#1F2937',
-    marginTop: 1,
-  },
-  detailsFooter: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F9FAFB',
-    borderRadius: 12,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    marginTop: 4,
-  },
-  footerItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  footerDivider: {
-    width: 1,
-    height: 20,
-    backgroundColor: '#E5E7EB',
-    marginHorizontal: 16,
-  },
-  footerText: {
-    fontSize: 14,
     color: '#6B7280',
     fontWeight: '500',
+  },
+  serviceHighlight: {
+    color: '#1F2937',
+    fontWeight: '600',
+  },
+  serviceDot: {
+    color: '#D1D5DB',
+  },
+  footerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 2,
   },
   footerPrice: {
     fontSize: 16,
@@ -585,19 +739,16 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   cancelButton: {
-    marginTop: 14,
-    paddingVertical: 12,
-    borderRadius: 12,
-    backgroundColor: '#FEF2F2',
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    borderWidth: 1,
-    borderColor: '#FECACA',
+    paddingVertical: 4,
+    paddingHorizontal: 10,
+    borderRadius: 8,
+    backgroundColor: '#FEF2F2',
+    gap: 4,
   },
   cancelButtonText: {
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: '600',
     color: '#DC2626',
   },

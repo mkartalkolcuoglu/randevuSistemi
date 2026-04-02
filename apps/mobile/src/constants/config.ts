@@ -18,5 +18,4 @@ export const OTP_RESEND_TIMEOUT = 60; // seconds
 // Cache Configuration
 export const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 
-// Appointment Configuration
-export const MIN_CANCEL_HOURS = 2; // Minimum hours before appointment to cancel
+

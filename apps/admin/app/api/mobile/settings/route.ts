@@ -138,6 +138,8 @@ export async function GET(request: NextRequest) {
       appointmentTimeInterval: settings?.appointmentTimeInterval || 30,
       blacklistThreshold: settings?.blacklistThreshold || 3,
       reminderMinutes: settings?.reminderMinutes || 120,
+      cancellationHours: settings?.cancellationHours ?? 2,
+      allowCancellation: settings?.allowCancellation ?? true,
 
       // Message Templates & Notification Settings
       messageTemplates: settings?.messageTemplates ? JSON.parse(settings.messageTemplates) : null,
@@ -209,6 +211,8 @@ export async function PUT(request: NextRequest) {
       appointmentTimeInterval,
       blacklistThreshold,
       reminderMinutes,
+      cancellationHours,
+      allowCancellation,
       // Payment
       cardPaymentEnabled,
       // Message & Notification
@@ -311,6 +315,12 @@ export async function PUT(request: NextRequest) {
     }
     if (reminderMinutes !== undefined) {
       settingsUpdateData.reminderMinutes = parseInt(reminderMinutes);
+    }
+    if (cancellationHours !== undefined) {
+      settingsUpdateData.cancellationHours = parseInt(cancellationHours);
+    }
+    if (allowCancellation !== undefined) {
+      settingsUpdateData.allowCancellation = allowCancellation;
     }
     if (workingHours) {
       settingsUpdateData.workingHours = JSON.stringify(workingHours);

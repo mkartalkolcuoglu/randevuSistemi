@@ -336,6 +336,30 @@ export async function PATCH(
           { status: 400 }
         );
       }
+
+      // İptal süresi kontrolü
+      const cancelSettings = await prisma.settings.findUnique({
+        where: { tenantId: appointment.tenantId },
+        select: { allowCancellation: true, cancellationHours: true }
+      });
+
+      if (cancelSettings?.allowCancellation === false) {
+        return NextResponse.json(
+          { success: false, message: 'Bu işletme randevu iptaline izin vermiyor' },
+          { status: 400 }
+        );
+      }
+
+      const cancellationHoursLimit = cancelSettings?.cancellationHours ?? 2;
+      const appointmentDateTime = new Date(`${appointment.date}T${appointment.time}`);
+      const hoursUntilAppointment = (appointmentDateTime.getTime() - Date.now()) / (1000 * 60 * 60);
+
+      if (hoursUntilAppointment < cancellationHoursLimit) {
+        return NextResponse.json(
+          { success: false, message: `Randevuya ${cancellationHoursLimit} saatten az kaldığı için iptal edilemez` },
+          { status: 400 }
+        );
+      }
     } else {
       // Staff/Owner - must be from the same tenant
       if (appointment.tenantId !== auth.tenantId) {

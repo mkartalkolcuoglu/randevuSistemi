@@ -55,6 +55,8 @@ export default function SettingsClient({ user }: SettingsClientProps) {
     appointmentTimeInterval: 30, // dakika cinsinden
     blacklistThreshold: 3, // Kara liste eşiği (kaç defa gelmedi)
     reminderMinutes: 120, // Hatırlatma süresi (randevudan kaç dakika önce)
+    allowCancellation: true, // Müşteri randevu iptal edebilir mi
+    cancellationHours: 2, // Randevudan kaç saat önce iptal edilebilir
     // Mesaj şablonları
     messageTemplates: {
       whatsappConfirmation: DEFAULT_TEMPLATES.whatsappConfirmation,
@@ -260,6 +262,8 @@ export default function SettingsClient({ user }: SettingsClientProps) {
             appointmentTimeInterval: tenant.appointmentTimeInterval || 30, // Default: 30 dakika
             blacklistThreshold: tenant.blacklistThreshold || 3, // Default: 3 defa gelmedi
             reminderMinutes: tenant.reminderMinutes || 120, // Default: 2 saat (120 dakika)
+            allowCancellation: tenant.allowCancellation ?? true,
+            cancellationHours: tenant.cancellationHours ?? 2,
             cardPaymentEnabled: tenant.cardPaymentEnabled !== false, // Default: true
             messageTemplates: {
               whatsappConfirmation: tenant.messageTemplates?.whatsappConfirmation || DEFAULT_TEMPLATES.whatsappConfirmation,
@@ -1255,6 +1259,54 @@ export default function SettingsClient({ user }: SettingsClientProps) {
             <p className="text-xs text-gray-500 mt-1">
               Müşteri kaç defa "Gelmedi ve Bilgi Vermedi" durumuna sahip olursa kara listeye alınsın?
             </p>
+          </div>
+
+          {/* İptal Ayarları */}
+          <div className="pt-6 mt-6 border-t border-gray-200">
+            <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
+              <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" /></svg>
+              İptal Ayarları
+            </h3>
+
+            <div className="space-y-4">
+              <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                <div className="flex-1">
+                  <p className="font-medium text-gray-900">Randevu İptali</p>
+                  <p className="text-sm text-gray-500">Müşteriler randevularını iptal edebilir</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setSettings(prev => ({ ...prev, allowCancellation: !prev.allowCancellation }))}
+                  className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out ${settings.allowCancellation ? 'bg-blue-600' : 'bg-gray-200'}`}
+                >
+                  <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${settings.allowCancellation ? 'translate-x-5' : 'translate-x-0'}`} />
+                </button>
+              </div>
+
+              {settings.allowCancellation && (
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-gray-700">
+                    İptal Süresi
+                  </label>
+                  <select
+                    value={settings.cancellationHours}
+                    onChange={(e) => setSettings(prev => ({ ...prev, cancellationHours: parseInt(e.target.value) }))}
+                    className="w-full md:w-64 px-4 py-2.5 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base font-medium"
+                  >
+                    <option value={1}>1 saat önce</option>
+                    <option value={2}>2 saat önce</option>
+                    <option value={3}>3 saat önce</option>
+                    <option value={6}>6 saat önce</option>
+                    <option value={12}>12 saat önce</option>
+                    <option value={24}>24 saat önce</option>
+                    <option value={48}>48 saat önce</option>
+                  </select>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Müşteriler randevudan en az bu kadar süre önce iptal edebilir.
+                  </p>
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Ödeme Ayarları */}

@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Button, Card, CardContent, Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '../../../components/ui';
 import { Calendar, Clock, User, X, CheckCircle, AlertCircle, Filter, Star, MessageSquare, LogOut, Home, PlusCircle, Package, Search, Scissors } from 'lucide-react';
-import { format, parseISO, isBefore, addHours, isAfter, startOfToday, differenceInDays } from 'date-fns';
+import { format, parseISO, isBefore, isAfter, startOfToday, differenceInDays } from 'date-fns';
 import { tr } from 'date-fns/locale';
 
 interface Appointment {
@@ -146,14 +146,9 @@ function RandevularimContent() {
     // İptal edilmiş veya tamamlanmış randevular iptal edilemez
     if (appointment.status === 'cancelled' || appointment.status === 'completed') return false;
 
-    // Randevu tarih ve saatini birleştir
+    // Randevu saati geçmiş mi kontrol et
     const appointmentDateTime = parseISO(`${appointment.date}T${appointment.time}`);
-
-    // 6 saat öncesini hesapla
-    const sixHoursBefore = addHours(appointmentDateTime, -6);
-
-    // Şu anki zaman 6 saat öncesinden önce mi?
-    return isBefore(new Date(), sixHoursBefore);
+    return isBefore(new Date(), appointmentDateTime);
   };
 
   const canLeaveFeedback = (appointment: Appointment): boolean => {
@@ -643,7 +638,7 @@ function RandevularimContent() {
                         
                         {!canCancel && (appointment.status === 'pending' || appointment.status === 'confirmed') && (
                           <div className="text-xs text-gray-500 text-center">
-                            İptal süresi geçti<br/>(Randevuya 6 saatten az kaldı)
+                            Randevu saati geçmiş
                           </div>
                         )}
                         

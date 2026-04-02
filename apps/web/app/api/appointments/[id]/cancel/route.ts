@@ -61,17 +61,30 @@ export async function POST(
       );
     }
 
-    // 6 saat kontrolü
+    // İptal ayarlarını kontrol et
+    const cancelSettings = await prisma.settings.findUnique({
+      where: { tenantId: appointment.tenantId },
+      select: { allowCancellation: true, cancellationHours: true }
+    });
+
+    if (cancelSettings?.allowCancellation === false) {
+      return NextResponse.json(
+        { success: false, error: 'Bu işletme randevu iptaline izin vermiyor' },
+        { status: 400 }
+      );
+    }
+
+    const cancellationHoursLimit = cancelSettings?.cancellationHours ?? 2;
     const appointmentDateTime = new Date(`${appointment.date}T${appointment.time}`);
     const now = new Date();
-    const sixHoursInMs = 6 * 60 * 60 * 1000;
     const timeDiff = appointmentDateTime.getTime() - now.getTime();
+    const hoursLimit = cancellationHoursLimit * 60 * 60 * 1000;
 
-    if (timeDiff < sixHoursInMs) {
+    if (timeDiff < hoursLimit) {
       return NextResponse.json(
-        { 
-          success: false, 
-          error: 'Randevuya 6 saatten az kaldığı için iptal edilemez' 
+        {
+          success: false,
+          error: `Randevuya ${cancellationHoursLimit} saatten az kaldığı için iptal edilemez`
         },
         { status: 400 }
       );

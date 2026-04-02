@@ -139,6 +139,12 @@ export async function POST(request: NextRequest) {
       themeSettings: data.themeSettings ? JSON.stringify(data.themeSettings) : null,
       ...(data.messageTemplates !== undefined && {
         messageTemplates: data.messageTemplates ? JSON.stringify(data.messageTemplates) : null
+      }),
+      ...(data.cancellationHours !== undefined && {
+        cancellationHours: parseInt(data.cancellationHours)
+      }),
+      ...(data.allowCancellation !== undefined && {
+        allowCancellation: data.allowCancellation
       })
     };
 
