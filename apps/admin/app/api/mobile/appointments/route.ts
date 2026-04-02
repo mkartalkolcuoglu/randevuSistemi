@@ -406,21 +406,31 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check if time slot is available
-    const existingAppointment = await prisma.appointment.findFirst({
+    // Check if time slot is available (duration-aware overlap check)
+    const existingAppointments = await prisma.appointment.findMany({
       where: {
         staffId,
         date,
-        time,
-        status: {
-          notIn: ['cancelled'],
-        },
+        status: { notIn: ['cancelled'] },
       },
+      select: { time: true, duration: true },
     });
 
-    if (existingAppointment) {
+    const [newH, newM] = time.split(':').map(Number);
+    const newStart = newH * 60 + newM;
+    const newEnd = newStart + (service.duration || 60);
+
+    const hasConflict = existingAppointments.some((apt: any) => {
+      const [aptH, aptM] = (apt.time || '').split(':').map(Number);
+      if (isNaN(aptH)) return false;
+      const aptStart = aptH * 60 + aptM;
+      const aptEnd = aptStart + (apt.duration || 60);
+      return newStart < aptEnd && newEnd > aptStart;
+    });
+
+    if (hasConflict) {
       return NextResponse.json(
-        { success: false, message: 'Bu saat dolu' },
+        { success: false, message: 'Bu saat aralığı dolu' },
         { status: 400 }
       );
     }
