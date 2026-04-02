@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import {
@@ -12,8 +13,7 @@ import {
   X,
   Calendar,
   User,
-  FileText,
-  Eye,
+  ArrowLeft,
 } from 'lucide-react';
 
 interface AuditLog {
@@ -83,7 +83,7 @@ export default function AuditLogPage() {
   });
   const [loading, setLoading] = useState(true);
   const [showFilters, setShowFilters] = useState(false);
-  const [selectedLog, setSelectedLog] = useState<AuditLog | null>(null);
+  const router = useRouter();
 
   // Filters
   const [entity, setEntity] = useState('');
@@ -134,9 +134,12 @@ export default function AuditLogPage() {
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-indigo-100 rounded-xl flex items-center justify-center">
-            <Shield className="w-5 h-5 text-indigo-600" />
-          </div>
+          <button
+            onClick={() => router.back()}
+            className="w-10 h-10 bg-gray-100 hover:bg-gray-200 rounded-xl flex items-center justify-center transition"
+          >
+            <ArrowLeft className="w-5 h-5 text-gray-600" />
+          </button>
           <div>
             <h1 className="text-xl font-bold text-gray-900">İşlem Geçmişi</h1>
             <p className="text-sm text-gray-500">{pagination.total} kayıt</p>
@@ -255,7 +258,7 @@ export default function AuditLogPage() {
                     <th className="text-left px-4 py-3 font-medium text-gray-500">Varlık</th>
                     <th className="text-left px-4 py-3 font-medium text-gray-500">Özet</th>
                     <th className="text-left px-4 py-3 font-medium text-gray-500">Kaynak</th>
-                    <th className="text-center px-4 py-3 font-medium text-gray-500 w-16"></th>
+                    <th className="text-left px-4 py-3 font-medium text-gray-500">IP</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -290,16 +293,8 @@ export default function AuditLogPage() {
                       <td className="px-4 py-3 whitespace-nowrap text-gray-500 text-xs">
                         {SOURCE_LABELS[log.source || ''] || log.source || '—'}
                       </td>
-                      <td className="px-4 py-3 text-center">
-                        {(log.oldValues || log.newValues) && (
-                          <button
-                            onClick={() => setSelectedLog(log)}
-                            className="p-1 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-600"
-                            title="Detay"
-                          >
-                            <Eye className="w-4 h-4" />
-                          </button>
-                        )}
+                      <td className="px-4 py-3 whitespace-nowrap text-xs text-gray-400 font-mono">
+                        {log.ipAddress || '—'}
                       </td>
                     </tr>
                   ))}
@@ -336,53 +331,6 @@ export default function AuditLogPage() {
         )}
       </div>
 
-      {/* Detail Modal */}
-      {selectedLog && (
-        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onClick={() => setSelectedLog(null)}>
-          <div className="bg-white rounded-2xl max-w-lg w-full max-h-[80vh] overflow-auto p-6" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-                <FileText className="w-5 h-5 text-indigo-600" />
-                İşlem Detayı
-              </h3>
-              <button onClick={() => setSelectedLog(null)} className="p-1 hover:bg-gray-100 rounded">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="space-y-3 text-sm">
-              <div className="grid grid-cols-2 gap-3">
-                <div><span className="text-gray-400">Tarih:</span> <span className="font-medium">{format(new Date(selectedLog.createdAt), 'd MMMM yyyy HH:mm:ss', { locale: tr })}</span></div>
-                <div><span className="text-gray-400">Kullanıcı:</span> <span className="font-medium">{selectedLog.userName || '—'}</span></div>
-                <div><span className="text-gray-400">IP:</span> <span className="font-mono text-xs">{selectedLog.ipAddress || '—'}</span></div>
-                <div><span className="text-gray-400">Kaynak:</span> <span>{SOURCE_LABELS[selectedLog.source || ''] || '—'}</span></div>
-              </div>
-
-              <div className="border-t pt-3">
-                <p className="text-gray-800 font-medium mb-3">{selectedLog.summary}</p>
-              </div>
-
-              {selectedLog.oldValues && (
-                <div>
-                  <p className="text-xs font-medium text-red-500 mb-1">Eski Değerler</p>
-                  <pre className="bg-red-50 rounded-lg p-3 text-xs overflow-auto max-h-40 text-red-800">
-                    {JSON.stringify(JSON.parse(selectedLog.oldValues), null, 2)}
-                  </pre>
-                </div>
-              )}
-
-              {selectedLog.newValues && (
-                <div>
-                  <p className="text-xs font-medium text-green-600 mb-1">Yeni Değerler</p>
-                  <pre className="bg-green-50 rounded-lg p-3 text-xs overflow-auto max-h-40 text-green-800">
-                    {JSON.stringify(JSON.parse(selectedLog.newValues), null, 2)}
-                  </pre>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
