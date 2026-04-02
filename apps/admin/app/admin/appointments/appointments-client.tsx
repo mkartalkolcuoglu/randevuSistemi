@@ -18,8 +18,11 @@ interface AppointmentsClientProps {
 export default function AppointmentsClient({ initialAppointments, tenantId, user }: AppointmentsClientProps) {
   const [appointments, setAppointments] = useState(initialAppointments);
   const [statusFilter, setStatusFilter] = useState('all');
-  // Varsayılan olarak boş (tüm randevuları göster)
-  const [dateFilter, setDateFilter] = useState('');
+  // Varsayılan olarak bugünün tarihi
+  const [dateFilter, setDateFilter] = useState(() => {
+    const today = new Date();
+    return today.toISOString().split('T')[0];
+  });
 
   const handleDelete = async (id: string) => {
     if (confirm('Bu randevuyu silmek istediğinizden emin misiniz?')) {
@@ -129,12 +132,18 @@ export default function AppointmentsClient({ initialAppointments, tenantId, user
     }
   };
 
-  // Filter by status and date
-  const filteredAppointments = appointments.filter((appointment: any) => {
-    const matchesStatus = statusFilter === 'all' || appointment.status === statusFilter;
-    const matchesDate = !dateFilter || appointment.date === dateFilter;
-    return matchesStatus && matchesDate;
-  });
+  // Filter by status and date, sort by time ascending
+  const filteredAppointments = appointments
+    .filter((appointment: any) => {
+      const matchesStatus = statusFilter === 'all' || appointment.status === statusFilter;
+      const matchesDate = !dateFilter || appointment.date === dateFilter;
+      return matchesStatus && matchesDate;
+    })
+    .sort((a: any, b: any) => {
+      // Önce tarihe göre, sonra saate göre erken→geç
+      if (a.date !== b.date) return a.date.localeCompare(b.date);
+      return (a.time || '').localeCompare(b.time || '');
+    });
 
   // Define table columns
   const columns: Column<any>[] = [
