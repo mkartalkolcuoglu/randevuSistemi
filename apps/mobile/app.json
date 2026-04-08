@@ -2,7 +2,7 @@
   "expo": {
     "name": "Net Randevu",
     "slug": "net-randevu",
-    "version": "1.0.0",
+    "version": "1.1.1",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -16,6 +16,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.netrandevu.app",
+      "buildNumber": "2",
       "infoPlist": {
         "NSCameraUsageDescription": "Profil fotoğrafı çekmek için kamera erişimi gereklidir.",
         "NSPhotoLibraryUsageDescription": "Profil fotoğrafı seçmek için galeri erişimi gereklidir.",
@@ -28,6 +29,7 @@
         "backgroundColor": "#3B82F6"
       },
       "package": "com.netrandevu.app",
+      "versionCode": 2,
       "edgeToEdgeEnabled": true,
       "permissions": [
         "android.permission.RECEIVE_BOOT_COMPLETED",
