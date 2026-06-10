@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '../../../../../lib/prisma';
 import { createAuditLog, getIpFromRequest } from '../../../../../lib/audit';
+import { sendExpoPushNotification } from '../../../../../lib/expo-push';
 import jwt from 'jsonwebtoken';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
@@ -293,7 +294,7 @@ export async function PATCH(
       where: { id },
       include: {
         customer: {
-          select: { firstName: true, lastName: true },
+          select: { id: true, firstName: true, lastName: true, expoPushToken: true },
         },
       },
     });
@@ -456,6 +457,31 @@ export async function PATCH(
     if (status === 'cancelled' && oldStatus !== 'cancelled' && wasConfirmedOrCompleted) {
       console.log(`🔄 [MOBILE] Status changed to cancelled - refunding package usage`);
       await refundPackageUsage(updatedAppointment);
+    }
+
+    // Notify customer of cancellation via push (only when cancelled by staff/owner, not self-cancel)
+    if (
+      status === 'cancelled' &&
+      oldStatus !== 'cancelled' &&
+      auth.userType !== 'customer' &&
+      appointment.customer.expoPushToken
+    ) {
+      try {
+        const pushResult = await sendExpoPushNotification(
+          appointment.customer.expoPushToken,
+          'Randevunuz İptal Edildi',
+          `${appointment.date} ${appointment.time} tarihli randevunuz iptal edildi.`,
+          { type: 'cancellation', appointmentId: id }
+        );
+        // Clear invalid token so future sends fall back to other channels
+        if (!pushResult.success && pushResult.invalidToken) {
+          await prisma.customer
+            .update({ where: { id: appointment.customerId }, data: { expoPushToken: null } })
+            .catch(() => {});
+        }
+      } catch (err) {
+        console.error('Cancellation push failed:', err);
+      }
     }
 
     // If status changed to "completed", set completedAt and auto-send survey

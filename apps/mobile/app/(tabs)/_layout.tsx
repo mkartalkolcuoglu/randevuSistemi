@@ -143,7 +143,6 @@ export default function TabLayout() {
         <Tabs.Screen name="staff/appointments" options={{ href: null }} />
         <Tabs.Screen name="staff/customers" options={{ href: null }} />
         <Tabs.Screen name="staff/settings" options={{ href: null }} />
-        <Tabs.Screen name="staff/business-settings" options={{ href: null }} />
         <Tabs.Screen name="staff/calendar" options={{ href: null }} />
         <Tabs.Screen name="staff/cashier" options={{ href: null }} />
         <Tabs.Screen name="staff/packages" options={{ href: null }} />
@@ -192,7 +191,6 @@ export default function TabLayout() {
       {/* Hidden staff tabs - accessible via navigation but not shown in tab bar */}
       <Tabs.Screen name="staff/appointments" options={{ href: null }} />
       <Tabs.Screen name="staff/settings" options={{ href: null }} />
-      <Tabs.Screen name="staff/business-settings" options={{ href: null }} />
       <Tabs.Screen name="staff/cashier" options={{ href: null }} />
       <Tabs.Screen name="staff/packages" options={{ href: null }} />
       <Tabs.Screen name="staff/performance" options={{ href: null }} />

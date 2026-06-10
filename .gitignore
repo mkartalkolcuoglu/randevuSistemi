@@ -115,6 +115,7 @@ cookies*.txt
 
 # Prisma
 prisma/migrations/
+**/lib/generated/
 .vercel
 
 # PWA generated files

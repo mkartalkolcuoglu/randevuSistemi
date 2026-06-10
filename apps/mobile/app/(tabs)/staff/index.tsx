@@ -71,7 +71,9 @@ export default function StaffHomeScreen() {
             setShowOnboarding(true);
           }
         }
-      } catch {}
+      } catch (error) {
+        console.error('Onboarding durumu kontrol edilemedi:', error);
+      }
     };
     checkOnboarding();
   }, [user?.userType, selectedTenant?.id]);

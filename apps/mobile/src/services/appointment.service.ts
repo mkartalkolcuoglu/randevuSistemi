@@ -5,7 +5,6 @@ import {
   PaginatedResponse,
   Service,
   Staff,
-  TimeSlot,
   Customer,
 } from '../types';
 
@@ -134,30 +133,6 @@ export const appointmentService = {
         success: false,
         data: [],
         error: error.response?.data?.error || 'Personel listesi yüklenemedi',
-      };
-    }
-  },
-
-  /**
-   * Get available time slots for a date
-   */
-  async getAvailableSlots(params: {
-    tenantId: string;
-    staffId: string;
-    date: string;
-    serviceId?: string;
-  }): Promise<ApiResponse<TimeSlot[]>> {
-    try {
-      const response = await api.get('/api/mobile/appointments/available-slots', {
-        params,
-      });
-      return response.data;
-    } catch (error: any) {
-      console.error('Get available slots error:', error);
-      return {
-        success: false,
-        data: [],
-        error: error.response?.data?.error || 'Müsait saatler yüklenemedi',
       };
     }
   },

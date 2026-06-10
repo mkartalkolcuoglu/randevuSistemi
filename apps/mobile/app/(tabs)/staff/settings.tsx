@@ -748,8 +748,6 @@ export default function StaffSettingsScreen() {
         subtitle={data?.businessName || selectedTenant?.businessName || 'İşletme Ayarları'}
         onMenuPress={() => setDrawerOpen(true)}
         gradientColors={['#163974', '#1e4a8f']}
-        rightIcon={(hasChanges || newPassword) ? (saving ? undefined : "checkmark") : undefined}
-        onRightPress={(hasChanges || newPassword) ? handleSave : undefined}
       />
 
       <KeyboardAvoidingView
@@ -1871,6 +1869,32 @@ export default function StaffSettingsScreen() {
           {/* Bottom Spacing */}
           <View style={{ height: 120 }} />
         </ScrollView>
+
+        {/* Sabit Kaydet butonu */}
+        <View style={styles.stickyFooter}>
+          <TouchableOpacity
+            activeOpacity={0.85}
+            onPress={handleSave}
+            disabled={saving || (!hasChanges && !newPassword)}
+            style={styles.stickySaveButton}
+          >
+            <LinearGradient
+              colors={(hasChanges || newPassword) ? ['#059669', '#047857'] : ['#D1D5DB', '#D1D5DB']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.stickySaveGradient}
+            >
+              {saving ? (
+                <ActivityIndicator size="small" color="#fff" />
+              ) : (
+                <>
+                  <Ionicons name="checkmark-circle" size={20} color="#fff" />
+                  <Text style={styles.stickySaveText}>Kaydet</Text>
+                </>
+              )}
+            </LinearGradient>
+          </TouchableOpacity>
+        </View>
       </KeyboardAvoidingView>
 
       {/* Modals */}
@@ -2281,6 +2305,33 @@ const styles = StyleSheet.create({
     borderRadius: HEADER_BTN_RADIUS,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+
+  // Sabit alt Kaydet butonu
+  stickyFooter: {
+    paddingHorizontal: 20,
+    paddingTop: 10,
+    paddingBottom: IS_IOS ? 28 : 16,
+    backgroundColor: '#FFFFFF',
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: '#E5E7EB',
+  },
+  stickySaveButton: {
+    borderRadius: 14,
+    overflow: 'hidden',
+  },
+  stickySaveGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    height: 52,
+    borderRadius: 14,
+  },
+  stickySaveText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '700',
   },
 
   // Tabs

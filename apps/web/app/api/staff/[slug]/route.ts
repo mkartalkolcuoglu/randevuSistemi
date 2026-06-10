@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../../../../lib/prisma';
 
 // Web app admin veritabanına bağlanır
-const prisma = new PrismaClient();
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',

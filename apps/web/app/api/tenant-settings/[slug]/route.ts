@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../../../../lib/prisma';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -26,7 +26,6 @@ export async function GET(
     }
 
     // Admin veritabanına bağlan
-    const prisma = new PrismaClient();
     
     try {
       // Tenant'ı slug ile bul - tüm gerekli alanları çek
@@ -216,13 +215,12 @@ export async function GET(
       return NextResponse.json({
         success: false,
         error: `Database error: tenant '${slug}' could not be retrieved`,
-        code: 'DATABASE_ERROR'
+        code: 'DATABASE_ERROR',
       }, { 
         status: 500, 
         headers: corsHeaders 
       });
     } finally {
-      await prisma.$disconnect();
     }
     
   } catch (error) {

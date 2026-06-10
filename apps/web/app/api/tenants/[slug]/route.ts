@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../../../../lib/prisma';
 
-const prisma = new PrismaClient();
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -141,6 +140,5 @@ export async function GET(
       { status: 500, headers: corsHeaders }
     );
   } finally {
-    await prisma.$disconnect();
   }
 }

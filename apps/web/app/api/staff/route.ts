@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { prisma } from '../../../lib/prisma';
 
 // CORS headers
 const corsHeaders = {
@@ -23,8 +24,6 @@ export async function GET(request: NextRequest) {
     }
 
     // First find tenant by slug in admin DB
-    const { PrismaClient } = require('@prisma/client');
-    const prisma = new PrismaClient();
     
     try {
       // Get tenant by slug
@@ -155,7 +154,6 @@ export async function GET(request: NextRequest) {
         data: staff
       }, { headers: corsHeaders });
     } finally {
-      await prisma.$disconnect();
     }
     
   } catch (error) {

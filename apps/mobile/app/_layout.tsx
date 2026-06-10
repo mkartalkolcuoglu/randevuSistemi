@@ -57,8 +57,8 @@ function useNotificationPolling() {
           const updatedIds = Array.from(shownSet).slice(-100);
           await AsyncStorage.setItem(SHOWN_NOTIFICATIONS_KEY, JSON.stringify(updatedIds));
         }
-      } catch {
-        // Silently fail
+      } catch (error) {
+        console.warn('Bildirim yoklaması başarısız:', error);
       } finally {
         isCheckingRef.current = false;
       }

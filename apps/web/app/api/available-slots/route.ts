@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../../../lib/prisma';
 import { generateTimeSlots, parseWorkingHours, getWorkingHoursForDay } from '../../../lib/time-slots';
 import { getBlockingDate } from '../../../lib/blocked-dates';
 
-const prisma = new PrismaClient();
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -180,6 +179,5 @@ export async function GET(request: NextRequest) {
       { status: 500, headers: corsHeaders }
     );
   } finally {
-    await prisma.$disconnect();
   }
 }

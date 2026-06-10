@@ -16,7 +16,7 @@ const PAGE_MAP: { key: keyof StaffPermissions; label: string; route: string; ico
   { key: 'kasa', label: 'Kasa', route: '/(tabs)/staff/cashier', icon: 'wallet-outline' },
   { key: 'stock', label: 'Stok', route: '/(tabs)/staff/stock', icon: 'cube-outline' },
   { key: 'reports', label: 'Raporlar', route: '/(tabs)/staff/reports', icon: 'bar-chart-outline' },
-  { key: 'settings', label: 'Ayarlar', route: '/(tabs)/staff/business-settings', icon: 'settings-outline' },
+  { key: 'settings', label: 'Ayarlar', route: '/(tabs)/staff/settings', icon: 'settings-outline' },
 ];
 
 interface PermissionGuardProps {
