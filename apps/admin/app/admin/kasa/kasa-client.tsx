@@ -13,7 +13,6 @@ import {
   Receipt,
   Wallet
 } from 'lucide-react';
-import AdminHeader from '../admin-header';
 import type { ClientUser } from '../../../lib/client-permissions';
 import { DataTable, Column } from '../../../components/DataTable';
 
@@ -305,7 +304,6 @@ export default function KasaClient({ tenantId, user }: KasaClientProps) {
 
   return (
     <>
-      <AdminHeader user={user} />
       <div className="max-w-7xl mx-auto px-6 py-8">
         {loading ? (
           <div className="flex justify-center items-center h-64">Yükleniyor...</div>

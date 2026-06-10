@@ -3,7 +3,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, Button, Tabs, TabsList, TabsTrigger, TabsContent, formatPhone, normalizePhone, PHONE_PLACEHOLDER, PHONE_MAX_LENGTH } from '@/components/ui';
 import { Save, Palette, Building2, User, Key, Clock, Upload, ArrowLeft, MapPin, Settings, CreditCard, FileText, CalendarX2, Trash2, Plus, MessageSquare, ChevronDown, Send, Bell, Star, Users, Briefcase, Zap, Smartphone, Eye } from 'lucide-react';
-import AdminHeader from '../admin-header';
 import type { ClientUser } from '../../../lib/client-permissions';
 import { DEFAULT_TEMPLATES, renderTemplate } from '../../../lib/message-templates';
 
@@ -604,7 +603,6 @@ export default function SettingsClient({ user }: SettingsClientProps) {
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50">
-        <AdminHeader user={user} />
         <div className="flex items-center justify-center h-64">
           <div className="text-lg">Ayarlar yükleniyor...</div>
         </div>
@@ -633,7 +631,6 @@ export default function SettingsClient({ user }: SettingsClientProps) {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <AdminHeader user={user} />
       
       <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
         <div className="px-4 py-6 sm:px-0">

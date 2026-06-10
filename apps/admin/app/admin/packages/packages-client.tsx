@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import AdminHeader from '../admin-header';
 import { Card, CardContent, Button } from '@/components/ui';
 import { Plus, Edit, Trash2, Users, Package as PackageIcon } from 'lucide-react';
 import PackageModal from './modals/PackageModal';
@@ -188,7 +187,6 @@ export default function PackagesClient({ tenantId, user }: PackagesClientProps) 
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50">
-        <AdminHeader user={user} />
         <div className="flex items-center justify-center h-[calc(100vh-64px)]">
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
@@ -201,7 +199,6 @@ export default function PackagesClient({ tenantId, user }: PackagesClientProps) 
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <AdminHeader user={user} />
       
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
         {/* Header */}

@@ -19,7 +19,6 @@ import Link from 'next/link';
 import { getAuthenticatedUser } from '../../lib/auth-utils';
 import { redirect } from 'next/navigation';
 import { prisma } from '../../lib/prisma';
-import AdminHeader from './admin-header';
 import OnboardingWrapper from '../../components/onboarding/OnboardingWrapper';
 
 // Server-side data fetching functions
@@ -201,7 +200,6 @@ export default async function AdminDashboard() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <AdminHeader user={user} />
 
       <div className="max-w-7xl mx-auto p-6">
         {/* Onboarding Wizard */}

@@ -4,7 +4,6 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle, Button, Badge, Input } from '@/components/ui';
 import { Plus, Search, Calendar, Clock, User, Edit, Trash2, ArrowLeft, MessageCircle, Eye, Star } from 'lucide-react';
-import AdminHeader from '../admin-header';
 import { DataTable, Column } from '../../../components/DataTable';
 import type { ClientUser } from '../../../lib/client-permissions';
 import { hasPermission } from '../../../lib/client-permissions';
@@ -298,7 +297,6 @@ export default function AppointmentsClient({ initialAppointments, tenantId, user
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <AdminHeader user={user} />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
         {/* Header */}
         <div className="mb-8">

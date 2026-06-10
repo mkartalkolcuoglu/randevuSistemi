@@ -7,7 +7,6 @@ import { ChevronLeft, Save, Plus, X } from 'lucide-react';
 import Link from 'next/link';
 import StaffAuthForm from './staff-form-with-auth';
 import type { StaffPermissions } from '../../../../lib/permissions';
-import AdminHeader from '../../admin-header';
 import type { ClientUser } from '../../../../lib/client-permissions';
 
 interface NewStaffFormProps {
@@ -176,7 +175,6 @@ export default function NewStaffForm({ user }: NewStaffFormProps) {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <AdminHeader user={user} />
       <div className="max-w-7xl mx-auto p-6">
         <main className="grid flex-1 items-start gap-4">
           <div className="mx-auto grid max-w-6xl flex-1 auto-rows-max gap-4">

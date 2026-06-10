@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import { Button, Card, CardContent, CardHeader, CardTitle } from '@/components/ui';
-import AdminHeader from '../admin-header';
 
 export default function DebugPage() {
   const [checking, setChecking] = useState(false);
@@ -53,14 +52,6 @@ export default function DebugPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <AdminHeader user={{
-        id: 'debug',
-        username: 'debug',
-        tenantId: 'debug',
-        businessName: 'Debug',
-        role: 'admin',
-        permissions: {} as any
-      }} />
 
       <div className="container mx-auto px-4 py-8">
         <Card>

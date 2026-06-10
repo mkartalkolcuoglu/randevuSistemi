@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import { Button, Input, Label, Card, CardContent, CardHeader, CardTitle, Badge } from '@/components/ui';
 import { Plus, Package, Edit, Trash2, Save, X, Search } from 'lucide-react';
-import AdminHeader from '../admin-header';
 import type { ClientUser } from '../../../lib/client-permissions';
 
 interface Product {
@@ -197,7 +196,6 @@ export default function StockClient({ initialProducts, tenantId, user }: StockCl
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50">
-        <AdminHeader user={user} />
         <div className="flex items-center justify-center min-h-screen">
           <div className="text-center">
             <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900"></div>
@@ -210,7 +208,6 @@ export default function StockClient({ initialProducts, tenantId, user }: StockCl
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <AdminHeader user={user} />
       
       <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
         <div className="px-4 py-6 sm:px-0">

@@ -5,7 +5,6 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle, Button, Badge } from '@/components/ui';
 import { ArrowLeft, ChevronLeft, ChevronRight, X, Calendar, Clock, User, MapPin, DollarSign, Package } from 'lucide-react';
-import AdminHeader from '../../admin-header';
 import type { ClientUser } from '../../../../lib/client-permissions';
 import { getServiceColor } from '../../../../lib/service-colors';
 
@@ -76,7 +75,6 @@ export default function CalendarClient({ initialAppointments, tenantId, user }: 
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <AdminHeader user={user} />
       <div className="max-w-7xl mx-auto p-4 sm:p-6">
         {/* Header */}
         <div className="mb-6">

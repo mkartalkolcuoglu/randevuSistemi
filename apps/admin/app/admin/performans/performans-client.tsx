@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react';
 import { Star, TrendingUp, MessageSquare, Users } from 'lucide-react';
-import AdminHeader from '../admin-header';
 import type { ClientUser } from '../../../lib/client-permissions';
 
 interface PerformansClientProps {
@@ -114,7 +113,6 @@ export default function PerformansClient({ user }: PerformansClientProps) {
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50">
-        <AdminHeader user={user} />
         <div className="flex items-center justify-center min-h-screen">
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
@@ -127,7 +125,6 @@ export default function PerformansClient({ user }: PerformansClientProps) {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <AdminHeader user={user} />
       
       <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
         <div className="px-4 py-6 sm:px-0">

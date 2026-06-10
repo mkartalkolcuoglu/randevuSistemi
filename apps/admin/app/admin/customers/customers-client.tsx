@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react';
 import { Button, Input, Card, CardContent, CardHeader, CardTitle, Badge, AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui';
 import { Plus, Search, Edit, Trash2, Phone, Mail, Calendar, User, AlertCircle, CheckCircle, AlertTriangle, XCircle, Download, Upload, FileSpreadsheet } from 'lucide-react';
 import Link from 'next/link';
-import AdminHeader from '../admin-header';
 import { DataTable, Column } from '../../../components/DataTable';
 import type { ClientUser } from '../../../lib/client-permissions';
 
@@ -393,7 +392,6 @@ export default function CustomersClient({ initialCustomers, tenantId, user }: Cu
   if (loading && customers.length === 0) {
     return (
       <div className="min-h-screen bg-gray-50">
-        <AdminHeader user={user} />
         <div className="flex items-center justify-center min-h-screen">
           <div className="text-center">
             <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900"></div>
@@ -406,7 +404,6 @@ export default function CustomersClient({ initialCustomers, tenantId, user }: Cu
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <AdminHeader user={user} />
       
       <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
         <div className="px-4 py-6 sm:px-0">

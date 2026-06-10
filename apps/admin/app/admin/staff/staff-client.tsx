@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react';
 import { Button, Input, Card, CardContent, CardHeader, CardTitle, Badge } from '@/components/ui';
 import { Plus, Search, Edit, Trash2, Phone, Mail, Calendar, User, Star, Clock, Users, Scissors } from 'lucide-react';
 import Link from 'next/link';
-import AdminHeader from '../admin-header';
 import type { ClientUser } from '../../../lib/client-permissions';
 
 interface StaffMember {
@@ -146,7 +145,6 @@ export default function StaffClient({ user }: StaffClientProps) {
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50">
-        <AdminHeader user={user} />
         <div className="flex items-center justify-center min-h-screen">
           <div className="text-center">
             <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900"></div>
@@ -159,7 +157,6 @@ export default function StaffClient({ user }: StaffClientProps) {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <AdminHeader user={user} />
       
       <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
         <div className="px-4 py-6 sm:px-0">
