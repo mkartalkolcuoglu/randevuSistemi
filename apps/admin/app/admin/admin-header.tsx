@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { Button } from '@/components/ui';
 import { LogOut, User, Home, Calendar, Users, Briefcase, Package, Settings, Wallet, Gift, Clock, BarChart3, Menu, X, Bell, XCircle, Star, Shield } from 'lucide-react';
 import Link from 'next/link';
@@ -9,17 +9,21 @@ import type { ClientUser } from '../../lib/client-permissions';
 import { canAccessPage } from '../../lib/client-permissions';
 import type { StaffPermissions } from '../../lib/permissions';
 
-function NavLink({ href, icon, label }: { href: string; icon: React.ReactNode; label: string }) {
-  return (
-    <Link
-      href={href}
-      className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[13px] font-medium text-gray-500 hover:text-gray-900 hover:bg-gray-50 transition-colors"
-    >
-      <span className="hidden xl:block">{icon}</span>
-      {label}
-    </Link>
-  );
-}
+// Sidebar nav items (permission key kept for canAccessPage gating)
+const NAV_ITEMS: { href: string; icon: React.ComponentType<{ className?: string }>; label: string; perm: string }[] = [
+  { href: '/admin', icon: Home, label: 'Dashboard', perm: 'dashboard' },
+  { href: '/admin/appointments', icon: Calendar, label: 'Randevular', perm: 'appointments' },
+  { href: '/admin/customers', icon: Users, label: 'Müşteriler', perm: 'customers' },
+  { href: '/admin/services', icon: Briefcase, label: 'Hizmetler', perm: 'services' },
+  { href: '/admin/staff', icon: User, label: 'Personel', perm: 'staff' },
+  { href: '/admin/stock', icon: Package, label: 'Stok', perm: 'stock' },
+  { href: '/admin/packages', icon: Gift, label: 'Paketler', perm: 'packages' },
+  { href: '/admin/kasa', icon: Wallet, label: 'Kasa', perm: 'kasa' },
+  { href: '/admin/reports', icon: BarChart3, label: 'Raporlar', perm: 'reports' },
+  { href: '/admin/performans', icon: Star, label: 'Performans', perm: 'reports' },
+  { href: '/admin/audit-log', icon: Shield, label: 'İşlem Geçmişi', perm: 'settings' },
+  { href: '/admin/settings', icon: Settings, label: 'Ayarlar', perm: 'settings' },
+];
 
 interface AdminHeaderProps {
   user: ClientUser;
@@ -36,6 +40,10 @@ export default function AdminHeader({ user }: AdminHeaderProps) {
   const [showNotifications, setShowNotifications] = useState(false);
   const [isProjectAdmin, setIsProjectAdmin] = useState(false);
   const router = useRouter();
+  const pathname = usePathname();
+
+  const isActive = (href: string) =>
+    href === '/admin' ? pathname === '/admin' : pathname.startsWith(href);
 
   // Check for project-admin cookie
   useEffect(() => {
@@ -68,34 +76,27 @@ export default function AdminHeader({ user }: AdminHeaderProps) {
   useEffect(() => {
     const fetchTenantInfo = async () => {
       try {
-        console.log('🔍 Fetching tenant subscription info...');
         const response = await fetch('/api/tenant-info');
-        console.log('📡 Response status:', response.status);
-        
+
         if (response.ok) {
           const data = await response.json();
-          console.log('📦 Tenant data:', data);
-          
+
           if (data.success && data.data) {
             const { subscriptionEnd, subscriptionPlan } = data.data;
-            console.log('🎁 Subscription:', { subscriptionEnd, subscriptionPlan });
-            
+
             // Calculate remaining days
             if (subscriptionEnd) {
               const now = new Date();
               const endDate = new Date(subscriptionEnd);
               const diffTime = endDate.getTime() - now.getTime();
               const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-              console.log('⏰ Remaining days:', diffDays);
               setRemainingDays(diffDays);
-            } else {
-              console.log('⚠️ No subscriptionEnd found');
             }
-            
+
             setSubscriptionPlan(subscriptionPlan);
           }
         } else {
-          console.error('❌ API response not ok:', response.status);
+          console.error('❌ Tenant info API response not ok:', response.status);
         }
       } catch (error) {
         console.error('❌ Error fetching tenant info:', error);
@@ -109,19 +110,15 @@ export default function AdminHeader({ user }: AdminHeaderProps) {
   useEffect(() => {
     const fetchNotifications = async () => {
       try {
-        console.log('🔔 [NOTIFICATIONS] Fetching for tenantId:', user.tenantId);
         const response = await fetch(`/api/notifications?tenantId=${user.tenantId}`);
-        console.log('🔔 [NOTIFICATIONS] Response status:', response.status);
-        
+
         if (response.ok) {
           const data = await response.json();
-          console.log('🔔 [NOTIFICATIONS] Data received:', data);
-          
+
           if (data.success) {
             setNotifications(data.data);
             const unread = data.data.filter((n: any) => !n.read).length;
             setUnreadCount(unread);
-            console.log('🔔 [NOTIFICATIONS] Total:', data.data.length, 'Unread:', unread);
           }
         } else {
           console.error('🔔 [NOTIFICATIONS] Failed:', response.status, response.statusText);
@@ -132,10 +129,10 @@ export default function AdminHeader({ user }: AdminHeaderProps) {
     };
 
     fetchNotifications();
-    
+
     // Poll every 30 seconds
     const interval = setInterval(fetchNotifications, 30000);
-    
+
     return () => clearInterval(interval);
   }, [user.tenantId]);
 
@@ -145,9 +142,9 @@ export default function AdminHeader({ user }: AdminHeaderProps) {
       await fetch(`/api/notifications/${notificationId}/read`, {
         method: 'PUT'
       });
-      
+
       // Update local state
-      setNotifications(prev => 
+      setNotifications(prev =>
         prev.map(n => n.id === notificationId ? { ...n, read: true } : n)
       );
       setUnreadCount(prev => Math.max(0, prev - 1));
@@ -159,7 +156,7 @@ export default function AdminHeader({ user }: AdminHeaderProps) {
   // Dismiss notification (remove from list)
   const dismissNotification = async (notificationId: string, event: React.MouseEvent) => {
     event.stopPropagation(); // Prevent navigation
-    
+
     try {
       // Remove from local state immediately for better UX
       const notification = notifications.find(n => n.id === notificationId);
@@ -194,7 +191,7 @@ export default function AdminHeader({ user }: AdminHeaderProps) {
 
   // Get badge color based on remaining days
   const getBadgeColor = () => {
-    if (remainingDays === null) return 'bg-gray-100 text-gray-800';
+    if (remainingDays === null) return 'bg-gray-100 text-gray-800 border-gray-200';
     if (remainingDays <= 0) return 'bg-red-100 text-red-800 border-red-300';
     if (remainingDays <= 7) return 'bg-orange-100 text-orange-800 border-orange-300';
     if (remainingDays <= 15) return 'bg-yellow-100 text-yellow-800 border-yellow-300';
@@ -214,7 +211,7 @@ export default function AdminHeader({ user }: AdminHeaderProps) {
 
   const handleLogout = async () => {
     setIsLoggingOut(true);
-    
+
     try {
       const response = await fetch('/api/auth/logout', {
         method: 'POST',
@@ -234,12 +231,14 @@ export default function AdminHeader({ user }: AdminHeaderProps) {
     }
   };
 
+  const navItems = NAV_ITEMS.filter(item => canAccessPage(user, item.perm as any));
+
   return (
     <>
-      {/* Unauthorized Access Alert */}
+      {/* Unauthorized Access Alert (floats over the content area) */}
       {showUnauthorizedAlert && (
-        <div className="bg-red-50 border-b-2 border-red-200">
-          <div className="max-w-7xl mx-auto px-6 py-4">
+        <div className="fixed top-0 left-0 right-0 z-[60] lg:pl-64 bg-red-50 border-b-2 border-red-200">
+          <div className="max-w-5xl mx-auto px-6 py-3">
             <div className="flex items-start gap-3">
               <div className="flex-shrink-0">
                 <svg className="w-6 h-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -267,358 +266,181 @@ export default function AdminHeader({ user }: AdminHeaderProps) {
         </div>
       )}
 
-      <header className="bg-white border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 sm:py-4">
-          <div className="flex items-center justify-between">
-            {/* Left: Logo + Title (Mobile Optimized) */}
-            <div className="flex items-center space-x-2 sm:space-x-4 min-w-0 flex-1">
-              <img 
-                src="https://i.hizliresim.com/4a00l8g.png" 
-                alt="Net Randevu Logo" 
-                className="h-8 sm:h-10 w-auto flex-shrink-0"
-              />
-              <span className="hidden sm:inline text-gray-300">|</span>
-              <h1 className="text-sm sm:text-xl font-bold text-gray-900 hidden sm:block">Admin Panel</h1>
-              <span className="hidden lg:inline text-gray-300">|</span>
-              <span className="text-xs sm:text-sm text-gray-600 truncate hidden lg:block max-w-[200px]">{user.businessName}</span>
-            </div>
-          
-            {/* Right: Actions (Mobile Optimized) */}
-            <div className="flex items-center space-x-2 sm:space-x-4 flex-shrink-0">
-              {/* Subscription Badge - Desktop only */}
-              <div className={`hidden md:flex items-center space-x-2 px-3 py-1.5 rounded-full border ${getBadgeColor()} text-xs font-medium`}>
-                <Clock className="w-4 h-4" />
-                <div className="flex flex-col">
-                  <span className="font-semibold">
-                    {remainingDays === null 
-                      ? 'Paket Bilgisi Yok' 
-                      : remainingDays <= 0 
-                        ? 'Abonelik Süresi Doldu' 
-                        : `${remainingDays} Gün Kaldı`
-                    }
-                  </span>
-                  {getPlanName() && (
-                    <span className="text-[10px] opacity-75">
-                      {getPlanName()} Paket
-                    </span>
-                  )}
-                </div>
-              </div>
+      {/* Mobile top bar (only < lg): logo + hamburger */}
+      <div className="lg:hidden sticky top-0 z-30 flex items-center justify-between bg-white border-b border-gray-200 px-4 h-14">
+        <Link href="/admin" className="flex items-center gap-2 min-w-0" aria-label="Ana sayfa">
+          <img src="https://i.hizliresim.com/4a00l8g.png" alt="Net Randevu Logo" className="h-8 w-auto flex-shrink-0" />
+        </Link>
+        <Button variant="outline" size="sm" onClick={() => setMobileMenuOpen(true)} aria-label="Menüyü aç">
+          <Menu className="w-5 h-5" />
+        </Button>
+      </div>
 
-              {/* User Name - Desktop only */}
-              <div className="hidden md:flex items-center space-x-2 text-sm text-gray-600">
-                <User className="w-4 h-4" />
-                <span>{user.ownerName}</span>
-              </div>
+      {/* Mobile drawer overlay */}
+      {mobileMenuOpen && (
+        <div
+          className="lg:hidden fixed inset-0 bg-black/40 z-40"
+          onClick={() => setMobileMenuOpen(false)}
+        />
+      )}
 
-              {/* Notification Bell */}
-              <div className="relative">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setShowNotifications(!showNotifications)}
-                  className="relative notification-button"
-                >
-                  <Bell className="w-4 h-4" />
-                  {unreadCount > 0 && (
-                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold">
-                      {unreadCount > 9 ? '9+' : unreadCount}
-                    </span>
-                  )}
-                </Button>
+      {/* Sidebar: fixed on desktop, off-canvas drawer on mobile */}
+      <aside
+        className={`fixed top-0 left-0 z-50 h-screen w-64 bg-white border-r border-gray-200 flex flex-col transform transition-transform duration-200 lg:translate-x-0 ${
+          mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
+        }`}
+      >
+        {/* Brand */}
+        <div className="flex items-center gap-2 px-4 h-16 border-b border-gray-100 flex-shrink-0">
+          <Link href="/admin" onClick={() => setMobileMenuOpen(false)} className="flex items-center" aria-label="Ana sayfa">
+            <img src="https://i.hizliresim.com/4a00l8g.png" alt="Net Randevu Logo" className="h-9 w-auto" />
+          </Link>
+          <button
+            className="ml-auto lg:hidden p-1 text-gray-400 hover:text-gray-600"
+            onClick={() => setMobileMenuOpen(false)}
+            aria-label="Menüyü kapat"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
 
-                {/* Notification Dropdown */}
-                {showNotifications && (
-                  <div className="notification-dropdown absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-lg border border-gray-200 z-50 max-h-96 overflow-y-auto">
-                    <div className="p-3 border-b border-gray-200 bg-gray-50">
-                      <h3 className="font-semibold text-gray-900">Bildirimler</h3>
-                      {unreadCount > 0 && (
-                        <p className="text-xs text-gray-600 mt-1">{unreadCount} okunmamış bildirim</p>
-                      )}
-                    </div>
-                    
-                    {notifications.length === 0 ? (
-                      <div className="p-4 text-center text-gray-500 text-sm">
-                        Henüz bildirim yok
-                      </div>
-                    ) : (
-                      <div className="divide-y divide-gray-100">
-                        {notifications.map((notification) => (
-                          <div
-                            key={notification.id}
-                            className={`p-3 hover:bg-gray-50 cursor-pointer transition-colors relative group ${
-                              !notification.read ? 'bg-blue-50' : ''
-                            }`}
-                            onClick={() => {
-                              markAsRead(notification.id);
-                              if (notification.link) {
-                                router.push(notification.link);
-                                setShowNotifications(false);
-                              }
-                            }}
-                          >
-                            <div className="flex items-start space-x-2">
-                              <Calendar className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
-                              <div className="flex-1 min-w-0 pr-6">
-                                <p className="text-sm font-medium text-gray-900">
-                                  {notification.title}
-                                </p>
-                                <p className="text-xs text-gray-600 mt-1">
-                                  {notification.message}
-                                </p>
-                                <p className="text-xs text-gray-400 mt-1">
-                                  {new Date(notification.createdAt).toLocaleString('tr-TR')}
-                                </p>
-                              </div>
-                              {/* Dismiss button */}
-                              <button
-                                onClick={(e) => dismissNotification(notification.id, e)}
-                                className="absolute top-2 right-2 p-1 rounded-full hover:bg-gray-200 opacity-0 group-hover:opacity-100 transition-opacity"
-                                title="Kaldır"
-                              >
-                                <XCircle className="w-4 h-4 text-gray-500 hover:text-red-600" />
-                              </button>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-              
-              {/* Logout Button - Desktop */}
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleLogout}
-                disabled={isLoggingOut}
-                className="hidden sm:flex items-center space-x-2"
+        {/* Navigation */}
+        <nav className="flex-1 overflow-y-auto px-3 py-3 space-y-1">
+          {navItems.map((item) => {
+            const Icon = item.icon;
+            const active = isActive(item.href);
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                onClick={() => setMobileMenuOpen(false)}
+                className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  active
+                    ? 'bg-blue-50 text-blue-700'
+                    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                }`}
               >
-                <LogOut className="w-4 h-4" />
-                <span className="hidden lg:inline">{isLoggingOut ? 'Çıkış yapılıyor...' : 'Çıkış'}</span>
-              </Button>
-
-              {/* Mobile Menu Toggle */}
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                className="sm:hidden"
-              >
-                {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-              </Button>
-            </div>
-          </div>
-        
-        {/* Desktop Navigation Menu */}
-        <nav className="mt-3 hidden sm:block border-t border-gray-100 pt-3">
-          <div className="flex items-center gap-1 flex-wrap">
-            {canAccessPage(user, 'dashboard') && (
-              <NavLink href="/admin" icon={<Home className="w-4 h-4" />} label="Dashboard" />
-            )}
-            {canAccessPage(user, 'appointments') && (
-              <NavLink href="/admin/appointments" icon={<Calendar className="w-4 h-4" />} label="Randevular" />
-            )}
-            {canAccessPage(user, 'customers') && (
-              <NavLink href="/admin/customers" icon={<Users className="w-4 h-4" />} label="Müşteriler" />
-            )}
-            {canAccessPage(user, 'services') && (
-              <NavLink href="/admin/services" icon={<Briefcase className="w-4 h-4" />} label="Hizmetler" />
-            )}
-            {canAccessPage(user, 'staff') && (
-              <NavLink href="/admin/staff" icon={<User className="w-4 h-4" />} label="Personel" />
-            )}
-
-            {/* Separator */}
-            {(canAccessPage(user, 'stock') || canAccessPage(user, 'packages') || canAccessPage(user, 'kasa')) && (
-              <div className="w-px h-5 bg-gray-200 mx-1" />
-            )}
-
-            {canAccessPage(user, 'stock') && (
-              <NavLink href="/admin/stock" icon={<Package className="w-4 h-4" />} label="Stok" />
-            )}
-            {canAccessPage(user, 'packages') && (
-              <NavLink href="/admin/packages" icon={<Gift className="w-4 h-4" />} label="Paketler" />
-            )}
-            {canAccessPage(user, 'kasa') && (
-              <NavLink href="/admin/kasa" icon={<Wallet className="w-4 h-4" />} label="Kasa" />
-            )}
-
-            {/* Separator */}
-            {(canAccessPage(user, 'reports') || canAccessPage(user, 'settings')) && (
-              <div className="w-px h-5 bg-gray-200 mx-1" />
-            )}
-
-            {canAccessPage(user, 'reports') && (
-              <NavLink href="/admin/reports" icon={<BarChart3 className="w-4 h-4" />} label="Raporlar" />
-            )}
-            {canAccessPage(user, 'reports') && (
-              <NavLink href="/admin/performans" icon={<Star className="w-4 h-4" />} label="Performans" />
-            )}
-            {canAccessPage(user, 'settings') && (
-              <NavLink href="/admin/audit-log" icon={<Shield className="w-4 h-4" />} label="İşlem Geçmişi" />
-            )}
-            {canAccessPage(user, 'settings') && (
-              <NavLink href="/admin/settings" icon={<Settings className="w-4 h-4" />} label="Ayarlar" />
-            )}
-          </div>
+                <Icon className="w-5 h-5 flex-shrink-0" />
+                <span className="truncate">{item.label}</span>
+              </Link>
+            );
+          })}
         </nav>
 
-        {/* Mobile Navigation Menu */}
-        {mobileMenuOpen && (
-          <nav className="sm:hidden mt-4 pb-4 border-t border-gray-200 pt-4">
-            {/* User Info - Mobile only */}
-            <div className="mb-4 px-2">
-              <div className="flex items-center space-x-3 mb-3 pb-3 border-b border-gray-200">
-                <User className="w-5 h-5 text-gray-600" />
-                <div>
-                  <p className="text-sm font-medium text-gray-900">{user.ownerName}</p>
-                  <p className="text-xs text-gray-500 truncate max-w-[200px]">{user.businessName}</p>
-                </div>
-              </div>
+        {/* Footer: subscription, user, notifications, logout */}
+        <div className="border-t border-gray-100 px-3 py-3 space-y-2 flex-shrink-0">
+          {/* Subscription badge */}
+          <div className={`flex items-center gap-2 px-3 py-2 rounded-lg border ${getBadgeColor()} text-xs font-medium`}>
+            <Clock className="w-4 h-4 flex-shrink-0" />
+            <div className="min-w-0">
+              <p className="font-semibold truncate">
+                {remainingDays === null
+                  ? 'Paket Bilgisi Yok'
+                  : remainingDays <= 0
+                    ? 'Abonelik Süresi Doldu'
+                    : `${remainingDays} Gün Kaldı`}
+              </p>
+              {getPlanName() && (
+                <p className="text-[10px] opacity-75">{getPlanName()} Paket</p>
+              )}
+            </div>
+          </div>
 
-              {/* Subscription Info - Mobile */}
-              <div className={`flex items-center space-x-2 px-3 py-2 rounded-lg border ${getBadgeColor()} text-xs`}>
-                <Clock className="w-4 h-4 flex-shrink-0" />
-                <div className="flex-1 min-w-0">
-                  <p className="font-semibold truncate">
-                    {remainingDays === null 
-                      ? 'Paket Bilgisi Yok' 
-                      : remainingDays <= 0 
-                        ? 'Abonelik Süresi Doldu' 
-                        : `${remainingDays} Gün Kaldı`
-                    }
-                  </p>
-                  {getPlanName() && (
-                    <p className="text-[10px] opacity-75">
-                      {getPlanName()} Paket
-                    </p>
+          {/* User + notifications */}
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 text-sm text-gray-600 min-w-0 px-1">
+              <User className="w-4 h-4 flex-shrink-0" />
+              <span className="truncate">{user.ownerName}</span>
+            </div>
+
+            <div className="relative flex-shrink-0">
+              <button
+                onClick={() => setShowNotifications(!showNotifications)}
+                className="relative notification-button p-2 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors"
+                aria-label="Bildirimler"
+              >
+                <Bell className="w-4 h-4 text-gray-600" />
+                {unreadCount > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] rounded-full w-4 h-4 flex items-center justify-center font-bold">
+                    {unreadCount > 9 ? '9+' : unreadCount}
+                  </span>
+                )}
+              </button>
+
+              {/* Notification Dropdown (opens upward, over content) */}
+              {showNotifications && (
+                <div className="notification-dropdown absolute bottom-12 right-0 w-80 bg-white rounded-lg shadow-lg border border-gray-200 z-50 max-h-96 overflow-y-auto">
+                  <div className="p-3 border-b border-gray-200 bg-gray-50">
+                    <h3 className="font-semibold text-gray-900">Bildirimler</h3>
+                    {unreadCount > 0 && (
+                      <p className="text-xs text-gray-600 mt-1">{unreadCount} okunmamış bildirim</p>
+                    )}
+                  </div>
+
+                  {notifications.length === 0 ? (
+                    <div className="p-4 text-center text-gray-500 text-sm">
+                      Henüz bildirim yok
+                    </div>
+                  ) : (
+                    <div className="divide-y divide-gray-100">
+                      {notifications.map((notification) => (
+                        <div
+                          key={notification.id}
+                          className={`p-3 hover:bg-gray-50 cursor-pointer transition-colors relative group ${
+                            !notification.read ? 'bg-blue-50' : ''
+                          }`}
+                          onClick={() => {
+                            markAsRead(notification.id);
+                            if (notification.link) {
+                              router.push(notification.link);
+                              setShowNotifications(false);
+                            }
+                          }}
+                        >
+                          <div className="flex items-start space-x-2">
+                            <Calendar className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
+                            <div className="flex-1 min-w-0 pr-6">
+                              <p className="text-sm font-medium text-gray-900">
+                                {notification.title}
+                              </p>
+                              <p className="text-xs text-gray-600 mt-1">
+                                {notification.message}
+                              </p>
+                              <p className="text-xs text-gray-400 mt-1">
+                                {new Date(notification.createdAt).toLocaleString('tr-TR')}
+                              </p>
+                            </div>
+                            {/* Dismiss button */}
+                            <button
+                              onClick={(e) => dismissNotification(notification.id, e)}
+                              className="absolute top-2 right-2 p-1 rounded-full hover:bg-gray-200 opacity-0 group-hover:opacity-100 transition-opacity"
+                              title="Kaldır"
+                            >
+                              <XCircle className="w-4 h-4 text-gray-500 hover:text-red-600" />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   )}
                 </div>
-              </div>
+              )}
             </div>
+          </div>
 
-            {/* Menu Items */}
-            <div className="space-y-1">
-              {canAccessPage(user, 'dashboard') && (
-                <Link href="/admin" onClick={() => setMobileMenuOpen(false)}>
-                  <Button variant="ghost" size="sm" className="w-full justify-start text-gray-600 hover:text-gray-900 hover:bg-gray-100">
-                    <Home className="w-5 h-5 mr-3" />
-                    Dashboard
-                  </Button>
-                </Link>
-              )}
-              {canAccessPage(user, 'appointments') && (
-                <Link href="/admin/appointments" onClick={() => setMobileMenuOpen(false)}>
-                  <Button variant="ghost" size="sm" className="w-full justify-start text-gray-600 hover:text-gray-900 hover:bg-gray-100">
-                    <Calendar className="w-5 h-5 mr-3" />
-                    Randevular
-                  </Button>
-                </Link>
-              )}
-              {canAccessPage(user, 'customers') && (
-                <Link href="/admin/customers" onClick={() => setMobileMenuOpen(false)}>
-                  <Button variant="ghost" size="sm" className="w-full justify-start text-gray-600 hover:text-gray-900 hover:bg-gray-100">
-                    <Users className="w-5 h-5 mr-3" />
-                    Müşteriler
-                  </Button>
-                </Link>
-              )}
-              {canAccessPage(user, 'services') && (
-                <Link href="/admin/services" onClick={() => setMobileMenuOpen(false)}>
-                  <Button variant="ghost" size="sm" className="w-full justify-start text-gray-600 hover:text-gray-900 hover:bg-gray-100">
-                    <Briefcase className="w-5 h-5 mr-3" />
-                    Hizmetler
-                  </Button>
-                </Link>
-              )}
-              {canAccessPage(user, 'staff') && (
-                <Link href="/admin/staff" onClick={() => setMobileMenuOpen(false)}>
-                  <Button variant="ghost" size="sm" className="w-full justify-start text-gray-600 hover:text-gray-900 hover:bg-gray-100">
-                    <User className="w-5 h-5 mr-3" />
-                    Personel
-                  </Button>
-                </Link>
-              )}
-              {canAccessPage(user, 'stock') && (
-                <Link href="/admin/stock" onClick={() => setMobileMenuOpen(false)}>
-                  <Button variant="ghost" size="sm" className="w-full justify-start text-gray-600 hover:text-gray-900 hover:bg-gray-100">
-                    <Package className="w-5 h-5 mr-3" />
-                    Stok
-                  </Button>
-                </Link>
-              )}
-              {canAccessPage(user, 'packages') && (
-                <Link href="/admin/packages" onClick={() => setMobileMenuOpen(false)}>
-                  <Button variant="ghost" size="sm" className="w-full justify-start text-gray-600 hover:text-gray-900 hover:bg-gray-100">
-                    <Gift className="w-5 h-5 mr-3" />
-                    Paketler
-                  </Button>
-                </Link>
-              )}
-              {canAccessPage(user, 'kasa') && (
-                <Link href="/admin/kasa" onClick={() => setMobileMenuOpen(false)}>
-                  <Button variant="ghost" size="sm" className="w-full justify-start text-gray-600 hover:text-gray-900 hover:bg-gray-100">
-                    <Wallet className="w-5 h-5 mr-3" />
-                    Kasa
-                  </Button>
-                </Link>
-              )}
-              {canAccessPage(user, 'reports') && (
-                <Link href="/admin/reports" onClick={() => setMobileMenuOpen(false)}>
-                  <Button variant="ghost" size="sm" className="w-full justify-start text-gray-600 hover:text-gray-900 hover:bg-gray-100">
-                    <BarChart3 className="w-5 h-5 mr-3" />
-                    Raporlar
-                  </Button>
-                </Link>
-              )}
-              {canAccessPage(user, 'reports') && (
-              <Link href="/admin/performans" onClick={() => setMobileMenuOpen(false)}>
-                <Button variant="ghost" size="sm" className="w-full justify-start text-gray-600 hover:text-gray-900 hover:bg-gray-100">
-                  <Star className="w-5 h-5 mr-3" />
-                  Performans
-                </Button>
-              </Link>
-              )}
-              {canAccessPage(user, 'settings') && (
-                <Link href="/admin/audit-log" onClick={() => setMobileMenuOpen(false)}>
-                  <Button variant="ghost" size="sm" className="w-full justify-start text-gray-600 hover:text-gray-900 hover:bg-gray-100">
-                    <Shield className="w-5 h-5 mr-3" />
-                    İşlem Geçmişi
-                  </Button>
-                </Link>
-              )}
-              {canAccessPage(user, 'settings') && (
-                <Link href="/admin/settings" onClick={() => setMobileMenuOpen(false)}>
-                  <Button variant="ghost" size="sm" className="w-full justify-start text-gray-600 hover:text-gray-900 hover:bg-gray-100">
-                    <Settings className="w-5 h-5 mr-3" />
-                    Ayarlar
-                  </Button>
-                </Link>
-              )}
-
-              {/* Logout - Mobile */}
-              <div className="pt-4 mt-4 border-t border-gray-200">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    setMobileMenuOpen(false);
-                    handleLogout();
-                  }}
-                  disabled={isLoggingOut}
-                  className="w-full justify-start text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
-                >
-                  <LogOut className="w-5 h-5 mr-3" />
-                  {isLoggingOut ? 'Çıkış yapılıyor...' : 'Çıkış Yap'}
-                </Button>
-              </div>
-            </div>
-          </nav>
-        )}
-      </div>
-    </header>
+          {/* Logout */}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleLogout}
+            disabled={isLoggingOut}
+            className="w-full justify-center text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
+          >
+            <LogOut className="w-4 h-4 mr-2" />
+            {isLoggingOut ? 'Çıkış yapılıyor...' : 'Çıkış'}
+          </Button>
+        </div>
+      </aside>
     </>
   );
 }

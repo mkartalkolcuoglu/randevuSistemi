@@ -208,9 +208,15 @@ export default async function AdminDashboard() {
         <OnboardingWrapper tenantId={user.tenantId} userType={user.userType} />
 
         {/* Welcome Section */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Hoş Geldiniz, {user.ownerName}</h1>
-          <p className="text-gray-600">{user.businessName} yönetim paneli</p>
+        <div className="mb-8 flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">Hoş Geldiniz, {user.ownerName}</h1>
+            <p className="text-gray-600">{user.businessName} yönetim paneli</p>
+          </div>
+          <div className="text-right">
+            <p className="text-sm font-semibold text-gray-700">Admin Panel</p>
+            <p className="text-sm text-gray-500">{user.businessName}</p>
+          </div>
         </div>
 
 
