@@ -328,7 +328,7 @@ export default function AdminHeader({ user }: AdminHeaderProps) {
         </nav>
 
         {/* Footer: subscription, user, notifications, logout */}
-        <div className="border-t border-gray-100 px-3 py-3 space-y-2 flex-shrink-0">
+        <div className="relative border-t border-gray-100 px-3 py-3 space-y-2 flex-shrink-0">
           {/* Subscription badge */}
           <div className={`flex items-center gap-2 px-3 py-2 rounded-lg border ${getBadgeColor()} text-xs font-medium`}>
             <Clock className="w-4 h-4 flex-shrink-0" />
@@ -353,7 +353,7 @@ export default function AdminHeader({ user }: AdminHeaderProps) {
               <span className="truncate">{user.ownerName}</span>
             </div>
 
-            <div className="relative flex-shrink-0">
+            <div className="flex-shrink-0">
               <button
                 onClick={() => setShowNotifications(!showNotifications)}
                 className="relative notification-button p-2 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors"
@@ -369,7 +369,7 @@ export default function AdminHeader({ user }: AdminHeaderProps) {
 
               {/* Notification Dropdown (opens upward, over content) */}
               {showNotifications && (
-                <div className="notification-dropdown absolute bottom-12 right-0 w-80 bg-white rounded-lg shadow-lg border border-gray-200 z-50 max-h-96 overflow-y-auto">
+                <div className="notification-dropdown absolute bottom-full mb-2 left-3 right-3 lg:right-auto lg:w-96 bg-white rounded-lg shadow-lg border border-gray-200 z-50 max-h-96 overflow-y-auto">
                   <div className="p-3 border-b border-gray-200 bg-gray-50">
                     <h3 className="font-semibold text-gray-900">Bildirimler</h3>
                     {unreadCount > 0 && (
