@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../../../../../lib/prisma';
 
-const prisma = new PrismaClient();
 
 /**
  * PUT /api/customers/[id]/blacklist
@@ -41,7 +40,6 @@ export async function PUT(
       { status: 500 }
     );
   } finally {
-    await prisma.$disconnect();
   }
 }
 

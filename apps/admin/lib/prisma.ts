@@ -1,9 +1,19 @@
 import { PrismaClient } from '@prisma/client'
 
-// Create a single instance for the admin app
-const basePrisma = new PrismaClient({
-  log: ['warn', 'error'],
-})
+// HMR-safe singleton: dev modunda (Next/Turbopack hot-reload) modül defalarca
+// yeniden değerlendirilir; globalThis'te tutmazsak her seferinde yeni bir
+// PrismaClient + yeni DB bağlantısı oluşur ve eskiler sızar (Neon bağlantı limiti dolar).
+const globalForPrisma = globalThis as unknown as {
+  basePrisma?: PrismaClient
+}
+
+const isNewInstance = !globalForPrisma.basePrisma
+
+const basePrisma =
+  globalForPrisma.basePrisma ??
+  new PrismaClient({
+    log: ['warn', 'error'],
+  })
 
 // Extend with retry logic for cached plan errors (Neon pooler issue)
 export const prisma = basePrisma.$extends({
@@ -33,7 +43,14 @@ export const prisma = basePrisma.$extends({
   },
 })
 
-// Connect to the database
-basePrisma.$connect().catch((error) => {
-  console.error('Failed to connect to database:', error)
-})
+// Aynı temel istemciyi dev hot-reload'ları arasında yeniden kullan
+if (process.env.NODE_ENV !== 'production') {
+  globalForPrisma.basePrisma = basePrisma
+}
+
+// Sadece yeni oluşturulduğunda bağlan (her HMR'da tekrar bağlanma)
+if (isNewInstance) {
+  basePrisma.$connect().catch((error) => {
+    console.error('Failed to connect to database:', error)
+  })
+}

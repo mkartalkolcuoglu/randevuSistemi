@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../../../../lib/prisma';
 import { checkApiPermission } from '../../../../lib/api-auth';
 import { createAuditLog, getIpFromRequest } from '../../../../lib/audit';
 
-const prisma = new PrismaClient();
 
 // CORS headers
 const corsHeaders = {
@@ -46,7 +45,6 @@ export async function GET(
       { status: 500, headers: corsHeaders }
     );
   } finally {
-    await prisma.$disconnect();
   }
 }
 
@@ -268,7 +266,6 @@ export async function PUT(
       { status: 400, headers: corsHeaders }
     );
   } finally {
-    await prisma.$disconnect();
   }
 }
 
@@ -671,6 +668,5 @@ export async function DELETE(
       { status: 400, headers: corsHeaders }
     );
   } finally {
-    await prisma.$disconnect();
   }
 }

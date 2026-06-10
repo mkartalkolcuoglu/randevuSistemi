@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../../../../lib/prisma';
 
-const prisma = new PrismaClient();
 
 // CORS headers
 const corsHeaders = {
@@ -176,7 +175,6 @@ export async function POST(request: NextRequest) {
       { status: 500, headers: corsHeaders }
     );
   } finally {
-    await prisma.$disconnect();
   }
 }
 

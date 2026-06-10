@@ -1,4 +1,5 @@
 import { cookies } from 'next/headers';
+import { prisma } from '../../../../lib/prisma';
 import { redirect } from 'next/navigation';
 import { getAuthenticatedUser } from '../../../../lib/auth-utils';
 import CalendarClient from './calendar-client';
@@ -7,10 +8,6 @@ export const dynamic = 'force-dynamic';
 
 async function getAppointments(tenantId: string, userType: string, staffId?: string) {
   try {
-    // Use Prisma directly for consistent data fetching
-    const { PrismaClient } = await import('@prisma/client');
-    const prisma = new PrismaClient();
-    
     console.log('📅 [Calendar] Fetching appointments for tenant:', tenantId);
     console.log('👤 [Calendar] User type:', userType);
     console.log('🆔 [Calendar] Staff ID:', staffId);
@@ -39,7 +36,6 @@ async function getAppointments(tenantId: string, userType: string, staffId?: str
       
       return appointments;
     } finally {
-      await prisma.$disconnect();
     }
   } catch (error) {
     console.error('❌ [Calendar] Error fetching appointments:', error);

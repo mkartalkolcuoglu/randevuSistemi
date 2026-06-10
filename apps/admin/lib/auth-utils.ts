@@ -1,5 +1,5 @@
 import { cookies } from 'next/headers';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from './prisma';
 import type { StaffPermissions } from './permissions';
 import { OWNER_PERMISSIONS, hasPermission as checkPermission, canAccessPage as checkPageAccess } from './permissions';
 
@@ -32,7 +32,6 @@ export async function getAuthenticatedUser(): Promise<AuthenticatedUser | null> 
     }
 
     const userType = sessionData.userType || 'owner';
-    const prisma = new PrismaClient();
     
     try {
       // If owner, verify tenant
@@ -129,7 +128,6 @@ export async function getAuthenticatedUser(): Promise<AuthenticatedUser | null> 
 
       return null;
     } finally {
-      await prisma.$disconnect();
     }
   } catch (error) {
     console.error('Error getting authenticated user:', error);
